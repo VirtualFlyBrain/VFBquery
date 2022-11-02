@@ -31,3 +31,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
+
+        
+if __name__ == '__main__':
+    unittest.main()

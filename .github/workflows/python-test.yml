@@ -19,6 +19,5 @@ jobs:
          python -m pip install -r requirements.txt
       - name: Run term_info_queries_test
         run: |
-          export PYTHONPATH=$PYTHONPATH:$PWD/src/
-          cd src
+          export PYTHONPATH=$PYTHONPATH:$PWD/
           python ./test/term_info_queries_test.py

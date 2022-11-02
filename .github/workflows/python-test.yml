@@ -16,6 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
          python -m pip install -U pip
+         ls
          python -m pip install -r src/requirements.txt
       - name: Run term_info_queries_test
         run: |

@@ -20,4 +20,4 @@ jobs:
       - name: Run term_info_queries_test
         run: |
           export PYTHONPATH=$PYTHONPATH:$PWD/
-          python -m unittest -v ./src/test/term_info_queries_test.py
+          python -m unittest -v src/test/term_info_queries_test.py

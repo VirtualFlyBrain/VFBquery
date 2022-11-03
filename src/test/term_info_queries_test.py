@@ -1,8 +1,13 @@
 import unittest
-from src.term_info_queries import deserialize_term_info
+import time
+from src.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, serialize_term_info_to_dict
+from vfb_connect.cross_server_tools import VfbConnect
 
 
 class TermInfoQueriesTest(unittest.TestCase):
+
+    def setUp(self):
+        self.vc = VfbConnect()
 
     def test_term_info_deserialization(self):
         terminfo_json = """
@@ -30,6 +35,55 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
         self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
+
+    def test_term_info_deserialization_from_dict(self):
+        vfbTerm = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048514'], "Get JSON for Neuron Class")[0]
+        start_time = time.time()
+        terminfo = deserialize_term_info_from_dict(vfbTerm)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        print(vfbTerm)
+        print(terminfo)
+
+        self.assertEqual("Get JSON for Neuron Class", terminfo.query)
+
+        self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
+        self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
+        self.assertEqual("", terminfo.term.core.symbol)
+        # TODO: XXX unique facets are not in vfb_connect release
+        # self.assertEqual(4, len(terminfo.term.core.unique_facets))
+        # self.assertTrue("Adult" in terminfo.term.core.unique_facets)
+        # self.assertTrue("Mechanosensory_system" in terminfo.term.core.unique_facets)
+        # self.assertTrue("Nervous_system" in terminfo.term.core.unique_facets)
+        # self.assertTrue("Sensory_neuron" in terminfo.term.core.unique_facets)
+
+        self.assertEqual(0, len(terminfo.xrefs))
+
+        self.assertEqual(3, len(terminfo.pub_syn))
+
+        # TODO: XXX check vfb_connect version
+        # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
+        self.assertEqual("labellar taste bristle mechanosensory neuron", terminfo.pub_syn[0].synonym.label)
+        self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
+        self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
+
+    def test_term_info_serialization(self):
+        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual:Anatomy")[0]
+        print(term_info_dict)
+        start_time = time.time()
+        term_info = deserialize_term_info_from_dict(term_info_dict)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        serialized = serialize_term_info_to_dict(term_info)
+
+        self.assertEqual("fru-F-500075 [VFB_00010001]", serialized["label"])
+        self.assertFalse("title" in serialized)
+        self.assertFalse("symbol" in serialized)
+        self.assertFalse("logo" in serialized)
+        self.assertFalse("link" in serialized)
+        self.assertEqual(12, len(serialized["types"]))
+        self.assertEqual("OutAge: Adult 5~15 days", serialized["description"])
+        self.assertFalse("synonyms" in serialized)
+        self.assertFalse("source" in serialized)
+        self.assertFalse("license" in serialized)
 
 
         

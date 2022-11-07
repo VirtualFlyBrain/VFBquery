@@ -28,7 +28,17 @@ def get_term_info(short_form: str):
     except NameError:
         pass
     termInfo["meta"] = meta
-    
+
+    if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
+        images = {}
+        for image in vfbTerm.anatomy_channel_image:
+            label = image.anatomy.label
+            if image.anatomy.symbol != "" and len(image.anatomy.symbol) > 0:
+                label = image.anatomy.symbol
+            if not image.channel_image.image.template_anatomy.short_form in images.keys():
+                images[image.channel_image.image.template_anatomy.short_form]=[]
+            images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_folder + "thumbnailT.png"})
+        termInfo["Examples"] = images
     # TODO: Add Queries
     return termInfo
 

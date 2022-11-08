@@ -109,6 +109,50 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("thumbnail" in serialized)
         self.assertFalse("references" in serialized)
 
+    def test_term_info_serialization_class(self):
+        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048531'], "Get JSON for Class")[0]
+        print(term_info_dict)
+        start_time = time.time()
+        term_info = deserialize_term_info_from_dict(term_info_dict)
+        print(term_info)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        serialized = serialize_term_info_to_dict(term_info, self.variable)
+
+        self.assertEqual("female germline 2-cell cyst [FBbt_00048531]", serialized["label"])
+        self.assertFalse("title" in serialized)
+        self.assertFalse("symbol" in serialized)
+        self.assertFalse("logo" in serialized)
+        self.assertFalse("link" in serialized)
+        self.assertEqual(4, len(serialized["types"]))
+        self.assertTrue("Anatomy" in serialized["types"])
+        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([Spradling, 1993](FBrf0064777), [King, 1970](FBrf0021038))", serialized["description"])
+        self.assertTrue("synonyms" in serialized)
+        self.assertEqual("has_exact_synonym: germarial 2-cell cluster ([King, 1970](FBrf0021038))", serialized["synonyms"])
+        self.assertFalse("source" in serialized)
+        self.assertFalse("license" in serialized)
+
+        self.assertTrue("Classification" in serialized)
+        self.assertEqual(1, len(serialized["Classification"]))
+        self.assertEqual("[female germline cyst](FBbt_00007137)", serialized["Classification"][0])
+
+        self.assertTrue("relationships" in serialized)
+        self.assertEqual(1, len(serialized["relationships"]))
+        self.assertEqual("is part of [germarium](FBbt_00004866)", serialized["relationships"][0])
+
+        self.assertFalse("related_individuals" in serialized)
+
+        self.assertFalse("xrefs" in serialized)
+        self.assertFalse("examples" in serialized)
+        self.assertFalse("thumbnail" in serialized)
+        self.assertTrue("references" in serialized)
+        self.assertEqual(2, len(serialized["references"]))
+        self.assertEqual({'link': '[Spradling, 1993, Bate, Martinez Arias, 1993: 1--70](FBrf0064777)',
+                          'refs': [],
+                          'types': ' Entity Individual pub'}, serialized["references"][0])
+        self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
+                          'refs': [],
+                          'types': ' Entity Individual pub'}, serialized["references"][1])
+
     def test_term_info_serialization_dataset(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['Ito2013'], "Get JSON for DataSet")[0]
         print(term_info_dict)

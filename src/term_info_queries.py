@@ -145,7 +145,7 @@ class Pub:
 			if "," in self.core.label:
 				label_parts = self.core.label.split(",")
 				self.microref = label_parts[0] + "," + label_parts[1]
-				return self.core.intLink().replace(self.core.label, self.microref);
+				return self.core.get_int_link().replace(self.core.label, self.microref)
 			else:
 				return self.core.label
 		return ""
@@ -164,6 +164,9 @@ class PubSyn:
 		if self.pubs:
 			return str(self.synonym) + " " + self.get_microrefs()
 		return str(self.synonym)
+
+	def __hash__(self):
+		return hash(self.__str__())
 
 	def get_microrefs(self):
 		return "(" + ", ".join([pub.get_microref() for pub in self.pubs]) + ")"

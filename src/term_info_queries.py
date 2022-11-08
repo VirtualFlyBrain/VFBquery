@@ -863,3 +863,16 @@ def serialize_term_info_to_json(vfb_term: VfbTerminfo, show_types=False) -> str:
 	"""
 	term_info_dict = serialize_term_info_to_dict(vfb_term, show_types)
 	return json.dumps(term_info_dict, indent=4)
+
+
+def process(term_info_response: dict, variable, show_types=False) -> dict:
+	"""
+	Processes the term info api response and generates its flat representation.
+	:param term_info_response: TermInfo dict responded by the VFBConnect API
+	:param variable: ?? TODO ask Robbie
+	:param show_types: Switch to display types. Default: False
+	:return: flat representation of the term info
+	"""
+	term_info = deserialize_term_info_from_dict(term_info_response)
+	return serialize_term_info_to_dict(term_info, variable, show_types)
+

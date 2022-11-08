@@ -182,14 +182,16 @@ class License:
 
 	def get_ext_link(self):
 		result = dict()
-		result["label"] = get_link(self.core.label, self.link)
+		if self.core.label:
+			result["label"] = get_link(self.core.label, self.link)
 		if self.icon:
 			result["icon"] = self.icon
 		return result
 
 	def get_int_link(self):
 		result = dict()
-		result["label"] = self.core.get_int_link()
+		if self.core.label:
+			result["label"] = self.core.get_int_link()
 		if self.icon:
 			result["icon"] = self.icon
 		return result
@@ -404,7 +406,7 @@ class CoordinatesList:
 @dataclass
 class VfbTerminfo:
 	term: Term
-	query: str
+	query: Optional[str]
 	version: str
 	anatomy_channel_image: Optional[List[AnatomyChannelImage]] = None
 	xrefs: Optional[List[Xref]] = None
@@ -440,16 +442,16 @@ class VfbTerminfo:
 		if self.dataset_license:
 			for dsl in self.dataset_license:
 				if self.term.core.short_form == dsl.dataset.core.short_form:
-					if dsl.license.get_ext_link() not in result:
+					if dsl.license.get_ext_link() and dsl.license.get_ext_link() not in result:
 						result.append(dsl.license.get_ext_link())
-				elif dsl.license.get_int_link() not in result:
+				elif dsl.license.get_int_link() and dsl.license.get_int_link() not in result:
 					result.append(dsl.license.get_int_link())
 		elif self.license:
 			for lcns in self.license:
 				if self.term.core.short_form == lcns.core.short_form:
-					if lcns.get_ext_link() not in result:
+					if lcns.get_ext_link() and lcns.get_ext_link() not in result:
 						result.append(lcns.get_ext_link())
-				elif lcns.get_int_link() not in result:
+				elif lcns.get_int_link() and lcns.get_int_link() not in result:
 					result.append(lcns.get_int_link())
 
 		return result
@@ -517,27 +519,27 @@ class VfbTerminfo:
 	def get_minirefs(pubs: List[Pub], sep: str) -> str:
 		return sep.join([pub.get_microref() for pub in pubs])
 
-	def get_synonyms(self) -> str:
+	def get_synonyms(self) -> List[str]:
 		if self.pub_syn:
-			return ", ".join([str(syn) for syn in set(self.pub_syn) if syn])
-		return ""
+			return [str(syn) for syn in set(self.pub_syn) if syn]
+		return list()
 
 	def get_references(self) -> List[dict]:
 		results = list()
 		if self.def_pubs:
 			for pub in self.def_pubs:
 				mini_ref = pub.get_miniref()
-				if mini_ref not in results:
+				if mini_ref and mini_ref not in results:
 					results.append(mini_ref)
 		if self.pub_syn:
 			for syn in self.pub_syn:
 				mini_ref = syn.pub.get_miniref()
-				if mini_ref not in results:
+				if mini_ref and mini_ref not in results:
 					results.append(mini_ref)
 		if self.pubs:
 			for pub in self.pubs:
 				mini_ref = pub.get_miniref()
-				if mini_ref not in results:
+				if mini_ref and mini_ref not in results:
 					results.append(mini_ref)
 		return results
 

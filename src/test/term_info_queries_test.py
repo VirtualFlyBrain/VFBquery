@@ -8,6 +8,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
     def setUp(self):
         self.vc = VfbConnect()
+        self.variable = TestVariable("my_id", "my_name")
 
     def test_term_info_deserialization(self):
         terminfo_json = """
@@ -66,13 +67,14 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
-    def test_term_info_serialization(self):
+    def test_term_info_serialization_individual_anatomy(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual:Anatomy")[0]
         print(term_info_dict)
         start_time = time.time()
         term_info = deserialize_term_info_from_dict(term_info_dict)
+        print(term_info)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info)
+        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("fru-F-500075 [VFB_00010001]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -83,9 +85,90 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("OutAge: Adult 5~15 days", serialized["description"])
         self.assertFalse("synonyms" in serialized)
         self.assertFalse("source" in serialized)
-        self.assertFalse("license" in serialized)
+
+        self.assertTrue("license" in serialized)
+        # TODO check with Robbie None or [{'label': '[None](None)'}]
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertEqual("[None](None)", serialized["license"][0]["label"])
+
+        self.assertTrue("Classification" in serialized)
+        self.assertEqual(2, len(serialized["Classification"]))
+        self.assertEqual("[expression pattern fragment](VFBext_0000004)", serialized["Classification"][0])
+
+        self.assertTrue("relationships" in serialized)
+        self.assertEqual(6, len(serialized["relationships"]))
+        self.assertEqual("expresses [Scer\\GAL4[fru.P1.D]](FBal0276838)", serialized["relationships"][0])
+
+        self.assertFalse("related_individuals" in serialized)
+
+        self.assertTrue("xrefs" in serialized)
+        self.assertEqual(1, len(serialized["xrefs"]))
+        self.assertEqual("[fru-F-500075 on FlyCircuit 1.0](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-F-500075)", serialized["xrefs"][0]["label"])
+
+        self.assertFalse("examples" in serialized)
+        self.assertFalse("thumbnail" in serialized)
+        self.assertFalse("references" in serialized)
+
+    def test_term_info_serialization_dataset(self):
+        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['Ito2013'], "Get JSON for DataSet")[0]
+        print(term_info_dict)
+        start_time = time.time()
+        term_info = deserialize_term_info_from_dict(term_info_dict)
+        print(term_info)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        serialized = serialize_term_info_to_dict(term_info, self.variable)
+
+        self.assertEqual("Ito lab adult brain lineage clone image set [Ito2013]", serialized["label"])
+        self.assertFalse("title" in serialized)
+        self.assertFalse("symbol" in serialized)
+        self.assertFalse("logo" in serialized)
+        self.assertTrue("link" in serialized)
+        self.assertEqual("[http://flybase.org/reports/FBrf0221438.html](http://flybase.org/reports/FBrf0221438.html)", serialized["link"])
+        self.assertEqual(3, len(serialized["types"]))
+        self.assertTrue("DataSet" in serialized["types"])
+        self.assertEqual("An exhaustive set of lineage clones covering the adult brain from Kei Ito's  lab.", serialized["description"])
+        self.assertFalse("synonyms" in serialized)
+        self.assertFalse("source" in serialized)
+
+        self.assertTrue("license" in serialized)
+        # TODO check with Robbie None or [{'label': '[None](None)'}]
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertEqual("[None](None)", serialized["license"][0]["label"])
+
+        self.assertFalse("Classification" in serialized)
+        self.assertFalse("relationships" in serialized)
+        self.assertFalse("related_individuals" in serialized)
+
+        self.assertFalse("xrefs" in serialized)
+        self.assertTrue("examples" in serialized)
+        self.assertEqual(3, len(serialized["examples"]))
+        self.assertEqual({'name': 'VPNp&v1 clone of Ito 2013',
+                          'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/thumbnailT.png',
+                          'reference': 'VFB_00020254',
+                          'format': 'PNG'}, serialized["examples"][0])
+
+        self.assertFalse("thumbnail" in serialized)
+        self.assertTrue("references" in serialized)
+        self.assertEqual(1, len(serialized["references"]))
+        self.assertEqual({'link': '[Ito et al., 2013, Curr. Biol. 23(8): 644--655](FBrf0221438)',
+                          'refs': ['http://flybase.org/reports/FBrf0221438',
+                                   'https://doi.org/10.1016/j.cub.2013.03.015',
+                                   'http://www.ncbi.nlm.nih.gov/pubmed/?term=23541729'],
+                          'types': ' Entity Individual pub'}, serialized["references"][0])
 
 
-        
+class TestVariable:
+
+    def __init__(self, _id, name):
+        self.id = _id
+        self.name = name
+
+    def getId(self):
+        return self.id
+
+    def getName(self):
+        return self.name
+
+
 if __name__ == '__main__':
     unittest.main()

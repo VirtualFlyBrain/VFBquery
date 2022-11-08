@@ -1,10 +1,38 @@
 import re
 import json
+import typing
+
 import requests
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
-from typing import List, Optional
+from typing import List, Optional, Any
 from dacite import from_dict
+
+
+@dataclass_json
+@dataclass
+class Coordinates:
+	X: float
+	Y: float
+	Z: float
+
+	def __str__(self):
+		return json.dumps([str(self.X), str(self.Y), str(self.Z)])
+
+
+class CoordinatesFactory:
+
+	@staticmethod
+	def from_list(float_list: List[float]) -> Coordinates:
+		return Coordinates(float_list[0], float_list[1], float_list[2])
+
+	@staticmethod
+	def from_json_string(json_str: str) -> Coordinates:
+		return  Coordinates.from_json(json_str)
+
+	@staticmethod
+	def from_json_string_list(json_str_list: List[str]) -> Coordinates:
+		return Coordinates.from_json(json_str_list[0])
 
 
 @dataclass_json
@@ -19,8 +47,10 @@ class MinimalEntityInfo:
 
 	def get_int_link(self, show_types=False) -> str:
 		if self.label:
-			return get_link(self.label.replace("\\'", "'"), self.short_form) + " " + self.get_types_str(show_types)
-		return get_link(self.short_form, self.short_form) + " " + self.get_types_str(show_types)
+			result = get_link(self.label.replace("\\'", "'"), self.short_form) + " " + self.get_types_str(show_types)
+		else:
+			result = get_link(self.short_form, self.short_form) + " " + self.get_types_str(show_types)
+		return result.strip()
 
 	def get_ext_link(self, show_types=False) -> str:
 		return get_link(self.short_form, self.iri) + " " + self.get_types_str(show_types)
@@ -67,6 +97,16 @@ class PubSpecificContent:
 	DOI: Optional[str] = ""
 	ISBN: Optional[str] = ""
 
+	def get_refs(self):
+		results = list()
+		if self.FlyBase and len(self.FlyBase) > 2:
+			results.append(self.FlyBase)
+		if self.PubMed and len(self.PubMed) > 2:
+			results.append(self.PubMed)
+		if self.DOI and len(self.DOI) > 2:
+			results.append(self.DOI)
+		return results
+
 
 @dataclass_json
 @dataclass
@@ -78,7 +118,26 @@ class Pub:
 	DOI: Optional[str] = ""
 	ISBN: Optional[str] = ""
 
-	def get_microref(self):
+	def get_miniref(self) -> Optional[dict]:
+		links = list()
+		if self.core.short_form == "Unattributed":
+			return None
+		site_links = dict()
+		site_links["FlyBase"] = "http://flybase.org/reports/$ID"
+		site_links["DOI"] = "https://doi.org/$ID"
+		site_links["PubMed"] = "http://www.ncbi.nlm.nih.gov/pubmed/?term=$ID"
+
+		result = self.core.get_int_link()
+		if self.FlyBase:
+			links.append(site_links["FlyBase"].replace("$ID", self.FlyBase))
+		if self.DOI:
+			links.append(site_links["DOI"].replace("$ID", self.DOI))
+		if self.PubMed:
+			links.append(site_links["PubMed"].replace("$ID", self.PubMed))
+
+		return {"link": result, "refs": links, "types": self.core.get_types_str(True)}
+
+	def get_microref(self) -> str:
 		if self.microref:
 			return self.core.get_int_link().replace(self.core.label, self.microref)
 		# if microref doesn't exist create one from the label:
@@ -119,8 +178,18 @@ class License:
 	is_bespoke: Optional[str] = ""
 
 	def get_ext_link(self):
-		# CONTINUE
-		pass
+		result = dict()
+		result["label"] = get_link(self.core.label, self.link)
+		if self.icon:
+			result["icon"] = self.icon
+		return result
+
+	def get_int_link(self):
+		result = dict()
+		result["label"] = self.core.get_int_link()
+		if self.icon:
+			result["icon"] = self.icon
+		return result
 
 
 @dataclass_json
@@ -133,39 +202,22 @@ class Dataset:
 	def get_ext_link(self):
 		if not self.core.label or self.core.label == "null":
 			return ""
-		# TODO link + src + label ???
+		result = dict()
+		result["label"] = get_link(self.core.label, self.link)
 		if self.icon:
-			return get_link(self.core.label, self.link) + "(" + self.icon + ")"
-		else:
-			return get_link(self.core.label, self.link)
+			result["icon"] = self.get_secure_url(self.icon)
+		return result
 
-	# TODO double check the returned structure with Robbie
 	def get_int_link(self):
+		result = dict()
 		if not self.core.label or self.core.label == "null":
 			return ""
-		result = self.core.get_int_link(False)
+		result["label"] = self.core.get_int_link(False)
 		if self.icon:
-			result += get_link(self.core.label, self.get_secure_url(self.icon))
+			result["icon"] = self.get_secure_url(self.icon)
 		if self.link and self.link != "unspec":
-			# TODO CONTINUE
-			pass
-
-
-
-	def get_secure_url(self, url):
-		secure_url = url.replace("http://", "http://")
-		if self.check_url_exist(secure_url):
-			return secure_url
-		return url
-
-	def check_url_exist(self, url: str) -> bool:
-		try:
-			response = requests.get(url)
-			if response.status_code == 200:
-				return True
-		except Exception as e:
-			print("Error checking url (" + url + ") " + str(e))
-		return False
+			result["link"] = self.link
+		return result
 
 
 @dataclass_json
@@ -185,6 +237,21 @@ class Xref:
 	accession: Optional[str] = ""
 	link_text: Optional[str] = ""
 	icon: Optional[str] = ""
+
+	def get_ext_link(self, show_types: bool = False):
+		result = dict()
+		result["label"] = get_link(self.link_text, self.link())
+		result["site"] = self.site.get_ext_link(show_types).replace(self.site.iri, self.link())
+		if self.icon:
+			result["icon"] = get_secure_url(self.icon, False, timeout=5)
+		return result
+
+	def link(self):
+		if self.accession and self.accession != "None":
+			return self.link_base + self.accession + self.link_postfix
+		if self.homepage:
+			return self.homepage
+		return self.site.iri
 
 
 @dataclass_json
@@ -207,6 +274,15 @@ class TemplateChannel:
 	orientation: Optional[str] = ""
 	image_folder: Optional[str] = ""
 
+	def get_voxel(self) -> Coordinates:
+		return CoordinatesFactory.from_json_string(self.voxel)
+
+	def get_center(self) -> Coordinates:
+		return CoordinatesFactory.from_json_string(self.center)
+
+	def get_extent(self) -> Coordinates:
+		return CoordinatesFactory.from_json_string(self.extent)
+
 
 @dataclass_json
 @dataclass
@@ -215,15 +291,30 @@ class ChannelImage:
 	channel: MinimalEntityInfo
 	imaging_technique: MinimalEntityInfo
 
+	def get_url(self, pre: str, post: str) -> str:
+		result = ""
+		if self.image and self.image.image_folder:
+			result = self.image.image_folder.replace("http://", "https://")
+		if pre:
+			result = pre + result
+		if post:
+			result += post
+		return result
+
 
 @dataclass_json
 @dataclass
 class Domain:
 	index: List[float]
-	center: dict
+	center: Any
 	folder: str
 	anatomical_individual: MinimalEntityInfo
 	anatomical_type: MinimalEntityInfo
+
+	def get_center(self) -> Optional[Coordinates]:
+		if isinstance(self.center, str):
+			return CoordinatesFactory.from_json_string(str(self.center))
+		return None
 
 
 @dataclass_json
@@ -238,6 +329,9 @@ class AnatomyChannelImage:
 class Rel:
 	relation: MinimalEdgeInfo
 	object: MinimalEntityInfo
+
+	def get_int_link(self, show_types: bool = False):
+		return self.relation.label + " " + self.object.get_int_link(show_types)
 
 
 @dataclass_json
@@ -289,35 +383,12 @@ class Term:
 
 @dataclass_json
 @dataclass
-class Coordinates:
-	X: float
-	Y: float
-	Z: float
-
-
-@dataclass_json
-@dataclass
-class CoordinatesList:
-	coordinates: List[float]
-
-
-@dataclass_json
-@dataclass
-class CoordinatesJsonList:
-	coordinates: List[str]
-
-
-@dataclass_json
-@dataclass
-class CoordinatesJsonString:
-	json: Coordinates
-
-
-@dataclass_json
-@dataclass
 class AnatomyChannelImage:
 	anatomy: MinimalEntityInfo
 	channel_image: ChannelImage
+
+	def get_url(self, pre: str, post: str):
+		return self.channel_image.get_url(pre, post)
 
 
 @dataclass_json
@@ -362,31 +433,217 @@ class VfbTerminfo:
 		return result
 
 	def get_license(self):
-		result = ""
+		result = list()
 		if self.dataset_license:
 			for dsl in self.dataset_license:
 				if self.term.core.short_form == dsl.dataset.core.short_form:
 					if dsl.license.get_ext_link() not in result:
-						result += dsl.license.get_ext_link()
-					elif dsl.license.get_int_link() not in result:
-						result += dsl.license.get_int_link()
+						result.append(dsl.license.get_ext_link())
+				elif dsl.license.get_int_link() not in result:
+					result.append(dsl.license.get_int_link())
 		elif self.license:
-			# CONTINUE
-			pass
+			for lcns in self.license:
+				if self.term.core.short_form == lcns.core.short_form:
+					if lcns.get_ext_link() not in result:
+						result.append(lcns.get_ext_link())
+				elif lcns.get_int_link() not in result:
+					result.append(lcns.get_int_link())
+
 		return result
+
+	def get_domains(self) -> List[List[str]]:
+		domains = list()
+		try:
+			if "Template" in self.term.core.types and self.template_channel and self.template_domains:
+				wlzUrl = ""
+				domain_id = [""] * 600
+				domain_name = [""] * 600
+				domain_type = [""] * 600
+				domain_centre = [""] * 600
+				voxel_size = [""] * 4
+				domain_id[0] = self.term.core.short_form
+				domain_name[0] = self.parents[0].label
+				domain_type[0] = self.parents[0].short_form
+				voxel_size[0] = str(self.template_channel.get_voxel().get_x())
+				voxel_size[1] = str(self.template_channel.get_voxel().get_y())
+				voxel_size[2] = str(self.template_channel.get_voxel().get_z())
+				domain_centre[0] = str(self.template_channel.get_center())
+				for domain in self.template_domains:
+					if domain.index:
+						domain_id[int(domain.index[0])] = domain.anatomical_individual.short_form
+						domain_name[int(domain.index[0])] = domain.anatomical_type.label
+						domain_type[int(domain.index[0])] = domain.anatomical_type.short_form
+						if domain.get_center() and domain.get_center().Z:
+							domain_centre[int(domain.index[0])] = str(domain.get_center())
+				domains.append(voxel_size)
+				domains.append(domain_id)
+				domains.append(domain_name)
+				domains.append(domain_type)
+				domains.append(domain_centre)
+			else:
+				domains.append(["0.622088", "0.622088", "0.622088", ""])
+				domains.append([self.term.core.short_form])
+				domains.append([self.term.core.label])
+				domains.append([self.term.core.short_form])
+				domains.append(["[511, 255, 108]"])
+		except Exception as e:
+			print("Error in vfbTerm.get_domains() " + str(e))
+
+		return domains
 
 	def get_definition(self) -> str:
 		if self.def_pubs:
 			return self.term.get_definition() + "\n(" + self.get_minirefs(self.def_pubs, ", ") + ")"
 		return self.term.get_definition()
 
-	def get_minirefs(self, pubs: List[Pub], sep: str) -> str:
+	def get_targeting_splits(self) -> List[str]:
+		results = set()
+		if self.targeting_splits:
+			for split in self.targeting_splits:
+				results.add(split.get_int_link())
+		return list(results)
+
+	def get_targeting_neurons(self) -> List[str]:
+		results = set()
+		if self.target_neurons:
+			for neuron in self.target_neurons:
+				results.add(neuron.get_int_link())
+		return list(results)
+
+	@staticmethod
+	def get_minirefs(pubs: List[Pub], sep: str) -> str:
 		return sep.join([pub.get_microref() for pub in pubs])
 
 	def get_synonyms(self) -> str:
 		if self.pub_syn:
 			return ", ".join([str(syn) for syn in set(self.pub_syn) if syn])
 		return ""
+
+	def get_references(self) -> List[dict]:
+		results = list()
+		if self.def_pubs:
+			for pub in self.def_pubs:
+				mini_ref = pub.get_miniref()
+				if mini_ref not in results:
+					results.append(mini_ref)
+		if self.pub_syn:
+			for syn in self.pub_syn:
+				mini_ref = syn.pub.get_miniref()
+				if mini_ref not in results:
+					results.append(mini_ref)
+		if self.pubs:
+			for pub in self.pubs:
+				mini_ref = pub.get_miniref()
+				if mini_ref not in results:
+					results.append(mini_ref)
+		return results
+
+	@staticmethod
+	def get_rel_list(entities: List[Rel], show_types: bool) -> List[str]:
+		values = list()
+		for rel in entities:
+			if rel.get_int_link(show_types) not in values:
+				values.append(rel.get_int_link(show_types))
+		return values
+
+	@staticmethod
+	def compile_list(entities: List[MinimalEntityInfo], show_types: bool) -> List[str]:
+		values = list()
+		for entity in entities:
+			if entity.get_int_link(show_types) not in values:
+				values.append(entity.get_int_link(show_types))
+		return values
+
+	def get_xref_list(self):
+		results = list()
+		if self.xrefs:
+			for xref in self.xrefs:
+				results.append(xref.get_ext_link())
+			# sort xrefs alphabetically (by site)
+			results = sorted(results, key=lambda d: d['label'])
+
+		if self.pub_specific_content:
+			for ref in self.pub_specific_content.get_refs():
+				results.append(ref)
+
+		return results
+
+	def get_examples(self, template: str) -> Optional[List[dict]]:
+		image_array = list()
+		try:
+			if not template:
+				# default to JFRC2
+				template = "VFB_00017894"
+			for anat in self.anatomy_channel_image:
+				# add same template to the beginning and others at the end.
+				if anat.channel_image and anat.channel_image.image and anat.channel_image.image.template_anatomy \
+						and anat.channel_image.image.template_anatomy.short_form \
+						and template == anat.channel_image.image.template_anatomy.short_form:
+					image_array.append(self.get_image(anat.get_url("", "thumbnailT.png"), anat.anatomy.label, anat.anatomy.short_form))
+		except Exception as e:
+			print("Error in vfbTerm.get_examples(): " + str(e))
+			return None
+		return image_array
+
+	def get_thumbnail(self):
+		image_array = list()
+		try:
+			image_array.append(self.get_image(self.template_channel.image_folder + "thumbnailT.png",
+											  self.term.core.label, self.term.core.short_form))
+		except Exception as e:
+			print("Error in vfbTerm.get_thumbnail(): " + str(e))
+			return None
+		return image_array
+
+	def get_cluster_image(self):
+		image_array = list()
+		try:
+			image_array.append(self.get_image(self.xrefs[0].link_base + self.xrefs[0].accession + "/snapshot.png",
+											  self.term.core.label, self.term.core.short_form))
+		except Exception as e:
+			print("Error in vfbTerm.get_cluster_image(): " + str(e))
+			return None
+		return image_array
+
+	@staticmethod
+	def get_image_file(images: List[ChannelImage], file_name: str) -> str:
+		try:
+			for ci in images:
+				if check_url_exist(ci.get_url("", file_name), allow_redirects=False):
+					return ci.get_url("", file_name)
+		except Exception as e:
+			print("Failed to find: " + file_name)
+			print(e)
+		return ""
+
+	@staticmethod
+	def get_image_file2(ci: ChannelImage, file_name: str) -> str:
+		try:
+			if check_url_exist(ci.get_url("", file_name), allow_redirects=False):
+				return ci.get_url("", file_name)
+		except Exception as e:
+			print("Failed to find: " + file_name)
+			print(e)
+		return ""
+
+	@staticmethod
+	def get_image_file3(template: TemplateChannel, file_name: str) -> str:
+		try:
+			if check_url_exist(template.image_folder + file_name, allow_redirects=False):
+				return template.image_folder + file_name
+		except Exception as e:
+			print("Failed to find: " + file_name)
+			print(e)
+		return ""
+
+	@staticmethod
+	def get_image(data: str, name: str, reference: str):
+		image = dict()
+		image["name"] = name
+		image["data"] = get_secure_url(data)
+		image["reference"] = reference
+		image["format"] = "PNG"
+		return image
 
 
 def get_link(text: str, link: str) -> str:
@@ -398,6 +655,27 @@ def get_link(text: str, link: str) -> str:
 	:return: markdown formatted link string
 	"""
 	return "[{}]({})".format(text, link)
+
+
+def get_secure_url(url: str, allow_redirects: bool = True, timeout=15) -> str:
+	secure_url = url.replace("http://", "http://")
+	if check_url_exist(secure_url, allow_redirects, timeout):
+		return secure_url
+	return url
+
+
+def check_url_exist(url: str, allow_redirects: bool = False, timeout=15, request_method: str = "HEAD") -> bool:
+	if ":" in url:
+		try:
+			if request_method == "GET":
+				response = requests.get(url, allow_redirects=allow_redirects, timeout=timeout)
+			else:
+				response = requests.head(url, allow_redirects=allow_redirects, timeout=timeout)
+			if response.status_code == 200:
+				return True
+		except Exception as e:
+			print("Error checking url (" + url + ") " + str(e))
+	return False
 
 
 def deserialize_term_info(terminfo: str) -> VfbTerminfo:
@@ -420,17 +698,22 @@ def deserialize_term_info_from_dict(terminfo: dict) -> VfbTerminfo:
 	return from_dict(data_class=VfbTerminfo, data=terminfo)
 
 
-def serialize_term_info_to_dict(vfb_term: VfbTerminfo, show_types=False) -> dict:
+def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=False) -> dict:
 	"""
-	Serializes the given VfbTerminfo to a dictionary
+	Serializes the given VfbTerminfo to a dictionary.
 
 	:param vfb_term: term info object
+	:param variable:
 	:param show_types: show type detail in serialization
 	:return: dictionary representation of the term info object
 	"""
+	template = ""
+	loaded_template = ""
+
 	data = dict()
 	data["label"] = "{0} [{1}] {2}".format(vfb_term.term.core.label, vfb_term.term.core.short_form, vfb_term.term.core.get_types_str(show_types)).strip()
 
+	class_variable = dict()
 	if vfb_term.pub_specific_content and vfb_term.pub_specific_content.title:
 		data["title"] = vfb_term.pub_specific_content.title
 
@@ -456,6 +739,111 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, show_types=False) -> dict
 
 	if vfb_term.get_license() and not vfb_term.pub_specific_content:
 		data["license"] = vfb_term.get_license()
+
+	if vfb_term.parents:
+		data["Classification"] = vfb_term.compile_list(vfb_term.parents, show_types)
+		class_variable["id"] = vfb_term.parents[0].short_form
+		class_variable["name"] = vfb_term.parents[0].label
+
+	if vfb_term.relationships:
+		data["relationships"] = vfb_term.get_rel_list(vfb_term.relationships, show_types)
+
+	if vfb_term.related_individuals:
+		data["related_individuals"] = vfb_term.get_rel_list(vfb_term.related_individuals, show_types)
+
+	if vfb_term.xrefs or vfb_term.pub_specific_content:
+		data["xrefs"] = vfb_term.get_xref_list()
+
+	download_files = list()
+	download_data = list()
+
+	# TODO this needs serious debugging
+	if vfb_term.channel_image:
+		temp_link = ""
+		count = 0
+		for alignment in vfb_term.channel_image:
+			count += 1
+			template = alignment.image.template_anatomy.short_form
+			download_files.append(alignment.image.template_anatomy.label)
+
+			# if (loadedTemplate != "" && !loadedTemplate.equals(template))
+			if not temp_link:
+				temp_link = alignment.image.template_anatomy.get_int_link()
+			if len(vfb_term.channel_image) == count:
+				# OBJ - 3D mesh
+				temp_data = vfb_term.get_image_file2(alignment, "volume_man.obj")
+				download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
+				if not temp_data:
+					download_files.append(get_link(variable.getId() + "_pointCloud.obj", download_url))
+					download_data.append({"obj": {"url": download_url, "local": template + "/PointCloudFiles(OBJ)/"}})
+				else:
+					download_files.append(get_link(variable.getId() + "_mesh.obj", download_url))
+					download_data.append({"obj": {"url": download_url, "local": template + "/MeshFiles(OBJ)/"}})
+
+				# Download - NRRD stack
+				if temp_data:
+					download_files.append(get_link(variable.getId() + ".nrrd", download_url))
+					download_data.append({"nrrd": {"url": download_url, "local": template + "/SignalFiles(NRRD)/"}})
+					bibtex_url = temp_data.replace("http://", "https://"). replace("https://www.virtualflybrain.org/data/", "https://v2.virtualflybrain.org/data/")
+					bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
+					download_files.append(get_link(variable.getId() + ".bibtex", bibtex_url))
+					download_data.append({"bibtex": {"url": bibtex_url, "local": bibtex_local}})
+
+			# TODO }else{
+
+	if vfb_term.template_channel and vfb_term.template_channel.image_folder:
+		# OBJ - 3D mesh
+		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume_man.obj")
+		if not temp_data:
+			temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.obj")
+			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
+			download_files.append(get_link(variable.getId() + "_pointCloud.obj", download_url))
+			download_data.append({"obj": {"url": download_url, "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+		else:
+			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
+																			"/data/")
+			download_files.append(get_link(variable.getId() + "_mesh.obj", download_url))
+			download_data.append({"obj": {"url": download_url,
+								  "local": template + "/MeshFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+		# Slices - 3D slice viewer
+		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.wlz")
+		if temp_data:
+			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
+			download_files.append(get_link(variable.getId() + ".wlz", download_url))
+			wlz_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
+																		  "https://v2.virtualflybrain.org/data/")
+			download_data.append({"wlz": {"url": wlz_url, "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
+
+		# Download - NRRD stack
+		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.nrrd")
+		if temp_data:
+			nrrd_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
+																		  "https://v2.virtualflybrain.org/data/")
+			download_data.append({"nrrd": {"url": nrrd_url, "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
+
+	# examples
+	if vfb_term.anatomy_channel_image and vfb_term.get_examples(template):
+		data["examples"] = vfb_term.get_examples(template)
+
+	# NBLAST Cluster
+	if vfb_term.xrefs and "flybrain.mrc-lmb.cam.ac.uk/vfb/fc/clusterv/3" in vfb_term.xrefs[0].link_base:
+		data["thumbnail"] = vfb_term.get_cluster_image()
+
+	if vfb_term.get_references():
+		data["references"] = vfb_term.get_references()
+
+	# queries
+	# TODO requires geppettoModelAccess.getQueries() ??
+
+	# Targeting Splits
+	temp_data = vfb_term.get_targeting_splits()
+	if temp_data:
+		data["targetingSplits"] = temp_data
+
+	# Targeting Neurons
+	temp_data = vfb_term.get_targeting_neurons()
+	if temp_data:
+		data["targetingNeurons"] = temp_data
 
 	return data
 

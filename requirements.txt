@@ -2,3 +2,4 @@ vfb_connect
 dataclasses-json
 dacite
 requests
+pysolr

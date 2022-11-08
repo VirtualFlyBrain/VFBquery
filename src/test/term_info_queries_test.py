@@ -107,6 +107,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048531'], "Get JSON for Class")[0]
         print(term_info_dict)
@@ -154,6 +157,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_neuron_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048999'], "Get JSON for Neuron Class")[0]
         print(term_info_dict)
@@ -194,6 +200,9 @@ class TermInfoQueriesTest(unittest.TestCase):
                           'types': ' Entity Individual pub'}, serialized["references"][0])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
+
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
 
     def test_term_info_serialization_neuron_class2(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00047030'], "Get JSON for Neuron Class")[0]
@@ -247,6 +256,9 @@ class TermInfoQueriesTest(unittest.TestCase):
                         in serialized["targetingSplits"])
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_split_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBexp_FBtp0124468FBtp0133404'], "Get JSON for Split Class")[0]
         print(term_info_dict)
@@ -298,6 +310,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(1, len(serialized["targetingNeurons"]))
         self.assertEqual("[adult ellipsoid body-protocerebral bridge 1 glomerulus-dorsal/ventral gall neuron](FBbt_00047030)", serialized["targetingNeurons"][0])
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_dataset(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['Ito2013'], "Get JSON for DataSet")[0]
         print(term_info_dict)
@@ -342,6 +357,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_license(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBlicense_CC_BY_NC_3_0'], "Get JSON for License")[0]
         print(term_info_dict)
@@ -376,6 +394,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
+
     def test_term_info_serialization_template(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00200000'], "Get JSON for Template")[0]
         print(term_info_dict)
@@ -407,6 +428,24 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
+
+        self.assertTrue("downloads" in serialized)
+        self.assertEqual(3, len(serialized["downloads"]))
+        self.assertEqual("[my_id_mesh.obj](/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
+        self.assertEqual("[my_id.wlz](/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
+        self.assertEqual("[my_id.nrrd](/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
+
+        self.assertTrue("filemeta" in serialized)
+        self.assertEqual(3, len(serialized["filemeta"]))
+        self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
+                                  'url': '/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
+                         serialized["filemeta"][0])
+        self.assertEqual({'wlz': {'local': '/Slices(WOOLZ)/my_id_(my_name).wlz',
+                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
+                         serialized["filemeta"][1])
+        self.assertEqual({'nrrd': {'local': '/SignalFiles(NRRD)/my_id_(my_name).nrrd',
+                                   'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
+                         serialized["filemeta"][2])
 
     def test_term_info_serialization_pub(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBrf0243986'], "Get JSON for pub")[0]
@@ -444,6 +483,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
+
+        self.assertFalse("downloads" in serialized)
+        self.assertFalse("filemeta" in serialized)
 
 
 class TestVariable:

@@ -793,6 +793,8 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=Fals
 					bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
 					download_files.append(get_link(variable.getId() + ".bibtex", bibtex_url))
 					download_data.append({"bibtex": {"url": bibtex_url, "local": bibtex_local}})
+					data["downloads"] = download_files
+					data["filemeta"] = download_data
 
 			# TODO }else{
 
@@ -822,9 +824,14 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=Fals
 		# Download - NRRD stack
 		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.nrrd")
 		if temp_data:
+			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
+																			"/data/")
+			download_files.append(get_link(variable.getId() + ".nrrd", download_url))
+			data["downloads"] = download_files
 			nrrd_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
 																		  "https://v2.virtualflybrain.org/data/")
 			download_data.append({"nrrd": {"url": nrrd_url, "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
+			data["filemeta"] = download_data
 
 	# examples
 	if vfb_term.anatomy_channel_image and vfb_term.get_examples(template):

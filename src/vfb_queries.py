@@ -1,5 +1,9 @@
 import pysolr
 from src.term_info_queries import deserialize_term_info
+from vfb_connect.cross_server_tools import VfbConnect
+
+vfb_solr = pysolr.Solr('http://query.virtualflybrain.org:8983/solr/vfb_json/', always_commit=False, timeout=990)
+vc=VfbConnect()
 
 def get_term_info(short_form: str):
     """
@@ -9,12 +13,13 @@ def get_term_info(short_form: str):
     :return: term info
     """
     termInfo = {}
-    vfb_solr = pysolr.Solr('http://query.virtualflybrain.org:8983/solr/vfb_json/', always_commit=True, timeout=990)
     results = vfb_solr.search('id:' + short_form)
     vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
+    queries = []
     meta = {
         "Name": "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form),
         }
+    meta["SuperTypes"] = vfbTerm.term.core.types
     try:
         meta["Tags"] = vfbTerm.term.core.unique_facets
     except NameError:
@@ -39,6 +44,36 @@ def get_term_info(short_form: str):
                 images[image.channel_image.image.template_anatomy.short_form]=[]
             images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_folder + "thumbnailT.png"})
         termInfo["Examples"] = images
-    # TODO: Add Queries
+        queries.append({"query":"ListAllAvilableImages","function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]}}]})
+    else:
+        if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
+            images = {}
+            for image in vfbTerm.channel_image:
+                label = vfbTerm.term.core.label
+                if vfbTerm.term.core.symbol != "" and len(vfbTerm.term.core.symbol) > 0:
+                    label = vfbTerm.term.core.symbol
+                if not image.image.template_anatomy.short_form in images.keys():
+                    images[image.image.template_anatomy.short_form]=[]
+                images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, "thumbnail": image.image.image_folder + "thumbnailT.png"})
+            termInfo["Thumbnails"] = images
+
+    termInfo["Queries"] = queries
     return termInfo
 
+def get_instances(short_form: str):
+    """
+    Retrieves available instances for the given class short form.
+
+    :param short_form: short form of the class
+    :return: results rows
+    """
+    results = {"headers":{"label":{"title":"Name","type":"markdown","order":0,"sort":{0:"Asc"}},"parent":{"title":"Parent Type","type":"markdown","order":1},"template":{"title":"Template","type":"string","order":4},"tags":{"title":"Gross Types","type":"tags","order":3}},"rows":[]}
+    rows = vc.get_instances(short_form, summary=True)
+
+    for row in rows:
+        label = row["symbol"]
+        if label == "":
+            label = row["label"]
+        results["rows"].append({"label":"[%s](%s)"%(label,row["id"]),"parent":"[%s](%s)"%(row["parents_label"],row["parents_id"]),"template":row["templates"],"tags":row["tags"].split("|")})
+
+    return results

@@ -1,7 +1,5 @@
 import re
 import json
-import typing
-
 import requests
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
@@ -573,12 +571,41 @@ class VfbTerminfo:
 
 		return results
 
+	def get_thumbnails(self, template: str) -> Optional[List[dict]]:
+		image_array = list()
+		try:
+			if not template:
+				# default to JFRC2
+				template = "VFB_00017894"
+			for ci in self.channel_image:
+				# add same template to the beginning and others at the end.
+				if ci and ci.image and ci.image.template_anatomy and ci.image.template_anatomy.short_form \
+						and template == ci.image.template_anatomy.short_form:
+					image_array.append(self.get_image(ci.get_url("", "thumbnailT.png"), self.term.core.label, self.term.core.short_form))
+			for ci in self.channel_image:
+				# add same template to the beginning and others at the end.
+				if ci and ci.image and ci.image.template_anatomy and ci.image.template_anatomy.short_form \
+						and template == ci.image.template_anatomy.short_form:
+					image_array.append(self.get_image(ci.get_url("", "thumbnailT.png"),
+													  self.term.core.label + " [" + ci.image.template_anatomy.label + "]",
+													  "[" + self.term.core.short_form + "]"))
+		except Exception as e:
+			print("Error in vfbTerm.get_thumbnails(): " + str(e))
+			return None
+		return image_array
+
 	def get_examples(self, template: str) -> Optional[List[dict]]:
 		image_array = list()
 		try:
 			if not template:
 				# default to JFRC2
 				template = "VFB_00017894"
+			for anat in self.anatomy_channel_image:
+				# add same template to the beginning and others at the end.
+				if anat.channel_image and anat.channel_image.image and anat.channel_image.image.template_anatomy \
+						and anat.channel_image.image.template_anatomy.short_form \
+						and template == anat.channel_image.image.template_anatomy.short_form:
+					image_array.append(self.get_image(anat.get_url("", "thumbnailT.png"), anat.anatomy.label, anat.anatomy.short_form))
 			for anat in self.anatomy_channel_image:
 				# add same template to the beginning and others at the end.
 				if anat.channel_image and anat.channel_image.image and anat.channel_image.image.template_anatomy \
@@ -703,17 +730,21 @@ def deserialize_term_info_from_dict(terminfo: dict) -> VfbTerminfo:
 	return from_dict(data_class=VfbTerminfo, data=terminfo)
 
 
-def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=False) -> dict:
+def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template: Optional[str] = None, show_types=False) -> dict:
 	"""
 	Serializes the given VfbTerminfo to a dictionary.
 
 	:param vfb_term: term info object
 	:param variable:
+	:param loaded_template: template loaded to the geppetto
 	:param show_types: show type detail in serialization
 	:return: dictionary representation of the term info object
 	"""
 	template = ""
-	loaded_template = ""
+	if loaded_template:
+		template = loaded_template
+	else:
+		loaded_template = "VFB_00101567"
 
 	data = dict()
 	data["label"] = "{0} [{1}] {2}".format(vfb_term.term.core.label, vfb_term.term.core.short_form, vfb_term.term.core.get_types_str(show_types)).strip()
@@ -764,73 +795,126 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=Fals
 
 	# TODO this needs serious debugging
 	if vfb_term.channel_image:
+		old_template = template
 		temp_link = ""
 		count = 0
+
+		data["downloads"] = dict()
+		data["filemeta"] = dict()
 		for alignment in vfb_term.channel_image:
 			count += 1
+			old_template = template
 			template = alignment.image.template_anatomy.short_form
-			download_files.append(alignment.image.template_anatomy.label)
+			download_files = list()
+			# TODO seems only the last channel_image is processed, see count
+			data["downloads_label"] = alignment.image.template_anatomy.label
 
-			# if (loadedTemplate != "" && !loadedTemplate.equals(template))
-			if not temp_link:
+			if loaded_template and loaded_template != template:
+				if old_template:
+					template = old_template
+				if not temp_link:
+					temp_link = alignment.image.template_anatomy.get_int_link()
+				if len(vfb_term.channel_image) == count:
+					# Add OBJ only so the template detection is triggered
+
+					# OBJ - 3D mesh
+					temp_data = vfb_term.get_image_file2(alignment, "volume_man.obj")
+					if not temp_data:
+						temp_data = vfb_term.get_image_file2(alignment, "volume.obj")
+						download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+						download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
+					else:
+						download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+						download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+
+					# Download - NRRD stack
+					temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
+					if temp_data:
+						download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
+						download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
+						bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
+						download_files.append(get_link(variable.getId() + ".bibtex", get_secure_data_url(temp_data)))
+						download_data.append({"bibtex": {"url": get_secure_data_v2_url(temp_data), "local": bibtex_local}})
+						data["downloads"] = download_files
+						data["filemeta"] = download_data
+			else:
+				old_template = template
+				if loaded_template:
+					loaded_template = template
 				temp_link = alignment.image.template_anatomy.get_int_link()
-			if len(vfb_term.channel_image) == count:
 				# OBJ - 3D mesh
 				temp_data = vfb_term.get_image_file2(alignment, "volume_man.obj")
-				download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
 				if not temp_data:
-					download_files.append(get_link(variable.getId() + "_pointCloud.obj", download_url))
-					download_data.append({"obj": {"url": download_url, "local": template + "/PointCloudFiles(OBJ)/"}})
+					temp_data = vfb_term.get_image_file2(alignment, "volume.obj")
+					download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+					download_data.append(
+						{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
 				else:
-					download_files.append(get_link(variable.getId() + "_mesh.obj", download_url))
-					download_data.append({"obj": {"url": download_url, "local": template + "/MeshFiles(OBJ)/"}})
+					download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+					download_data.append(
+						{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+
+				# SWC - 3D mesh
+				temp_data = vfb_term.get_image_file2(alignment, "volume.swc")
+				if temp_data:
+					download_files.append(get_link(variable.getId() + ".swc", get_secure_data_url(temp_data)))
+					download_data.append(
+						{"swc": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+
+				# Slices - 3D slice viewer
+				temp_data = vfb_term.get_image_file2(alignment, "volume.wlz")
+				if temp_data:
+					download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
+					download_data.append(
+						{"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/"}})
 
 				# Download - NRRD stack
+				temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
 				if temp_data:
-					download_files.append(get_link(variable.getId() + ".nrrd", download_url))
-					download_data.append({"nrrd": {"url": download_url, "local": template + "/SignalFiles(NRRD)/"}})
-					bibtex_url = temp_data.replace("http://", "https://"). replace("https://www.virtualflybrain.org/data/", "https://v2.virtualflybrain.org/data/")
-					bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
-					download_files.append(get_link(variable.getId() + ".bibtex", bibtex_url))
-					download_data.append({"bibtex": {"url": bibtex_url, "local": bibtex_local}})
+					download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
+					download_data.append(
+						{"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
+					temp_data = vfb_term.get_image_file2(alignment, "citations.bibtex")
+					if temp_data:
+						download_files.append(get_link(variable.getId() + ".bibtex", get_secure_data_url(temp_data)))
+						download_data.append({"bibtex": {"url": get_secure_data_v2_url(temp_data),
+														 "local": template + "/RequiredCitations(BIBTEX)/"}})
 					data["downloads"] = download_files
 					data["filemeta"] = download_data
-
-			# TODO }else{
+				# throwing count out to prevent other OBJ loading
+				count = 1000
+		if template:
+			data["template"] = temp_link
+			if vfb_term.get_thumbnails(template):
+				data["thumbnail"] = vfb_term.get_thumbnails(template)
 
 	if vfb_term.template_channel and vfb_term.template_channel.image_folder:
+		if template != "":
+			template = variable.getId()
+		data["template"] = vfb_term.term.core.get_int_link()
+		data["thumbnail"] = vfb_term.get_thumbnail()
 		# OBJ - 3D mesh
 		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume_man.obj")
 		if not temp_data:
 			temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.obj")
-			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
-			download_files.append(get_link(variable.getId() + "_pointCloud.obj", download_url))
-			download_data.append({"obj": {"url": download_url, "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+			download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+			download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
 		else:
-			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
-																			"/data/")
-			download_files.append(get_link(variable.getId() + "_mesh.obj", download_url))
-			download_data.append({"obj": {"url": download_url,
+			download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+			download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data),
 								  "local": template + "/MeshFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
 		# Slices - 3D slice viewer
 		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.wlz")
 		if temp_data:
-			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
-			download_files.append(get_link(variable.getId() + ".wlz", download_url))
-			wlz_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
-																		  "https://v2.virtualflybrain.org/data/")
-			download_data.append({"wlz": {"url": wlz_url, "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
+			download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
+			download_data.append({"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
 
 		# Download - NRRD stack
 		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.nrrd")
 		if temp_data:
-			download_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
-																			"/data/")
-			download_files.append(get_link(variable.getId() + ".nrrd", download_url))
+			download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
 			data["downloads"] = download_files
-			nrrd_url = temp_data.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
-																		  "https://v2.virtualflybrain.org/data/")
-			download_data.append({"nrrd": {"url": nrrd_url, "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
+			download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
 			data["filemeta"] = download_data
 
 	# examples
@@ -860,6 +944,25 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, show_types=Fals
 	return data
 
 
+def get_secure_data_url(data_url: str) -> str:
+	"""
+	Generates a secure data url from the given url
+	:param data_url: data url to secure
+	:return: secured url
+	"""
+	return data_url.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
+
+
+def get_secure_data_v2_url(data_url: str) -> str:
+	"""
+	Generates a secure data v2 url from the given url
+	:param data_url: data url to secure
+	:return: secured v2 url
+	"""
+	return data_url.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
+														   "https://v2.virtualflybrain.org/data/")
+
+
 def serialize_term_info_to_json(vfb_term: VfbTerminfo, show_types=False) -> str:
 	"""
 	Serializes the given VfbTerminfo to a json string
@@ -872,14 +975,15 @@ def serialize_term_info_to_json(vfb_term: VfbTerminfo, show_types=False) -> str:
 	return json.dumps(term_info_dict, indent=4)
 
 
-def process(term_info_response: dict, variable, show_types=False) -> dict:
+def process(term_info_response: dict, variable, loaded_template: Optional[str] = None, show_types=False) -> dict:
 	"""
 	Processes the term info api response and generates its flat representation.
 	:param term_info_response: TermInfo dict responded by the VFBConnect API
 	:param variable: ?? TODO ask Robbie
+	:param loaded_template: template loaded to the geppetto
 	:param show_types: Switch to display types. Default: False
 	:return: flat representation of the term info
 	"""
 	term_info = deserialize_term_info_from_dict(term_info_response)
-	return serialize_term_info_to_dict(term_info, variable, show_types)
+	return serialize_term_info_to_dict(term_info, variable, loaded_template, show_types)
 

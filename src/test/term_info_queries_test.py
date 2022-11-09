@@ -1,6 +1,6 @@
 import unittest
 import time
-from src.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, serialize_term_info_to_dict
+from src.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
 from vfb_connect.cross_server_tools import VfbConnect
 
 
@@ -71,10 +71,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual:Anatomy")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("fru-F-500075 [VFB_00010001]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -102,22 +100,59 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("[fru-F-500075 on FlyCircuit 1.0](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-F-500075)", serialized["xrefs"][0]["label"])
 
         self.assertFalse("examples" in serialized)
-        self.assertFalse("thumbnail" in serialized)
+        self.assertTrue("thumbnail" in serialized)
+        self.assertEqual(2, len(serialized["thumbnail"]))
+        print(serialized["thumbnail"])
+        self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/thumbnailT.png',
+                         'format': 'PNG',
+                         'name': 'fru-F-500075',
+                         'reference': 'VFB_00010001'} in serialized["thumbnail"])
+        self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/thumbnailT.png',
+                         'format': 'PNG',
+                         'name': 'fru-F-500075 [JRC2018Unisex]',
+                         'reference': '[VFB_00010001]'} in serialized["thumbnail"])
+
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
-        self.assertFalse("downloads" in serialized)
-        self.assertFalse("filemeta" in serialized)
+        self.assertTrue("downloads_label" in serialized)
+        self.assertEqual("JRC2018Unisex", serialized["downloads_label"])
+        self.assertTrue("downloads" in serialized)
+        self.assertEqual(5, len(serialized["downloads"]))
+        self.assertTrue("[my_id_pointCloud.obj](/data/VFB/i/0001/0001/VFB_00101567/volume.obj)" in serialized["downloads"])
+        self.assertTrue("[my_id.swc](/data/VFB/i/0001/0001/VFB_00101567/volume.swc)" in serialized["downloads"])
+        self.assertTrue("[my_id.wlz](/data/VFB/i/0001/0001/VFB_00101567/volume.wlz)" in serialized["downloads"])
+        self.assertTrue("[my_id.nrrd](/data/VFB/i/0001/0001/VFB_00101567/volume.nrrd)" in serialized["downloads"])
+        self.assertTrue("[my_id.bibtex](/data/VFB/i/0001/0001/VFB_00101567/citations.bibtex)" in serialized["downloads"])
+
+        self.assertTrue("filemeta" in serialized)
+        self.assertEqual(5, len(serialized["filemeta"]))
+        self.assertEqual({'obj': {'local': 'VFB_00101567/PointCloudFiles(OBJ)/',
+                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/volume.obj'}},
+                         serialized["filemeta"][0])
+        self.assertEqual({'swc': {'local': 'VFB_00101567/MeshFiles(OBJ)/',
+                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/volume.swc'}},
+                         serialized["filemeta"][1])
+        self.assertEqual({'wlz': {'local': 'VFB_00101567/Slices(WOOLZ)/',
+                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/volume.wlz'}},
+                         serialized["filemeta"][2])
+        self.assertEqual({'nrrd': {'local': 'VFB_00101567/SignalFiles(NRRD)/',
+                                   'url': 'https://v2.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/volume.nrrd'}},
+                         serialized["filemeta"][3])
+        self.assertEqual({'bibtex': {'local': 'VFB_00101567/RequiredCitations(BIBTEX)/',
+                                     'url': 'https://v2.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/citations.bibtex'}},
+                         serialized["filemeta"][4])
+
+        self.assertTrue("template" in serialized)
+        self.assertEqual("[JRC2018Unisex](VFB_00101567)", serialized["template"])
 
     def test_term_info_serialization_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048531'], "Get JSON for Class")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("female germline 2-cell cyst [FBbt_00048531]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -157,17 +192,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048999'], "Get JSON for Neuron Class")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("adult Drosulfakinin neuron [FBbt_00048999]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -201,17 +236,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class2(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00047030'], "Get JSON for Neuron Class")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("adult ellipsoid body-protocerebral bridge 1 glomerulus-dorsal/ventral gall neuron [FBbt_00047030]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -256,17 +291,17 @@ class TermInfoQueriesTest(unittest.TestCase):
                         in serialized["targetingSplits"])
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_split_class(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBexp_FBtp0124468FBtp0133404'], "Get JSON for Split Class")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern [VFBexp_FBtp0124468FBtp0133404]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -310,17 +345,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(1, len(serialized["targetingNeurons"]))
         self.assertEqual("[adult ellipsoid body-protocerebral bridge 1 glomerulus-dorsal/ventral gall neuron](FBbt_00047030)", serialized["targetingNeurons"][0])
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_dataset(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['Ito2013'], "Get JSON for DataSet")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("Ito lab adult brain lineage clone image set [Ito2013]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -340,7 +375,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
-        self.assertEqual(3, len(serialized["examples"]))
+        self.assertEqual(6, len(serialized["examples"]))
         self.assertEqual({'name': 'VPNp&v1 clone of Ito 2013',
                           'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/thumbnailT.png',
                           'reference': 'VFB_00020254',
@@ -357,17 +392,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_license(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBlicense_CC_BY_NC_3_0'], "Get JSON for License")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("CC-BY-NC_3.0 [VFBlicense_CC_BY_NC_3_0]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -394,17 +429,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_template(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00200000'], "Get JSON for Template")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("JRC2018UnisexVNC [VFB_00200000]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -424,11 +459,18 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
         self.assertFalse("examples" in serialized)
-        self.assertFalse("thumbnail" in serialized)
+        self.assertTrue("thumbnail" in serialized)
+        self.assertEqual(1, len(serialized["thumbnail"]))
+        self.assertEqual({'data': 'http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'JRC2018UnisexVNC',
+                          'reference': 'VFB_00200000'}, serialized["thumbnail"][0])
+
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertTrue("downloads" in serialized)
         self.assertEqual(3, len(serialized["downloads"]))
         self.assertEqual("[my_id_mesh.obj](/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
@@ -438,7 +480,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
-                                  'url': '/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
+                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
                          serialized["filemeta"][0])
         self.assertEqual({'wlz': {'local': '/Slices(WOOLZ)/my_id_(my_name).wlz',
                                   'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
@@ -447,14 +489,15 @@ class TermInfoQueriesTest(unittest.TestCase):
                                    'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
                          serialized["filemeta"][2])
 
+        self.assertTrue("template" in serialized)
+        self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])
+
     def test_term_info_serialization_pub(self):
         term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBrf0243986'], "Get JSON for pub")[0]
         print(term_info_dict)
         start_time = time.time()
-        term_info = deserialize_term_info_from_dict(term_info_dict)
-        print(term_info)
+        serialized = process(term_info_dict, self.variable)
         print("--- %s seconds ---" % (time.time() - start_time))
-        serialized = serialize_term_info_to_dict(term_info, self.variable)
 
         self.assertEqual("Sayin et al., 2019, Neuron 104(3): 544--558.e6 [FBrf0243986]", serialized["label"])
         self.assertTrue("title" in serialized)
@@ -484,8 +527,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
+        self.assertFalse("downloads_label" in serialized)
         self.assertFalse("downloads" in serialized)
         self.assertFalse("filemeta" in serialized)
+        self.assertFalse("template" in serialized)
 
 
 class TestVariable:

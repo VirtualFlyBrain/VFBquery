@@ -585,10 +585,10 @@ class VfbTerminfo:
 			for ci in self.channel_image:
 				# add same template to the beginning and others at the end.
 				if ci and ci.image and ci.image.template_anatomy and ci.image.template_anatomy.short_form \
-						and template == ci.image.template_anatomy.short_form:
+						and template != ci.image.template_anatomy.short_form:
 					image_array.append(self.get_image(ci.get_url("", "thumbnailT.png"),
 													  self.term.core.label + " [" + ci.image.template_anatomy.label + "]",
-													  "[" + self.term.core.short_form + "]"))
+													  "[" + ci.image.template_anatomy.short_form + "," + self.term.core.short_form + "]"))
 		except Exception as e:
 			print("Error in vfbTerm.get_thumbnails(): " + str(e))
 			return None
@@ -610,7 +610,7 @@ class VfbTerminfo:
 				# add same template to the beginning and others at the end.
 				if anat.channel_image and anat.channel_image.image and anat.channel_image.image.template_anatomy \
 						and anat.channel_image.image.template_anatomy.short_form \
-						and template == anat.channel_image.image.template_anatomy.short_form:
+						and template != anat.channel_image.image.template_anatomy.short_form:
 					image_array.append(self.get_image(anat.get_url("", "thumbnailT.png"), anat.anatomy.label, anat.anatomy.short_form))
 		except Exception as e:
 			print("Error in vfbTerm.get_examples(): " + str(e))

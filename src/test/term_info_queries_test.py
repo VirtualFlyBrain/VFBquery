@@ -107,10 +107,10 @@ class TermInfoQueriesTest(unittest.TestCase):
                          'format': 'PNG',
                          'name': 'fru-F-500075',
                          'reference': 'VFB_00010001'} in serialized["thumbnail"])
-        self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/thumbnailT.png',
+        self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/0001/0001/thumbnailT.png',
                          'format': 'PNG',
-                         'name': 'fru-F-500075 [JRC2018Unisex]',
-                         'reference': '[VFB_00010001]'} in serialized["thumbnail"])
+                         'name': 'fru-F-500075 [adult brain template JFRC2]',
+                         'reference': '[VFB_00017894,VFB_00010001]'} in serialized["thumbnail"])
 
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
@@ -225,7 +225,29 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("relationships" in serialized)
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
-        self.assertFalse("examples" in serialized)
+        self.assertTrue("examples" in serialized)
+        self.assertEqual(5, len(serialized["examples"]))
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
+                          'reference': 'VFB_jrchjti2'}, serialized["examples"][0])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101384/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
+                          'reference': 'VFB_jrchjti2'}, serialized["examples"][1])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti4/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1B_R (FlyEM-HB:1352077058)',
+                          'reference': 'VFB_jrchjti4'}, serialized["examples"][2])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti4/VFB_00101384/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1B_R (FlyEM-HB:1352077058)',
+                          'reference': 'VFB_jrchjti4'}, serialized["examples"][3])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti3/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1A(PVM02)_L (FlyEM-HB:1260833150)',
+                          'reference': 'VFB_jrchjti3'}, serialized["examples"][4])
+
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)
         self.assertEqual(1, len(serialized["references"]))
@@ -277,14 +299,22 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("sends_synaptic_output_to_region [protocerebral bridge glomerulus](FBbt_00003669)", serialized["relationships"][0])
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
-        self.assertFalse("examples" in serialized)
+        self.assertTrue("examples" in serialized)
+        self.assertEqual(5, len(serialized["examples"]))
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0010/12b9/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'EPG-6R#1 (FAFB:1274114)',
+                          'reference': 'VFB_001012b9'}, serialized["examples"][0])
+
         self.assertFalse("thumbnail" in serialized)
+
         self.assertTrue("references" in serialized)
         self.assertEqual(5, len(serialized["references"]))
         self.assertEqual({'link': '[Lin et al., 2013, Cell Rep. 3(5): 1739--1753](FBrf0221742)',
                           'refs': ['https://doi.org/10.1016/j.celrep.2013.04.022',
                                    'http://www.ncbi.nlm.nih.gov/pubmed/?term=23707064'],
                           'types': ' Entity Individual pub'}, serialized["references"][0])
+
         self.assertTrue("targetingSplits" in serialized)
         self.assertEqual(4, len(serialized["targetingSplits"]))
         self.assertTrue("[P{R93G12-GAL4.DBD} ∩ P{R19G02-p65.AD} expression pattern](VFBexp_FBtp0122505FBtp0117182)"
@@ -375,11 +405,27 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
-        self.assertEqual(6, len(serialized["examples"]))
+        self.assertEqual(5, len(serialized["examples"]))
         self.assertEqual({'name': 'VPNp&v1 clone of Ito 2013',
                           'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/thumbnailT.png',
                           'reference': 'VFB_00020254',
                           'format': 'PNG'}, serialized["examples"][0])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0204/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DM6 clone of Ito 2013',
+                          'reference': 'VFB_00020204'}, serialized["examples"][1])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0194/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'CLp1 clone of Ito 2013',
+                          'reference': 'VFB_00020194'}, serialized["examples"][2])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'VPNp&v1 clone of Ito 2013',
+                          'reference': 'VFB_00020254'}, serialized["examples"][3])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DM6 clone of Ito 2013',
+                          'reference': 'VFB_00020204'}, serialized["examples"][4])
 
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)

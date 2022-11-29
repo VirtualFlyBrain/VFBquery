@@ -2,7 +2,7 @@ import pysolr
 from src.term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 
-vfb_solr = pysolr.Solr('http://query.virtualflybrain.org:8983/solr/vfb_json/', always_commit=False, timeout=990)
+vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
 vc=VfbConnect()
 
 def get_term_info(short_form: str):

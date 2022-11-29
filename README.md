@@ -42,4 +42,44 @@ get_term_info('FBbt_00003748')
    'function': 'get_instances',
    'takes': [{'short_form': {'&&': ['Class', 'Anatomy']}}]}]}
 ```
-   
+
+Queries:
+```python
+get_instances('FBbt_00003686')
+```
+```python
+{'headers': {'label': {'title': 'Name',
+   'type': 'markdown',
+   'order': 0,
+   'sort': {0: 'Asc'}},
+  'parent': {'title': 'Parent Type', 'type': 'markdown', 'order': 1},
+  'template': {'title': 'Template', 'type': 'string', 'order': 4},
+  'tags': {'title': 'Gross Types', 'type': 'tags', 'order': 3}},
+ 'rows': [{'label': '[KC (L1EM:16438190)](VFB_00100462)',
+   'parent': '[Kenyon cell](FBbt_00003686)',
+   'template': 'L1 larval CNS ssTEM - Cardona/Janelia',
+   'tags': ['Entity',
+    'Anatomy',
+    'Cell',
+    'Individual',
+    'Nervous_system',
+    'Neuron',
+    'has_image',
+    'has_neuron_connectivity',
+    'L1EM',
+    'NBLAST']},
+  {'label': '[KC (L1EM:16627950)](VFB_00100485)',
+   'parent': '[Kenyon cell](FBbt_00003686)',
+   'template': 'L1 larval CNS ssTEM - Cardona/Janelia',
+   'tags': ['Entity',
+    'Anatomy',
+    'Cell',
+    'Individual',
+    'Nervous_system',
+    'Neuron',
+    'has_image',
+    'has_neuron_connectivity',
+    'L1EM',
+    'NBLAST']},
+...
+```

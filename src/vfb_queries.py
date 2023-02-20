@@ -44,7 +44,7 @@ def get_term_info(short_form: str):
                 images[image.channel_image.image.template_anatomy.short_form]=[]
             images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_folder + "thumbnailT.png"})
         termInfo["Examples"] = images
-        queries.append({"query":"ListAllAvailableImages","function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]}}]})
+        queries.append({"query":"ListAllAvailableImages",label:"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
     else:
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}

@@ -261,6 +261,11 @@ class Xref:
 @dataclass
 class Image:
 	image_folder: str
+	image_nrrd: Optional[str] = ""
+	image_obj: Optional[str] = ""
+	image_thumbnail: Optional[str] = ""
+	image_wlz: Optional[str] = ""
+	image_swc: Optional[str] = ""
 	index: List[float]
 	template_channel: MinimalEntityInfo
 	template_anatomy: MinimalEntityInfo
@@ -276,6 +281,11 @@ class TemplateChannel:
 	voxel: Optional[str] = ""
 	orientation: Optional[str] = ""
 	image_folder: Optional[str] = ""
+	image_nrrd: Optional[str] = ""
+	image_obj: Optional[str] = ""
+	image_thumbnail: Optional[str] = ""
+	image_wlz: Optional[str] = ""
+	image_swc: Optional[str] = ""
 
 	def get_voxel(self) -> Coordinates:
 		return CoordinatesFactory.from_json_string(self.voxel)
@@ -295,14 +305,29 @@ class ChannelImage:
 	imaging_technique: MinimalEntityInfo
 
 	def get_url(self, pre: str, post: str) -> str:
-		result = ""
-		if self.image and self.image.image_folder:
-			result = self.image.image_folder.replace("http://", "https://")
-		if pre:
-			result = pre + result
-		if post:
-			result += post
-		return result
+		try:
+			if self.image and pre.equals("") and ("volume" in post or post.equals("thumbnailT.png"):
+				match post:
+				    case "volume_man.obj":
+					 return self.image.image_obj.replace("http://", "https://")
+				    case "volume.obj":
+					 return self.image.image_obj.replace("http://", "https://")
+				    case "volume.swc":
+					 return self.image.image_swc.replace("http://", "https://")
+				    case "thumbnail.png":
+					 return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnailT.png","thumbnail.png")
+				    case "thumbnailT.png":
+					 return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnail.png","thumbnailT.png")
+				    case "volume.nrrd":
+					 return self.image.image_nrrd.replace("http://", "https://")
+				    case "volume.wlz":
+					 return self.image.image_wlz.replace("http://", "https://")
+				    case _:
+					 return ""
+		except Exception as e:
+			print("Error in ChannelIamge.get_url() " + str(e))
+			
+		return ""
 
 
 @dataclass_json
@@ -598,8 +623,8 @@ class VfbTerminfo:
 		image_array = list()
 		try:
 			if not template:
-				# default to JFRC2
-				template = "VFB_00017894"
+				# default to JRC2018Unisex
+				template = "VFB_00101567"
 			for anat in self.anatomy_channel_image:
 				# add same template to the beginning and others at the end.
 				if anat.channel_image and anat.channel_image.image and anat.channel_image.image.template_anatomy \
@@ -620,8 +645,12 @@ class VfbTerminfo:
 	def get_thumbnail(self):
 		image_array = list()
 		try:
-			image_array.append(self.get_image(self.template_channel.image_folder + "thumbnailT.png",
-											  self.term.core.label, self.term.core.short_form))
+			thumbnail = self.template_channel.image_thumbnail
+			if "png" in thumbnail:
+				thumbnail = thumbnail.replace("thumbnail.png","thumbnailT.png") # swap to transparent version
+			else:
+				thumbnail = self.template_channel.image_folder + "thumbnailT.png"
+			image_array.append(self.get_image(thumbnail, self.term.core.label, self.term.core.short_form))
 		except Exception as e:
 			print("Error in vfbTerm.get_thumbnail(): " + str(e))
 			return None
@@ -651,8 +680,7 @@ class VfbTerminfo:
 	@staticmethod
 	def get_image_file2(ci: ChannelImage, file_name: str) -> str:
 		try:
-			if check_url_exist(ci.get_url("", file_name), allow_redirects=False):
-				return ci.get_url("", file_name)
+			return ci.get_url("", file_name)
 		except Exception as e:
 			print("Failed to find: " + file_name)
 			print(e)
@@ -819,17 +847,17 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
 
 					# OBJ - 3D mesh
 					temp_data = vfb_term.get_image_file2(alignment, "volume_man.obj")
-					if not temp_data:
-						temp_data = vfb_term.get_image_file2(alignment, "volume.obj")
-						download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
-						download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
-					else:
-						download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
-						download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+					if "obj" in temp_data:
+						if "_man" in temp_data:
+							download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+							download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+						else:
+							download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+							download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
 
 					# Download - NRRD stack
 					temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
-					if temp_data:
+					if "nrrd" in temp_data:
 						download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
 						download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
 						bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
@@ -844,33 +872,33 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
 				temp_link = alignment.image.template_anatomy.get_int_link()
 				# OBJ - 3D mesh
 				temp_data = vfb_term.get_image_file2(alignment, "volume_man.obj")
-				if not temp_data:
-					temp_data = vfb_term.get_image_file2(alignment, "volume.obj")
-					download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
-					download_data.append(
-						{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
-				else:
-					download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
-					download_data.append(
-						{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+				if "obj" in temp_data:
+					if "_man" in temp_data:
+						download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+						download_data.append(
+							{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+					else:
+						download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+						download_data.append(
+							{"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
 
 				# SWC - 3D mesh
 				temp_data = vfb_term.get_image_file2(alignment, "volume.swc")
-				if temp_data:
+				if "swc" in temp_data:
 					download_files.append(get_link(variable.getId() + ".swc", get_secure_data_url(temp_data)))
 					download_data.append(
 						{"swc": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
 
 				# Slices - 3D slice viewer
 				temp_data = vfb_term.get_image_file2(alignment, "volume.wlz")
-				if temp_data:
+				if "wlz" in temp_data:
 					download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
 					download_data.append(
 						{"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/"}})
 
 				# Download - NRRD stack
 				temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
-				if temp_data:
+				if "nrrd" in temp_data:
 					download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
 					download_data.append(
 						{"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
@@ -894,24 +922,25 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
 		data["template"] = vfb_term.term.core.get_int_link()
 		data["thumbnail"] = vfb_term.get_thumbnail()
 		# OBJ - 3D mesh
-		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume_man.obj")
-		if not temp_data:
-			temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.obj")
-			download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
-			download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
-		else:
-			download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
-			download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data),
+		temp_data = vfb_term.template_channel.image_obj.replace("http://","https://")
+		if "obj" in temp_data: 
+			if "_man" in temp_data:
+				download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
+				download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data),
 								  "local": template + "/MeshFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+			else:					   
+				download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
+				download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+		
 		# Slices - 3D slice viewer
-		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.wlz")
-		if temp_data:
+		temp_data = vfb_term.template_channel.image_wlz
+		if "wlz" in temp_data:
 			download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
 			download_data.append({"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
 
 		# Download - NRRD stack
-		temp_data = vfb_term.get_image_file3(vfb_term.template_channel, "volume.nrrd")
-		if temp_data:
+		temp_data = vfb_term.template_channel.image_nrrd
+		if "nrrd" in temp_data:
 			download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
 			data["downloads"] = download_files
 			download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})

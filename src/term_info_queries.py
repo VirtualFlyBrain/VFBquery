@@ -306,7 +306,7 @@ class ChannelImage:
 
 	def get_url(self, pre: str, post: str) -> str:
 		try:
-			if self.image and pre.equals("") and ("volume" in post or post.equals("thumbnailT.png"):
+			if self.image and pre.equals("") and ("volume" in post or post.equals("thumbnailT.png")):
 				match post:
 				    case "volume_man.obj":
 					 return self.image.image_obj.replace("http://", "https://")

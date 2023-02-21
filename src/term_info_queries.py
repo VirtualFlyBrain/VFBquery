@@ -260,16 +260,15 @@ class Xref:
 @dataclass_json
 @dataclass
 class Image:
+	index: List[float]
+	template_channel: MinimalEntityInfo
+	template_anatomy: MinimalEntityInfo
 	image_folder: str
 	image_nrrd: Optional[str] = ""
 	image_obj: Optional[str] = ""
 	image_thumbnail: Optional[str] = ""
 	image_wlz: Optional[str] = ""
 	image_swc: Optional[str] = ""
-	index: List[float]
-	template_channel: MinimalEntityInfo
-	template_anatomy: MinimalEntityInfo
-
 
 @dataclass_json
 @dataclass

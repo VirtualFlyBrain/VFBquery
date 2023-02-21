@@ -307,23 +307,18 @@ class ChannelImage:
 	def get_url(self, pre: str, post: str) -> str:
 		try:
 			if self.image and pre.equals("") and ("volume" in post or post.equals("thumbnailT.png")):
-				match post:
-				    case "volume_man.obj":
-					 return self.image.image_obj.replace("http://", "https://")
-				    case "volume.obj":
-					 return self.image.image_obj.replace("http://", "https://")
-				    case "volume.swc":
-					 return self.image.image_swc.replace("http://", "https://")
-				    case "thumbnail.png":
-					 return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnailT.png","thumbnail.png")
-				    case "thumbnailT.png":
-					 return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnail.png","thumbnailT.png")
-				    case "volume.nrrd":
+				if ".obj" in post:
+					return self.image.image_obj.replace("http://", "https://")
+				if ".swc" in post:
+					return self.image.image_swc.replace("http://", "https://")
+				if "thumbnail.png" in post:
+					return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnailT.png","thumbnail.png")
+				if "thumbnailT.png" in post:
+					return self.image.image_thumbnail.replace("http://", "https://").replace("thumbnail.png","thumbnailT.png")
+				if ".nrrd" in post:
 					 return self.image.image_nrrd.replace("http://", "https://")
-				    case "volume.wlz":
+				if ".wlz" in post:
 					 return self.image.image_wlz.replace("http://", "https://")
-				    case _:
-					 return ""
 		except Exception as e:
 			print("Error in ChannelIamge.get_url() " + str(e))
 			

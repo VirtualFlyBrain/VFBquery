@@ -7,6 +7,9 @@ here = path.abspath(path.dirname(__file__))
 __version__ = get_version(__file__)
 del get_version
 
+# TODO for test deployment
+__version__ = "0.0.1.dev1"
+
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:
     long_description = f.read()

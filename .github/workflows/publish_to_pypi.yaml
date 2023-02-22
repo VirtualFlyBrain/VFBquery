@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   release:
     types: [created]
-  # TODO For testing purpose, delete this trigger afterwards
+  # TODO: For testing purpose, delete this trigger afterwards
   push:
     paths:
       - '.github/workflows/publish_to_pypi.yaml'

@@ -68,7 +68,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_serialization_individual_anatomy(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual:Anatomy")[0]
+        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual")[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)

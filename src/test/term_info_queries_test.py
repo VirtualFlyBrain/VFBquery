@@ -81,9 +81,14 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(12, len(serialized["types"]))
         self.assertEqual("OutAge: Adult 5~15 days", serialized["description"])
-        self.assertFalse("synonyms" in serialized)
+        self.assertTrue("synonyms" in serialized)
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertTrue("has_exact_synonym: fru-F-500075" in serialized["synonyms"])
+        self.assertTrue("has_exact_synonym: FruMARCM-F000584_seg002" in serialized["synonyms"])
         self.assertFalse("source" in serialized)
-        self.assertFalse("license" in serialized)
+        self.assertTrue("license" in serialized)
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertEqual({'label': '[FlyCircuit License](VFBlicense_FlyCircuit_License)'}, serialized["license"][0])
 
         self.assertTrue("Classification" in serialized)
         self.assertEqual(2, len(serialized["Classification"]))
@@ -102,7 +107,6 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("examples" in serialized)
         self.assertTrue("thumbnail" in serialized)
         self.assertEqual(2, len(serialized["thumbnail"]))
-        print(serialized["thumbnail"])
         self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/0001/0001/VFB_00101567/thumbnailT.png',
                          'format': 'PNG',
                          'name': 'fru-F-500075',
@@ -117,7 +121,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingNeurons" in serialized)
 
         self.assertTrue("downloads_label" in serialized)
-        self.assertEqual("JRC2018Unisex", serialized["downloads_label"])
+        self.assertEqual("adult brain template JFRC2", serialized["downloads_label"])
         self.assertTrue("downloads" in serialized)
         self.assertEqual(5, len(serialized["downloads"]))
         self.assertTrue("[my_id_pointCloud.obj](/data/VFB/i/0001/0001/VFB_00101567/volume.obj)" in serialized["downloads"])
@@ -185,10 +189,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(2, len(serialized["references"]))
         self.assertEqual({'link': '[Spradling, 1993, Bate, Martinez Arias, 1993: 1--70](FBrf0064777)',
                           'refs': [],
-                          'types': ' Entity Individual pub'}, serialized["references"][0])
+                          'types': ' pub'}, serialized["references"][0])
         self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
                           'refs': [],
-                          'types': ' Entity Individual pub'}, serialized["references"][1])
+                          'types': ' pub'}, serialized["references"][1])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
@@ -226,27 +230,27 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
-        self.assertEqual(5, len(serialized["examples"]))
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101567/thumbnailT.png',
+        self.assertEqual(10, len(serialized["examples"]))
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti6/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
-                          'reference': 'VFB_jrchjti2'}, serialized["examples"][0])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101384/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
-                          'reference': 'VFB_jrchjti2'}, serialized["examples"][1])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti4/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'DSKMP1B_R (FlyEM-HB:1352077058)',
-                          'reference': 'VFB_jrchjti4'}, serialized["examples"][2])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti4/VFB_00101384/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'DSKMP1B_R (FlyEM-HB:1352077058)',
-                          'reference': 'VFB_jrchjti4'}, serialized["examples"][3])
+                          'name': 'DSKMP3_R (FlyEM-HB:327937328)',
+                          'reference': 'VFB_jrchjti6'}, serialized["examples"][0])
         self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti3/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
                           'name': 'DSKMP1A(PVM02)_L (FlyEM-HB:1260833150)',
-                          'reference': 'VFB_jrchjti3'}, serialized["examples"][4])
+                          'reference': 'VFB_jrchjti3'}, serialized["examples"][1])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti7/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP3_R (FlyEM-HB:328559607)',
+                          'reference': 'VFB_jrchjti7'}, serialized["examples"][2])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
+                          'reference': 'VFB_jrchjti2'}, serialized["examples"][3])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti5/VFB_00101567/thumbnailT.png',
+                          'format': 'PNG',
+                          'name': 'DSKMP1B(PVM02)_L (FlyEM-HB:1011184205)',
+                          'reference': 'VFB_jrchjti5'}, serialized["examples"][4])
 
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)
@@ -254,7 +258,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual({'link': '[Söderberg et al., 2012, Front. Endocrinol. 3: 109](FBrf0219451)',
                           'refs': ['https://doi.org/10.3389/fendo.2012.00109',
                                    'http://www.ncbi.nlm.nih.gov/pubmed/?term=22969751'],
-                          'types': ' Entity Individual pub'}, serialized["references"][0])
+                          'types': ' pub'}, serialized["references"][0])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
@@ -281,7 +285,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("Cholinergic" in serialized["types"])
         self.assertEqual("Small field neuron of the central complex with dendritic and axonal arbors in the inner, outer and posterior layers of either a half or a full ellipsoid body (EB) slice (wedge), and axon terminals in the dorsal or ventral gall and a single protocerebral bridge glomerulus (excluding glomerulus 9) (Lin et al., 2013; Wolff et al., 2015). Neurons that target odd or even numbered protocerebral bridge glomeruli target the dorsal or ventral gall, respectively (Lin et al., 2013; Wolff et al., 2015). These neurons receive inhibitory input from delta 7 (PB 18 glomeruli) neurons and they are cholinergic (Turner-Evans et al., 2020). These cells output to P-EN1 neurons and P-EG neurons of the same glomerulus in the protocerebral bridge, and form less specific 'hyper-local' feedback loops with P-EN1 neurons in the EB (Turner-Evans et al., 2020). It also receives input from R4d ring neurons and P-EN2 neurons in the EB (Turner-Evans et al., 2020). "
                          "\n Based on images/diagrams in Lin et al. (2013), Wolff et al. (2015) and Turner-Evans et al. (2020), these appear to innervate the ipsilateral PB and contralateral gall, but could not find confirmation of this [FBC:CP]."
-                         "\n([Lin et al., 2013](FBrf0221742), [Wolff et al., 2015](FBrf0227801), [Wolff and Rubin, 2018](FBrf0240744), [Turner-Evans et al., 2020](FBrf0246945))", serialized["description"])
+                         "\n([Lin et al., 2013](FBrf0221742), [Wolff and Rubin, 2018](FBrf0240744), [Wolff et al., 2015](FBrf0227801), [Turner-Evans et al., 2020](FBrf0246945))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(8, len(serialized["synonyms"]))
         print(serialized["synonyms"][0])
@@ -300,11 +304,11 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
-        self.assertEqual(5, len(serialized["examples"]))
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0010/12b9/VFB_00101567/thumbnailT.png',
+        self.assertEqual(10, len(serialized["examples"]))
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jtkm/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'EPG-6R#1 (FAFB:1274114)',
-                          'reference': 'VFB_001012b9'}, serialized["examples"][0])
+                          'name': 'EPG(PB08)_R7 (FlyEM-HB:1002852791)',
+                          'reference': 'VFB_jrchjtkm'}, serialized["examples"][0])
 
         self.assertFalse("thumbnail" in serialized)
 
@@ -313,7 +317,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual({'link': '[Lin et al., 2013, Cell Rep. 3(5): 1739--1753](FBrf0221742)',
                           'refs': ['https://doi.org/10.1016/j.celrep.2013.04.022',
                                    'http://www.ncbi.nlm.nih.gov/pubmed/?term=23707064'],
-                          'types': ' Entity Individual pub'}, serialized["references"][0])
+                          'types': ' pub'}, serialized["references"][0])
 
         self.assertTrue("targetingSplits" in serialized)
         self.assertEqual(4, len(serialized["targetingSplits"]))
@@ -393,39 +397,42 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("logo" in serialized)
         self.assertTrue("link" in serialized)
         self.assertEqual("[http://flybase.org/reports/FBrf0221438.html](http://flybase.org/reports/FBrf0221438.html)", serialized["link"])
-        self.assertEqual(3, len(serialized["types"]))
+        self.assertEqual(4, len(serialized["types"]))
         self.assertTrue("DataSet" in serialized["types"])
         self.assertEqual("An exhaustive set of lineage clones covering the adult brain from Kei Ito's  lab.", serialized["description"])
         self.assertFalse("synonyms" in serialized)
         self.assertFalse("source" in serialized)
-        self.assertFalse("license" in serialized)
+        self.assertTrue("license" in serialized)
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertEqual({'icon': 'http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
+                          'label': '[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'}, serialized["license"][0])
         self.assertFalse("Classification" in serialized)
         self.assertFalse("relationships" in serialized)
         self.assertFalse("related_individuals" in serialized)
 
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
-        self.assertEqual(5, len(serialized["examples"]))
+        self.assertEqual(10, len(serialized["examples"]))
         self.assertEqual({'name': 'VPNp&v1 clone of Ito 2013',
-                          'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/thumbnailT.png',
+                          'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/VFB_00101567/thumbnailT.png',
                           'reference': 'VFB_00020254',
                           'format': 'PNG'}, serialized["examples"][0])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0204/thumbnailT.png',
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'DM6 clone of Ito 2013',
-                          'reference': 'VFB_00020204'}, serialized["examples"][1])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0194/thumbnailT.png',
+                          'name': 'PSa1 clone of Ito 2013',
+                          'reference': 'VFB_00020206'}, serialized["examples"][1])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0248/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'CLp1 clone of Ito 2013',
-                          'reference': 'VFB_00020194'}, serialized["examples"][2])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/VFB_00101567/thumbnailT.png',
+                          'name': 'VLPl2 clone of Ito 2013',
+                          'reference': 'VFB_00020248'}, serialized["examples"][2])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0209/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'VPNp&v1 clone of Ito 2013',
-                          'reference': 'VFB_00020254'}, serialized["examples"][3])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00101567/thumbnailT.png',
+                          'name': 'LALv1 clone of Ito 2013',
+                          'reference': 'VFB_00020209'}, serialized["examples"][3])
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0202/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
-                          'name': 'DM6 clone of Ito 2013',
-                          'reference': 'VFB_00020204'}, serialized["examples"][4])
+                          'name': 'DM4 clone of Ito 2013',
+                          'reference': 'VFB_00020202'}, serialized["examples"][4])
 
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)
@@ -434,7 +441,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                           'refs': ['http://flybase.org/reports/FBrf0221438',
                                    'https://doi.org/10.1016/j.cub.2013.03.015',
                                    'http://www.ncbi.nlm.nih.gov/pubmed/?term=23541729'],
-                          'types': ' Entity Individual pub'}, serialized["references"][0])
+                          'types': ' pub'}, serialized["references"][0])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
@@ -497,7 +504,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("description" in serialized)
         self.assertFalse("synonyms" in serialized)
         self.assertFalse("source" in serialized)
-        self.assertFalse("license" in serialized)
+        self.assertTrue("license" in serialized)
+        self.assertEqual(1, len(serialized["license"]))
+        self.assertEqual({'icon': 'http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
+                          'label': '[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'}, serialized["license"][0])
         self.assertTrue("Classification" in serialized)
         self.assertEqual(1, len(serialized["Classification"]))
         self.assertEqual("[adult ventral nerve cord](FBbt_00004052)", serialized["Classification"][0])

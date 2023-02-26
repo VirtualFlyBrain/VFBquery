@@ -50,16 +50,19 @@ def get_term_info(short_form: str):
             if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
                 images = {}
                 for image in vfbTerm.anatomy_channel_image:
-                    label = image.anatomy.label
-                    if image.anatomy.symbol != "" and len(image.anatomy.symbol) > 0:
-                        label = image.anatomy.symbol
-                    if not image.channel_image.image.template_anatomy.short_form in vars(image).keys():
-                        images[image.channel_image.image.template_anatomy.short_form]=[]
-                    images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")})
-                    images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail_transparent": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")})
-                    for key in vars(image.channel_image.image).keys():
-                        if "images_" in key and not ("thumbnail" in key or "folder" in key):
-                            images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, key.replace("image_",""): image.channel_image.image[key].replace("http://","https://")})
+                    try:
+                        label = image.anatomy.label
+                        if image.anatomy.symbol != "" and len(image.anatomy.symbol) > 0:
+                            label = image.anatomy.symbol
+                        if not image.channel_image.image.template_anatomy.short_form in vars(image).keys():
+                            images[image.channel_image.image.template_anatomy.short_form]=[]
+                        images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")})
+                        images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail_transparent": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")})
+                        for key in vars(image.channel_image.image).keys():
+                            if "images_" in key and not ("thumbnail" in key or "folder" in key):
+                                images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, key.replace("image_",""): image.channel_image.image[key].replace("http://","https://")})
+                except NameError:
+                    print (f"Error handling vfbTerm.anatomy_channel_image: "{image})   
                 termInfo["Examples"] = images
                 # add a query to `queries` list for listing all available images
                 queries.append({"query":"ListAllAvailableImages",label:"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})

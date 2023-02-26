@@ -2,8 +2,11 @@ import pysolr
 from src.term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 
+# Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
-vc=VfbConnect()
+
+# Create a VFB connection object for retrieving instances
+vc = VfbConnect()
 
 def get_term_info(short_form: str):
     """
@@ -14,28 +17,36 @@ def get_term_info(short_form: str):
     """
     try:
         termInfo = {}
+        # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
+        # Check if any results were returned
         if results.hits > 0 and results.docs and len(results.docs) > 0:
+            # Deserialize the term info from the first result
             vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
             queries = []
             meta = {
                 "Name": "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form),
-                }
+            }
             meta["SuperTypes"] = vfbTerm.term.core.types
             try:
+                # Retrieve tags from the term's unique_facets attribute
                 meta["Tags"] = vfbTerm.term.core.unique_facets
             except NameError:
+                # If unique_facets attribute doesn't exist, use the term's types
                 meta["Tags"] = vfbTerm.term.core.types
             try:
+                # Retrieve description from the term's description attribute
                 meta["Description"] = "%s"%("".join(vfbTerm.term.description))
             except NameError:
                 pass
             try:
+                # Retrieve comment from the term's comment attribute
                 meta["Comment"] = "%s"%("".join(vfbTerm.term.comment))
             except NameError:
                 pass
             termInfo["meta"] = meta
 
+            # If the term has anatomy channel images, retrieve the images and associated information
             if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
                 images = {}
                 for image in vfbTerm.anatomy_channel_image:
@@ -50,8 +61,10 @@ def get_term_info(short_form: str):
                         if "images_" in key and not ("thumbnail" in key or "folder" in key):
                             images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, key.replace("image_",""): image.channel_image.image[key].replace("http://","https://")})
                 termInfo["Examples"] = images
+                # add a query to `queries` list for listing all available images
                 queries.append({"query":"ListAllAvailableImages",label:"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
             else:
+                # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
                 if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
                     images = {}
                     for image in vfbTerm.channel_image:
@@ -65,8 +78,10 @@ def get_term_info(short_form: str):
                         for key in image.image.keys():
                             if "images_" in key and not ("thumbnail" in key or "folder" in key):
                                 images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, key.replace("image_",""): image.image[key].replace("http://","https://")})
+                    # Add the thumbnails to the term info
                     termInfo["Thumbnails"] = images
 
+            # Add the queries to the term info
             termInfo["Queries"] = queries
         else:
             print(f"No results found for ID '{short_form}'")
@@ -76,6 +91,7 @@ def get_term_info(short_form: str):
             print("Error accessing SOLR server!")    
     return termInfo
 
+                
 def get_instances(short_form: str):
     """
     Retrieves available instances for the given class short form.
@@ -87,9 +103,11 @@ def get_instances(short_form: str):
     rows = vc.get_instances(short_form, summary=True)
 
     for row in rows:
+        # Create the label for the row using the symbol if available, otherwise the label
         label = row["symbol"]
         if label == "":
             label = row["label"]
+        # Add the row to the results
         results["rows"].append({"label":"[%s](%s)"%(label,row["id"]),"parent":"[%s](%s)"%(row["parents_label"],row["parents_id"]),"template":row["templates"],"tags":row["tags"].split("|")})
 
     return results

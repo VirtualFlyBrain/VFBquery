@@ -78,8 +78,7 @@ def get_term_info(short_form: str):
                             label = vfbTerm.term.core.symbol
                         if not image.image.template_anatomy.short_form in images.keys():
                             images[image.image.template_anatomy.short_form]=[]
-                        images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, "thumbnail": image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")})
-                        images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, "thumbnail_transparent": image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")})
+                        images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, "thumbnail": image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png"), "thumbnail_transparent": image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")})
                         for key in vars(image.image).keys():
                             if "images_" in key and not ("thumbnail" in key or "folder" in key) and len(image.image[key]) > 1:
                                 images[image.image.template_anatomy.short_form].append({"id":vfbTerm.term.core.short_form, "label": label, key.replace("image_",""): image.image[key].replace("http://","https://")})

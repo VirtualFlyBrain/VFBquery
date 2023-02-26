@@ -44,9 +44,10 @@ def get_term_info(short_form: str):
                 meta["Comment"] = "%s"%("".join(vfbTerm.term.comment))
             except NameError:
                 pass
-            
+            except AttributeError:
+                print (f"vfbTerm.term.comment: "{vfbTerm.term})
             termInfo["meta"] = meta
-
+                
             # If the term has anatomy channel images, retrieve the images and associated information
             if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
                 images = {}

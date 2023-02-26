@@ -55,7 +55,7 @@ def get_term_info(short_form: str):
                         label = image.anatomy.label
                         if image.anatomy.symbol != "" and len(image.anatomy.symbol) > 0:
                             label = image.anatomy.symbol
-                        if not image.channel_image.image.template_anatomy.short_form in vars(image).keys():
+                        if not image.channel_image.image.template_anatomy.short_form in images.keys():
                             images[image.channel_image.image.template_anatomy.short_form]=[]
                         images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")})
                         images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, "thumbnail_transparent": image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")})

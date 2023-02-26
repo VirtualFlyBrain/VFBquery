@@ -1,5 +1,10 @@
 # VFB_queries
 
+to setup requirements:
+```bash
+pip install -r requirements.txt
+```
+
 To get term info for a term:
 get_term_info(ID)
 

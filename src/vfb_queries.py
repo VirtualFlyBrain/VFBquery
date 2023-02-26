@@ -13,6 +13,7 @@ def get_term_info(short_form: str):
     :return: term info
     """
     termInfo = {}
+    print(vfb_solr)
     print(vfb_solr.search('id:' + short_form))
     results = vfb_solr.search('id:' + short_form)
     print(results)

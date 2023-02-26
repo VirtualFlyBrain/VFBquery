@@ -11,7 +11,9 @@ get_term_info(ID)
 e.g.
 ```python
 from src.vfb_queries import get_term_info
-
+```
+Class example:
+```
 get_term_info('FBbt_00003748')
 ```
 ```python
@@ -64,7 +66,7 @@ get_term_info('FBbt_00003748')
    'takes': [{'short_form': {'&&': ['Class', 'Anatomy']},
      'default': 'FBbt_00003748'}]}]}
 ```
-
+Individual example:
 ```python
 get_term_info('VFB_00000001')
 ```

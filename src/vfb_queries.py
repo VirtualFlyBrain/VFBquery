@@ -14,7 +14,7 @@ def get_term_info(short_form: str):
     """
     termInfo = {}
     results = vfb_solr.search('id:' + short_form)
-    if length(results.docs) > 0:
+    if "docs" in results.keys() and length(results.docs) > 0:
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
         meta = {

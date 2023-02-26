@@ -27,6 +27,7 @@ def get_term_info(short_form: str):
             meta = {}
             meta["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
             meta["SuperTypes"] = vfbTerm.term.core.types
+            termInfo["meta"] = meta
             try:
                 # Retrieve tags from the term's unique_facets attribute
                 meta["Tags"] = vfbTerm.term.core.unique_facets

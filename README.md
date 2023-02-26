@@ -2,7 +2,7 @@
 
 to setup requirements:
 ```bash
-pip install -r requirements.txt
+pip install vfb_queries
 ```
 
 To get term info for a term:
@@ -10,11 +10,11 @@ get_term_info(ID)
 
 e.g.
 ```python
-from src.vfb_queries import get_term_info
+import vfb_queries as vfb
 ```
 Class example:
 ```
-get_term_info('FBbt_00003748')
+vfb.get_term_info('FBbt_00003748')
 ```
 ```python
 {'meta': {'Name': '[medulla](FBbt_00003748)',
@@ -68,7 +68,7 @@ get_term_info('FBbt_00003748')
 ```
 Individual example:
 ```python
-get_term_info('VFB_00000001')
+vfb.get_term_info('VFB_00000001')
 ```
 
 ```python
@@ -109,7 +109,7 @@ get_term_info('VFB_00000001')
 
 Queries:
 ```python
-get_instances('FBbt_00003686')
+vfb.get_instances('FBbt_00003686')
 ```
 ```python
 {'headers': {'label': {'title': 'Name',

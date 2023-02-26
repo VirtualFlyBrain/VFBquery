@@ -63,7 +63,7 @@ def get_term_info(short_form: str):
                     record["thumbnail"] = image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
                     record["thumbnail_transparent"] = image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
                     for key in vars(image.channel_image.image).keys():
-                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.image)[key]) > 1:
+                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.channel_image.image)[key]) > 1:
                             record[key.replace("image_","")] = vars(image.channel_image.image)[key].replace("http://","https://")
                     images[image.channel_image.image.template_anatomy.short_form].append(record)
                 termInfo["Examples"] = images

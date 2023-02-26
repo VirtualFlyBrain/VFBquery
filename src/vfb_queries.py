@@ -24,9 +24,8 @@ def get_term_info(short_form: str):
             # Deserialize the term info from the first result
             vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
             queries = []
-            meta = {
-                "Name": "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form),
-            }
+            meta = {}
+            meta["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
             meta["SuperTypes"] = vfbTerm.term.core.types
             try:
                 # Retrieve tags from the term's unique_facets attribute
@@ -44,6 +43,7 @@ def get_term_info(short_form: str):
                 meta["Comment"] = "%s"%("".join(vfbTerm.term.comment))
             except NameError:
                 pass
+            
             termInfo["meta"] = meta
 
             # If the term has anatomy channel images, retrieve the images and associated information

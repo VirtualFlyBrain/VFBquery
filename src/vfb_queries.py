@@ -45,7 +45,7 @@ def get_term_info(short_form: str):
             except NameError:
                 pass
             except AttributeError:
-                print (f"vfbTerm.term.comment: "{vfbTerm.term})
+                print(f"vfbTerm.term.comment: {vfbTerm.term}")
             termInfo["meta"] = meta
                 
             # If the term has anatomy channel images, retrieve the images and associated information
@@ -64,7 +64,7 @@ def get_term_info(short_form: str):
                             if "images_" in key and not ("thumbnail" in key or "folder" in key):
                                 images[image.channel_image.image.template_anatomy.short_form].append({"id":image.anatomy.short_form, "label": label, key.replace("image_",""): image.channel_image.image[key].replace("http://","https://")})
                     except AttributeError:
-                        print (f"Error handling vfbTerm.anatomy_channel_image: "{image})   
+                        print (f"Error handling vfbTerm.anatomy_channel_image: {image}")   
                 termInfo["Examples"] = images
                 # add a query to `queries` list for listing all available images
                 queries.append({"query":"ListAllAvailableImages",label:"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})

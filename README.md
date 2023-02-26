@@ -14,7 +14,7 @@ from src.vfb_queries import get_term_info
 
 get_term_info('FBbt_00003748')
 ```
-```python
+```json
 {'meta': {'Name': '[medulla](FBbt_00003748)',
   'SuperTypes': ['Entity',
    'Adult',

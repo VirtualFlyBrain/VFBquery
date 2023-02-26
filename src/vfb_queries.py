@@ -12,6 +12,7 @@ def get_term_info(short_form: str):
     :param short_form: short form of the term
     :return: term info
     """
+    import pysolr
     vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
     termInfo = {}
     print(vfb_solr)

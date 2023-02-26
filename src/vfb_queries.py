@@ -89,7 +89,7 @@ def get_term_info(short_form: str):
                                 record[key.replace("image_","")] = vars(image.image)[key].replace("http://","https://")
                         images[image.image.template_anatomy.short_form].append(record)
                     # Add the thumbnails to the term info
-                    termInfo["Thumbnails"] = images
+                    termInfo["Images"] = images
 
             # Add the queries to the term info
             termInfo["Queries"] = queries

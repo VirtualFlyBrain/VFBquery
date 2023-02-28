@@ -123,27 +123,54 @@ def term_info_parse_object(results, short_form):
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
             queries.append({"query":"ListAllAvailableImages",label:"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
-        else:
-            # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
-            if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
-                images = {}
-                for image in vfbTerm.channel_image:
-                    record = {}
-                    record["id"] = vfbTerm.term.core.short_form
-                    label = vfbTerm.term.core.label
-                    if vfbTerm.term.core.symbol != "" and len(vfbTerm.term.core.symbol) > 0:
-                        label = vfbTerm.term.core.symbol
-                    record["label"] = label
-                    if not image.image.template_anatomy.short_form in images.keys():
-                        images[image.image.template_anatomy.short_form]=[]
-                    record["thumbnail"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
-                    record["thumbnail_transparent"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
-                    for key in vars(image.image).keys():
-                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.image)[key]) > 1:
-                            record[key.replace("image_","")] = vars(image.image)[key].replace("http://","https://")
-                    images[image.image.template_anatomy.short_form].append(record)
-                # Add the thumbnails to the term info
-                termInfo["Images"] = images
+            
+        # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
+        if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
+            images = {}
+            for image in vfbTerm.channel_image:
+                record = {}
+                record["id"] = vfbTerm.term.core.short_form
+                label = vfbTerm.term.core.label
+                if vfbTerm.term.core.symbol != "" and len(vfbTerm.term.core.symbol) > 0:
+                    label = vfbTerm.term.core.symbol
+                record["label"] = label
+                if not image.image.template_anatomy.short_form in images.keys():
+                    images[image.image.template_anatomy.short_form]=[]
+                record["thumbnail"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
+                record["thumbnail_transparent"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
+                for key in vars(image.image).keys():
+                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.image)[key]) > 1:
+                        record[key.replace("image_","")] = vars(image.image)[key].replace("http://","https://")
+                images[image.image.template_anatomy.short_form].append(record)
+            # Add the thumbnails to the term info
+            termInfo["Images"] = images
+              
+        if vfbTerm.template_channel and len(vfbTerm.template_channel) > 0:
+            images = {}
+            for image in vfbTerm.template_channel:
+                record = {}
+                record["id"] = vfbTerm.template_channel.chanel.short_form
+                label = vfbTerm.template_channel.chanel.label
+                if vfbTerm.template_channel.chanel.symbol != "" and len(vfbTerm.template_channel.chanel.symbol) > 0:
+                    label = vfbTerm.template_channel.chanel.symbol
+                record["label"] = label
+                if not vfbTerm.template_channel.chanel.short_form in images.keys():
+                    images[vfbTerm.template_channel.chanel.short_form]=[]
+                record["thumbnail"] = image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
+                record["thumbnail_transparent"] = image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
+                for key in vars(image).keys():
+                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
+                        record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
+                record[index] = image.index[0]
+                record[centre] = image.get_center()
+                record[extent] = image.get_extent()
+                record[voxel] = image.get_voxel()
+                record[orientation] = image.orientation
+                images[vfbTerm.template_channel.chanel.short_form].append(record)
+                
+            # Add the thumbnails to the term info
+            termInfo["Images"] = images
+            
 
         # Add the queries to the term info
         termInfo["Queries"] = queries

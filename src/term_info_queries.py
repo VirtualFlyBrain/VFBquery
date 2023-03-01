@@ -334,6 +334,11 @@ class Domain:
     folder: str
     anatomical_individual: MinimalEntityInfo
     anatomical_type: MinimalEntityInfo
+    image_nrrd: Optional[str] = ""
+    image_obj: Optional[str] = ""
+    image_thumbnail: Optional[str] = ""
+    image_wlz: Optional[str] = ""
+    image_swc: Optional[str] = ""
 
     def get_center(self) -> Optional[Coordinates]:
         if isinstance(self.center, str):

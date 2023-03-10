@@ -18,29 +18,58 @@ class Query:
     self.Default = default 
 
 class Image:
-  def __init__(self, id, label, thumbnail, thumbnail_transparent):
-    self.Id = id
-    self.Label = label 
-    self.Thumbnail = thumbnail 
-    self.ThumbnailTransparent = thumbnail_transparent 
+    def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None):
+        self.Id = id
+        self.Label = label
+        self.Thumbnail = thumbnail
+        self.ThumbnailTransparent = thumbnail_transparent
+        self.Nrrd = nrrd
+        self.Wlz = wlz
+        self.Obj = obj
+        self.Swc = swc
+        self.Index = index
+        self.Center = center
+        self.Extent = extent
+        self.Voxel = voxel
+        self.Orientation = orientation
 
 class ImageField(fields.Field):
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
-        return {"Id": value.Id
-                , "Label": value.Label
-                , "Thumbnail": value.Thumbnail
-                , "ThumbnailTransparent": value.ThumbnailTransparent
+        return {"id": value.Id
+                , "label": value.Label
+                , "thumbnail": value.Thumbnail
+                , "thumbnail_transparent": value.ThumbnailTransparent
+                , "nrrd": value.Nrrd
+                , "wlz": value.Wlz
+                , "obj": value.Obj
+                , "swc": value.Swc
+                , "index": value.Index
+                , "center": value.Center
+                , "extent": value.Extent
+                , "voxel": value.Voxel
+                , "orientation": value.Orientation
                 }
-
+      
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return Query(Id=value["Id"]
-                     , Label=value["Label"]
-                     , Thumbnail=value["Thumbnail"]
-                     , ThumbnailTransparent=value["ThumbnailTransparent"])
+        return Image(id=value["id"]
+                     , label=value["label"]
+                     , thumbnail=value["thumbnail"]
+                     , thumbnail_transparent=value["thumbnail_transparent"]
+                     , nrrd=value["nrrd"]
+                     , wlz=value["wlz"]
+                     , obj=value["obj"]
+                     , swc=value["swc"]
+                     , index=value["index"]
+                     , center=value["center"]
+                     , extent=value["extent"]
+                     , voxel=value["voxel"]
+                     , orientation=value["orientation"]
+                    )
+
     
 class QueryField(fields.Field):
     def _serialize(self, value, attr, obj, **kwargs):
@@ -71,18 +100,21 @@ class TermInfoOutputSchemma(Schema):
     Comment = fields.List(fields.String(), missing=[])
     Queries = fields.List(QueryField(), missing=[])
     Images = fields.List(ImageField(), missing=[])
+    Examples = fields.List(ImageField(), missing=[])
     IsTemplate = fields.Bool(missing=False)
+    Domains = fields.List(ImageField(), missing=[])
     IsClass = fields.Bool(missing=False)
     IsIndividual = fields.Bool(missing=False)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
     if results.hits > 0 and results.docs and len(results.docs) > 0:
+        termInfo["Meta"] = {}
         # Deserialize the term info from the first result
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
-        termInfo["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
-        termInfo["SuperTypes"] = vfbTerm.term.core.types
+        termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
+        ["SuperTypes"] = vfbTerm.term.core.types
         try:
             # Retrieve tags from the term's unique_facets attribute
             termInfo["Tags"] = vfbTerm.term.core.unique_facets
@@ -91,12 +123,12 @@ def term_info_parse_object(results, short_form):
             termInfo["Tags"] = vfbTerm.term.core.types
         try:
             # Retrieve description from the term's description attribute
-            termInfo["Description"] = "%s"%("".join(vfbTerm.term.description))
+            termInfo["Meta"]["Description"] = "%s"%("".join(vfbTerm.term.description))
         except NameError:
             pass
         try:
             # Retrieve comment from the term's comment attribute
-            termInfo["Comment"] = "%s"%("".join(vfbTerm.term.comment))
+            termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
         except NameError:
             pass
         except AttributeError:

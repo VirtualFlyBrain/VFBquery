@@ -114,7 +114,7 @@ def term_info_parse_object(results, short_form):
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
-        ["SuperTypes"] = vfbTerm.term.core.types
+        termInfo["SuperTypes"] = vfbTerm.term.core.types
         try:
             # Retrieve tags from the term's unique_facets attribute
             termInfo["Tags"] = vfbTerm.term.core.unique_facets

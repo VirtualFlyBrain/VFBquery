@@ -209,7 +209,7 @@ def term_info_parse_object(results, short_form):
         # Add the queries to the term info
         termInfo["Queries"] = queries
         
-        term_info_data = {"term_info": termInfo.to_dict()}
+        term_info_data = {"term_info": termInfo}
         
         print(term_info_data)
  

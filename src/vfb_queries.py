@@ -161,7 +161,8 @@ def term_info_parse_object(results, short_form):
             for key in vars(image).keys():
                 if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
                     record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
-            record[index] = int(image.index[0])
+            if len(image.index) > 0:
+              record[index] = int(image.index[0])
             record[centre] = image.get_center()
             record[extent] = image.get_extent()
             record[voxel] = image.get_voxel()

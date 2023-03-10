@@ -171,7 +171,7 @@ def term_info_parse_object(results, short_form):
             # Add the thumbnails to the term info
             termInfo["Images"] = images
             
-          if vfbTerm.template_domains and len(vfbTerm.template_channel) > 0:
+        if vfbTerm.template_domains and len(vfbTerm.template_channel) > 0:
             images = {}
             for image in vfbTerm.template_domains:
               record = {}

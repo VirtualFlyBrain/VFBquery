@@ -216,7 +216,7 @@ def get_term_info(short_form: str):
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
         # Check if any results were returned
-        parsed = term_info_parse_object(results, short_form)
+        return term_info_parse_object(results, short_form)
     except IndexError:
         print(f"No results found for ID '{short_form}'")
         print("Error accessing SOLR server!")   

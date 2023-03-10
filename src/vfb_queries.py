@@ -163,10 +163,16 @@ def term_info_parse_object(results, short_form):
                     record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
             if len(image.index) > 0:
               record[index] = int(image.index[0])
-            record[center] = image.get_center()
-            record[extent] = image.get_extent()
-            record[voxel] = image.get_voxel()
-            record[orientation] = image.orientation
+            vars(image).keys()
+            image_vars = vars(image)
+            if 'center' in image_vars.keys():
+                record['center'] = image.get_center()
+            if 'extent' in image_vars.keys():
+                record['extent'] = image.get_extent()
+            if 'voxel' in image_vars.keys():
+                record['voxel'] = image.get_voxel()
+            if 'orientation' in image_vars.keys():
+                record['orientation'] = image.orientation
             images[vfbTerm.template_channel.channel.short_form].append(record)
                 
             # Add the thumbnails to the term info

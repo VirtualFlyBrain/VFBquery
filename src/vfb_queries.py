@@ -147,7 +147,7 @@ def term_info_parse_object(results, short_form):
               
         if vfbTerm.template_channel and len(vfbTerm.template_channel) > 0:
             images = {}
-            image = vfbTerm.template_channel:
+            image = vfbTerm.template_channel
             record = {}
             record["id"] = vfbTerm.template_channel.chanel.short_form
             label = vfbTerm.template_channel.chanel.label

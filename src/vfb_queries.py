@@ -145,17 +145,17 @@ def term_info_parse_object(results, short_form):
             # Add the thumbnails to the term info
             termInfo["Images"] = images
               
-        if vfbTerm.template_channel and vfbTerm.template_channel.chanel.short_form:
+        if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             images = {}
             image = vfbTerm.template_channel
             record = {}
-            record["id"] = vfbTerm.template_channel.chanel.short_form
-            label = vfbTerm.template_channel.chanel.label
-            if vfbTerm.template_channel.chanel.symbol != "" and len(vfbTerm.template_channel.chanel.symbol) > 0:
-                label = vfbTerm.template_channel.chanel.symbol
+            record["id"] = vfbTerm.template_channel.channel.short_form
+            label = vfbTerm.template_channel.channel.label
+            if vfbTerm.template_channel.channel.symbol != "" and len(vfbTerm.template_channel.channel.symbol) > 0:
+                label = vfbTerm.template_channel.channel.symbol
             record["label"] = label
-            if not vfbTerm.template_channel.chanel.short_form in images.keys():
-                images[vfbTerm.template_channel.chanel.short_form]=[]
+            if not vfbTerm.template_channel.channel.short_form in images.keys():
+                images[vfbTerm.template_channel.channel.short_form]=[]
             record["thumbnail"] = image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
             record["thumbnail_transparent"] = image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
             for key in vars(image).keys():
@@ -166,7 +166,7 @@ def term_info_parse_object(results, short_form):
             record[extent] = image.get_extent()
             record[voxel] = image.get_voxel()
             record[orientation] = image.orientation
-            images[vfbTerm.template_channel.chanel.short_form].append(record)
+            images[vfbTerm.template_channel.channel.short_form].append(record)
                 
             # Add the thumbnails to the term info
             termInfo["Images"] = images

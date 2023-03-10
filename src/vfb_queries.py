@@ -1,5 +1,5 @@
 import pysolr
-from src.term_info_queries import deserialize_term_info
+from term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 
 # Connect to the VFB SOLR server

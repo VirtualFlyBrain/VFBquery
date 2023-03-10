@@ -208,10 +208,8 @@ def term_info_parse_object(results, short_form):
 
         # Add the queries to the term info
         termInfo["Queries"] = queries
-        
-        term_info_data = {"term_info": termInfo}
  
-    return TermInfoOutputSchemma().load(term_info_data)
+    return TermInfoOutputSchemma().load({"term_info": termInfo})
 
 def get_term_info(short_form: str):
     """

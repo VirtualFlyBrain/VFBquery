@@ -102,7 +102,7 @@ class TermInfoOutputSchemma(Schema):
     IsClass = fields.Bool(missing=False)
     Examples = fields.Dict(keys=fields.String(), values=fields.List(ImageField()), missing={})
     IsTemplate = fields.Bool(missing=False)
-    Domains = fields.Dict(keys=fields.String(), values=fields.List(ImageField()), missing={})
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(ImageField()), missing={})
 
 def term_info_parse_object(results, short_form):
     termInfo = {}

@@ -2,7 +2,6 @@ import pysolr
 from term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 from marshmallow import Schema, fields
-from marshmallow.validate import validates_schema
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -35,12 +34,6 @@ class CoordinatesSchema(Schema):
     X = fields.Float(required=True)
     Y = fields.Float(required=True)
     Z = fields.Float(required=True)
-    
-    @validates_schema
-    def validate_type(self, data, **kwargs):
-        for key, value in data.items():
-            if not isinstance(value, (int, float)):
-                raise ValidationError(f"{key} must be a number")
  
 class CoordinatesField(fields.Nested):
     def __init__(self, **kwargs):

@@ -23,6 +23,17 @@ class QuerySchema(Schema):
     function = fields.String(required=True)
     takes = fields.String(required=True)
     default = fields.String(required=False)
+
+class Coordinates:
+    def __init__(self, X, Y, Z):
+        self.X = X
+        self.Y = Y
+        self.Z = Z
+
+class CoordinatesSchema(Schema):
+    X = fields.Float(required=True)
+    Y = fields.Float(required=True)
+    Z = fields.Float(required=True) 
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):
@@ -52,9 +63,9 @@ class ImageSchema(Schema):
     obj = fields.String(required=False, allow_none=True)
     swc = fields.String(required=False, allow_none=True)
     index = fields.Integer(required=False, allow_none=True)
-    center = fields.List(fields.Float(), required=False, allow_none=True)
-    extent = fields.List(fields.Float(), required=False, allow_none=True)
-    voxel = fields.List(fields.Float(), required=False, allow_none=True)
+    center = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
+    extent = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
+    voxel = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
     orientation = fields.List(fields.Float(), required=False, allow_none=True)
     type_label = fields.String(required=False, allow_none=True)
     type_id = fields.String(required=False, allow_none=True)

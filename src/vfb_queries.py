@@ -57,42 +57,30 @@ class ImageSchema(Schema):
 
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):
-        super().__init__(ImageSchema, **kwargs)
-      
+        super().__init__(ImageSchema(), **kwargs)
+    
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
-        return {"Id": value.Id
-                , "Label": value.Label
-                , "Thumbnail": value.Thumbnail
-                , "ThumbnailTransparent": value.ThumbnailTransparent
-                , "Nrrd": value.Nrrd
-                , "Wlz": value.Wlz
-                , "Obj": value.Obj
-                , "Swc": value.Swc
-                , "Index": value.Index
-                , "Center": value.Center
-                , "Extent": value.Extent
-                , "Voxel": value.Voxel
-                , "Orientation": value.Orientation
+        return {"id": value.Id
+                , "label": value.Label
+                , "thumbnail": value.Thumbnail
+                , "thumbnail_transparent": value.ThumbnailTransparent
+                , "nrrd": value.Nrrd
+                , "wlz": value.Wlz
+                , "obj": value.Obj
+                , "swc": value.Swc
+                , "index": value.Index
+                , "center": value.Center
+                , "extent": value.Extent
+                , "voxel": value.Voxel
+                , "orientation": value.Orientation
                 }
       
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return Image(id=value.get("Id"),
-                     label=value.get("Label"),
-                     thumbnail=value.get("Thumbnail"),
-                     thumbnail_transparent=value.get("ThumbnailTransparent"),
-                     nrrd=value.get("Nrrd"),
-                     wlz=value.get("Wlz"),
-                     obj=value.get("Obj"),
-                     swc=value.get("Swc"),
-                     index=value.get("Index"),
-                     center=value.get("Center"),
-                     extent=value.get("Extent"),
-                     voxel=value.get("Voxel"),
-                     orientation=value.get("Orientation"))
+        return ImageSchema().load(value)
 
 class QueryField(fields.Nested):
     def __init__(self, **kwargs):

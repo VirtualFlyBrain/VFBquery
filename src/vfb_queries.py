@@ -34,32 +34,23 @@ class CoordinatesSchema(Schema):
     X = fields.Float(required=True)
     Y = fields.Float(required=True)
     Z = fields.Float(required=True)
- 
+
 class CoordinatesField(fields.Nested):
     def __init__(self, **kwargs):
         super().__init__(CoordinatesSchema(), **kwargs)
 
     def _serialize(self, value, attr, obj, **kwargs):
-        print(type(value))
-        print(value)
         if value is None:
             return value
-        if not isinstance(value, dict):
-            print(f"Invalid input type: {type(value)}")
-            print(value)
+        if not isinstance(value, Coordinates):
             raise ValidationError("Invalid input")
         return {"X": value.X, "Y": value.Y, "Z": value.Z}
 
     def _deserialize(self, value, attr=None, data=None, **kwargs):
         if value is None:
             return value
-        if not isinstance(value, dict):
-            print(f"Invalid input type: {type(value)}")
-            print(value)
-            raise ValidationError("Invalid input")
-        return CoordinatesSchema().load(value)
+        return Coordinates(X=value.X, Y=value.Y, Z=value.Z)
 
-    
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):
         self.id = id

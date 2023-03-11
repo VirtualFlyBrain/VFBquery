@@ -109,11 +109,11 @@ class TermInfoOutputSchema(Schema):
     images = fields.Nested(ImageSchema, many=True)      
 
 class TermInfoOutputSchema(Schema):
-    Name = fields.String(missing="", required=True)
-    Id = fields.String(missing="", required=True)
-    SuperTypes = fields.List(fields.String(), missing=[], required=True)
-    Meta = fields.Dict(keys=fields.String(), values=fields.String(), missing={}, required=True)
-    Tags = fields.List(fields.String(), missing=[], required=True)
+    Name = fields.String(required=True)
+    Id = fields.String(required=True)
+    SuperTypes = fields.List(fields.String(), required=True)
+    Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
+    Tags = fields.List(fields.String(), required=True)
     Queries = fields.List(fields.Nested(QueryField, many=True), missing=[], required=False)
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)

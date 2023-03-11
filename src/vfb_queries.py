@@ -34,6 +34,12 @@ class CoordinatesSchema(Schema):
     X = fields.Float(required=True)
     Y = fields.Float(required=True)
     Z = fields.Float(required=True)
+    
+    @validates_schema
+    def validate_type(self, data, **kwargs):
+        for key, value in data.items():
+            if not isinstance(value, (int, float)):
+                raise ValidationError(f"{key} must be a number")
  
 class CoordinatesField(fields.Nested):
     def __init__(self, **kwargs):
@@ -47,7 +53,10 @@ class CoordinatesField(fields.Nested):
     def _deserialize(self, value, attr=None, data=None, **kwargs):
         if value is None:
             return value
+        if not isinstance(value, dict):
+            raise ValidationError("Invalid input type")
         return CoordinatesSchema().load(value)
+
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):

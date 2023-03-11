@@ -17,6 +17,13 @@ class Query:
     self.Takes = takes 
     self.Default = default 
 
+class QuerySchema(Schema):
+    Query = fields.String(required=True)
+    Label = fields.String(required=True)
+    Function = fields.String(required=True)
+    Takes = fields.String(required=True)
+    Default = fields.String(required=False)
+    
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None):
         self.Id = id
@@ -33,44 +40,63 @@ class Image:
         self.Voxel = voxel
         self.Orientation = orientation
 
-class ImageField(fields.Field):
+class ImageSchema(Schema):
+    Id = fields.String(required=True)
+    Label = fields.String(required=True)
+    Thumbnail = fields.String(required=False)
+    ThumbnailTransparent = fields.String(required=False)
+    Nrrd = fields.String(required=False)
+    Wlz = fields.String(required=False)
+    Obj = fields.String(required=False)
+    Swc = fields.String(required=False)
+    Index = fields.Integer(required=False)
+    Center = fields.List(fields.Float(),required=False)
+    Extent = fields.List(fields.Float(),required=False)
+    Voxel = fields.List(fields.Float(),required=False)
+    Orientation = fields.List(fields.Float(),required=False)
+
+class ImageField(fields.Nested):
+    def __init__(self, **kwargs):
+        super().__init__(ImageSchema, **kwargs)
+      
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
-        return {"id": value.Id
-                , "label": value.Label
-                , "thumbnail": value.Thumbnail
-                , "thumbnail_transparent": value.ThumbnailTransparent
-                , "nrrd": value.Nrrd
-                , "wlz": value.Wlz
-                , "obj": value.Obj
-                , "swc": value.Swc
-                , "index": value.Index
-                , "center": value.Center
-                , "extent": value.Extent
-                , "voxel": value.Voxel
-                , "orientation": value.Orientation
+        return {"Id": value.Id
+                , "Label": value.Label
+                , "Thumbnail": value.Thumbnail
+                , "ThumbnailTransparent": value.ThumbnailTransparent
+                , "Nrrd": value.Nrrd
+                , "Wlz": value.Wlz
+                , "Obj": value.Obj
+                , "Swc": value.Swc
+                , "Index": value.Index
+                , "Center": value.Center
+                , "Extent": value.Extent
+                , "Voxel": value.Voxel
+                , "Orientation": value.Orientation
                 }
       
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return Image(id=value.get("id"),
-                     label=value.get("label"),
-                     thumbnail=value.get("thumbnail"),
-                     thumbnail_transparent=value.get("thumbnail_transparent"),
-                     nrrd=value.get("nrrd"),
-                     wlz=value.get("wlz"),
-                     obj=value.get("obj"),
-                     swc=value.get("swc"),
-                     index=value.get("index"),
-                     center=value.get("center"),
-                     extent=value.get("extent"),
-                     voxel=value.get("voxel"),
-                     orientation=value.get("orientation"))
+        return Image(id=value.get("Id"),
+                     label=value.get("Label"),
+                     thumbnail=value.get("Thumbnail"),
+                     thumbnail_transparent=value.get("ThumbnailTransparent"),
+                     nrrd=value.get("Nrrd"),
+                     wlz=value.get("Wlz"),
+                     obj=value.get("Obj"),
+                     swc=value.get("Swc"),
+                     index=value.get("Index"),
+                     center=value.get("Center"),
+                     extent=value.get("Extent"),
+                     voxel=value.get("Voxel"),
+                     orientation=value.get("Orientation"))
 
-    
-class QueryField(fields.Field):
+class QueryField(fields.Nested):
+    def __init__(self, **kwargs):
+        super().__init__(QuerySchema, **kwargs)
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
@@ -90,7 +116,7 @@ class QueryField(fields.Field):
                      , Takes=value["Takes"]
                      , Default=value["Default"])
 
-class TermInfoOutputSchemma(Schema):
+class TermInfoOutputSchema(Schema):
     Name = fields.String(missing="")
     Id = fields.String(missing="")
     SuperTypes = fields.List(fields.String(), missing=[])
@@ -98,11 +124,11 @@ class TermInfoOutputSchemma(Schema):
     Tags = fields.List(fields.String(), missing=[])
     Queries = fields.List(fields.Nested(QueryField, many=True), missing=[])
     IsIndividual = fields.Bool(missing=False)
-    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
+    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}))
     IsClass = fields.Bool(missing=False)
-    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
+    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}))
     IsTemplate = fields.Bool(missing=False)
-    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField()), missing={}))
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
@@ -249,7 +275,7 @@ def term_info_parse_object(results, short_form):
         
         print(termInfo)
  
-    return TermInfoOutputSchemma().load(termInfo)
+    return TermInfoOutputSchema().load(termInfo)
 
 def get_term_info(short_form: str):
     """

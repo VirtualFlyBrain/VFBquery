@@ -38,7 +38,7 @@ class CoordinatesSchema(Schema):
     def _serialize(self, obj, **kwargs):
         return {"X": obj.X, "Y": obj.Y, "Z": obj.Z}
     
-    def _deserialize(self, value, attr, data, **kwargs):
+    def _deserialize(self, value, attr=None, data=None, **kwargs):
         return Coordinates(X=value['X'], Y=value['Y'], Z=value['Z'])
  
 class CoordinatesField(fields.Nested):
@@ -50,10 +50,10 @@ class CoordinatesField(fields.Nested):
             return value
         return {"X": value.X, "Y": value.Y, "Z": value.Z}
 
-    def _deserialize(self, value, attr, data, **kwargs):
+    def _deserialize(self, value, attr=None, data=None, **kwargs):
         if value is None:
             return value
-        return CoordinatesSchema().load(value, unknown=RAISE, **kwargs)
+        return CoordinatesSchema().load(value, unknown=RAISE, attr=attr, data=data, **kwargs)
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):

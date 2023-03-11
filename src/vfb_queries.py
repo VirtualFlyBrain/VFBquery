@@ -10,50 +10,50 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-  def __init__(self, query, label, function, takes, default):
-    self.Query = query
-    self.Label = label 
-    self.Function = function 
-    self.Takes = takes 
-    self.Default = default 
+    def __init__(self, query, label, function, takes, default):
+        self.query = query
+        self.label = label 
+        self.function = function 
+        self.takes = takes 
+        self.default = default 
 
 class QuerySchema(Schema):
-    Query = fields.String(required=True)
-    Label = fields.String(required=True)
-    Function = fields.String(required=True)
-    Takes = fields.String(required=True)
-    Default = fields.String(required=False)
+    query = fields.String(required=True)
+    label = fields.String(required=True)
+    function = fields.String(required=True)
+    takes = fields.String(required=True)
+    default = fields.String(required=False)
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None):
-        self.Id = id
-        self.Label = label
-        self.Thumbnail = thumbnail
-        self.ThumbnailTransparent = thumbnail_transparent
-        self.Nrrd = nrrd
-        self.Wlz = wlz
-        self.Obj = obj
-        self.Swc = swc
-        self.Index = index
-        self.Center = center
-        self.Extent = extent
-        self.Voxel = voxel
-        self.Orientation = orientation
+        self.id = id
+        self.label = label
+        self.thumbnail = thumbnail
+        self.thumbnail_transparent = thumbnail_transparent
+        self.nrrd = nrrd
+        self.wlz = wlz
+        self.obj = obj
+        self.swc = swc
+        self.index = index
+        self.center = center
+        self.extent = extent
+        self.voxel = voxel
+        self.orientation = orientation
 
 class ImageSchema(Schema):
-    Id = fields.String(required=True)
-    Label = fields.String(required=True)
-    Thumbnail = fields.String(required=False)
-    ThumbnailTransparent = fields.String(required=False)
-    Nrrd = fields.String(required=False)
-    Wlz = fields.String(required=False)
-    Obj = fields.String(required=False)
-    Swc = fields.String(required=False)
-    Index = fields.Integer(required=False)
-    Center = fields.List(fields.Float(),required=False)
-    Extent = fields.List(fields.Float(),required=False)
-    Voxel = fields.List(fields.Float(),required=False)
-    Orientation = fields.List(fields.Float(),required=False)
+    id = fields.String(required=True)
+    label = fields.String(required=True)
+    thumbnail = fields.String(required=False)
+    thumbnail_transparent = fields.String(required=False)
+    nrrd = fields.String(required=False)
+    wlz = fields.String(required=False)
+    obj = fields.String(required=False)
+    swc = fields.String(required=False)
+    index = fields.Integer(required=False)
+    center = fields.List(fields.Float(), required=False)
+    extent = fields.List(fields.Float(), required=False)
+    voxel = fields.List(fields.Float(), required=False)
+    orientation = fields.List(fields.Float(), required=False)
 
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):
@@ -62,19 +62,19 @@ class ImageField(fields.Nested):
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
-        return {"id": value.Id
-                , "label": value.Label
-                , "thumbnail": value.Thumbnail
-                , "thumbnail_transparent": value.ThumbnailTransparent
-                , "nrrd": value.Nrrd
-                , "wlz": value.Wlz
-                , "obj": value.Obj
-                , "swc": value.Swc
-                , "index": value.Index
-                , "center": value.Center
-                , "extent": value.Extent
-                , "voxel": value.Voxel
-                , "orientation": value.Orientation
+        return {"id": value.id
+                , "label": value.label
+                , "thumbnail": value.thumbnail
+                , "thumbnail_transparent": value.thumbnail_transparent
+                , "nrrd": value.nrrd
+                , "wlz": value.wlz
+                , "obj": value.obj
+                , "swc": value.swc
+                , "index": value.index
+                , "center": value.center
+                , "extent": value.extent
+                , "voxel": value.voxel
+                , "orientation": value.orientation
                 }
       
     def _deserialize(self, value, attr, data, **kwargs):
@@ -88,11 +88,11 @@ class QueryField(fields.Nested):
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
-        return {"Query": value.Query
-                , "Label": value.Label
-                , "Function": value.Function
-                , "Takes": value.Takes
-                , "Default": value.Default
+        return {"query": value.query
+                , "label": value.label
+                , "function": value.function
+                , "takes": value.takes
+                , "default": value.default
                 }
 
     def _deserialize(self, value, attr, data, **kwargs):
@@ -102,9 +102,9 @@ class QueryField(fields.Nested):
 
 
 class TermInfoOutputSchema(Schema):
-    Name = fields.String(required=True)
-    Id = fields.String(required=True)
-    SuperTypes = fields.List(fields.String(), required=True)
+    name = fields.String(required=True)
+    id = fields.String(required=True)
+    super_types = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
     Queries = fields.List(fields.Nested(QueryField, many=True), missing=[], required=False)

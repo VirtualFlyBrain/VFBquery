@@ -29,6 +29,9 @@ class Coordinates:
         self.X = X
         self.Y = Y
         self.Z = Z
+        
+    def __str__(self):
+        return f"X={self.X}, Y={self.Y}, Z={self.Z}"
 
 class CoordinatesSchema(Schema):
     X = fields.Float(required=True)

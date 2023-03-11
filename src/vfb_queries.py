@@ -62,7 +62,7 @@ class CoordinatesField(fields.Nested):
     def _deserialize(self, value, attr=None, data=None, **kwargs):
         if value is None:
             return value
-        return Coordinates(X=value['X'], Y=value['Y'], Z=value['Z'])
+        return Coordinates(X=value.X, Y=value.Y, Z=value.Z)
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):

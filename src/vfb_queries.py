@@ -109,11 +109,11 @@ class TermInfoOutputSchema(Schema):
     Tags = fields.List(fields.String(), required=True)
     Queries = fields.List(fields.Nested(QueryField, many=True), missing=[], required=False)
     IsIndividual = fields.Bool(missing=False, required=False)
-    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
+    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False)
     IsClass = fields.Bool(missing=False, required=False)
-    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
+    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False)
     IsTemplate = fields.Bool(missing=False, required=False)
-    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}

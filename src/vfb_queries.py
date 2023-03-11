@@ -66,7 +66,7 @@ class ImageSchema(Schema):
     center = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
     extent = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
     voxel = fields.Nested(CoordinatesSchema, required=False, allow_none=True)
-    orientation = fields.List(fields.Float(), required=False, allow_none=True)
+    orientation = fields.String(required=False, allow_none=True)
     type_label = fields.String(required=False, allow_none=True)
     type_id = fields.String(required=False, allow_none=True)
 

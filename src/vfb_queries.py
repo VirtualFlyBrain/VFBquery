@@ -43,14 +43,18 @@ class CoordinatesField(fields.Nested):
         if value is None:
             return value
         if not isinstance(value, dict):
-            raise ValidationError(f"Invalid input type: {type(value)}")
+            print(f"Invalid input type: {type(value)}")
+            print(value)
+            raise ValidationError("Invalid input")
         return {"X": value.X, "Y": value.Y, "Z": value.Z}
 
     def _deserialize(self, value, attr=None, data=None, **kwargs):
         if value is None:
             return value
         if not isinstance(value, dict):
-            raise ValidationError(f"Invalid input type: {type(value)}")
+            print(f"Invalid input type: {type(value)}")
+            print(value)
+            raise ValidationError("Invalid input")
         return CoordinatesSchema().load(value)
 
     

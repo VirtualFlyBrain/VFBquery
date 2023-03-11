@@ -96,13 +96,13 @@ class TermInfoOutputSchemma(Schema):
     SuperTypes = fields.List(fields.String(), missing=[])
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), missing={})
     Tags = fields.List(fields.String(), missing=[])
-    Queries = fields.List(fields.Nested(QueryField, nested=True), missing=[])
+    Queries = fields.List(fields.Nested(QueryField, many=True), missing=[])
     IsIndividual = fields.Bool(missing=False)
-    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, nested=True)), missing={})
+    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
     IsClass = fields.Bool(missing=False)
-    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, nested=True)), missing={})
+    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
     IsTemplate = fields.Bool(missing=False)
-    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField, nested=True)), missing={})
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField, many=True)), missing={})
 
 def term_info_parse_object(results, short_form):
     termInfo = {}

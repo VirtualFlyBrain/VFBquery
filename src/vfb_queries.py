@@ -98,11 +98,7 @@ class QueryField(fields.Nested):
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return Query(Query=value["Query"]
-                     , Label=value["Label"]
-                     , Function=value["Function"]
-                     , Takes=value["Takes"]
-                     , Default=value["Default"])
+        return QuerySchema().load(value)
 
 class TermInfoOutputSchema(Schema):
     Name = fields.String(missing="")

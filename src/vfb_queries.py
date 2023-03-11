@@ -48,7 +48,7 @@ class CoordinatesField(fields.Nested):
         if value is None:
             return value
         if not isinstance(value, dict):
-            raise ValidationError("Invalid input type")
+            raise ValidationError(f"Invalid input type: {type(value)}")
         return CoordinatesSchema().load(value)
 
     

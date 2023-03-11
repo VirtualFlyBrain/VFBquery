@@ -48,7 +48,7 @@ class CoordinatesSchema(Schema):
         return {"X": obj.X, "Y": obj.Y, "Z": obj.Z}
     
     def _deserialize(self, value, attr=None, data=None, **kwargs):
-        return Coordinates(X=value['X'], Y=value['Y'], Z=value['Z'])
+        return Coordinates(X=value.X, Y=value.Y, Z=value.Z)
  
 class CoordinatesField(fields.Nested):
     def __init__(self, **kwargs):

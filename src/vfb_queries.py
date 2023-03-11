@@ -100,13 +100,6 @@ class QueryField(fields.Nested):
             return value
         return QuerySchema().load(value)
 
-class TermInfoOutputSchema(Schema):
-    short_form = fields.String(required=True)
-    label = fields.String(required=True)
-    type = fields.String(required=True)
-    status = fields.String(required=True)
-    def__annotation = fields.String(required=True)
-    images = fields.Nested(ImageSchema, many=True)      
 
 class TermInfoOutputSchema(Schema):
     Name = fields.String(required=True)

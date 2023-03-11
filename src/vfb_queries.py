@@ -101,18 +101,26 @@ class QueryField(fields.Nested):
         return QuerySchema().load(value)
 
 class TermInfoOutputSchema(Schema):
-    Name = fields.String(missing="")
-    Id = fields.String(missing="")
-    SuperTypes = fields.List(fields.String(), missing=[])
-    Meta = fields.Dict(keys=fields.String(), values=fields.String(), missing={})
-    Tags = fields.List(fields.String(), missing=[])
-    Queries = fields.List(fields.Nested(QueryField, many=True), missing=[])
-    IsIndividual = fields.Bool(missing=False)
-    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}))
-    IsClass = fields.Bool(missing=False)
-    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}))
-    IsTemplate = fields.Bool(missing=False)
-    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField()), missing={}))
+    short_form = fields.String(required=True)
+    label = fields.String(required=True)
+    type = fields.String(required=True)
+    status = fields.String(required=True)
+    def__annotation = fields.String(required=True)
+    images = fields.Nested(ImageSchema, many=True)      
+
+class TermInfoOutputSchema(Schema):
+    Name = fields.String(missing="", required=True)
+    Id = fields.String(missing="", required=True)
+    SuperTypes = fields.List(fields.String(), missing=[], required=True)
+    Meta = fields.Dict(keys=fields.String(), values=fields.String(), missing={}, required=True)
+    Tags = fields.List(fields.String(), missing=[], required=True)
+    Queries = fields.List(fields.Nested(QueryField, many=True), missing=[], required=False)
+    IsIndividual = fields.Bool(missing=False, required=False)
+    Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
+    IsClass = fields.Bool(missing=False, required=False)
+    Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
+    IsTemplate = fields.Bool(missing=False, required=False)
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageField()), missing={}), required=False)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}

@@ -25,7 +25,7 @@ class QuerySchema(Schema):
     default = fields.String(required=False)
     
 class Image:
-    def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None):
+    def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):
         self.id = id
         self.label = label
         self.thumbnail = thumbnail
@@ -39,6 +39,8 @@ class Image:
         self.extent = extent
         self.voxel = voxel
         self.orientation = orientation
+        self.type_label = type_label
+        self.type_id = type_id
 
 class ImageSchema(Schema):
     id = fields.String(required=True)
@@ -54,6 +56,8 @@ class ImageSchema(Schema):
     extent = fields.List(fields.Float(), required=False)
     voxel = fields.List(fields.Float(), required=False)
     orientation = fields.List(fields.Float(), required=False)
+    type_label = fields.String(required=False)
+    type_id = fields.String(required=False)
 
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):
@@ -75,6 +79,8 @@ class ImageField(fields.Nested):
                 , "extent": value.extent
                 , "voxel": value.voxel
                 , "orientation": value.orientation
+                , "type_id": value.type_id
+                , "type_label": value.type_label
                 }
       
     def _deserialize(self, value, attr, data, **kwargs):

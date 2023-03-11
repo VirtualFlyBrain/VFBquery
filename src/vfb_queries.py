@@ -53,22 +53,21 @@ class ImageField(fields.Field):
                 }
       
     def _deserialize(self, value, attr, data, **kwargs):
-        if value is None:
-            return value
-        return Image(id=value["id"]
-                     , label=value["label"]
-                     , thumbnail=value["thumbnail"]
-                     , thumbnail_transparent=value["thumbnail_transparent"]
-                     , nrrd=value["nrrd"]
-                     , wlz=value["wlz"]
-                     , obj=value["obj"]
-                     , swc=value["swc"]
-                     , index=value["index"]
-                     , center=value["center"]
-                     , extent=value["extent"]
-                     , voxel=value["voxel"]
-                     , orientation=value["orientation"]
-                    )
+    if value is None:
+        return value
+    return Image(id=value.get("id"),
+                 label=value.get("label"),
+                 thumbnail=value.get("thumbnail"),
+                 thumbnail_transparent=value.get("thumbnail_transparent"),
+                 nrrd=value.get("nrrd"),
+                 wlz=value.get("wlz"),
+                 obj=value.get("obj"),
+                 swc=value.get("swc"),
+                 index=value.get("index"),
+                 center=value.get("center"),
+                 extent=value.get("extent"),
+                 voxel=value.get("voxel"),
+                 orientation=value.get("orientation"))
 
     
 class QueryField(fields.Field):

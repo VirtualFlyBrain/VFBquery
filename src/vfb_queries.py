@@ -119,7 +119,7 @@ class TermInfoOutputSchema(Schema):
     IsClass = fields.Bool(missing=False, required=False)
     Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsTemplate = fields.Bool(missing=False, required=False)
-    Domains = fields.Dict(keys=fields.Integer(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
+    Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
@@ -248,15 +248,13 @@ def term_info_parse_object(results, short_form):
                   label = image.anatomical_type.symbol
               record["type_label"] = label
               record["index"] = int(image.index[0])
-              if not record["index"] in images.keys():
-                  images[record["index"]]=[]
               record["thumbnail"] = image.folder.replace("http://","https://") + "thumbnail.png"
               record["thumbnail_transparent"] = image.folder.replace("http://","https://") + "thumbnailT.png"
               for key in vars(image).keys():
                   if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
                       record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
               record["center"] = image.get_center()
-              images[record["index"]].append(record)
+              images[record["index"]] = record
                 
             # Add the thumbnails to the term info
             termInfo["Domains"] = images

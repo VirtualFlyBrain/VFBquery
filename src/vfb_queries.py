@@ -240,6 +240,8 @@ def term_info_parse_object(results, short_form):
 
         # Add the queries to the term info
         termInfo["Queries"] = queries
+        
+        print(termInfo)
  
     return TermInfoOutputSchemma().load(termInfo)
 

@@ -29,21 +29,11 @@ class Coordinates:
         self.X = X
         self.Y = Y
         self.Z = Z
-    def __getitem__(self, index):
-        if index == 0:
-            return self.X
-        elif index == 1:
-            return self.Y
-        elif index == 2:
-            return self.Z
-        else:
-            raise IndexError('Coordinates index out of range')
 
 class CoordinatesSchema(Schema):
     X = fields.Float(required=True)
     Y = fields.Float(required=True)
     Z = fields.Float(required=True)
-    
  
 class CoordinatesField(fields.Nested):
     def __init__(self, **kwargs):

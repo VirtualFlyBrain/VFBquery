@@ -42,6 +42,8 @@ class CoordinatesField(fields.Nested):
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
+        if not isinstance(value, dict):
+            raise ValidationError(f"Invalid input type: {type(value)}")
         return {"X": value.X, "Y": value.Y, "Z": value.Z}
 
     def _deserialize(self, value, attr=None, data=None, **kwargs):

@@ -102,9 +102,9 @@ class QueryField(fields.Nested):
 
 
 class TermInfoOutputSchema(Schema):
-    name = fields.String(required=True)
-    id = fields.String(required=True)
-    super_types = fields.List(fields.String(), required=True)
+    Name = fields.String(required=True)
+    Id = fields.String(required=True)
+    Super_types = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
     Queries = fields.List(fields.Nested(QueryField, many=True), missing=[], required=False)

@@ -51,13 +51,13 @@ class ImageSchema(Schema):
     wlz = fields.String(required=False)
     obj = fields.String(required=False)
     swc = fields.String(required=False)
-    index = fields.Integer(required=False)
-    center = fields.List(fields.Float(), required=False)
-    extent = fields.List(fields.Float(), required=False)
-    voxel = fields.List(fields.Float(), required=False)
-    orientation = fields.List(fields.Float(), required=False)
-    type_label = fields.String(required=False)
-    type_id = fields.String(required=False)
+    index = fields.Integer(required=False, allow_none=True)
+    center = fields.List(fields.Float(), required=False, allow_none=True)
+    extent = fields.List(fields.Float(), required=False, allow_none=True)
+    voxel = fields.List(fields.Float(), required=False, allow_none=True)
+    orientation = fields.List(fields.Float(), required=False, allow_none=True)
+    type_label = fields.String(required=False, allow_none=True)
+    type_id = fields.String(required=False, allow_none=True)
 
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):

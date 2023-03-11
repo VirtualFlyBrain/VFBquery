@@ -33,7 +33,13 @@ class Coordinates:
 class CoordinatesSchema(Schema):
     X = fields.Float(required=True)
     Y = fields.Float(required=True)
-    Z = fields.Float(required=True) 
+    Z = fields.Float(required=True)
+    
+    def _serialize(self, obj, **kwargs):
+        return {"X": obj.X, "Y": obj.Y, "Z": obj.Z}
+    
+    def _deserialize(self, value, attr, data, **kwargs):
+        return Coordinates(X=value['X'], Y=value['Y'], Z=value['Z'])
     
 class Image:
     def __init__(self, id, label, thumbnail=None, thumbnail_transparent=None, nrrd=None, wlz=None, obj=None, swc=None, index=None, center=None, extent=None, voxel=None, orientation=None, type_id=None, type_label=None):

@@ -40,6 +40,8 @@ class CoordinatesField(fields.Nested):
         super().__init__(CoordinatesSchema(), **kwargs)
 
     def _serialize(self, value, attr, obj, **kwargs):
+        print(type(value))
+        print(value)
         if value is None:
             return value
         if not isinstance(value, dict):

@@ -93,18 +93,17 @@ class QueryField(fields.Field):
 
 class TermInfoOutputSchemma(Schema):
     Name = fields.String(missing="")
+    Id = fields.String(missing="")
     SuperTypes = fields.List(fields.String(), missing=[])
-    Meta = fields.Dict(missing={})
+    Meta = fields.Dict(keys=fields.String(), values=fields.String(), missing={})
     Tags = fields.List(fields.String(), missing=[])
-    Description = fields.String(missing="")
-    Comment = fields.List(fields.String(), missing=[])
     Queries = fields.List(QueryField(), missing=[])
-    Images = fields.List(ImageField(), missing=[])
-    Examples = fields.List(ImageField(), missing=[])
-    IsTemplate = fields.Bool(missing=False)
-    Domains = fields.List(ImageField(), missing=[])
-    IsClass = fields.Bool(missing=False)
     IsIndividual = fields.Bool(missing=False)
+    Images = fields.Dict(keys=fields.String(), values=fields.List(ImageField()), missing={})
+    IsClass = fields.Bool(missing=False)
+    Examples = fields.Dict(keys=fields.String(), values=fields.List(ImageField()), missing={})
+    IsTemplate = fields.Bool(missing=False)
+    Domains = fields.Dict(keys=fields.String(), values=fields.List(ImageField()), missing={})
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
@@ -113,8 +112,14 @@ def term_info_parse_object(results, short_form):
         # Deserialize the term info from the first result
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
+        termInfo["Name"] = vfbTerm.term.core.label
+        termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
         termInfo["SuperTypes"] = vfbTerm.term.core.types
+        if "Class" in termInfo["SuperTypes"]:
+            termInfo["IsClass"] = True
+        elif "Individual" in termInfo["SuperTypes"]:
+            termInfo["IsIndividual"] = True
         try:
             # Retrieve tags from the term's unique_facets attribute
             termInfo["Tags"] = vfbTerm.term.core.unique_facets
@@ -178,6 +183,7 @@ def term_info_parse_object(results, short_form):
             termInfo["Images"] = images
               
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
+            termInfo["IsTemplate"] = True
             images = {}
             image = vfbTerm.template_channel
             record = {}
@@ -212,6 +218,7 @@ def term_info_parse_object(results, short_form):
             
         if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
             images = {}
+            termInfo["IsTemplate"] = True
             for image in vfbTerm.template_domains:
               record = {}
               record["id"] = image.anatomical_individual.short_form

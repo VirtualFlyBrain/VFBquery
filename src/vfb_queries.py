@@ -21,7 +21,7 @@ class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.Dict(keys=fields.String(), values=fields.Dict(), required=True)
+    takes = fields.Dict(keys=fields.Integer(), values=fields.Dict(), required=True)
 
 class Coordinates:
     def __init__(self, X, Y, Z):

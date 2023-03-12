@@ -33,14 +33,14 @@ class LogicFormSchema(Schema):
             return data
 
 class TakesSchema(Schema):
-    short_form = fields.Nested(LogicFormSchema)
-    default = fields.String()
+    short_form = fields.Nested(LogicFormSchema(), required=False)
+    default = fields.String(required=False)
 
 class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.Dict(keys=fields.Integer(), values=fields.Nested(TakesSchema), required=True)
+    takes = fields.Dict(keys=fields.Integer(), values=fields.Nested(TakesSchema()), required=False)
 
 class Coordinates:
     def __init__(self, X, Y, Z):

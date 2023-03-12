@@ -17,11 +17,30 @@ class Query:
         self.takes = takes 
         self.default = default 
 
+class LogicFormSchema(Schema):
+    and_ = fields.List(fields.Nested('self'), attribute='&&', required=False)
+    or_ = fields.List(fields.Nested('self'), attribute='||', required=False)
+    not_ = fields.Nested('self', attribute='!', required=False)
+    variable = fields.String(required=False)
+
+    @post_load
+    def deserialize_logic_form(self, data, **kwargs):
+        if '!' in data:
+            return {"!": data["not_"]}
+        elif '&&' in data or '||' in data:
+            return {k: v for k, v in data.items() if k in ['&&', '||']}
+        else:
+            return data
+
+class TakesSchema(Schema):
+    short_form = fields.Nested(LogicFormSchema)
+    default = fields.String()
+
 class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.Dict(keys=fields.Integer(), values=fields.Dict(), required=True)
+    takes = fields.Dict(keys=fields.Integer(), values=fields.Nested(TakesSchema), required=True)
 
 class Coordinates:
     def __init__(self, X, Y, Z):

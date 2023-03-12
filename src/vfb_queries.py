@@ -21,7 +21,7 @@ class LogicFormSchema(Schema):
     and_ = fields.List(fields.Nested('self'), attribute='&&', required=False)
     or_ = fields.List(fields.Nested('self'), attribute='||', required=False)
     not_ = fields.Nested('self', attribute='!', required=False)
-    variable = fields.String(required=False)
+    variables = fields.List(fields.String(), required=False)
 
     @post_load
     def deserialize_logic_form(self, data, **kwargs):

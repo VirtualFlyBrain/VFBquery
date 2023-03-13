@@ -414,8 +414,9 @@ def formatDataframe(df):
         df['tags'] = df['tags'].apply(merge_tags)
     # Rename column headers if they occur 
     df = replace_column_header(df, 'datasource', 'source')
-    df = replace_column_header(df, 'accession', 'source_id')
+    df = replace_column_header(df, 'accession', 'source')
     df = replace_column_header(df, 'accession_in_source', 'source_id')
+    df = replace_column_header(df, 'NBLAST_score', 'score')
     
     # Return the updated DataFrame
     return df

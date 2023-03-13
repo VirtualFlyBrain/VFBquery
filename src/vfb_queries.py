@@ -389,31 +389,35 @@ def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
 def formatDataframe(df):
     """
     Merge label/id pairs into a markdown link and update column names.
-    
+
     :param df: pandas DataFrame 
     :return: pandas DataFrame with merged label/id pairs in 'label' and 'parent' columns
     """
-    # Merge label/id pairs for both label/id and parent_label/parent_id columns
-    df['label'] = '[%s](%s)' % (df['label'], df['id'])
-    df['parent'] = '[%s](%s)' % (df['parent_label'], df['parent_id'])
-    
-    # Drop the original label/id and parent_label/parent_id columns
-    df.drop(columns=['label', 'id', 'parent_label', 'parent_id'], inplace=True)
-    
-    # Check tags is a list
-    def merge_tags(tags):
-        if isinstance(tags, str):
-            tags_list = tags.split('|')
-            return tags_list
-        else:
-            return tags
-
-    df['tags'] = df['tags'].apply(merge_tags)
-        
+    if 'label' in df.columns and 'id' in df.columns:
+        # Merge label/id pairs for both label/id and parent_label/parent_id columns
+        df['label'] = '[%s](%s)' % (df['label'], df['id'])
+        # Drop the original label/id columns
+        df.drop(columns=['id'], inplace=True)
+    if 'parent_label' in df.columns and 'parent_id' in df.columns:
+        df['parent'] = '[%s](%s)' % (df['parent_label'], df['parent_id'])
+        # Drop the original parent_label/parent_id columns
+        df.drop(columns=['parent_label', 'parent_id'], inplace=True)
+    if 'tags' in df.columns:
+        # Check tags is a list
+        def merge_tags(tags):
+            if isinstance(tags, str):
+                tags_list = tags.split('|')
+                return tags_list
+            else:
+                return tags
+        df['tags'] = df['tags'].apply(merge_tags)
+    # Check if columns exist before renaming them
+    if 'datasource' in df.columns:
+        df.rename(columns={'datasource': 'source'}, inplace=True)
+    if 'accession' in df.columns:
+        df.rename(columns={'accession': 'source_id'}, inplace=True)
     # Return the updated DataFrame
-    return df.rename(columns={'datasource': 'source', 'accession': 'source_id'})
-
-    return results
+    return df
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """

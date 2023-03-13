@@ -178,9 +178,13 @@ def term_info_parse_object(results, short_form):
         # Deserialize the term info from the first result
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
-        termInfo["Name"] = vfbTerm.term.core.label
         termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
+        mainlabel = vfbTerm.term.core.label
+        if vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
+            meta["Symbol"] = "[%s](%s)"%(vfbTerm.term.core.symbol, vfbTerm.term.core.short_form)
+            mainlabel = vfbTerm.term.core.symbol
+        termInfo["Name"] = mainlabel
         termInfo["SuperTypes"] = vfbTerm.term.core.types
         if "Class" in termInfo["SuperTypes"]:
             termInfo["IsClass"] = True
@@ -225,7 +229,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"$and":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
+            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(termInfo["Name"]),"function":"get_instances","takes":[{"short_form":{"$and":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
             
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
@@ -308,6 +312,9 @@ def term_info_parse_object(results, short_form):
                 
             # Add the thumbnails to the term info
             termInfo["Domains"] = images
+            
+        if contains_all_tags(meta["SuperTypes"],["Individual","Neuron"]):
+            queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(termInfo["Name"]),"function":"get_similar_neurons","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
 
         # Add the queries to the term info
         termInfo["Queries"] = queries

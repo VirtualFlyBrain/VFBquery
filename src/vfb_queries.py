@@ -396,11 +396,11 @@ def formatDataframe(df):
     """
     if 'label' in df.columns and 'id' in df.columns:
         # Merge label/id pairs for both label/id and parent_label/parent_id columns
-        df['label'] = '[%s](%s)' % (df['label'], df['id'])
+        df['label'] = df.apply(lambda row: '[%s](%s)' % (row['label'], row['id']), axis=1)
         # Drop the original label/id columns
         df.drop(columns=['id'], inplace=True)
     if 'parent_label' in df.columns and 'parent_id' in df.columns:
-        df['parent'] = '[%s](%s)' % (df['parent_label'], df['parent_id'])
+        df['parent'] = df.apply(lambda row: '[%s](%s)' % (row['parent_label'], row['parent_id']), axis=1)
         # Drop the original parent_label/parent_id columns
         df.drop(columns=['parent_label', 'parent_id'], inplace=True)
     if 'tags' in df.columns:

@@ -21,7 +21,6 @@ class LogicFormSchema(Schema):
     and_ = fields.List(fields.Nested('self'), attribute='&&', required=False)
     or_ = fields.List(fields.Nested('self'), attribute='||', required=False)
     not_ = fields.Nested('self', attribute='!', required=False)
-    variables = fields.List(fields.String(), required=False)
 
     @post_load
     def deserialize_logic_form(self, data, **kwargs):
@@ -40,7 +39,7 @@ class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.Dict(keys=fields.Integer(), values=fields.Nested(TakesSchema()), required=False)
+    takes = fields.List(fields.Nested(TakesSchema()), required=False)
 
 class Coordinates:
     def __init__(self, X, Y, Z):
@@ -226,7 +225,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":{0:{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}}})
+            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"&&":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
             
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:

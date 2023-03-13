@@ -2,6 +2,8 @@ import pysolr
 from term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 from marshmallow import Schema, fields, post_load
+from typing import List, Tuple
+import pandas as pd
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -178,9 +180,13 @@ def term_info_parse_object(results, short_form):
         # Deserialize the term info from the first result
         vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         queries = []
-        termInfo["Name"] = vfbTerm.term.core.label
         termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
+        mainlabel = vfbTerm.term.core.label
+        if vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
+            meta["Symbol"] = "[%s](%s)"%(vfbTerm.term.core.symbol, vfbTerm.term.core.short_form)
+            mainlabel = vfbTerm.term.core.symbol
+        termInfo["Name"] = mainlabel
         termInfo["SuperTypes"] = vfbTerm.term.core.types
         if "Class" in termInfo["SuperTypes"]:
             termInfo["IsClass"] = True
@@ -225,7 +231,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(vfbTerm.term.core.label),"function":"get_instances","takes":[{"short_form":{"$and":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
+            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(termInfo["Name"]),"function":"get_instances","takes":[{"short_form":{"$and":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
             
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
@@ -308,6 +314,9 @@ def term_info_parse_object(results, short_form):
                 
             # Add the thumbnails to the term info
             termInfo["Domains"] = images
+            
+        if contains_all_tags(meta["SuperTypes"],["Individual","Neuron"]):
+            queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(termInfo["Name"]),"function":"get_similar_neurons","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
 
         # Add the queries to the term info
         termInfo["Queries"] = queries
@@ -341,7 +350,7 @@ def get_instances(short_form: str):
     :param short_form: short form of the class
     :return: results rows
     """
-    pd = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
+    df = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
     results = {
         "headers": {
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
@@ -376,36 +385,42 @@ def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
         'rows': formatDataframe(df).to_dict('records')
     }
     
-
+    return results
 
 def formatDataframe(df):
     """
     Merge label/id pairs into a markdown link and update column names.
-    
+
     :param df: pandas DataFrame 
     :return: pandas DataFrame with merged label/id pairs in 'label' and 'parent' columns
     """
-    # Merge label/id pairs for both label/id and parent_label/parent_id columns
-    df['label'] = '[%s](%s)' % (df['label'], df['id'])
-    df['parent'] = '[%s](%s)' % (df['parent_label'], df['parent_id'])
+    if 'label' in df.columns and 'id' in df.columns:
+        # Merge label/id pairs for both label/id and parent_label/parent_id columns
+        df['label'] = df.apply(lambda row: '[%s](%s)' % (row['label'], row['id']), axis=1)
+        # Drop the original label/id columns
+        df.drop(columns=['id'], inplace=True)
+    if 'parent_label' in df.columns and 'parent_id' in df.columns:
+        df['parent'] = df.apply(lambda row: '[%s](%s)' % (row['parent_label'], row['parent_id']), axis=1)
+        # Drop the original parent_label/parent_id columns
+        df.drop(columns=['parent_label', 'parent_id'], inplace=True)
+    if 'tags' in df.columns:
+        # Check tags is a list
+        def merge_tags(tags):
+            if isinstance(tags, str):
+                tags_list = tags.split('|')
+                return tags_list
+            else:
+                return tags
+        df['tags'] = df['tags'].apply(merge_tags)
+    # Rename column headers if they occur 
+    df = replace_column_header(df, 'datasource', 'source')
+    df = replace_column_header(df, 'accession', 'source')
+    df = replace_column_header(df, 'source_id', 'source')
+    df = replace_column_header(df, 'accession_in_source', 'source_id')
+    df = replace_column_header(df, 'NBLAST_score', 'score')
     
-    # Drop the original label/id and parent_label/parent_id columns
-    df.drop(columns=['label', 'id', 'parent_label', 'parent_id'], inplace=True)
-    
-    # Check tags is a list
-    def merge_tags(tags):
-        if isinstance(tags, str):
-            tags_list = tags.split('|')
-            return tags_list
-        else:
-            return tags
-
-    df['tags'] = df['tags'].apply(merge_tags)
-        
     # Return the updated DataFrame
-    return df.rename(columns={'datasource': 'source', 'accession': 'source_id'})
-
-    return results
+    return df
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
@@ -416,3 +431,16 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     :return: True if lst contains all tags, False otherwise
     """
     return all(tag in lst for tag in tags)
+
+def replace_column_header(df, original_col, replacement_col):
+    """
+    Replaces a given original column header with a replacement column header.
+    
+    :param df: pandas DataFrame 
+    :param original_col: str, the original column header to replace
+    :param replacement_col: str, the replacement column header
+    :return: pandas DataFrame with replaced column header
+    """
+    if original_col in df.columns:
+        df.rename(columns={original_col: replacement_col}, inplace=True)
+    return df

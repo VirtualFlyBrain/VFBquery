@@ -3,6 +3,7 @@ from term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple
+import pandas as pd
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -349,7 +350,7 @@ def get_instances(short_form: str):
     :param short_form: short form of the class
     :return: results rows
     """
-    pd = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
+    df = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
     results = {
         "headers": {
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},

@@ -315,7 +315,7 @@ def term_info_parse_object(results, short_form):
             # Add the thumbnails to the term info
             termInfo["Domains"] = images
             
-        if contains_all_tags(meta["SuperTypes"],["Individual","Neuron"]):
+        if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
             queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(termInfo["Name"]),"function":"get_similar_neurons","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
 
         # Add the queries to the term info

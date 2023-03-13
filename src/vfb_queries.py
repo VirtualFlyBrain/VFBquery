@@ -142,7 +142,6 @@ def get_similar_neurons_instances(short_form: str, similarity_score='NBLAST_scor
 
     results = {'headers': 
         {
-            'id': {title: 'ID', 'type': 'string', 'hidden': true}, 
             'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
             'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}}, 
             'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},

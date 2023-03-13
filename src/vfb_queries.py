@@ -412,11 +412,11 @@ def formatDataframe(df):
             else:
                 return tags
         df['tags'] = df['tags'].apply(merge_tags)
-    # Check if columns exist before renaming them
-    if 'datasource' in df.columns:
-        df.rename(columns={'datasource': 'source'}, inplace=True)
-    if 'accession' in df.columns:
-        df.rename(columns={'accession': 'source_id'}, inplace=True)
+    # Rename column headers if they occur 
+    df = replace_column_header(df, 'datasource', 'source')
+    df = replace_column_header(df, 'accession', 'source_id')
+    df = replace_column_header(df, 'accession_in_source', 'source_id')
+    
     # Return the updated DataFrame
     return df
 
@@ -429,3 +429,16 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     :return: True if lst contains all tags, False otherwise
     """
     return all(tag in lst for tag in tags)
+
+def replace_column_header(df, original_col, replacement_col):
+    """
+    Replaces a given original column header with a replacement column header.
+    
+    :param df: pandas DataFrame 
+    :param original_col: str, the original column header to replace
+    :param replacement_col: str, the replacement column header
+    :return: pandas DataFrame with replaced column header
+    """
+    if original_col in df.columns:
+        df.rename(columns={original_col: replacement_col}, inplace=True)
+    return df

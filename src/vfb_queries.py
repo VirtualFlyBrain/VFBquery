@@ -18,9 +18,9 @@ class Query:
         self.default = default 
 
 class LogicFormSchema(Schema):
-    and_ = fields.List(fields.Nested('self'), attribute='&&', required=False)
-    or_ = fields.List(fields.Nested('self'), attribute='||', required=False)
-    not_ = fields.Nested('self', attribute='!', required=False)
+    and_ = fields.List(fields.Nested('self'), attribute='$and', required=False, allow_none=True)
+    or_ = fields.List(fields.Nested('self'), attribute='$or', required=False, allow_none=True)
+    not_ = fields.Nested('self', attribute='$not', required=False, allow_none=True)
 
     @post_load
     def deserialize_logic_form(self, data, **kwargs):
@@ -32,14 +32,14 @@ class LogicFormSchema(Schema):
             return data
 
 class TakesSchema(Schema):
-    short_form = fields.Nested(LogicFormSchema(), required=False)
-    default = fields.String(required=False)
+    short_form = fields.Nested(LogicFormSchema(), required=False, many=True, allow_none=True)
+    default = fields.String(required=False, allow_none=True)
 
 class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.List(fields.Nested(TakesSchema()), required=False)
+    takes = fields.List(fields.Nested(TakesSchema(), many=True), required=False, allow_none=True)
 
 class Coordinates:
     def __init__(self, X, Y, Z):

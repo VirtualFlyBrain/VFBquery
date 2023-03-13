@@ -414,7 +414,7 @@ def formatDataframe(df):
 
     return results
 
-def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
+def contains_all_tags(lst: list[str], tags: list[str]) -> bool:
     """
     Checks if the given list contains all the tags passed.
 

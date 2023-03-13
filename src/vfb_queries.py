@@ -384,7 +384,7 @@ def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
         'rows': formatDataframe(df).to_dict('records')
     }
     
-
+    return results
 
 def formatDataframe(df):
     """

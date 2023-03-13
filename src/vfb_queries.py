@@ -26,10 +26,10 @@ class LogicFormSchema(Schema):
 
     @post_load
     def deserialize_logic_form(self, data, **kwargs):
-        if '!' in data:
-            return {"!": data["not_"]}
-        elif '&&' in data or '||' in data:
-            return {k: v for k, v in data.items() if k in ['&&', '||']}
+        if '$not' in data:
+            return {"$not": data["not_"]}
+        elif '$and' in data or '$or' in data:
+            return {k: v for k, v in data.items() if k in ['$and', '$or']}
         else:
             return data
 

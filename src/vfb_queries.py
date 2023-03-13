@@ -19,22 +19,8 @@ class Query:
         self.takes = takes 
         self.default = default 
 
-class LogicFormSchema(Schema):
-    and_ = fields.List(fields.Nested('self'), attribute='$and', required=False, allow_none=True)
-    or_ = fields.List(fields.Nested('self'), attribute='$or', required=False, allow_none=True)
-    not_ = fields.Nested('self', attribute='$not', required=False, allow_none=True)
-
-    @post_load
-    def deserialize_logic_form(self, data, **kwargs):
-        if '$not' in data:
-            return {"$not": data["not_"]}
-        elif '$and' in data or '$or' in data:
-            return {k: v for k, v in data.items() if k in ['$and', '$or']}
-        else:
-            return data
-
 class TakesSchema(Schema):
-    short_form = fields.Nested(LogicFormSchema(), required=False, many=True, allow_none=True)
+    short_form = fields.Dict(required=False, allow_none=True)
     default = fields.String(required=False, allow_none=True)
 
 class QuerySchema(Schema):

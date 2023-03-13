@@ -341,15 +341,78 @@ def get_instances(short_form: str):
     :param short_form: short form of the class
     :return: results rows
     """
-    results = {"headers":{"label":{"title":"Name","type":"markdown","order":0,"sort":{0:"Asc"}},"parent":{"title":"Parent Type","type":"markdown","order":1},"template":{"title":"Template","type":"string","order":4},"tags":{"title":"Gross Types","type":"tags","order":3}},"rows":[]}
-    rows = vc.get_instances(short_form, summary=True)
+    pd = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
+    results = {
+        "headers": {
+            "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
+            "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
+            "template": {"title": "Template", "type": "string", "order": 4},
+            "tags": {"title": "Gross Types", "type": "tags", "order": 3},
+        },
+        "rows": formatDataframe(df).to_dict('records')
+    }
+    
+    return results
+    
+def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
+    """
+    Retrieves available similar neurons for the given neuron short form.
 
-    for row in rows:
-        # Create the label for the row using the symbol if available, otherwise the label
-        label = row["symbol"]
-        if label == "":
-            label = row["label"]
-        # Add the row to the results
-        results["rows"].append({"label":"[%s](%s)"%(label,row["id"]),"parent":"[%s](%s)"%(row["parents_label"],row["parents_id"]),"template":row["templates"],"tags":row["tags"].split("|")})
+    :param short_form: short form of the neuron
+    :param similarity_score: optionally specify similarity score to choose
+    :return: results rows
+    """
+
+    df = vc.get_similar_neurons(short_form, similarity_score=similarity_score, return_dataframe=True)
+
+    results = {'headers': 
+        {
+            'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
+            'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}}, 
+            'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},
+            'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
+            'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
+        }, 
+        'rows': formatDataframe(df).to_dict('records')
+    }
+    
+
+
+def formatDataframe(df):
+    """
+    Merge label/id pairs into a markdown link and update column names.
+    
+    :param df: pandas DataFrame 
+    :return: pandas DataFrame with merged label/id pairs in 'label' and 'parent' columns
+    """
+    # Merge label/id pairs for both label/id and parent_label/parent_id columns
+    df['label'] = '[%s](%s)' % (df['label'], df['id'])
+    df['parent'] = '[%s](%s)' % (df['parent_label'], df['parent_id'])
+    
+    # Drop the original label/id and parent_label/parent_id columns
+    df.drop(columns=['label', 'id', 'parent_label', 'parent_id'], inplace=True)
+    
+    # Check tags is a list
+    def merge_tags(tags):
+        if isinstance(tags, str):
+            tags_list = tags.split('|')
+            return tags_list
+        else:
+            return tags
+
+    df['tags'] = df['tags'].apply(merge_tags)
+        
+    # Return the updated DataFrame
+    return df.rename(columns={'datasource': 'source', 'accession': 'source_id'})
 
     return results
+
+def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
+    """
+    Checks if the given list contains all the tags passed.
+
+    :param lst: list of strings to check
+    :param tags: list of strings to check for in lst
+    :return: True if lst contains all tags, False otherwise
+    """
+    return all(tag in lst for tag in tags)

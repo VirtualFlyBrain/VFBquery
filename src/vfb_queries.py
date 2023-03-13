@@ -2,6 +2,7 @@ import pysolr
 from term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 from marshmallow import Schema, fields, post_load
+from typing import List, Tuple
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -414,7 +415,7 @@ def formatDataframe(df):
 
     return results
 
-def contains_all_tags(lst: list[str], tags: list[str]) -> bool:
+def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
     Checks if the given list contains all the tags passed.
 

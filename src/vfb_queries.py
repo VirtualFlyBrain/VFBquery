@@ -96,7 +96,7 @@ def get_term_info(short_form: str):
                     termInfo["Images"] = images
 
             if contains_all_tags(meta["SuperTypes"],["Individual","Neuron"]):
-                queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(mainlabel),"function":"get_similar_neurons_instances","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
+                queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(mainlabel),"function":"get_similar_neurons","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
 
             # Add the queries to the term info
             termInfo["Queries"] = queries
@@ -129,7 +129,7 @@ def get_instances(short_form: str):
     
     return results
     
-def get_similar_neurons_instances(short_form: str, similarity_score='NBLAST_score'):
+def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
     """
     Retrieves available similar neurons for the given neuron short form.
 

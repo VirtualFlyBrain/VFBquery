@@ -163,7 +163,7 @@ class TermInfoOutputSchema(Schema):
     SuperTypes = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
-    Queries = fields.List(fields.Nested(QuerySchema(), many=True), missing=[], required=False)
+    Queries = fields.List(fields.Nested(QuerySchema), missing=[], required=False)
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsClass = fields.Bool(missing=False, required=False)

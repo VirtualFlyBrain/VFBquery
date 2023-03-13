@@ -415,6 +415,7 @@ def formatDataframe(df):
     # Rename column headers if they occur 
     df = replace_column_header(df, 'datasource', 'source')
     df = replace_column_header(df, 'accession', 'source')
+    df = replace_column_header(df, 'source_id', 'source')
     df = replace_column_header(df, 'accession_in_source', 'source_id')
     df = replace_column_header(df, 'NBLAST_score', 'score')
     

@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - name: Install semver
+      run: |
+        npm install semver
     - name: Update version in setup.py
       uses: actions/github-script@v4
       with:

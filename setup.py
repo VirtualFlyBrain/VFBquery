@@ -1,14 +1,9 @@
 from setuptools import setup, find_packages
 from os import path
-from get_version import get_version
 
 here = path.abspath(path.dirname(__file__))
 
-__version__ = get_version(__file__)
-del get_version
-
-# TODO for test deployment
-# __version__ = "0.0.1.dev1"
+__version__ = "v0.0.1"
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:
@@ -33,7 +28,7 @@ setup(
     include_package_data=True,
     install_requires=["vfb_connect", "dataclasses-json", "dacite", "requests", "pysolr"],
     project_urls={  # Optional
-        'Bug Reports': 'https://github.com/VirtualFlyBrain/VFB_queries/issues',
+        'Bug Reports': 'https://github.com/VirtualFlyBrain/VFBquery/issues',
         'Source': 'https://github.com/VirtualFlyBrain/VFBquery'
     },
 )

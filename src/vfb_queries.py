@@ -1,9 +1,10 @@
 import pysolr
-from term_info_queries import deserialize_term_info
+from .term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple
 import pandas as pd
+from marshmallow import ValidationError
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -12,22 +13,21 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, default):
+    def __init__(self, query, label, function, takes):
         self.query = query
         self.label = label 
         self.function = function 
-        self.takes = takes 
-        self.default = default 
+        self.takes = takes  
 
 class TakesSchema(Schema):
-    short_form = fields.Dict(required=False, allow_none=True)
+    short_form = fields.Raw(required=True)
     default = fields.String(required=False, allow_none=True)
 
 class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.List(fields.Nested(TakesSchema(), many=True), required=False, allow_none=True)
+    takes = fields.Nested(TakesSchema(), many=True)
 
 class Coordinates:
     def __init__(self, X, Y, Z):
@@ -151,7 +151,7 @@ class TermInfoOutputSchema(Schema):
     SuperTypes = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
-    Queries = fields.List(fields.Nested(QuerySchema), missing=[], required=False)
+    Queries = fields.Raw(required=False) #having issues to serialize  
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsClass = fields.Bool(missing=False, required=False)
@@ -170,7 +170,7 @@ def term_info_parse_object(results, short_form):
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
         mainlabel = vfbTerm.term.core.label
         if vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
-            meta["Symbol"] = "[%s](%s)"%(vfbTerm.term.core.symbol, vfbTerm.term.core.short_form)
+            termInfo["Meta"]["Symbol"] = "[%s](%s)"%(vfbTerm.term.core.symbol, vfbTerm.term.core.short_form)
             mainlabel = vfbTerm.term.core.symbol
         termInfo["Name"] = mainlabel
         termInfo["SuperTypes"] = vfbTerm.term.core.types
@@ -217,8 +217,9 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            queries.append({"query":"ListAllAvailableImages","label":"List all available images of %s"%(termInfo["Name"]),"function":"get_instances","takes":[{"short_form":{"$and":["Class","Anatomy"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
-            
+            q = ListAllAvailableImages_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+            queries.append(q)
+ 
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}
@@ -258,7 +259,7 @@ def term_info_parse_object(results, short_form):
                 if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
                     record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
             if len(image.index) > 0:
-              record[index] = int(image.index[0])
+              record[image.index] = int(image.index[0])
             vars(image).keys()
             image_vars = vars(image)
             if 'center' in image_vars.keys():
@@ -302,14 +303,38 @@ def term_info_parse_object(results, short_form):
             termInfo["Domains"] = images
             
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
-            queries.append({"query":"SimilarMorphologyTo","label":"Find similar neurons to %s"%(termInfo["Name"]),"function":"get_similar_neurons","takes":[{"short_form":{"$and":["Individual","Neuron"]},"default":"%s"%(vfbTerm.term.core.short_form)}]})
-
+          q = SimilarMorphologyTo_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+          queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
         
         print(termInfo)
  
     return TermInfoOutputSchema().load(termInfo)
+
+def SimilarMorphologyTo_to_schemma(name, take_default):
+  query = {}
+  query["query"] = "SimilarMorphologyTo"
+  query["label"] = "Find similar neurons to %s"%(name)
+  query["function"] = "get_similar_neurons"
+  takes = {}
+  takes["short_form"] = {}
+  takes["short_form"]["$and"] = ["Individual","Neuron"]
+  takes["default"] = take_default 
+  query["takes"] = takes 
+  return query 
+   
+def ListAllAvailableImages_to_schemma(name, take_default):
+  query = {}
+  query["query"] = "ListAllAvailableImages"
+  query["label"] = "List all available images of %s"%(name)
+  query["function"] = "get_instances"
+  takes = {}
+  takes["short_form"] = {}
+  takes["short_form"]["$and"] = ["Class","Anatomy"]
+  takes["default"] = take_default 
+  query["takes"] = takes 
+  return query 
 
 def get_term_info(short_form: str):
     """
@@ -319,11 +344,14 @@ def get_term_info(short_form: str):
     :return: term info
     """
     try:
-        termInfo = {}
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
         # Check if any results were returned
-        return term_info_parse_object(results, short_form)
+        parsed_object = term_info_parse_object(results, short_form)
+        return parsed_object
+    except ValidationError as e:
+    # handle the validation error
+      print("Schemma validation error when parsing response")
     except IndexError:
         print(f"No results found for ID '{short_form}'")
         print("Error accessing SOLR server!")   

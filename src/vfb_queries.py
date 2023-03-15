@@ -360,12 +360,40 @@ def get_term_info(short_form: str):
 def get_instances(short_form: str):
     """
     Retrieves available instances for the given class short form.
-
     :param short_form: short form of the class
     :return: results rows
     """
-    df = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
-    results = {
+
+    # Define the Cypher query
+    query = """
+    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class { short_form: $short_form }),
+          (i)<-[:depicts]-(:Individual)-[:in_register_with]->(:Template)-[:depicts]->(templ:Template),
+          (i)-[:has_source]->(ds:DataSet)
+    OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
+    OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+    RETURN {
+      label: i.label,
+      symbol: i.symbol[0],
+      id: i.short_form,
+      tags: apoc.text.join(i.uniqueFacets,'|'),
+      parents_label: p.label,
+      parents_id: p.short_form,
+      data_source: site.short_form,
+      accession: rx.accession,
+      templates: templ.label,
+      dataset: ds.label,
+      license: COALESCE(lic.label, '')
+    } as instance
+    """
+
+    # Run the query using VFB_connect
+    results = vc.cypher_query(query, {"short_form": short_form})
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(results)
+
+    # Format the results
+    formatted_results = {
         "headers": {
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
             "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
@@ -374,8 +402,8 @@ def get_instances(short_form: str):
         },
         "rows": formatDataframe(df).to_dict('records')
     }
-    
-    return results
+
+    return formatted_results
     
 def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
     """

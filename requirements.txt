@@ -3,4 +3,3 @@ dataclasses-json
 dacite
 requests
 pysolr
-get_version

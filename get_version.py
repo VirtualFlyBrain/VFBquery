@@ -16,7 +16,9 @@ from logging import getLogger
 
 
 RE_VERSION = r"([\d.]+?)(?:\.dev(\d+))?(?:[_+-]([0-9a-zA-Z.]+))?"
-RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
+# RE_GIT_DESCRIBE = r"v?(?:([\d.]+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
+# support for characters in version, such as 'v0.1.7-alpha-0-gf98b565'
+RE_GIT_DESCRIBE = r"v?(?:(.+)-(\d+)-g)?([0-9a-f]{7})(-dirty)?"
 ON_RTD = os.environ.get("READTHEDOCS") == "True"
 
 logger = getLogger(__name__)

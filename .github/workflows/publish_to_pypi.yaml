@@ -15,6 +15,33 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
+    - name: Update version in setup.py
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const fs = require('fs');
+            const semver = require('semver');
+            const version = context.payload.release.tag_name.replace(/^v/, '');
+            const setupFile = `${process.env.GITHUB_WORKSPACE}/setup.py`;
+            const setupContent = fs.readFileSync(setupFile, 'utf8');
+            const newSetupContent = setupContent.replace(
+              /__version__\s*=\s*['"][^'"]*['"]/,
+              `__version__ = '${version}'`
+            );
+            fs.writeFileSync(setupFile, newSetupContent, 'utf8');
+          dependencies: |
+            const fs = require('fs');
+            const semver = require('semver');
+            const setupFile = `${process.env.GITHUB_WORKSPACE}/setup.py`;
+            const setupContent = fs.readFileSync(setupFile, 'utf8');
+            const versionMatch = setupContent.match(/__version__\s*=\s*['"]([^'"]*)['"]/);
+            if (versionMatch && semver.valid(versionMatch[1])) {
+              return true;
+            } else {
+              throw new Error(`Invalid version in setup.py: ${versionMatch ? versionMatch[1] : 'undefined'}`);
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:

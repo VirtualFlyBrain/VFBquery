@@ -1,8 +1,8 @@
-# VFB_queries
+# VFBquery
 
 to setup requirements:
 ```bash
-pip install vfb_queries
+pip install vfbquery
 ```
 
 To get term info for a term:
@@ -10,7 +10,7 @@ get_term_info(ID)
 
 e.g.
 ```python
-import vfb_queries as vfb
+import vfbquery as vfb
 ```
 Class example:
 ```

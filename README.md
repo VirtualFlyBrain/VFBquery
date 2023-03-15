@@ -2,7 +2,7 @@
 
 to setup requirements:
 ```bash
-pip install vfbquery
+pip install --upgrade vfbquery
 ```
 
 To get term info for a term:

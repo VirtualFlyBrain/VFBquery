@@ -371,17 +371,14 @@ def get_instances(short_form: str):
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    RETURN i.label AS label,
-       i.symbol[0] AS symbol,
-       i.short_form AS id,
+    RETURN apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
        apoc.text.join(i.uniqueFacets, '|') AS tags,
-       p.label AS parents_label,
-       p.short_form AS parents_id,
-       site.short_form AS data_source,
-       rx.accession AS accession,
-       templ.label AS templates,
-       ds.label AS dataset,
-       COALESCE(lic.label, '') AS license
+       apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
+       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
+       REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
+       apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
+       apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
+       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license
     """
 
     # Run the query using VFB_connect
@@ -395,10 +392,12 @@ def get_instances(short_form: str):
         "headers": {
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
             "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
-            "template": {"title": "Template", "type": "string", "order": 4},
+            "template": {"title": "Template", "type": "markdown", "order": 4},
             "tags": {"title": "Gross Types", "type": "tags", "order": 3},
+            "source": {"title": "Data Source", "type": "markdown", "order": 5},
+            "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
         },
-        "rows": formatDataframe(df).to_dict('records')
+        "rows": df.to_dict('records')
     }
 
     return formatted_results

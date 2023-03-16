@@ -1,1 +1,1 @@
-from vfbquery.vfb_queries import *
+from vfbquery import *

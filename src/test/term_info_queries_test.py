@@ -1,6 +1,6 @@
 import unittest
 import time
-from src.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
+from src.vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
 from vfb_connect.cross_server_tools import VfbConnect
 
 

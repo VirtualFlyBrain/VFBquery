@@ -1407,41 +1407,86 @@ vfb.get_term_info('VFB_00101567')
 
 Queries:
 ```python
-vfb.get_instances('FBbt_00003686')
+vfb.get_instances('FBbt_00003748')
 ```
 ```python
-{'headers': {'label': {'title': 'Name',
-   'type': 'markdown',
-   'order': 0,
-   'sort': {0: 'Asc'}},
-  'parent': {'title': 'Parent Type', 'type': 'markdown', 'order': 1},
-  'template': {'title': 'Template', 'type': 'string', 'order': 4},
-  'tags': {'title': 'Gross Types', 'type': 'tags', 'order': 3}},
- 'rows': [{'label': '[KC (L1EM:16438190)](VFB_00100462)',
-   'parent': '[Kenyon cell](FBbt_00003686)',
-   'template': 'L1 larval CNS ssTEM - Cardona/Janelia',
-   'tags': ['Entity',
-    'Anatomy',
-    'Cell',
-    'Individual',
-    'Nervous_system',
-    'Neuron',
-    'has_image',
-    'has_neuron_connectivity',
-    'L1EM',
-    'NBLAST']},
-  {'label': '[KC (L1EM:16627950)](VFB_00100485)',
-   'parent': '[Kenyon cell](FBbt_00003686)',
-   'template': 'L1 larval CNS ssTEM - Cardona/Janelia',
-   'tags': ['Entity',
-    'Anatomy',
-    'Cell',
-    'Individual',
-    'Nervous_system',
-    'Neuron',
-    'has_image',
-    'has_neuron_connectivity',
-    'L1EM',
-    'NBLAST']},
-...
+{
+   "headers":{
+      "label":{
+         "title":"Name",
+         "type":"markdown",
+         "order":0,
+         "sort":{
+            "0":"Asc"
+         }
+      },
+      "parent":{
+         "title":"Parent Type",
+         "type":"markdown",
+         "order":1
+      },
+      "template":{
+         "title":"Template",
+         "type":"markdown",
+         "order":4
+      },
+      "tags":{
+         "title":"Gross Types",
+         "type":"tags",
+         "order":3
+      },
+      "source":{
+         "title":"Data Source",
+         "type":"markdown",
+         "order":5
+      },
+      "source_id":{
+         "title":"Data Source",
+         "type":"markdown",
+         "order":6
+      }
+   },
+   "rows":[
+      {
+         "label":"[medulla on adult brain template Ito2014](VFB_00030810)",
+         "tags":"Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+         "parent":"[medulla](FBbt_00003748)",
+         "source":"",
+         "source_id":"",
+         "template":"[adult brain template Ito2014](VFB_00030786)",
+         "dataset":"[BrainName neuropils and tracts - Ito half-brain](BrainName_Ito_half_brain)",
+         "license":"[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)"
+      },
+      {
+         "label":"[ME on JRC2018Unisex adult brain](VFB_00102107)",
+         "tags":"Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+         "parent":"[medulla](FBbt_00003748)",
+         "source":"",
+         "source_id":"",
+         "template":"[JRC2018Unisex](VFB_00101567)",
+         "dataset":"[JRC 2018 templates & ROIs](JRC2018)",
+         "license":"[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)"
+      },
+      {
+         "label":"[medulla on adult brain template JFRC2](VFB_00030624)",
+         "tags":"Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+         "parent":"[medulla](FBbt_00003748)",
+         "source":"",
+         "source_id":"",
+         "template":"[adult brain template JFRC2](VFB_00017894)",
+         "dataset":"[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)",
+         "license":"[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)"
+      },
+      {
+         "label":"[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)",
+         "tags":"Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+         "parent":"[medulla](FBbt_00003748)",
+         "source":"",
+         "source_id":"",
+         "template":"[JRC_FlyEM_Hemibrain](VFB_00101384)",
+         "dataset":"[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)",
+         "license":"[CC-BY_4.0](VFBlicense_CC_BY_4_0)"
+      }
+   ]
+}
 ```

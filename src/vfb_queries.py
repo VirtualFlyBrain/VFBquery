@@ -1,6 +1,6 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-from vfb_connect.cross_server_tools import VfbConnect
+from vfb_connect.cross_server_tools import VfbConnect, dict_cursor
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple
 import pandas as pd
@@ -371,26 +371,24 @@ def get_instances(short_form: str):
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    RETURN {
-      label: i.label,
-      symbol: i.symbol[0],
-      id: i.short_form,
-      tags: apoc.text.join(i.uniqueFacets,'|'),
-      parents_label: p.label,
-      parents_id: p.short_form,
-      data_source: site.short_form,
-      accession: rx.accession,
-      templates: templ.label,
-      dataset: ds.label,
-      license: COALESCE(lic.label, '')
-    } as instance
+    RETURN i.label AS label,
+       i.symbol[0] AS symbol,
+       i.short_form AS id,
+       apoc.text.join(i.uniqueFacets, '|') AS tags,
+       p.label AS parents_label,
+       p.short_form AS parents_id,
+       site.short_form AS data_source,
+       rx.accession AS accession,
+       templ.label AS templates,
+       ds.label AS dataset,
+       COALESCE(lic.label, '') AS license
     """
 
     # Run the query using VFB_connect
-    results = vc.cypher_query(query, {"short_form": short_form})
+    results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(results)
+    df = pd.DataFrame.from_records(dict_cursor(results))
 
     # Format the results
     formatted_results = {

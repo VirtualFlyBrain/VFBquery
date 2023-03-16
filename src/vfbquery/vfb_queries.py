@@ -1,6 +1,6 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-from vfb_connect.cross_server_tools import VfbConnect
+from vfb_connect.cross_server_tools import VfbConnect, dict_cursor
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple
 import pandas as pd
@@ -360,12 +360,38 @@ def get_term_info(short_form: str):
 def get_instances(short_form: str):
     """
     Retrieves available instances for the given class short form.
-
     :param short_form: short form of the class
     :return: results rows
     """
-    df = pd.DataFrame.from_records(vc.get_instances(short_form, summary=True))
-    results = {
+
+    # Define the Cypher query
+    query = f"""
+    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+          (i)<-[:depicts]-(:Individual)-[:in_register_with]->(:Template)-[:depicts]->(templ:Template),
+          (i)-[:has_source]->(ds:DataSet)
+    OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
+    OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+    RETURN i.label AS label,
+       i.symbol[0] AS symbol,
+       i.short_form AS id,
+       apoc.text.join(i.uniqueFacets, '|') AS tags,
+       p.label AS parents_label,
+       p.short_form AS parents_id,
+       site.short_form AS data_source,
+       rx.accession AS accession,
+       templ.label AS templates,
+       ds.label AS dataset,
+       COALESCE(lic.label, '') AS license
+    """
+
+    # Run the query using VFB_connect
+    results = vc.nc.commit_list([query])
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(dict_cursor(results))
+
+    # Format the results
+    formatted_results = {
         "headers": {
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
             "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
@@ -374,8 +400,8 @@ def get_instances(short_form: str):
         },
         "rows": formatDataframe(df).to_dict('records')
     }
-    
-    return results
+
+    return formatted_results
     
 def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
     """

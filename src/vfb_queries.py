@@ -366,7 +366,7 @@ def get_instances(short_form: str):
 
     # Define the Cypher query
     query = f"""
-    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class { short_form: '{short_form}' }),
+    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
           (i)<-[:depicts]-(:Individual)-[:in_register_with]->(:Template)-[:depicts]->(templ:Template),
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)

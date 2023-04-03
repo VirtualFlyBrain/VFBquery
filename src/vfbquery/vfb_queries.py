@@ -100,7 +100,7 @@ class ImageSchema(Schema):
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):
         super().__init__(ImageSchema(), **kwargs)
-    
+
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
@@ -120,7 +120,7 @@ class ImageField(fields.Nested):
                 , "type_id": value.type_id
                 , "type_label": value.type_label
                 }
-      
+
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
@@ -151,7 +151,7 @@ class TermInfoOutputSchema(Schema):
     SuperTypes = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
-    Queries = fields.Raw(required=False) #having issues to serialize  
+    Queries = fields.Raw(required=False) #having issues to serialize
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsClass = fields.Bool(missing=False, required=False)
@@ -197,6 +197,30 @@ def term_info_parse_object(results, short_form):
         except AttributeError:
             print(f"vfbTerm.term.comment: {vfbTerm.term}")
 
+        if vfbTerm.parents and len(vfbTerm.parents) > 0:
+            termInfo["Meta"]["Types"] = []
+            for parent in vfbTerm.parents:
+                termInfo["Meta"]["Types"].append("[%s](%s)"%(parent.label, parent.short_form))
+
+        if vfbTerm.relationships and len(vfbTerm.relationships) > 0:
+            termInfo["Meta"]["Relationships"] = []
+
+            # Group relationships by relation type and remove duplicates
+            grouped_relationships = {}
+            for relationship in vfbTerm.relationships:
+                relation_key = (relationship.relation.label, relationship.relation.short_form)
+                object_key = (relationship.object.label, relationship.object.short_form)
+                if relation_key not in grouped_relationships:
+                    grouped_relationships[relation_key] = set()
+                grouped_relationships[relation_key].add(object_key)
+
+            # Append the grouped relationships to termInfo
+            for relation_key, object_set in grouped_relationships.items():
+                relation_objects = []
+                for object_key in object_set:
+                    relation_objects.append("[%s](%s)" % (object_key[0], object_key[1]))
+                termInfo["Meta"]["Relationships"].append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
+
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
             images = {}
@@ -219,7 +243,7 @@ def term_info_parse_object(results, short_form):
             # add a query to `queries` list for listing all available images
             q = ListAllAvailableImages_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
             queries.append(q)
- 
+
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}
@@ -240,7 +264,7 @@ def term_info_parse_object(results, short_form):
                 images[image.image.template_anatomy.short_form].append(record)
             # Add the thumbnails to the term info
             termInfo["Images"] = images
-              
+
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             termInfo["IsTemplate"] = True
             images = {}
@@ -271,10 +295,10 @@ def term_info_parse_object(results, short_form):
             if 'orientation' in image_vars.keys():
                 record['orientation'] = image.orientation
             images[vfbTerm.template_channel.channel.short_form].append(record)
-                
+
             # Add the thumbnails to the term info
             termInfo["Images"] = images
-            
+
         if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
             images = {}
             termInfo["IsTemplate"] = True

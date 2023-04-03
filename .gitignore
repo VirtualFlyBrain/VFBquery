@@ -1,4 +1,8 @@
 
 *.ipynb
 *.pyc
-.ipynb_checkpoints/requirements-checkpoint.txt
+.ipynb_checkpoints/
+src/vfbquery.egg-info/
+src/vfbquery/__pycache__/
+src/vfbquery/ontology/__pycache__/
+build/

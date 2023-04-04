@@ -13,10 +13,10 @@ e.g.
 import vfbquery as vfb
 ```
 Class example:
-```
+```python
 vfb.get_term_info('FBbt_00003748')
 ```
-```python
+```json
 {
    "Meta":{
       "Name":"[medulla](FBbt_00003748)",
@@ -200,7 +200,7 @@ Individual example:
 vfb.get_term_info('VFB_00000001')
 ```
 
-```python
+```json
 {
    "Meta":{
       "Name":"[fru-M-200266](VFB_00000001)",
@@ -352,7 +352,7 @@ Template example:
 vfb.get_term_info('VFB_00101567')
 ```
 
-```python
+```json
 {
    "Meta":{
       "Name":"[JRC2018Unisex](VFB_00101567)",
@@ -1409,7 +1409,7 @@ Queries:
 ```python
 vfb.get_instances('FBbt_00003748')
 ```
-```python
+```json
 {
    "headers":{
       "label":{

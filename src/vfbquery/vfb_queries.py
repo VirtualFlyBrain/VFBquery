@@ -271,7 +271,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            q = ListAllAvailableImages_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+            q = ListAllAvailableImages_to_schema(termInfo["Name"], vfbTerm.term.core.short_form)
             queries.append(q)
 
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
@@ -357,7 +357,7 @@ def term_info_parse_object(results, short_form):
             termInfo["Domains"] = images
             
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
-          q = SimilarMorphologyTo_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+          q = SimilarMorphologyTo_to_schema(termInfo["Name"], vfbTerm.term.core.short_form)
           queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
@@ -366,7 +366,7 @@ def term_info_parse_object(results, short_form):
  
     return TermInfoOutputSchema().load(termInfo)
 
-def SimilarMorphologyTo_to_schemma(name, take_default):
+def SimilarMorphologyTo_to_schema(name, take_default):
   query = {}
   query["query"] = "SimilarMorphologyTo"
   query["label"] = "Find similar neurons to %s"%(name)
@@ -378,7 +378,7 @@ def SimilarMorphologyTo_to_schemma(name, take_default):
   query["takes"] = takes 
   return query 
    
-def ListAllAvailableImages_to_schemma(name, take_default):
+def ListAllAvailableImages_to_schema(name, take_default):
   query = {}
   query["query"] = "ListAllAvailableImages"
   query["label"] = "List all available images of %s"%(name)
@@ -405,7 +405,7 @@ def get_term_info(short_form: str):
         return parsed_object
     except ValidationError as e:
     # handle the validation error
-      print("Schemma validation error when parsing response")
+      print("Schema validation error when parsing response")
     except IndexError:
         print(f"No results found for ID '{short_form}'")
         print("Error accessing SOLR server!")   

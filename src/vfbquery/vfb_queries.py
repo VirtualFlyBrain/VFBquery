@@ -198,12 +198,13 @@ def term_info_parse_object(results, short_form):
             print(f"vfbTerm.term.comment: {vfbTerm.term}")
 
         if vfbTerm.parents and len(vfbTerm.parents) > 0:
-            termInfo["Meta"]["Types"] = []
+            parents = []
             for parent in vfbTerm.parents:
-                termInfo["Meta"]["Types"].append("[%s](%s)"%(parent.label, parent.short_form))
+                parents.append("[%s](%s)"%(parent.label, parent.short_form))
+            termInfo["Meta"]["Types"] = "; ".join(parents)
 
         if vfbTerm.relationships and len(vfbTerm.relationships) > 0:
-            termInfo["Meta"]["Relationships"] = []
+            relationships = []
 
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
@@ -219,10 +220,11 @@ def term_info_parse_object(results, short_form):
                 relation_objects = []
                 for object_key in object_set:
                     relation_objects.append("[%s](%s)" % (object_key[0], object_key[1]))
-                termInfo["Meta"]["Relationships"].append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
+                relationships.append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
+            termInfo["Meta"]["Relationships"] = "; ".join(relationships)
 
         if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
-            termInfo["Meta"]["Cross References"] = []
+            xrefs = []
 
             # Group xrefs by site
             grouped_xrefs = {}
@@ -239,10 +241,10 @@ def term_info_parse_object(results, short_form):
                 for link_key in link_set:
                     links.append("[%s](%s)" % (link_key[0], link_key[1]))
                 if site_key[2]:
-                    termInfo["Meta"]["Cross References"].append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))
+                    xrefs.append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))
                 else:
-                    termInfo["Meta"]["Cross References"].append("[%s](%s): %s" % (site_key[0], site_key[1], ', '.join(links)))
-
+                    xrefs.append("[%s](%s): %s" % (site_key[0], site_key[1], ', '.join(links)))
+            termInfo["Meta"]["Cross References"] = "; ".join(xrefs)
 
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:

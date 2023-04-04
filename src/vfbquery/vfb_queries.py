@@ -209,7 +209,12 @@ def term_info_parse_object(results, short_form):
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
             for relationship in vfbTerm.relationships:
-                relation_key = (relationship.relation.label, relationship.relation.short_form)
+                if relationship.relation.short_form:
+                    relation_key = (relationship.relation.label, relationship.relation.short_form)
+                elif relationship.relation.iri:
+                    relation_key = (relationship.relation.label, relationship.relation.iri.split('/')[-1])
+                elif relationship.relation.label:
+                    relation_key = (relationship.relation.label, relationship.relation.label)
                 object_key = (relationship.object.label, relationship.object.short_form)
                 if relation_key not in grouped_relationships:
                     grouped_relationships[relation_key] = set()

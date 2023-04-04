@@ -228,7 +228,7 @@ def term_info_parse_object(results, short_form):
             grouped_xrefs = {}
             for xref in vfbTerm.xrefs:
                 site_key = (xref.site.label, xref.homepage, xref.icon)
-                link_key = (xref.accession, xref.get_ext_link())
+                link_key = (xref.accession, xref.link())
                 if site_key not in grouped_xrefs:
                     grouped_xrefs[site_key] = set()
                 grouped_xrefs[site_key].add(link_key)

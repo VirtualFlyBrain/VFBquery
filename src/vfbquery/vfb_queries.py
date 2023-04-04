@@ -221,6 +221,29 @@ def term_info_parse_object(results, short_form):
                     relation_objects.append("[%s](%s)" % (object_key[0], object_key[1]))
                 termInfo["Meta"]["Relationships"].append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
 
+        if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
+            termInfo["Meta"]["Cross References"] = []
+
+            # Group xrefs by site
+            grouped_xrefs = {}
+            for xref in vfbTerm.xrefs:
+                site_key = (xref.site.label, xref.homepage, xref.icon)
+                link_key = (xref.accession, xref.get_ext_link())
+                if site_key not in grouped_xrefs:
+                    grouped_xrefs[site_key] = set()
+                grouped_xrefs[site_key].add(link_key)
+
+            # Append the grouped xrefs to termInfo
+            for site_key, link_set in grouped_xrefs.items():
+                links = []
+                for link_key in link_set:
+                    links.append("[%s](%s)" % (link_key[0], link_key[1]))
+                if site_key[2]:
+                    termInfo["Meta"]["Cross References"].append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))
+                else:
+                    termInfo["Meta"]["Cross References"].append("[%s](%s): %s" % (site_key[0], site_key[1], ', '.join(links)))
+
+
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
             images = {}

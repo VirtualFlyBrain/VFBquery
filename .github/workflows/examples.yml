@@ -21,6 +21,7 @@ jobs:
             python -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install deepdiff
+            pip install .
 
       - name: Run examples from README.md
         run: |

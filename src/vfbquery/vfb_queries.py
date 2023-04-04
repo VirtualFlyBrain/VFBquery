@@ -362,7 +362,7 @@ def term_info_parse_object(results, short_form):
         # Add the queries to the term info
         termInfo["Queries"] = queries
         
-        print(termInfo)
+        #print(termInfo)
  
     return TermInfoOutputSchema().load(termInfo)
 
@@ -404,8 +404,8 @@ def get_term_info(short_form: str):
         parsed_object = term_info_parse_object(results, short_form)
         return parsed_object
     except ValidationError as e:
-    # handle the validation error
-      print("Schema validation error when parsing response")
+        # handle the validation error
+        print("Schema validation error when parsing response")
     except IndexError:
         print(f"No results found for ID '{short_form}'")
         print("Error accessing SOLR server!")   

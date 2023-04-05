@@ -38,9 +38,9 @@ jobs:
           import json
           from deepdiff import DeepDiff
           from io import StringIO
-          from .test_results import results
+          from test_results import results
           result = []
-          from .test_examples import *
+          from test_examples import *
 
           print(f'Result:{result}')
 

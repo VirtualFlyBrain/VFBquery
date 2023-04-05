@@ -45,9 +45,9 @@ jobs:
             json_blocks = [block for block in code_blocks if block.startswith('json')]
 
             for python_block, json_block in zip(python_blocks, json_blocks):
-            # Remove the 'python' and 'json' headers
-            python_code = python_block.replace('python', '').strip()
-            expected_json = json.loads(json_block.replace('json', '').strip())
+              # Remove the 'python' and 'json' headers
+              python_code = python_block.replace('python', '').strip()
+              expected_json = json.loads(json_block.replace('json', '').strip())
 
             # Capture the output of the Python code
             sys.stdout = StringIO()

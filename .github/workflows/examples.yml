@@ -67,7 +67,7 @@ jobs:
       
             # Compare the output JSON with the expected JSON
             output_json = json.loads(output)
-            diff = DeepDiff(expected_json, output_json, ignore_order=True)
+            diff = DeepDiff(expected_json, output_json, ignore_order=true)
       
             if diff:
                 print('Error in example:')

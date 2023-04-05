@@ -42,7 +42,7 @@ jobs:
           result = []
           from .test_examples import *
 
-          print(f"Result:{result}")
+          print(f'Result:{result}')
 
           python_blocks = result
           expected_json = results

@@ -42,8 +42,11 @@ jobs:
             content = f.read()
       
           code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
+          print(f'Found {len(code_blocks)} code blocks')
           python_blocks = [block for block in code_blocks if block.startswith('python')][::2]
+          print(f'Found {len(python_blocks)} Python code blocks')
           json_blocks = [block for block in code_blocks if block.startswith('json')]
+          print(f'Found {len(json_blocks)} JSON blocks')
       
           for python_block, json_block in zip(python_blocks, json_blocks):
             # Remove the 'python' and 'json' headers

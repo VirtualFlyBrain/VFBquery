@@ -33,8 +33,6 @@ jobs:
         run: |
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/result.append(\1)/g' > test_examples.py
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed '1s/^/results=[/; 1s/$/]/' > test_results.py
-          cat test_examples.py
-          cat test_results.py
           python -c """
           import sys
           import json
@@ -44,23 +42,11 @@ jobs:
           result = []
           from .test_examples import *
 
-          print(result)
+          print(f"Result:{result}")
 
-          with open('README.md', 'r') as f:
-            content = f.read().replace('```', '``')
-      
-          code_blocks = []
-          current_block = []
-          in_block = False
-          for line in content.splitlines(True):
-            if line.startswith('``'):
-              if in_block:
-                code_blocks.append(''.join(current_block))
-                current_block = []
-              in_block = not in_block
-            elif in_block:
-              current_block.append(line)
-      
+          python_blocks = result
+          expected_json = results
+
           print(f'Found {len(code_blocks)} code blocks')
           python_blocks = [block for block in code_blocks if block.startswith('python')][::2]
           print(f'Found {len(python_blocks)} Python code blocks')

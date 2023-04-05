@@ -346,7 +346,7 @@ vfb.get_term_info('VFB_00000001')
       "Neuron"
    ]
 }
- ```
+```
 Template example:
 ```python
 vfb.get_term_info('VFB_00101567')

@@ -41,7 +41,10 @@ jobs:
           from deepdiff import DeepDiff
           from io import StringIO
           from .test_results import results
+          result = []
           from .test_examples import *
+
+          print(result)
 
           with open('README.md', 'r') as f:
             content = f.read().replace('```', '``')

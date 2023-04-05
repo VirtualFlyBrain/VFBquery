@@ -25,7 +25,7 @@ jobs:
 
       - name: Run examples from README.md
         run: |
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.get_term_info[^)]*)\)/print(\1)/g' > test_examples.py
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' > test_examples.py
           cat test_examples.py
           python test_examples.py
 

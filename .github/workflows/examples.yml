@@ -44,8 +44,8 @@ jobs:
 
           print('Running examples from README.md')
           print('===============================')
-          print(contnet)
-          
+          print(content)
+
           code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
           print(f'Found {len(code_blocks)} code blocks')
           print(code_blocks)

@@ -31,7 +31,7 @@ jobs:
 
       - name: Run examples from README.md and compare JSON outputs
         run: |
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},\n{/g' -e '1s/^/results=[/; 1s/$/]/' > test_results.py
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},\n{/g' | sed '1s/^/results=[/; 1s/$/]/' > test_results.py
           cat test_examples.py
           cat test_results.py
           python -c """

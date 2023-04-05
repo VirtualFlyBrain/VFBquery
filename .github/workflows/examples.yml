@@ -48,11 +48,13 @@ jobs:
             for python_block, json_block in zip(python_blocks, json_blocks):
               # Remove the 'python' and 'json' headers
               python_code = python_block.replace('python', '').strip()
+              print(f'Running example: {python_code}')
               expected_json = json.loads(json_block.replace('json', '').strip())
+              print(f'Expected JSON: {expected_json}')
 
               # Capture the output of the Python code
               sys.stdout = StringIO()
-              exec(python_code)
+              print(exec(python_code))
               output = sys.stdout.getvalue().strip()
 
               # Compare the output JSON with the expected JSON

@@ -38,7 +38,7 @@ jobs:
             from io import StringIO
 
             with open('README.md', 'r') as f:
-            content = f.read()
+              content = f.read()
 
             code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
             python_blocks = [block for block in code_blocks if block.startswith('python')][::2]

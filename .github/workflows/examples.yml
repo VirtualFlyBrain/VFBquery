@@ -32,23 +32,27 @@ jobs:
       - name: Run examples from README.md and compare JSON outputs
         run: |
           python -c """
-          import re
           import sys
           import json
           from deepdiff import DeepDiff
           from io import StringIO
       
           with open('README.md', 'r') as f:
-            content = f.read()
-          
-
-          print('Running examples from README.md')
-          print('===============================')
-          print(content)
-
-          code_blocks = re.findall(r'```(.*?)```', content, re.DOTALL)
+            content = f.read().replace('```', '``')
+      
+          code_blocks = []
+          current_block = []
+          in_block = False
+          for line in content.splitlines(True):
+            if line.startswith('``'):
+              if in_block:
+                code_blocks.append(''.join(current_block))
+                current_block = []
+              in_block = not in_block
+            elif in_block:
+              current_block.append(line)
+      
           print(f'Found {len(code_blocks)} code blocks')
-          print(code_blocks)
           python_blocks = [block for block in code_blocks if block.startswith('python')][::2]
           print(f'Found {len(python_blocks)} Python code blocks')
           json_blocks = [block for block in code_blocks if block.startswith('json')]

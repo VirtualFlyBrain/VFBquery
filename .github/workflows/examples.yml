@@ -31,6 +31,7 @@ jobs:
 
       - name: Run examples from README.md and compare JSON outputs
         run: |
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/result.append(\1)/g' > test_examples.py
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed '1s/^/results=[/; 1s/$/]/' > test_results.py
           cat test_examples.py
           cat test_results.py
@@ -39,7 +40,9 @@ jobs:
           import json
           from deepdiff import DeepDiff
           from io import StringIO
-      
+          from .test_results import results
+          from .test_examples import *
+
           with open('README.md', 'r') as f:
             content = f.read().replace('```', '``')
       

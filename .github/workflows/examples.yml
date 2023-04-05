@@ -25,6 +25,7 @@ jobs:
 
       - name: Run examples from README.md
         run: |
+          ls -lh
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' > test_examples.py
           echo test_examples.py
           python test_examples.py

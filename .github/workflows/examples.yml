@@ -31,25 +31,26 @@ jobs:
 
       - name: Run examples from README.md and compare JSON outputs
         run: |
-          python -c """import sys
+          python -c """
+          import sys
           import json
           from deepdiff import DeepDiff
           from io import StringIO
       
           with open('README.md', 'r') as f:
-            lines = f.readlines()
+            content = f.read().replace('```', '``')
       
           code_blocks = []
           current_block = []
           in_block = False
-          for line in lines:
-            if line.startswith('```'):
+          for line in content.splitlines():
+            if line.startswith('``'):
               if in_block:
                 code_blocks.append(''.join(current_block).strip())
                 current_block = []
               in_block = not in_block
             elif in_block:
-              current_block.append(line)
+              current_block.append(line + '\n')
       
           print(f'Found {len(code_blocks)} code blocks')
           python_blocks = [block for block in code_blocks if block.startswith('python')][::2]

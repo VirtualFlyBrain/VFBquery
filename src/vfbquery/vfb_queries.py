@@ -344,33 +344,33 @@ def term_info_parse_object(results, short_form):
             # Add the thumbnails to the term info
             termInfo["Images"] = images
 
-        if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
-            images = {}
-            termInfo["IsTemplate"] = True
-            for image in vfbTerm.template_domains:
-                record = {}
-                record["id"] = image.anatomical_individual.short_form
-                label = image.anatomical_individual.label
-                if image.anatomical_individual.symbol != "" and len(image.anatomical_individual.symbol) > 0:
-                    label = image.anatomical_individual.symbol
-                record["label"] = label
-                record["type_id"] = image.anatomical_type.short_form
-                label = image.anatomical_type.label
-                if image.anatomical_type.symbol != "" and len(image.anatomical_type.symbol) > 0:
-                    label = image.anatomical_type.symbol
-                record["type_label"] = label
-                record["index"] = int(image.index[0])
-                record["thumbnail"] = image.folder.replace("http://", "https://") + "thumbnail.png"
-                record["thumbnail_transparent"] = image.folder.replace("http://", "https://") + "thumbnailT.png"
-                for key in vars(image).keys():
-                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
-                        record[key.replace("image_", "")] = vars(image)[key].replace("http://", "https://")
-                record["center"] = image.get_center()
-                images[record["index"]] = record
+            if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
+                images = {}
+                termInfo["IsTemplate"] = True
+                for image in vfbTerm.template_domains:
+                    record = {}
+                    record["id"] = image.anatomical_individual.short_form
+                    label = image.anatomical_individual.label
+                    if image.anatomical_individual.symbol != "" and len(image.anatomical_individual.symbol) > 0:
+                        label = image.anatomical_individual.symbol
+                    record["label"] = label
+                    record["type_id"] = image.anatomical_type.short_form
+                    label = image.anatomical_type.label
+                    if image.anatomical_type.symbol != "" and len(image.anatomical_type.symbol) > 0:
+                        label = image.anatomical_type.symbol
+                    record["type_label"] = label
+                    record["index"] = int(image.index[0])
+                    record["thumbnail"] = image.folder.replace("http://", "https://") + "thumbnail.png"
+                    record["thumbnail_transparent"] = image.folder.replace("http://", "https://") + "thumbnailT.png"
+                    for key in vars(image).keys():
+                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
+                            record[key.replace("image_", "")] = vars(image)[key].replace("http://", "https://")
+                    record["center"] = image.get_center()
+                    images[record["index"]] = record
 
-            # Sort the domains by their index and add them to the term info
-            sorted_images = dict(sorted(images.items(), key=lambda x: x[0]))
-            termInfo["Domains"] = sorted_images
+                # Sort the domains by their index and add them to the term info
+                sorted_images = {str(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
+                termInfo["Domains"] = sorted_images
 
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
           q = SimilarMorphologyTo_to_schema(termInfo["Name"], vfbTerm.term.core.short_form)

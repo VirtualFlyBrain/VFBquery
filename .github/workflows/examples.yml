@@ -59,7 +59,7 @@ jobs:
                 print('Expected JSON:')
                 print(expected_json)
                 print('Output JSON:')
-                print(output)
+                print(python_code)
                 print('Difference:')
                 print(diff)
                 sys.exit(1)

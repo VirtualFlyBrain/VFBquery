@@ -369,7 +369,7 @@ def term_info_parse_object(results, short_form):
                     images[record["index"]] = record
 
                 # Sort the domains by their index and add them to the term info
-                sorted_images = {str(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
+                sorted_images = {int(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
                 termInfo["Domains"] = sorted_images
 
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):

@@ -118,43 +118,39 @@ vfb.get_term_info('VFB_00000001')
 
 ```json
 {
-   "Images":{
-      "VFB_00101567":[
-         {
-            "id":"VFB_00000001",
-            "nrrd":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd",
-            "label":"fru-M-200266",
-            "obj":"https://virtualflybrain.org/reports/VFB_00000001/volume.obj",
-            "thumbnail":"https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
-            "thumbnail_transparent":"https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
-            "wlz":"https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
-            "swc":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc"
-         }
-      ],
-      "VFB_00017894":[
-         {
-            "id":"VFB_00000001",
-            "nrrd":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.nrrd",
-            "label":"fru-M-200266",
-            "obj":"https://virtualflybrain.org/reports/VFB_00000001/volume.obj",
-            "thumbnail":"https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
-            "thumbnail_transparent":"https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
-            "wlz":"https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
-            "swc":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.swc"
-         }
-      ]
-   },
-   "IsIndividual":true,
-   "IsClass":false,
+   "SuperTypes":[
+      "Entity",
+      "Adult",
+      "Anatomy",
+      "Cell",
+      "Expression_pattern_fragment",
+      "Individual",
+      "Nervous_system",
+      "Neuron",
+      "VFB",
+      "has_image",
+      "FlyCircuit",
+      "NBLAST"
+   ],
    "Id":"VFB_00000001",
+   "Tags":[
+      "Adult",
+      "Expression_pattern_fragment",
+      "Nervous_system",
+      "Neuron"
+   ],
    "Meta":{
       "Name":"[fru-M-200266](VFB_00000001)",
       "Description":"",
       "Comment":"OutAge: Adult 5~15 days",
-      "Types":"[expression pattern fragment](VFBext_0000004); [adult DM6 lineage neuron](FBbt_00050144)",
-      "Relationships":"[expresses](RO_0002292): [Scer\\GAL4[fru.P1.D]](FBal0276838); [overlaps](RO_0002131): [adult crepine](FBbt_00045037), [vest](FBbt_00040041), [superior posterior slope](FBbt_00045040), [adult antennal lobe](FBbt_00007401), [adult lateral accessory lobe](FBbt_00003681); [is part of](BFO_0000050): [Scer\\GAL4[fru.P1.D] expression pattern](VFBexp_FBal0276838), [adult brain](FBbt_00003624), [male organism](FBbt_00007004)",
+      "Types":"[adult DM6 lineage neuron](FBbt_00050144); [expression pattern fragment](VFBext_0000004)",
+      "Relationships":"[expresses](RO_0002292): [Scer\\GAL4[fru.P1.D]](FBal0276838); [is part of](BFO_0000050): [Scer\\GAL4[fru.P1.D] expression pattern](VFBexp_FBal0276838), [adult brain](FBbt_00003624), [male organism](FBbt_00007004); [overlaps](RO_0002131): [adult antennal lobe](FBbt_00007401), [adult crepine](FBbt_00045037), [adult lateral accessory lobe](FBbt_00003681), [superior posterior slope](FBbt_00045040), [vest](FBbt_00040041)",
       "Cross References":"[FlyCircuit 1.0](http://flycircuit.tw): [fru-M-200266](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-M-200266)"
    },
+   "IsClass":false,
+   "IsTemplate":false,
+   "Name":"fru-M-200266",
+   "IsIndividual":true,
    "Queries":[
       {
          "query":"SimilarMorphologyTo",
@@ -171,28 +167,32 @@ vfb.get_term_info('VFB_00000001')
          }
       }
    ],
-   "SuperTypes":[
-      "Entity",
-      "Adult",
-      "Anatomy",
-      "Cell",
-      "Expression_pattern_fragment",
-      "Individual",
-      "Nervous_system",
-      "Neuron",
-      "VFB",
-      "has_image",
-      "FlyCircuit",
-      "NBLAST"
-   ],
-   "Name":"fru-M-200266",
-   "IsTemplate":false,
-   "Tags":[
-      "Adult",
-      "Expression_pattern_fragment",
-      "Nervous_system",
-      "Neuron"
-   ]
+   "Images":{
+      "VFB_00101567":[
+         {
+            "nrrd":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd",
+            "wlz":"https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
+            "thumbnail_transparent":"https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
+            "thumbnail":"https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
+            "swc":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc",
+            "label":"fru-M-200266",
+            "id":"VFB_00000001",
+            "obj":"https://virtualflybrain.org/reports/VFB_00000001/volume.obj"
+         }
+      ],
+      "VFB_00017894":[
+         {
+            "nrrd":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.nrrd",
+            "wlz":"https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
+            "thumbnail_transparent":"https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
+            "thumbnail":"https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
+            "swc":"https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.swc",
+            "label":"fru-M-200266",
+            "id":"VFB_00000001",
+            "obj":"https://virtualflybrain.org/reports/VFB_00000001/volume.obj"
+         }
+      ]
+   }
 }
 ```
 Template example:

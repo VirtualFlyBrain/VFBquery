@@ -55,7 +55,7 @@ jobs:
       
             # Capture the output of the Python code
             sys.stdout = StringIO()
-            print(exec(python_code))
+            print(python_code)
             output = sys.stdout.getvalue().strip()
       
             # Compare the output JSON with the expected JSON

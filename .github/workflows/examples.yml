@@ -50,16 +50,8 @@ jobs:
           print(f'Found {len(json_blocks)} JSON blocks')
       
           for python_code, expected_json in zip(python_blocks, json_blocks):
-            print(f'Running example: {python_code}')
-            print(f'Expected JSON: {expected_json}')
-      
-            # Capture the output of the Python code
-            sys.stdout = StringIO()
-            print(python_code)
-            output = sys.stdout.getvalue().strip()
-      
             # Compare the output JSON with the expected JSON
-            diff = DeepDiff(expected_json, output, ignore_order=True)
+            diff = DeepDiff(expected_json, python_code, ignore_order=True)
       
             if diff:
                 print('Error in example:')

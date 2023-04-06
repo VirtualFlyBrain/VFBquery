@@ -44,7 +44,7 @@ jobs:
           from test_results import results
           json_blocks = results
           from test_examples import results
-          code_blocks = results
+          python_blocks = results
 
           print(f'Found {len(python_blocks)} Python code blocks')
           print(f'Found {len(json_blocks)} JSON blocks')

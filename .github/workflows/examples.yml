@@ -67,7 +67,7 @@ jobs:
                 print('Expected JSON:')
                 print(expected_json)
                 print('Output JSON:')
-                print(output_json)
+                print(output)
                 print('Difference:')
                 print(diff)
                 sys.exit(1)

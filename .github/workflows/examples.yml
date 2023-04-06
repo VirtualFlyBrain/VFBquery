@@ -38,6 +38,7 @@ jobs:
           import json
           from deepdiff import DeepDiff
           from io import StringIO
+          from src.vfbquery.term_info_queries import Coordinates  
           from test_results import results
           result = []
           from test_examples import *

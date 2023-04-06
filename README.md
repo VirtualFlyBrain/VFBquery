@@ -202,534 +202,534 @@ vfb.get_term_info('VFB_00101567')
 
 ```json
 {
-   "Meta":{
-      "Name":"[JRC2018Unisex](VFB_00101567)",
-      "Description":"Janelia 2018 unisex, averaged adult brain template",
-      "Comment":"",
-      "Types":"[adult brain](FBbt_00003624)"
-   },
-   "Tags":[
-      "Adult",
-      "Nervous_system"
-   ],
-   "Queries":[
-      
-   ],
-   "Id":"VFB_00101567",
-   "SuperTypes":[
-      "Entity",
-      "Adult",
-      "Anatomy",
-      "Individual",
-      "Nervous_system",
-      "Template",
-      "has_image"
-   ],
-   "Domains":{
-      "0":{
-         "type_id":"FBbt_00003624",
-         "id":"VFB_00101567",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png",
-         "type_label":"adult brain",
-         "index":0,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
-         "label":"JRC2018Unisex",
-         "center":"None"
+   'Name':'JRC2018Unisex',
+   'Domains':{
+      0:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003624',
+         'label':'JRC2018Unisex',
+         'id':'VFB_00101567',
+         'index':0,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult brain'
       },
-      "3":{
-         "type_id":"FBbt_00003748",
-         "id":"VFB_00102107",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png",
-         "type_label":"medulla",
-         "index":3,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png",
-         "label":"ME on JRC2018Unisex adult brain",
-         "center":"None"
+      3:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003748',
+         'label':'ME on JRC2018Unisex adult brain',
+         'id':'VFB_00102107',
+         'index':3,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'medulla'
       },
-      "4":{
-         "type_id":"FBbt_00045003",
-         "id":"VFB_00102108",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnailT.png",
-         "type_label":"accessory medulla",
-         "index":4,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnail.png",
-         "label":"AME on JRC2018Unisex adult brain",
-         "center":"None"
+      4:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045003',
+         'label':'AME on JRC2018Unisex adult brain',
+         'id':'VFB_00102108',
+         'index':4,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'accessory medulla'
       },
-      "5":{
-         "type_id":"FBbt_00003852",
-         "id":"VFB_00102109",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnailT.png",
-         "type_label":"lobula",
-         "index":5,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnail.png",
-         "label":"LO on JRC2018Unisex adult brain",
-         "center":"None"
+      5:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003852',
+         'label':'LO on JRC2018Unisex adult brain',
+         'id':'VFB_00102109',
+         'index':5,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'lobula'
       },
-      "6":{
-         "type_id":"FBbt_00003885",
-         "id":"VFB_00102110",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnailT.png",
-         "type_label":"lobula plate",
-         "index":6,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnail.png",
-         "label":"LOP on JRC2018Unisex adult brain",
-         "center":"None"
+      6:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003885',
+         'label':'LOP on JRC2018Unisex adult brain',
+         'id':'VFB_00102110',
+         'index':6,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'lobula plate'
       },
-      "7":{
-         "type_id":"FBbt_00007385",
-         "id":"VFB_00102114",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnailT.png",
-         "type_label":"calyx of adult mushroom body",
-         "index":7,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnail.png",
-         "label":"CA on JRC2018Unisex adult brain",
-         "center":"None"
+      7:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007385',
+         'label':'CA on JRC2018Unisex adult brain',
+         'id':'VFB_00102114',
+         'index':7,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'calyx of adult mushroom body'
       },
-      "10":{
-         "type_id":"FBbt_00007453",
-         "id":"VFB_00102118",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnailT.png",
-         "type_label":"pedunculus of adult mushroom body",
-         "index":10,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnail.png",
-         "label":"PED on JRC2018Unisex adult brain",
-         "center":"None"
+      10:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007453',
+         'label':'PED on JRC2018Unisex adult brain',
+         'id':'VFB_00102118',
+         'index':10,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'pedunculus of adult mushroom body'
       },
-      "11":{
-         "type_id":"FBbt_00110657",
-         "id":"VFB_00102119",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnailT.png",
-         "type_label":"adult mushroom body alpha-lobe",
-         "index":11,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnail.png",
-         "label":"aL on JRC2018Unisex adult brain",
-         "center":"None"
+      11:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00110657',
+         'label':'aL on JRC2018Unisex adult brain',
+         'id':'VFB_00102119',
+         'index':11,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult mushroom body alpha-lobe'
       },
-      "12":{
-         "type_id":"FBbt_00013691",
-         "id":"VFB_00102121",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnailT.png",
-         "type_label":"adult mushroom body alpha'-lobe",
-         "index":12,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnail.png",
-         "label":"a\\'L on JRC2018Unisex adult brain",
-         "center":"None"
+      12:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00013691',
+         'label':"a\\'L on JRC2018Unisex adult brain",
+         'id':'VFB_00102121',
+         'index':12,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':"adult mushroom body alpha'-lobe"
       },
-      "13":{
-         "type_id":"FBbt_00110658",
-         "id":"VFB_00102123",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnailT.png",
-         "type_label":"adult mushroom body beta-lobe",
-         "index":13,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnail.png",
-         "label":"bL on JRC2018Unisex adult brain",
-         "center":"None"
+      13:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00110658',
+         'label':'bL on JRC2018Unisex adult brain',
+         'id':'VFB_00102123',
+         'index':13,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult mushroom body beta-lobe'
       },
-      "14":{
-         "type_id":"FBbt_00013694",
-         "id":"VFB_00102124",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnailT.png",
-         "type_label":"adult mushroom body beta'-lobe",
-         "index":14,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnail.png",
-         "label":"b\\'L on JRC2018Unisex adult brain",
-         "center":"None"
+      14:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00013694',
+         'label':"b\\'L on JRC2018Unisex adult brain",
+         'id':'VFB_00102124',
+         'index':14,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':"adult mushroom body beta'-lobe"
       },
-      "15":{
-         "type_id":"FBbt_00013695",
-         "id":"VFB_00102133",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnailT.png",
-         "type_label":"adult mushroom body gamma-lobe",
-         "index":15,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnail.png",
-         "label":"gL on JRC2018Unisex adult brain",
-         "center":"None"
+      15:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00013695',
+         'label':'gL on JRC2018Unisex adult brain',
+         'id':'VFB_00102133',
+         'index':15,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult mushroom body gamma-lobe'
       },
-      "16":{
-         "type_id":"FBbt_00003679",
-         "id":"VFB_00102134",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnailT.png",
-         "type_label":"fan-shaped body",
-         "index":16,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnail.png",
-         "label":"FB on JRC2018Unisex adult brain",
-         "center":"None"
+      16:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003679',
+         'label':'FB on JRC2018Unisex adult brain',
+         'id':'VFB_00102134',
+         'index':16,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'fan-shaped body'
       },
-      "18":{
-         "type_id":"FBbt_00003678",
-         "id":"VFB_00102135",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnailT.png",
-         "type_label":"ellipsoid body",
-         "index":18,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnail.png",
-         "label":"EB on JRC2018Unisex adult brain",
-         "center":"None"
+      18:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003678',
+         'label':'EB on JRC2018Unisex adult brain',
+         'id':'VFB_00102135',
+         'index':18,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'ellipsoid body'
       },
-      "19":{
-         "type_id":"FBbt_00003668",
-         "id":"VFB_00102137",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnailT.png",
-         "type_label":"protocerebral bridge",
-         "index":19,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnail.png",
-         "label":"PB on JRC2018Unisex adult brain",
-         "center":"None"
+      19:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003668',
+         'label':'PB on JRC2018Unisex adult brain',
+         'id':'VFB_00102137',
+         'index':19,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'protocerebral bridge'
       },
-      "21":{
-         "type_id":"FBbt_00003682",
-         "id":"VFB_00102139",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnailT.png",
-         "type_label":"bulb",
-         "index":21,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnail.png",
-         "label":"BU on JRC2018Unisex adult brain",
-         "center":"None"
+      21:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003682',
+         'label':'BU on JRC2018Unisex adult brain',
+         'id':'VFB_00102139',
+         'index':21,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'bulb'
       },
-      "22":{
-         "type_id":"FBbt_00003681",
-         "id":"VFB_00102140",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnailT.png",
-         "type_label":"adult lateral accessory lobe",
-         "index":22,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnail.png",
-         "label":"LAL on JRC2018Unisex adult brain",
-         "center":"None"
+      22:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003681',
+         'label':'LAL on JRC2018Unisex adult brain',
+         'id':'VFB_00102140',
+         'index':22,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult lateral accessory lobe'
       },
-      "23":{
-         "type_id":"FBbt_00007059",
-         "id":"VFB_00102141",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnailT.png",
-         "type_label":"anterior optic tubercle",
-         "index":23,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnail.png",
-         "label":"AOTU on JRC2018Unisex adult brain",
-         "center":"None"
+      23:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007059',
+         'label':'AOTU on JRC2018Unisex adult brain',
+         'id':'VFB_00102141',
+         'index':23,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'anterior optic tubercle'
       },
-      "24":{
-         "type_id":"FBbt_00040043",
-         "id":"VFB_00102146",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnailT.png",
-         "type_label":"anterior ventrolateral protocerebrum",
-         "index":24,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnail.png",
-         "label":"AVLP on JRC2018Unisex adult brain",
-         "center":"None"
+      24:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040043',
+         'label':'AVLP on JRC2018Unisex adult brain',
+         'id':'VFB_00102146',
+         'index':24,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'anterior ventrolateral protocerebrum'
       },
-      "25":{
-         "type_id":"FBbt_00040042",
-         "id":"VFB_00102148",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnailT.png",
-         "type_label":"posterior ventrolateral protocerebrum",
-         "index":25,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnail.png",
-         "label":"PVLP on JRC2018Unisex adult brain",
-         "center":"None"
+      25:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040042',
+         'label':'PVLP on JRC2018Unisex adult brain',
+         'id':'VFB_00102148',
+         'index':25,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'posterior ventrolateral protocerebrum'
       },
-      "26":{
-         "type_id":"FBbt_00040044",
-         "id":"VFB_00102152",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnailT.png",
-         "type_label":"posterior lateral protocerebrum",
-         "index":26,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnail.png",
-         "label":"PLP on JRC2018Unisex adult brain",
-         "center":"None"
+      26:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040044',
+         'label':'PLP on JRC2018Unisex adult brain',
+         'id':'VFB_00102152',
+         'index':26,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'posterior lateral protocerebrum'
       },
-      "27":{
-         "type_id":"FBbt_00045027",
-         "id":"VFB_00102154",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnailT.png",
-         "type_label":"wedge",
-         "index":27,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnail.png",
-         "label":"WED on JRC2018Unisex adult brain",
-         "center":"None"
+      27:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045027',
+         'label':'WED on JRC2018Unisex adult brain',
+         'id':'VFB_00102154',
+         'index':27,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'wedge'
       },
-      "28":{
-         "type_id":"FBbt_00007053",
-         "id":"VFB_00102159",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnailT.png",
-         "type_label":"adult lateral horn",
-         "index":28,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnail.png",
-         "label":"LH on JRC2018Unisex adult brain",
-         "center":"None"
+      28:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007053',
+         'label':'LH on JRC2018Unisex adult brain',
+         'id':'VFB_00102159',
+         'index':28,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult lateral horn'
       },
-      "29":{
-         "type_id":"FBbt_00007054",
-         "id":"VFB_00102162",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnailT.png",
-         "type_label":"superior lateral protocerebrum",
-         "index":29,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnail.png",
-         "label":"SLP on JRC2018Unisex adult brain",
-         "center":"None"
+      29:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007054',
+         'label':'SLP on JRC2018Unisex adult brain',
+         'id':'VFB_00102162',
+         'index':29,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'superior lateral protocerebrum'
       },
-      "30":{
-         "type_id":"FBbt_00045032",
-         "id":"VFB_00102164",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnailT.png",
-         "type_label":"superior intermediate protocerebrum",
-         "index":30,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnail.png",
-         "label":"SIP on JRC2018Unisex adult brain",
-         "center":"None"
+      30:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045032',
+         'label':'SIP on JRC2018Unisex adult brain',
+         'id':'VFB_00102164',
+         'index':30,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'superior intermediate protocerebrum'
       },
-      "31":{
-         "type_id":"FBbt_00007055",
-         "id":"VFB_00102170",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnailT.png",
-         "type_label":"superior medial protocerebrum",
-         "index":31,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnail.png",
-         "label":"SMP on JRC2018Unisex adult brain",
-         "center":"None"
+      31:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007055',
+         'label':'SMP on JRC2018Unisex adult brain',
+         'id':'VFB_00102170',
+         'index':31,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'superior medial protocerebrum'
       },
-      "32":{
-         "type_id":"FBbt_00045037",
-         "id":"VFB_00102171",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnailT.png",
-         "type_label":"adult crepine",
-         "index":32,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnail.png",
-         "label":"CRE on JRC2018Unisex adult brain",
-         "center":"None"
+      32:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045037',
+         'label':'CRE on JRC2018Unisex adult brain',
+         'id':'VFB_00102171',
+         'index':32,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult crepine'
       },
-      "33":{
-         "type_id":"FBbt_00048509",
-         "id":"VFB_00102174",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnailT.png",
-         "type_label":"adult round body",
-         "index":33,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnail.png",
-         "label":"ROB on JRC2018Unisex adult brain",
-         "center":"None"
+      33:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00048509',
+         'label':'ROB on JRC2018Unisex adult brain',
+         'id':'VFB_00102174',
+         'index':33,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult round body'
       },
-      "34":{
-         "type_id":"FBbt_00040038",
-         "id":"VFB_00102175",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnailT.png",
-         "type_label":"rubus",
-         "index":34,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnail.png",
-         "label":"RUB on JRC2018Unisex adult brain",
-         "center":"None"
+      34:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040038',
+         'label':'RUB on JRC2018Unisex adult brain',
+         'id':'VFB_00102175',
+         'index':34,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'rubus'
       },
-      "35":{
-         "type_id":"FBbt_00040048",
-         "id":"VFB_00102176",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnailT.png",
-         "type_label":"superior clamp",
-         "index":35,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnail.png",
-         "label":"SCL on JRC2018Unisex adult brain",
-         "center":"None"
+      35:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040048',
+         'label':'SCL on JRC2018Unisex adult brain',
+         'id':'VFB_00102176',
+         'index':35,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'superior clamp'
       },
-      "36":{
-         "type_id":"FBbt_00040049",
-         "id":"VFB_00102179",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnailT.png",
-         "type_label":"inferior clamp",
-         "index":36,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnail.png",
-         "label":"ICL on JRC2018Unisex adult brain",
-         "center":"None"
+      36:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040049',
+         'label':'ICL on JRC2018Unisex adult brain',
+         'id':'VFB_00102179',
+         'index':36,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'inferior clamp'
       },
-      "37":{
-         "type_id":"FBbt_00040050",
-         "id":"VFB_00102185",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnailT.png",
-         "type_label":"inferior bridge",
-         "index":37,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnail.png",
-         "label":"IB on JRC2018Unisex adult brain",
-         "center":"None"
+      37:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040050',
+         'label':'IB on JRC2018Unisex adult brain',
+         'id':'VFB_00102185',
+         'index':37,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'inferior bridge'
       },
-      "38":{
-         "type_id":"FBbt_00045039",
-         "id":"VFB_00102190",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnailT.png",
-         "type_label":"antler",
-         "index":38,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnail.png",
-         "label":"ATL on JRC2018Unisex adult brain",
-         "center":"None"
+      38:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045039',
+         'label':'ATL on JRC2018Unisex adult brain',
+         'id':'VFB_00102190',
+         'index':38,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'antler'
       },
-      "39":{
-         "type_id":"FBbt_00007401",
-         "id":"VFB_00102201",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnailT.png",
-         "type_label":"adult antennal lobe",
-         "index":39,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnail.png",
-         "label":"AL on JRC2018Unisex adult brain",
-         "center":"None"
+      39:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00007401',
+         'label':'AL on JRC2018Unisex adult brain',
+         'id':'VFB_00102201',
+         'index':39,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult antennal lobe'
       },
-      "40":{
-         "type_id":"FBbt_00040041",
-         "id":"VFB_00102212",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnailT.png",
-         "type_label":"vest",
-         "index":40,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnail.png",
-         "label":"VES on JRC2018Unisex adult brain",
-         "center":"None"
+      40:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040041',
+         'label':'VES on JRC2018Unisex adult brain',
+         'id':'VFB_00102212',
+         'index':40,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'vest'
       },
-      "41":{
-         "type_id":"FBbt_00040040",
-         "id":"VFB_00102213",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnailT.png",
-         "type_label":"epaulette",
-         "index":41,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnail.png",
-         "label":"EPA on JRC2018Unisex adult brain",
-         "center":"None"
+      41:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040040',
+         'label':'EPA on JRC2018Unisex adult brain',
+         'id':'VFB_00102213',
+         'index':41,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'epaulette'
       },
-      "42":{
-         "type_id":"FBbt_00040039",
-         "id":"VFB_00102214",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnailT.png",
-         "type_label":"gorget",
-         "index":42,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnail.png",
-         "label":"GOR on JRC2018Unisex adult brain",
-         "center":"None"
+      42:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040039',
+         'label':'GOR on JRC2018Unisex adult brain',
+         'id':'VFB_00102214',
+         'index':42,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'gorget'
       },
-      "43":{
-         "type_id":"FBbt_00045040",
-         "id":"VFB_00102215",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnailT.png",
-         "type_label":"superior posterior slope",
-         "index":43,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnail.png",
-         "label":"SPS on JRC2018Unisex adult brain",
-         "center":"None"
+      43:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045040',
+         'label':'SPS on JRC2018Unisex adult brain',
+         'id':'VFB_00102215',
+         'index':43,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'superior posterior slope'
       },
-      "44":{
-         "type_id":"FBbt_00045046",
-         "id":"VFB_00102218",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnailT.png",
-         "type_label":"inferior posterior slope",
-         "index":44,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnail.png",
-         "label":"IPS on JRC2018Unisex adult brain",
-         "center":"None"
+      44:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045046',
+         'label':'IPS on JRC2018Unisex adult brain',
+         'id':'VFB_00102218',
+         'index':44,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'inferior posterior slope'
       },
-      "45":{
-         "type_id":"FBbt_00045048",
-         "id":"VFB_00102271",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnailT.png",
-         "type_label":"saddle",
-         "index":45,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnail.png",
-         "label":"SAD on JRC2018Unisex adult brain",
-         "center":"None"
+      45:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045048',
+         'label':'SAD on JRC2018Unisex adult brain',
+         'id':'VFB_00102271',
+         'index':45,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'saddle'
       },
-      "46":{
-         "type_id":"FBbt_00003982",
-         "id":"VFB_00102273",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnailT.png",
-         "type_label":"antennal mechanosensory and motor center",
-         "index":46,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnail.png",
-         "label":"AMMC on JRC2018Unisex adult brain",
-         "center":"None"
+      46:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003982',
+         'label':'AMMC on JRC2018Unisex adult brain',
+         'id':'VFB_00102273',
+         'index':46,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'antennal mechanosensory and motor center'
       },
-      "47":{
-         "type_id":"FBbt_00045050",
-         "id":"VFB_00102274",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnailT.png",
-         "type_label":"flange",
-         "index":47,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnail.png",
-         "label":"FLA on JRC2018Unisex adult brain",
-         "center":"None"
+      47:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045050',
+         'label':'FLA on JRC2018Unisex adult brain',
+         'id':'VFB_00102274',
+         'index':47,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'flange'
       },
-      "48":{
-         "type_id":"FBbt_00045051",
-         "id":"VFB_00102275",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnailT.png",
-         "type_label":"cantle",
-         "index":48,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnail.png",
-         "label":"CAN on JRC2018Unisex adult brain",
-         "center":"None"
+      48:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00045051',
+         'label':'CAN on JRC2018Unisex adult brain',
+         'id':'VFB_00102275',
+         'index':48,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'cantle'
       },
-      "49":{
-         "type_id":"FBbt_00040051",
-         "id":"VFB_00102276",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnailT.png",
-         "type_label":"prow",
-         "index":49,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnail.png",
-         "label":"PRW on JRC2018Unisex adult brain",
-         "center":"None"
+      49:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040051',
+         'label':'PRW on JRC2018Unisex adult brain',
+         'id':'VFB_00102276',
+         'index':49,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'prow'
       },
-      "50":{
-         "type_id":"FBbt_00014013",
-         "id":"VFB_00102280",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnailT.png",
-         "type_label":"adult gnathal ganglion",
-         "index":50,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnail.png",
-         "label":"GNG on JRC2018Unisex adult brain",
-         "center":"None"
+      50:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00014013',
+         'label':'GNG on JRC2018Unisex adult brain',
+         'id':'VFB_00102280',
+         'index':50,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'adult gnathal ganglion'
       },
-      "59":{
-         "type_id":"FBbt_00040060",
-         "id":"VFB_00102281",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnailT.png",
-         "type_label":"gall",
-         "index":59,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnail.png",
-         "label":"GA on JRC2018Unisex adult brain",
-         "center":"None"
+      59:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00040060',
+         'label':'GA on JRC2018Unisex adult brain',
+         'id':'VFB_00102281',
+         'index':59,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'gall'
       },
-      "94":{
-         "type_id":"FBbt_00003680",
-         "id":"VFB_00102282",
-         "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnailT.png",
-         "type_label":"nodulus",
-         "index":94,
-         "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnail.png",
-         "label":"NO on JRC2018Unisex adult brain",
-         "center":"None"
+      94:{
+         'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnailT.png',
+         'type_id':'FBbt_00003680',
+         'label':'NO on JRC2018Unisex adult brain',
+         'id':'VFB_00102282',
+         'index':94,
+         'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnail.png',
+         'center':None,
+         'type_label':'nodulus'
       }
    },
-   "Images":{
-      "VFBc_00101567":[
+   'Id':'VFB_00101567',
+   'IsClass':False,
+   'SuperTypes':[
+      'Entity',
+      'Adult',
+      'Anatomy',
+      'Individual',
+      'Nervous_system',
+      'Template',
+      'has_image'
+   ],
+   'IsIndividual':True,
+   'Images':{
+      'VFBc_00101567':[
          {
-            "voxel":{
-               "X":0.5189161,
-               "Y":0.5189161,
-               "Z":1.0
+            'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png',
+            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz',
+            'orientation':'',
+            'extent':{
+               'X':1211,
+               'Y':567,
+               'Z':175
             },
-            "id":"VFBc_00101567",
-            "wlz":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
-            "thumbnail_transparent":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png",
-            "orientation":"",
-            "thumbnail":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
-            "extent":{
-               "X":1211,
-               "Y":567,
-               "Z":175
+            'label':'JRC2018Unisex_c',
+            'id':'VFBc_00101567',
+            'voxel':{
+               'X':0.5189161,
+               'Y':0.5189161,
+               'Z':1.0
             },
-            "nrrd":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",
-            "label":"JRC2018Unisex_c",
-            "center":{
-               "X":605,
-               "Y":283,
-               "Z":87
+            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png',
+            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd',
+            'center':{
+               'X':605,
+               'Y':283,
+               'Z':87
             },
-            "obj":"https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj"
+            'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj'
          }
       ]
    },
-   "IsClass":false,
-   "Name":"JRC2018Unisex",
-   "IsTemplate":true,
-   "IsIndividual":true
+   'IsTemplate':True,
+   'Queries':[
+      
+   ],
+   'Tags':[
+      'Adult',
+      'Nervous_system'
+   ],
+   'Meta':{
+      'Name':'[JRC2018Unisex](VFB_00101567)',
+      'Description':'Janelia 2018 unisex, averaged adult brain template',
+      'Comment':'',
+      'Types':'[adult brain](FBbt_00003624)'
+   }
 }
 ```
 

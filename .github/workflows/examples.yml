@@ -38,24 +38,19 @@ jobs:
           python -c """
           import sys
           import json
+          import vfbquery as vfb
           from deepdiff import DeepDiff
           from io import StringIO
           from test_results import results
-          expected_json = results
+          json_blocks = results
           from test_examples import results
-          python_blocks = results
+          code_blocks = results
 
-          print(f'Found {len(code_blocks)} code blocks')
-          python_blocks = [block for block in code_blocks if block.startswith('python')][::2]
           print(f'Found {len(python_blocks)} Python code blocks')
-          json_blocks = [block for block in code_blocks if block.startswith('json')]
           print(f'Found {len(json_blocks)} JSON blocks')
       
-          for python_block, json_block in zip(python_blocks, json_blocks):
-            # Remove the 'python' and 'json' headers
-            python_code = python_block.replace('python', '').strip()
+          for python_code, expected_json in zip(python_blocks, json_blocks):
             print(f'Running example: {python_code}')
-            expected_json = json.loads(json_block.replace('json', '').strip())
             print(f'Expected JSON: {expected_json}')
       
             # Capture the output of the Python code

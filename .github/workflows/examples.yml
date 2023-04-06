@@ -55,7 +55,6 @@ jobs:
       
             if diff:
                 print('Error in example:')
-                print(python_code)
                 print('Expected JSON:')
                 print(expected_json)
                 print('Output JSON:')

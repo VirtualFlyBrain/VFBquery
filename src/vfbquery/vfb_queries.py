@@ -220,13 +220,19 @@ def term_info_parse_object(results, short_form):
                     grouped_relationships[relation_key] = set()
                 grouped_relationships[relation_key].add(object_key)
 
+            # Sort the grouped_relationships by keys
+            sorted_grouped_relationships = dict(sorted(grouped_relationships.items()))
+
             # Append the grouped relationships to termInfo
-            for relation_key, object_set in grouped_relationships.items():
+            for relation_key, object_set in sorted_grouped_relationships.items():
+                # Sort the object_set by object_key
+                sorted_object_set = sorted(list(object_set))
                 relation_objects = []
-                for object_key in object_set:
+                for object_key in sorted_object_set:
                     relation_objects.append("[%s](%s)" % (object_key[0], object_key[1]))
                 relationships.append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
             termInfo["Meta"]["Relationships"] = "; ".join(relationships)
+
 
         if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
             xrefs = []

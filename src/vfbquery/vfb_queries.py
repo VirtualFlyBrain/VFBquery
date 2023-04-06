@@ -199,7 +199,11 @@ def term_info_parse_object(results, short_form):
 
         if vfbTerm.parents and len(vfbTerm.parents) > 0:
             parents = []
-            for parent in vfbTerm.parents:
+
+            # Sort the parents alphabetically
+            sorted_parents = sorted(vfbTerm.parents, key=lambda parent: parent.label)
+
+            for parent in sorted_parents:
                 parents.append("[%s](%s)"%(parent.label, parent.short_form))
             termInfo["Meta"]["Types"] = "; ".join(parents)
 
@@ -246,10 +250,15 @@ def term_info_parse_object(results, short_form):
                     grouped_xrefs[site_key] = set()
                 grouped_xrefs[site_key].add(link_key)
 
+            # Sort the grouped_xrefs by site_key
+            sorted_grouped_xrefs = dict(sorted(grouped_xrefs.items()))
+
             # Append the grouped xrefs to termInfo
-            for site_key, link_set in grouped_xrefs.items():
+            for site_key, link_set in sorted_grouped_xrefs.items():
+                # Sort the link_set by link_key
+                sorted_link_set = sorted(list(link_set))
                 links = []
-                for link_key in link_set:
+                for link_key in sorted_link_set:
                     links.append("[%s](%s)" % (link_key[0], link_key[1]))
                 if site_key[2]:
                     xrefs.append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))

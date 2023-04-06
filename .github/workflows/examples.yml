@@ -32,7 +32,7 @@ jobs:
       - name: Run examples from README.md and compare JSON outputs
         run: |
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/result.append(\1)/g' > test_examples.py
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' > test_results.py
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' | sed 's/\btrue\b/True/g' > test_results.py
           python -c """
           import sys
           import json
@@ -67,7 +67,7 @@ jobs:
       
             # Compare the output JSON with the expected JSON
             output_json = json.loads(output)
-            diff = DeepDiff(expected_json, output_json, ignore_order=true)
+            diff = DeepDiff(expected_json, output_json, ignore_order=True)
       
             if diff:
                 print('Error in example:')

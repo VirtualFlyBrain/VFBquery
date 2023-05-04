@@ -13,12 +13,13 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, preview=0, preview_results={}, count=-1):
+    def __init__(self, query, label, function, takes, preview=0, preview_columns=[],preview_results={}, count=-1):
         self.query = query
         self.label = label 
         self.function = function 
         self.takes = takes
         self.preview = preview
+        self.preview_columns = preview_columns
         self.preview_results = preview_results  
         self.count = count
 
@@ -141,6 +142,7 @@ class QueryField(fields.Nested):
                 , "takes": value.takes
                 , "default": value.default
                 , "preview": value.preview
+                , "preview_columns": value.preview_columns
                 , "preview_results": value.preview_results  
                 , "count": value.count
                 }
@@ -328,6 +330,7 @@ def SimilarMorphologyTo_to_schemma(name, take_default):
   takes["short_form"]["$and"] = ["Individual","Neuron"]
   takes["default"] = take_default 
   query["takes"] = takes 
+  query["preview"] = 5
   return query 
    
 def ListAllAvailableImages_to_schemma(name, take_default):
@@ -339,7 +342,8 @@ def ListAllAvailableImages_to_schemma(name, take_default):
   takes["short_form"] = {}
   takes["short_form"]["$and"] = ["Class","Anatomy"]
   takes["default"] = take_default 
-  query["takes"] = takes 
+  query["takes"] = takes
+  query["preview"] = 0 
   return query 
 
 def get_term_info(short_form: str, preview: bool = False):

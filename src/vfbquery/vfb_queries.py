@@ -25,7 +25,7 @@ class Query:
 
 class TakesSchema(Schema):
     short_form = fields.Raw(required=True)
-    default = fields.String(required=False, allow_none=True)
+    default = fields.Raw(required=False, allow_none=True)
 
 class QuerySchema(Schema):
     query = fields.String(required=True)
@@ -225,7 +225,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            q = ListAllAvailableImages_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+            q = ListAllAvailableImages_to_schemma(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
             queries.append(q)
  
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
@@ -311,7 +311,7 @@ def term_info_parse_object(results, short_form):
             termInfo["Domains"] = images
             
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
-          q = SimilarMorphologyTo_to_schemma(termInfo["Name"], vfbTerm.term.core.short_form)
+          q = SimilarMorphologyTo_to_schemma(termInfo["Name"], {"neuron":vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
           queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
@@ -480,4 +480,22 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     :return: True if lst contains all tags, False otherwise
     """
     return all(tag in lst for tag in tags)
+
+def fill_query_previews(term_info):
+    for query in term_info['Queries']:
+        if query.preview > 0:
+            function = globals().get(query.function)
+            if function:
+                # Modify this line to use the correct arguments
+                result = function(query.takes["default"], return_dataframe=False, limit=query.preview)
+                
+                # Filter columns based on preview_columns
+                filtered_result = []
+                for item in result:
+                    filtered_item = {col: item[col] for col in query.preview_columns}
+                    filtered_result.append(filtered_item)
+                
+                query.preview_results = filtered_result
+            else:
+                print(f"Function {query.function} not found")
 

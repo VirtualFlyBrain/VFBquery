@@ -435,7 +435,7 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
                 WITH c1, n1, r, n2, c2
                 OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
                 (n2)-[dbx2:database_cross_reference]->(s2:Site)
-                WHERE s1.is_data_source and s2.is_data_source
+                WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
                 RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
                 COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source
                 ORDER BY score DESC"""

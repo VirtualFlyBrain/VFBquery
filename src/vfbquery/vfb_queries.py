@@ -13,11 +13,14 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes):
+    def __init__(self, query, label, function, takes, preview=0, preview_results={}, count=-1):
         self.query = query
         self.label = label 
         self.function = function 
-        self.takes = takes  
+        self.takes = takes
+        self.preview = preview
+        self.preview_results = preview_results  
+        self.count = count
 
 class TakesSchema(Schema):
     short_form = fields.Raw(required=True)
@@ -137,6 +140,9 @@ class QueryField(fields.Nested):
                 , "function": value.function
                 , "takes": value.takes
                 , "default": value.default
+                , "preview": value.preview
+                , "preview_results": value.preview_results  
+                , "count": value.count
                 }
 
     def _deserialize(self, value, attr, data, **kwargs):
@@ -336,7 +342,7 @@ def ListAllAvailableImages_to_schemma(name, take_default):
   query["takes"] = takes 
   return query 
 
-def get_term_info(short_form: str):
+def get_term_info(short_form: str, preview: bool = False):
     """
     Retrieves the term info for the given term short form.
 

@@ -358,7 +358,8 @@ def get_term_info(short_form: str, preview: bool = False):
         results = vfb_solr.search('id:' + short_form)
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
-        return parsed_object
+        term_info = fill_query_results(parsed_object)
+        return term_info
     except ValidationError as e:
     # handle the validation error
       print("Schemma validation error when parsing response")
@@ -481,21 +482,33 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
     return all(tag in lst for tag in tags)
 
-def fill_query_previews(term_info):
+def fill_query_results(term_info):
     for query in term_info['Queries']:
         if query.preview > 0:
             function = globals().get(query.function)
             if function:
-                # Modify this line to use the correct arguments
-                result = function(query.takes["default"], return_dataframe=False, limit=query.preview)
+                # Unpack the default dictionary and pass its contents as arguments
+                function_args = query.takes.get("default", {})
+
+                # Modify this line to use the correct arguments and pass the default arguments
+                result = function(return_dataframe=False, limit=query.preview, **function_args)
                 
                 # Filter columns based on preview_columns
                 filtered_result = []
-                for item in result:
-                    filtered_item = {col: item[col] for col in query.preview_columns}
-                    filtered_result.append(filtered_item)
+                if isinstance(result, list) and all(isinstance(item, dict) for item in result):
+                    for item in result:
+                        if query.preview_columns:
+                            filtered_item = {col: item[col] for col in query.preview_columns}
+                        else:
+                            filtered_item = item
+                        filtered_result.append(filtered_item)
+                elif isinstance(result, pd.DataFrame):
+                    filtered_result = result[query.preview_columns].to_dict('records')
+                else:
+                    print(f"Unsupported result format for filtering columns in {query.function}")
                 
                 query.preview_results = filtered_result
             else:
                 print(f"Function {query.function} not found")
+    return term_info
 

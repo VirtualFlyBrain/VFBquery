@@ -357,10 +357,11 @@ def get_term_info(short_form: str):
         print("Error accessing SOLR server!")   
 
                 
-def get_instances(short_form: str):
+def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     """
     Retrieves available instances for the given class short form.
     :param short_form: short form of the class
+    :param limit: maximum number of results to return (default None, returns all results)
     :return: results rows
     """
 
@@ -381,11 +382,17 @@ def get_instances(short_form: str):
        REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license
     """
 
+    if limit is not None:
+        query += f" LIMIT {limit}"
+
     # Run the query using VFB_connect
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
     df = pd.DataFrame.from_records(dict_cursor(results))
+
+    if return_dataframe:
+        return df
 
     # Format the results
     formatted_results = {
@@ -402,64 +409,57 @@ def get_instances(short_form: str):
 
     return formatted_results
     
-def get_similar_neurons(short_form: str, similarity_score='NBLAST_score'):
+def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = None):
+    """Get JSON report of individual neurons similar to input neuron
+
+    :param neuron:
+    :param similarity_score: Optionally specify similarity score to chose
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+    :param limit: maximum number of results to return (default None, returns all results)
+    :return: list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
+    :rtype: pandas.DataFrame or list of dicts
+
     """
-    Retrieves available similar neurons for the given neuron short form.
+    query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
+                WHERE n1.short_form = '{neuron}'
+                WITH c1, n1, r, n2, c2
+                OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
+                (n2)-[dbx2:database_cross_reference]->(s2:Site)
+                WHERE s1.is_data_source and s2.is_data_source
+                RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
+                COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source
+                ORDER BY score DESC"""
 
-    :param short_form: short form of the neuron
-    :param similarity_score: optionally specify similarity score to choose
-    :return: results rows
-    """
+    if limit is not None:
+        query += f" LIMIT {limit}"
 
-    df = vc.get_similar_neurons(short_form, similarity_score=similarity_score, return_dataframe=True)
+    dc = self.neo_query_wrapper._query(query)
+    df = pd.DataFrame.from_records(dc)
 
-    results = {'headers': 
-        {
+    # Rename columns to match the original function
+    df = df.rename(columns={
+        'id': 'name',
+        'label': 'label',
+        'tags': 'tags',
+        'source_id': 'source',
+        'accession_in_source': 'source_id',
+    })
+
+    formatted_results = {
+        'headers': {
             'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
-            'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}}, 
+            'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}},
             'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},
             'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
             'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
-        }, 
+        },
         'rows': formatDataframe(df).to_dict('records')
     }
-    
-    return results
 
-def formatDataframe(df):
-    """
-    Merge label/id pairs into a markdown link and update column names.
-
-    :param df: pandas DataFrame 
-    :return: pandas DataFrame with merged label/id pairs in 'label' and 'parent' columns
-    """
-    if 'label' in df.columns and 'id' in df.columns:
-        # Merge label/id pairs for both label/id and parent_label/parent_id columns
-        df['label'] = df.apply(lambda row: '[%s](%s)' % (row['label'], row['id']), axis=1)
-        # Drop the original label/id columns
-        df.drop(columns=['id'], inplace=True)
-    if 'parent_label' in df.columns and 'parent_id' in df.columns:
-        df['parent'] = df.apply(lambda row: '[%s](%s)' % (row['parent_label'], row['parent_id']), axis=1)
-        # Drop the original parent_label/parent_id columns
-        df.drop(columns=['parent_label', 'parent_id'], inplace=True)
-    if 'tags' in df.columns:
-        # Check tags is a list
-        def merge_tags(tags):
-            if isinstance(tags, str):
-                tags_list = tags.split('|')
-                return tags_list
-            else:
-                return tags
-        df['tags'] = df['tags'].apply(merge_tags)
-    # Rename column headers if they occur 
-    df = replace_column_header(df, 'datasource', 'source')
-    df = replace_column_header(df, 'accession', 'source')
-    df = replace_column_header(df, 'source_id', 'source')
-    df = replace_column_header(df, 'accession_in_source', 'source_id')
-    df = replace_column_header(df, 'NBLAST_score', 'score')
-    
-    # Return the updated DataFrame
-    return df
+    if return_dataframe:
+        return pd.DataFrame(formatted_results['rows'])
+    else:
+        return formatted_results
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
@@ -471,15 +471,3 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
     return all(tag in lst for tag in tags)
 
-def replace_column_header(df, original_col, replacement_col):
-    """
-    Replaces a given original column header with a replacement column header.
-    
-    :param df: pandas DataFrame 
-    :param original_col: str, the original column header to replace
-    :param replacement_col: str, the replacement column header
-    :return: pandas DataFrame with replaced column header
-    """
-    if original_col in df.columns:
-        df.rename(columns={original_col: replacement_col}, inplace=True)
-    return df

@@ -13,15 +13,27 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, preview=0, preview_columns=[],preview_results=[], count=-1):
+    def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], count=-1):
         self.query = query
-        self.label = label 
-        self.function = function 
+        self.label = label
+        self.function = function
         self.takes = takes
         self.preview = preview
         self.preview_columns = preview_columns
-        self.preview_results = preview_results  
+        self.preview_results = preview_results
         self.count = count
+
+    def to_dict(self):
+        return {
+            "query": self.query,
+            "label": self.label,
+            "function": self.function,
+            "takes": self.takes,
+            "preview": self.preview,
+            "preview_columns": self.preview_columns,
+            "preview_results": self.preview_results,
+            "count": self.count,
+        }
 
 class TakesSchema(Schema):
     short_form = fields.Raw(required=True)

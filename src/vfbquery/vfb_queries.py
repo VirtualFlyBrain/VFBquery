@@ -396,14 +396,14 @@ def term_info_parse_object(results, short_form):
                 sorted_images = {int(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
                 termInfo["Domains"] = sorted_images
 
-        if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
-          q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron":vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
-          queries.append(q)
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
+            q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
+            queries.append(q)
         # Add the queries to the term info
-        termInfo["Queries"] = queries
-        
+        termInfo["Queries"] = [query.to_dict() if isinstance(query, Query) else query for query in queries]
+
         print("termInfo object before schema validation:", termInfo)
- 
+
     return TermInfoOutputSchema().load(termInfo)
 
 def SimilarMorphologyTo_to_schema(name, take_default):

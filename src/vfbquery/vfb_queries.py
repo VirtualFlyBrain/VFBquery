@@ -23,6 +23,9 @@ class Query:
         self.preview_results = preview_results
         self.count = count
 
+    def __str__(self):
+        return f"Query: {self.query}, Label: {self.label}, Function: {self.function}, Takes: {self.takes}, Preview: {self.preview}, Preview Columns: {self.preview_columns}, Preview Results: {self.preview_results}, Count: {self.count}"
+
     def to_dict(self):
         return {
             "query": self.query,

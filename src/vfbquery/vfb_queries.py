@@ -429,7 +429,9 @@ def get_term_info(short_form: str, preview: bool = False):
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         term_info = fill_query_results(parsed_object)
-        return term_info
+        if term_info:
+            return term_info
+        return parsed_object
     except ValidationError as e:
         # handle the validation error
         print("Schema validation error when parsing response")

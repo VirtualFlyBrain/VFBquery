@@ -192,7 +192,11 @@ class TermInfoOutputSchema(Schema):
         return data
 
     def __str__(self):
-        return str(self.dump(self.make_term_info(self.data)))
+        term_info_data = self.make_term_info(self.data)
+        if "Queries" in term_info_data:
+            term_info_data["Queries"] = [query.to_dict() for query in term_info_data["Queries"]]
+        return str(self.dump(term_info_data))
+
     
 def term_info_parse_object(results, short_form):
     termInfo = {}

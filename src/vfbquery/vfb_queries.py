@@ -403,10 +403,10 @@ def term_info_parse_object(results, short_form):
         # Add the queries to the term info
         termInfo["Queries"] = queries
 
-        print("termInfo object after loading:", termInfo)
+        # print("termInfo object after loading:", termInfo)
     if "Queries" in termInfo:
         termInfo["Queries"] = [query.to_dict() for query in termInfo["Queries"]]
-    print("termInfo object before schema validation:", termInfo)
+    # print("termInfo object before schema validation:", termInfo)
     return TermInfoOutputSchema().load(termInfo)
 
 def SimilarMorphologyTo_to_schema(name, take_default):

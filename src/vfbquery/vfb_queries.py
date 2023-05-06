@@ -435,10 +435,12 @@ def get_term_info(short_form: str, preview: bool = False):
     except ValidationError as e:
         # handle the validation error
         print("Schema validation error when parsing response")
+        print("Error details:", e)
+        print("Original data:", results)
+        print("Parsed object:", parsed_object)    
     except IndexError:
         print(f"No results found for ID '{short_form}'")
-        print("Error accessing SOLR server!")   
-
+        print("Error accessing SOLR server!") 
                 
 def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     """

@@ -204,7 +204,7 @@ def term_info_parse_object(results, short_form):
             pass
         except AttributeError:
             print(f"vfbTerm.term.comment: {vfbTerm.term}")
-
+        
         if vfbTerm.parents and len(vfbTerm.parents) > 0:
             parents = []
 

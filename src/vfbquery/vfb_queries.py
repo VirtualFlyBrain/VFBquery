@@ -386,7 +386,7 @@ def term_info_parse_object(results, short_form):
         # Add the queries to the term info
         termInfo["Queries"] = queries
         
-        #print(termInfo)
+        print("termInfo object before schema validation:", termInfo)
  
     return TermInfoOutputSchema().load(termInfo)
 

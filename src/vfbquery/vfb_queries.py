@@ -400,7 +400,7 @@ def term_info_parse_object(results, short_form):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
         # Add the queries to the term info
-        termInfo["Queries"] = [query.to_dict() if isinstance(query, Query) else query for query in queries]
+        termInfo["Queries"] = queries
 
         print("termInfo object before schema validation:", termInfo)
 

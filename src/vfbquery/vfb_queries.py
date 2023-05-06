@@ -381,7 +381,7 @@ def term_info_parse_object(results, short_form):
                 termInfo["Domains"] = sorted_images
 
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
-          q = SimilarMorphologyTo_to_schemma(termInfo["Name"], {"neuron":vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
+          q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron":vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
           queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries

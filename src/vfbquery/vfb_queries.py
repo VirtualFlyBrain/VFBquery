@@ -294,7 +294,7 @@ def term_info_parse_object(results, short_form):
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
-            q = ListAllAvailableImages_to_schemma(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
+            q = ListAllAvailableImages_to_schema(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
             queries.append(q)
 
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.

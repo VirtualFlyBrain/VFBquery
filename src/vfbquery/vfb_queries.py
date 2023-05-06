@@ -31,7 +31,7 @@ class QuerySchema(Schema):
     query = fields.String(required=True)
     label = fields.String(required=True)
     function = fields.String(required=True)
-    takes = fields.Nested(TakesSchema(), many=True)
+    takes = fields.Nested(TakesSchema(), required=False, missing={})
     preview = fields.Integer(required=False, missing=0)
     preview_columns = fields.List(fields.String(), required=False, missing=[])
     preview_results = fields.List(fields.Dict(), required=False, missing=[])

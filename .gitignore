@@ -6,3 +6,5 @@ src/vfbquery.egg-info/
 src/vfbquery/__pycache__/
 src/vfbquery/ontology/__pycache__/
 build/
+test_examples.py
+test_results.py

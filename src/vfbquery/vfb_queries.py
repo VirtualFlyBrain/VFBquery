@@ -104,7 +104,7 @@ class ImageSchema(Schema):
 class ImageField(fields.Nested):
     def __init__(self, **kwargs):
         super().__init__(ImageSchema(), **kwargs)
-    
+
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return value
@@ -124,7 +124,7 @@ class ImageField(fields.Nested):
                 , "type_id": value.type_id
                 , "type_label": value.type_label
                 }
-      
+
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
@@ -159,7 +159,7 @@ class TermInfoOutputSchema(Schema):
     SuperTypes = fields.List(fields.String(), required=True)
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
-    Queries = fields.Raw(required=False) #having issues to serialize  
+    Queries = fields.Raw(required=False) #having issues to serialize
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsClass = fields.Bool(missing=False, required=False)
@@ -205,6 +205,75 @@ def term_info_parse_object(results, short_form):
         except AttributeError:
             print(f"vfbTerm.term.comment: {vfbTerm.term}")
 
+        if vfbTerm.parents and len(vfbTerm.parents) > 0:
+            parents = []
+
+            # Sort the parents alphabetically
+            sorted_parents = sorted(vfbTerm.parents, key=lambda parent: parent.label)
+
+            for parent in sorted_parents:
+                parents.append("[%s](%s)"%(parent.label, parent.short_form))
+            termInfo["Meta"]["Types"] = "; ".join(parents)
+
+        if vfbTerm.relationships and len(vfbTerm.relationships) > 0:
+            relationships = []
+
+            # Group relationships by relation type and remove duplicates
+            grouped_relationships = {}
+            for relationship in vfbTerm.relationships:
+                if relationship.relation.short_form:
+                    relation_key = (relationship.relation.label, relationship.relation.short_form)
+                elif relationship.relation.iri:
+                    relation_key = (relationship.relation.label, relationship.relation.iri.split('/')[-1])
+                elif relationship.relation.label:
+                    relation_key = (relationship.relation.label, relationship.relation.label)
+                object_key = (relationship.object.label, relationship.object.short_form)
+                if relation_key not in grouped_relationships:
+                    grouped_relationships[relation_key] = set()
+                grouped_relationships[relation_key].add(object_key)
+
+            # Sort the grouped_relationships by keys
+            sorted_grouped_relationships = dict(sorted(grouped_relationships.items()))
+
+            # Append the grouped relationships to termInfo
+            for relation_key, object_set in sorted_grouped_relationships.items():
+                # Sort the object_set by object_key
+                sorted_object_set = sorted(list(object_set))
+                relation_objects = []
+                for object_key in sorted_object_set:
+                    relation_objects.append("[%s](%s)" % (object_key[0], object_key[1]))
+                relationships.append("[%s](%s): %s" % (relation_key[0], relation_key[1], ', '.join(relation_objects)))
+            termInfo["Meta"]["Relationships"] = "; ".join(relationships)
+
+
+        if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
+            xrefs = []
+
+            # Group xrefs by site
+            grouped_xrefs = {}
+            for xref in vfbTerm.xrefs:
+                site_key = (xref.site.label, xref.homepage, xref.icon)
+                link_key = (xref.accession, xref.link())
+                if site_key not in grouped_xrefs:
+                    grouped_xrefs[site_key] = set()
+                grouped_xrefs[site_key].add(link_key)
+
+            # Sort the grouped_xrefs by site_key
+            sorted_grouped_xrefs = dict(sorted(grouped_xrefs.items()))
+
+            # Append the grouped xrefs to termInfo
+            for site_key, link_set in sorted_grouped_xrefs.items():
+                # Sort the link_set by link_key
+                sorted_link_set = sorted(list(link_set))
+                links = []
+                for link_key in sorted_link_set:
+                    links.append("[%s](%s)" % (link_key[0], link_key[1]))
+                if site_key[2]:
+                    xrefs.append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))
+                else:
+                    xrefs.append("[%s](%s): %s" % (site_key[0], site_key[1], ', '.join(links)))
+            termInfo["Meta"]["Cross References"] = "; ".join(xrefs)
+
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
             images = {}
@@ -227,7 +296,7 @@ def term_info_parse_object(results, short_form):
             # add a query to `queries` list for listing all available images
             q = ListAllAvailableImages_to_schemma(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
             queries.append(q)
- 
+
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}
@@ -248,7 +317,7 @@ def term_info_parse_object(results, short_form):
                 images[image.image.template_anatomy.short_form].append(record)
             # Add the thumbnails to the term info
             termInfo["Images"] = images
-              
+
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             termInfo["IsTemplate"] = True
             images = {}
@@ -279,48 +348,49 @@ def term_info_parse_object(results, short_form):
             if 'orientation' in image_vars.keys():
                 record['orientation'] = image.orientation
             images[vfbTerm.template_channel.channel.short_form].append(record)
-                
+
             # Add the thumbnails to the term info
             termInfo["Images"] = images
-            
-        if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
-            images = {}
-            termInfo["IsTemplate"] = True
-            for image in vfbTerm.template_domains:
-              record = {}
-              record["id"] = image.anatomical_individual.short_form
-              label = image.anatomical_individual.label
-              if image.anatomical_individual.symbol != "" and len(image.anatomical_individual.symbol) > 0:
-                  label = image.anatomical_individual.symbol
-              record["label"] = label
-              record["type_id"] = image.anatomical_type.short_form
-              label = image.anatomical_type.label
-              if image.anatomical_type.symbol != "" and len(image.anatomical_type.symbol) > 0:
-                  label = image.anatomical_type.symbol
-              record["type_label"] = label
-              record["index"] = int(image.index[0])
-              record["thumbnail"] = image.folder.replace("http://","https://") + "thumbnail.png"
-              record["thumbnail_transparent"] = image.folder.replace("http://","https://") + "thumbnailT.png"
-              for key in vars(image).keys():
-                  if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
-                      record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
-              record["center"] = image.get_center()
-              images[record["index"]] = record
-                
-            # Add the thumbnails to the term info
-            termInfo["Domains"] = images
-            
+
+            if vfbTerm.template_domains and len(vfbTerm.template_domains) > 0:
+                images = {}
+                termInfo["IsTemplate"] = True
+                for image in vfbTerm.template_domains:
+                    record = {}
+                    record["id"] = image.anatomical_individual.short_form
+                    label = image.anatomical_individual.label
+                    if image.anatomical_individual.symbol != "" and len(image.anatomical_individual.symbol) > 0:
+                        label = image.anatomical_individual.symbol
+                    record["label"] = label
+                    record["type_id"] = image.anatomical_type.short_form
+                    label = image.anatomical_type.label
+                    if image.anatomical_type.symbol != "" and len(image.anatomical_type.symbol) > 0:
+                        label = image.anatomical_type.symbol
+                    record["type_label"] = label
+                    record["index"] = int(image.index[0])
+                    record["thumbnail"] = image.folder.replace("http://", "https://") + "thumbnail.png"
+                    record["thumbnail_transparent"] = image.folder.replace("http://", "https://") + "thumbnailT.png"
+                    for key in vars(image).keys():
+                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
+                            record[key.replace("image_", "")] = vars(image)[key].replace("http://", "https://")
+                    record["center"] = image.get_center()
+                    images[record["index"]] = record
+
+                # Sort the domains by their index and add them to the term info
+                sorted_images = {int(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
+                termInfo["Domains"] = sorted_images
+
         if contains_all_tags(termInfo["SuperTypes"],["Individual","Neuron"]):
           q = SimilarMorphologyTo_to_schemma(termInfo["Name"], {"neuron":vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
           queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
         
-        print(termInfo)
+        #print(termInfo)
  
     return TermInfoOutputSchema().load(termInfo)
 
-def SimilarMorphologyTo_to_schemma(name, take_default):
+def SimilarMorphologyTo_to_schema(name, take_default):
   query = {}
   query["query"] = "SimilarMorphologyTo"
   query["label"] = "Find similar neurons to %s"%(name)
@@ -333,7 +403,7 @@ def SimilarMorphologyTo_to_schemma(name, take_default):
   query["preview"] = 5
   return query 
    
-def ListAllAvailableImages_to_schemma(name, take_default):
+def ListAllAvailableImages_to_schema(name, take_default):
   query = {}
   query["query"] = "ListAllAvailableImages"
   query["label"] = "List all available images of %s"%(name)
@@ -361,8 +431,8 @@ def get_term_info(short_form: str, preview: bool = False):
         term_info = fill_query_results(parsed_object)
         return term_info
     except ValidationError as e:
-    # handle the validation error
-      print("Schemma validation error when parsing response")
+        # handle the validation error
+        print("Schema validation error when parsing response")
     except IndexError:
         print(f"No results found for ID '{short_form}'")
         print("Error accessing SOLR server!")   

@@ -395,30 +395,28 @@ def term_info_parse_object(results, short_form):
     return TermInfoOutputSchema().load(termInfo)
 
 def SimilarMorphologyTo_to_schema(name, take_default):
-  query = {}
-  query["query"] = "SimilarMorphologyTo"
-  query["label"] = "Find similar neurons to %s"%(name)
-  query["function"] = "get_similar_neurons"
-  takes = {}
-  takes["short_form"] = {}
-  takes["short_form"]["$and"] = ["Individual","Neuron"]
-  takes["default"] = take_default 
-  query["takes"] = takes 
-  query["preview"] = 5
-  return query 
-   
+    query = "SimilarMorphologyTo"
+    label = f"Find similar neurons to {name}"
+    function = "get_similar_neurons"
+    takes = {
+        "short_form": {"$and": ["Individual", "Neuron"]},
+        "default": take_default,
+    }
+    preview = 5
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview)
+
 def ListAllAvailableImages_to_schema(name, take_default):
-  query = {}
-  query["query"] = "ListAllAvailableImages"
-  query["label"] = "List all available images of %s"%(name)
-  query["function"] = "get_instances"
-  takes = {}
-  takes["short_form"] = {}
-  takes["short_form"]["$and"] = ["Class","Anatomy"]
-  takes["default"] = take_default 
-  query["takes"] = takes
-  query["preview"] = 0 
-  return query 
+    query = "ListAllAvailableImages"
+    label = f"List all available images of {name}"
+    function = "get_instances"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 0
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview)
 
 def get_term_info(short_form: str, preview: bool = False):
     """

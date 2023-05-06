@@ -35,6 +35,19 @@ class Query:
             "count": self.count,
         }
 
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            query=data["query"],
+            label=data["label"],
+            function=data["function"],
+            takes=data["takes"],
+            preview=data["preview"],
+            preview_columns=data["preview_columns"],
+            preview_results=data["preview_results"],
+            count=data["count"],
+        )
+
 class TakesSchema(Schema):
     short_form = fields.Raw(required=True)
     default = fields.Raw(required=False, allow_none=True)
@@ -388,7 +401,7 @@ def term_info_parse_object(results, short_form):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
         # Add the queries to the term info
-        termInfo["Queries"] = queries
+        termInfo["Queries"] = [query.to_dict() for query in termInfo["Queries"]]
 
         print("termInfo object before schema validation:", termInfo)
 

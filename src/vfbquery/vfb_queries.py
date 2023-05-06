@@ -187,6 +187,13 @@ class TermInfoOutputSchema(Schema):
     IsTemplate = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
 
+    @post_load
+    def make_term_info(self, data, **kwargs):
+        return TermInfo(**data)
+
+    def __str__(self):
+        return str(self.dump(self.make_term_info(self.data)))
+
 def term_info_parse_object(results, short_form):
     termInfo = {}
     if results.hits > 0 and results.docs and len(results.docs) > 0:

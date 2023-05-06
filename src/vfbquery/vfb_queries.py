@@ -423,6 +423,7 @@ def get_term_info(short_form: str, preview: bool = False):
     :param short_form: short form of the term
     :return: term info
     """
+    parsed_object = None
     try:
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)

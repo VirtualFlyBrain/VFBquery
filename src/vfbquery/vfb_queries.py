@@ -146,27 +146,16 @@ class ImageField(fields.Nested):
             return value
         return ImageSchema().load(value)
 
-class QueryField(fields.Nested):
-    def __init__(self, **kwargs):
-        super().__init__(QuerySchema, **kwargs)
+class QueryField(fields.Field):
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
-            return value
-        return {"query": value.query
-                , "label": value.label
-                , "function": value.function
-                , "takes": value.takes
-                , "default": value.default
-                , "preview": value.preview
-                , "preview_columns": value.preview_columns
-                , "preview_results": value.preview_results  
-                , "count": value.count
-                }
+            return None
+        return value.to_dict()
 
     def _deserialize(self, value, attr, data, **kwargs):
-        if value is None:
-            return value
-        return Query(**value)
+        if not isinstance(value, dict):
+            raise ValidationError("Invalid input type.")
+        return Query.from_dict(value)
 
 class TermInfoOutputSchema(Schema):
     Name = fields.String(required=True)

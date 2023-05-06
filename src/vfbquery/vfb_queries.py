@@ -13,7 +13,7 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, preview=0, preview_columns=[],preview_results={}, count=-1):
+    def __init__(self, query, label, function, takes, preview=0, preview_columns=[],preview_results=[], count=-1):
         self.query = query
         self.label = label 
         self.function = function 
@@ -32,6 +32,10 @@ class QuerySchema(Schema):
     label = fields.String(required=True)
     function = fields.String(required=True)
     takes = fields.Nested(TakesSchema(), many=True)
+    preview = fields.Integer(required=False, missing=0)
+    preview_columns = fields.List(fields.String(), required=False, missing=[])
+    preview_results = fields.List(fields.Dict(), required=False, missing=[])
+    count = fields.Integer(required=False, missing=-1)
 
 class Coordinates:
     def __init__(self, X, Y, Z):

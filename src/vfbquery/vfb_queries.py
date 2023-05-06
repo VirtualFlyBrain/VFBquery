@@ -166,7 +166,8 @@ class QueryField(fields.Nested):
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return QuerySchema().load(value)
+        return Query(**value)
+
 
 
 class TermInfoOutputSchema(Schema):

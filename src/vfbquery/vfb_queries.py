@@ -462,6 +462,7 @@ def get_term_info(short_form: str, preview: bool = False):
         parsed_object = term_info_parse_object(results, short_form)
         term_info = fill_query_results(parsed_object)
         if term_info:
+            print("Failed to fill query preview results!")
             return term_info
         return parsed_object
     except ValidationError as e:

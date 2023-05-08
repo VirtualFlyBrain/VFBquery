@@ -612,8 +612,15 @@ def fill_query_results(term_info):
                 
                 # Filter columns based on preview_columns
                 filtered_result = []
+                header_data = {}
                 
                 if isinstance(result, dict) and 'rows' in result:
+                    all_headers = result.get('headers', {})
+                    if 'preview_columns' in query.keys():
+                        header_data = {col: all_headers[col] for col in query['preview_columns'] if col in all_headers}
+                    else:
+                        header_data = all_headers
+
                     for item in result['rows']:
                         if 'preview_columns' in query.keys():
                             filtered_item = {col: item[col] for col in query['preview_columns']}
@@ -633,6 +640,7 @@ def fill_query_results(term_info):
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
                 query['preview_results'] = filtered_result
+                query['header_data'] = header_data  # Added filtered header_data to the query dictionary
                 print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

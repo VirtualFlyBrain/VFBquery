@@ -189,6 +189,8 @@ class TermInfoOutputSchema(Schema):
 
     @post_load
     def make_term_info(self, data, **kwargs):
+        if "Queries" in data:
+            data["Queries"] = [query.to_dict() for query in data["Queries"]]
         return data
 
     def __str__(self):

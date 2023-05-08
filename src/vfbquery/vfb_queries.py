@@ -607,13 +607,19 @@ def fill_query_results(term_info):
 
                 # Modify this line to use the correct arguments and pass the default arguments
                 result = function(return_dataframe=False, limit=query['preview'], **function_args)
-                print("Result type:", type(result))
                 print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns
                 filtered_result = []
                 
-                if isinstance(result, list) and all(isinstance(item, dict) for item in result):
+                if isinstance(result, dict) and 'rows' in result:
+                    for item in result['rows']:
+                        if 'preview_columns' in query.keys():
+                            filtered_item = {col: item[col] for col in query['preview_columns']}
+                        else:
+                            filtered_item = item
+                        filtered_result.append(filtered_item)
+                elif isinstance(result, list) and all(isinstance(item, dict) for item in result):
                     for item in result:
                         if 'preview_columns' in query.keys():
                             filtered_item = {col: item[col] for col in query['preview_columns']}
@@ -632,5 +638,4 @@ def fill_query_results(term_info):
         else:
             print("Preview key not found or preview is 0")
     return term_info
-
 

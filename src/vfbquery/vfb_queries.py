@@ -594,11 +594,11 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
 def fill_query_results(term_info):
     for query in term_info['Queries']:
         print(f"Query Keys:{query.keys()}")
-        if query.preview and query.preview > 0:
-            function = globals().get(query.function)
+        if "preview" in query.keys() and query['preview'] > 0:
+            function = globals().get(query['function'])
             if function:
                 # Unpack the default dictionary and pass its contents as arguments
-                function_args = query.takes.get("default", {})
+                function_args = query['takes'].get("default", {})
 
                 # Modify this line to use the correct arguments and pass the default arguments
                 result = function(return_dataframe=False, limit=query.preview, **function_args)
@@ -607,17 +607,17 @@ def fill_query_results(term_info):
                 filtered_result = []
                 if isinstance(result, list) and all(isinstance(item, dict) for item in result):
                     for item in result:
-                        if query.preview_columns:
-                            filtered_item = {col: item[col] for col in query.preview_columns}
+                        if preview_columns in query.keys():
+                            filtered_item = {col: item[col] for col in query['preview_columns']}
                         else:
                             filtered_item = item
                         filtered_result.append(filtered_item)
                 elif isinstance(result, pd.DataFrame):
-                    filtered_result = result[query.preview_columns].to_dict('records')
+                    filtered_result = result[query['preview_columns']].to_dict('records')
                 else:
                     print(f"Unsupported result format for filtering columns in {query.function}")
                 
-                query.preview_results = filtered_result
+                query['preview_results'] = filtered_result
             else:
                 print(f"Function {query.function} not found")
     return term_info

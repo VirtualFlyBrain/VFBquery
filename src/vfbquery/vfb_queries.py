@@ -612,21 +612,21 @@ def fill_query_results(term_info):
                 
                 # Filter columns based on preview_columns
                 filtered_result = []
-                header_data = {}
+                filtered_headers = {}
                 
                 if isinstance(result, dict) and 'rows' in result:
-                    all_headers = result.get('headers', {})
-                    if 'preview_columns' in query.keys():
-                        header_data = {col: all_headers[col] for col in query['preview_columns'] if col in all_headers}
-                    else:
-                        header_data = all_headers
-
                     for item in result['rows']:
                         if 'preview_columns' in query.keys():
                             filtered_item = {col: item[col] for col in query['preview_columns']}
                         else:
                             filtered_item = item
                         filtered_result.append(filtered_item)
+                        
+                    if 'headers' in result:
+                        if 'preview_columns' in query.keys():
+                            filtered_headers = {col: result['headers'][col] for col in query['preview_columns']}
+                        else:
+                            filtered_headers = result['headers']
                 elif isinstance(result, list) and all(isinstance(item, dict) for item in result):
                     for item in result:
                         if 'preview_columns' in query.keys():
@@ -639,8 +639,7 @@ def fill_query_results(term_info):
                 else:
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
-                query['preview_results'] = filtered_result
-                query['header_data'] = header_data  # Added filtered header_data to the query dictionary
+                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
                 print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

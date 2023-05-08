@@ -607,6 +607,7 @@ def fill_query_results(term_info):
 
                 # Modify this line to use the correct arguments and pass the default arguments
                 result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                print("Result type:", type(result))
                 print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns

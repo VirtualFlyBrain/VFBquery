@@ -445,7 +445,7 @@ def ListAllAvailableImages_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 0
+    preview = 5
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview)
 

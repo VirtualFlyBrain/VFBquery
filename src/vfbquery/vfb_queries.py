@@ -446,8 +446,9 @@ def ListAllAvailableImages_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
+    preview_columns = ["label","parent"]
 
-    return Query(query=query, label=label, function=function, takes=takes, preview=preview)
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 def get_term_info(short_form: str, preview: bool = False):
     """

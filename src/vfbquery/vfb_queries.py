@@ -537,7 +537,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
             "license": {"title": "License", "type": "markdown", "order": 8},
         },
-        "rows": df.to_dict('records'),
+        "rows": [row['data'] for row in df.to_dict('records')],
         "count": total_count
     }
 

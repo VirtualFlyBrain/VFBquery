@@ -537,7 +537,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
             "license": {"title": "License", "type": "markdown", "order": 8},
         },
-        'rows': [{'row': row['row']} for row in df.to_dict('records')],
+        'rows': [row for row in df.to_dict('records')],
         "count": total_count
     }
 
@@ -592,7 +592,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
                 'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
             },
-            'rows': [{'row': row['row']} for row in df.to_dict('records')],
+            'rows': [row for row in df.to_dict('records')],
             'count': total_count
         }
         return formatted_results

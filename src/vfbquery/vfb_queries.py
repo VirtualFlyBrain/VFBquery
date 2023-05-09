@@ -527,7 +527,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "source": {"title": "Data Source", "type": "markdown", "order": 5},
             "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
         },
-        "rows": df.to_dict('records'),
+        "rows": df.drop(columns=['count']).to_dict('records'),
         "count": df['count'][0] if 'count' in df.columns and not df.empty else 0
     }
 
@@ -551,41 +551,30 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
             (n2)-[dbx2:database_cross_reference]->(s2:Site)
             WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
             WITH COUNT(r) as total_count, n2, r, c2, dbx2, s2
-            RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
-            COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source,
+            RETURN DISTINCT n2.short_form AS name, r.{similarity_score}[0] AS score, n2.label AS label,
+            COLLECT(c2.label) AS tags, s2.short_form AS source, dbx2.accession[0] AS source_id,
             total_count
             ORDER BY score DESC"""
 
     if limit is not None:
         query += f" LIMIT {limit}"
 
-    dc = self.neo_query_wrapper._query(query)
-    df = pd.DataFrame.from_records(dc)
-
-    # Rename columns to match the original function
-    df = df.rename(columns={
-        'id': 'name',
-        'label': 'label',
-        'tags': 'tags',
-        'source_id': 'source',
-        'accession_in_source': 'source_id',
-    })
-
-    formatted_results = {
-        'headers': {
-            'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
-            'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}},
-            'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},
-            'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
-            'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
-        },
-        'rows': formatDataframe(df).to_dict('records'),
-        'count': df['total_count'][0] if 'total_count' in df.columns and not df.empty else 0
-    }
+    df = pd.DataFrame.from_records(self.neo_query_wrapper._query(query))
 
     if return_dataframe:
-        return pd.DataFrame(formatted_results['rows'])
+        return df.drop(columns=['total_count'])
     else:
+        formatted_results = {
+            'headers': {
+                'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
+                'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}},
+                'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},
+                'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
+                'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
+            },
+            'rows': df.drop(columns=['total_count']).to_dict('records'),
+            'count': df['total_count'][0] if 'total_count' in df.columns and not df.empty else 0
+        }
         return formatted_results
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:

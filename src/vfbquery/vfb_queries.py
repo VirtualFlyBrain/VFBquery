@@ -634,7 +634,8 @@ def fill_query_results(term_info):
                 else:
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
-                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result, 'count': result['count']}
+                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
+                query['count'] = result['count']
                 print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

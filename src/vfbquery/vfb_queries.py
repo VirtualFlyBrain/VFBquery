@@ -544,7 +544,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     return formatted_results
 
     
-def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = None):
+def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = None):
     """Get JSON report of individual neurons similar to input neuron
 
     :param neuron:

@@ -559,7 +559,7 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
                 WHERE n1.short_form = '{neuron}' AND exists(r.{similarity_score})
                 RETURN COUNT(DISTINCT n2) AS total_count"""
 
-    total_count = self.neo_query_wrapper._query(count_query)[0]['total_count']
+    total_count = vc.nc.commit_list([count_query])[0]['total_count']
 
     main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
                 WHERE n1.short_form = '{neuron}'
@@ -575,7 +575,7 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
     if limit is not None:
         main_query += f" LIMIT {limit}"
 
-    df = pd.DataFrame.from_records(self.neo_query_wrapper._query(main_query))
+    df = pd.DataFrame.from_records(vc.nc.commit_list([main_query]))
 
     if return_dataframe:
         return df
@@ -592,7 +592,6 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
             'count': total_count
         }
         return formatted_results
-
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """

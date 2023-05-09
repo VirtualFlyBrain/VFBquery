@@ -489,11 +489,11 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     # Define the Cypher query
     query = f"""
     MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
-          (i)<-[:depicts]-(:Individual)-[:in_register_with]->(:Template)-[:depicts]->(templ:Template),
+          (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    WITH i, p, site, rx, templ, ds, lic, COUNT(i) AS count
+    WITH i, p, site, rx, templ, ds, lic, COUNT(r) AS count
     RETURN apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
        apoc.text.join(i.uniqueFacets, '|') AS tags,
        apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
@@ -550,7 +550,7 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
             OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
             (n2)-[dbx2:database_cross_reference]->(s2:Site)
             WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
-            WITH COUNT(*) as total_count, n2, r, c2, dbx2, s2
+            WITH COUNT(r) as total_count, n2, r, c2, dbx2, s2
             RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
             COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source,
             total_count

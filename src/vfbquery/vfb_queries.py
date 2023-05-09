@@ -486,18 +486,15 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     :return: results rows
     """
 
-    # Define the Cypher count query
+    # Get the total count of rows
     count_query = f"""
     MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
           (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
-    RETURN COUNT(r) AS count
+    RETURN COUNT(r) AS total_count
     """
-
-    # Run the count query using VFB_connect
     count_results = vc.nc.commit_list([count_query])
-
-    # Get the total count from the count_results
-    total_count = count_results[0]['count']
+    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the main Cypher query
     query = f"""

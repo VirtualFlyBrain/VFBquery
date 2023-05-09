@@ -486,23 +486,34 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     :return: results rows
     """
 
-    # Define the Cypher query
+    # Define the Cypher count query
+    count_query = f"""
+    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+          (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
+    RETURN COUNT(r) AS count
+    """
+
+    # Run the count query using VFB_connect
+    count_results = vc.nc.commit_list([count_query])
+
+    # Get the total count from the count_results
+    total_count = count_results[0]['count']
+
+    # Define the main Cypher query
     query = f"""
     MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
           (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    WITH i, p, site, rx, templ, ds, lic, COUNT(r) AS count
     RETURN apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
-       apoc.text.join(i.uniqueFacets, '|') AS tags,
-       apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
-       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
-       REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
-       apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
-       apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
-       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
-       count
+           apoc.text.join(i.uniqueFacets, '|') AS tags,
+           apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
+           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
+           REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
+           apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
+           apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
+           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license
     """
 
     if limit is not None:
@@ -526,12 +537,15 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "tags": {"title": "Gross Types", "type": "tags", "order": 3},
             "source": {"title": "Data Source", "type": "markdown", "order": 5},
             "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
+            "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
+            "license": {"title": "License", "type": "markdown", "order": 8},
         },
-        "rows": df.drop(columns=['count']).to_dict('records'),
-        "count": df['count'][0] if 'count' in df.columns and not df.empty else 0
+        "rows": df.to_dict('records'),
+        "count": total_count
     }
 
     return formatted_results
+
     
 def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = None):
     """Get JSON report of individual neurons similar to input neuron
@@ -544,25 +558,30 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
     :rtype: pandas.DataFrame or list of dicts
 
     """
-    query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
-            WHERE n1.short_form = '{neuron}'
-            WITH c1, n1, r, n2, c2
-            OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
-            (n2)-[dbx2:database_cross_reference]->(s2:Site)
-            WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
-            WITH COUNT(r) as total_count, n2, r, c2, dbx2, s2
-            RETURN DISTINCT n2.short_form AS name, r.{similarity_score}[0] AS score, n2.label AS label,
-            COLLECT(c2.label) AS tags, s2.short_form AS source, dbx2.accession[0] AS source_id,
-            total_count
-            ORDER BY score DESC"""
+    count_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
+                WHERE n1.short_form = '{neuron}' AND exists(r.{similarity_score})
+                RETURN COUNT(DISTINCT n2) AS total_count"""
+
+    total_count = self.neo_query_wrapper._query(count_query)[0]['total_count']
+
+    main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
+                WHERE n1.short_form = '{neuron}'
+                WITH c1, n1, r, n2, c2
+                OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
+                (n2)-[dbx2:database_cross_reference]->(s2:Site)
+                WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
+                WITH n2, r, c2, dbx2, s2
+                RETURN DISTINCT n2.short_form AS name, r.{similarity_score}[0] AS score, n2.label AS label,
+                COLLECT(c2.label) AS tags, s2.short_form AS source, dbx2.accession[0] AS source_id
+                ORDER BY score DESC"""
 
     if limit is not None:
-        query += f" LIMIT {limit}"
+        main_query += f" LIMIT {limit}"
 
-    df = pd.DataFrame.from_records(self.neo_query_wrapper._query(query))
+    df = pd.DataFrame.from_records(self.neo_query_wrapper._query(main_query))
 
     if return_dataframe:
-        return df.drop(columns=['total_count'])
+        return df
     else:
         formatted_results = {
             'headers': {
@@ -572,10 +591,11 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
                 'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
                 'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
             },
-            'rows': df.drop(columns=['total_count']).to_dict('records'),
-            'count': df['total_count'][0] if 'total_count' in df.columns and not df.empty else 0
+            'rows': df.to_dict('records'),
+            'count': total_count
         }
         return formatted_results
+
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """

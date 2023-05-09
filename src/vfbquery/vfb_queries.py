@@ -545,14 +545,16 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
 
     """
     query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
-                WHERE n1.short_form = '{neuron}'
-                WITH c1, n1, r, n2, c2
-                OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
-                (n2)-[dbx2:database_cross_reference]->(s2:Site)
-                WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
-                RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
-                COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source
-                ORDER BY score DESC"""
+            WHERE n1.short_form = '{neuron}'
+            WITH c1, n1, r, n2, c2
+            OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
+            (n2)-[dbx2:database_cross_reference]->(s2:Site)
+            WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
+            WITH COUNT(*) as total_count, n2, r, c2, dbx2, s2
+            RETURN DISTINCT n2.short_form AS id, r.{similarity_score}[0] AS score, n2.label AS label,
+            COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source,
+            total_count
+            ORDER BY score DESC"""
 
     if limit is not None:
         query += f" LIMIT {limit}"
@@ -577,7 +579,8 @@ def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_da
             'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
             'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
         },
-        'rows': formatDataframe(df).to_dict('records')
+        'rows': formatDataframe(df).to_dict('records'),
+        'count': df['total_count'][0] if 'total_count' in df.columns and not df.empty else 0
     }
 
     if return_dataframe:
@@ -599,7 +602,7 @@ def fill_query_results(term_info):
     for query in term_info['Queries']:
         print(f"Query Keys:{query.keys()}")
         
-        if "preview" in query.keys() and query['preview'] > 0:
+        if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
             function = globals().get(query['function'])
             
             if function:
@@ -619,20 +622,20 @@ def fill_query_results(term_info):
                 
                 if isinstance(result, dict) and 'rows' in result:
                     for item in result['rows']:
-                        if 'preview_columns' in query.keys():
+                        if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
                             filtered_item = {col: item[col] for col in query['preview_columns']}
                         else:
                             filtered_item = item
                         filtered_result.append(filtered_item)
                         
                     if 'headers' in result:
-                        if 'preview_columns' in query.keys():
+                        if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
                             filtered_headers = {col: result['headers'][col] for col in query['preview_columns']}
                         else:
                             filtered_headers = result['headers']
                 elif isinstance(result, list) and all(isinstance(item, dict) for item in result):
                     for item in result:
-                        if 'preview_columns' in query.keys():
+                        if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
                             filtered_item = {col: item[col] for col in query['preview_columns']}
                         else:
                             filtered_item = item
@@ -642,7 +645,7 @@ def fill_query_results(term_info):
                 else:
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
-                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
+                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result, 'count': result['count']}
                 print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

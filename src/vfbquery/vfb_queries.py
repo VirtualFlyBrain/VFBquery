@@ -556,7 +556,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
 
     """
     count_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
-                WHERE n1.short_form = '{neuron}' AND exists(r.{similarity_score})
+                WHERE n1.short_form = '{neuron}' and exists(r.{similarity_score})
                 RETURN COUNT(DISTINCT n2) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
@@ -564,15 +564,17 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
-                WHERE n1.short_form = '{neuron}'
-                WITH c1, n1, r, n2, c2
-                OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site),
-                (n2)-[dbx2:database_cross_reference]->(s2:Site)
-                WHERE s1.is_data_source and s2.is_data_source and exists(r.{similarity_score})
-                WITH n2, r, c2, dbx2, s2
-                RETURN DISTINCT n2.short_form AS name, r.{similarity_score}[0] AS score, n2.label AS label,
-                COLLECT(c2.label) AS tags, s2.short_form AS source, dbx2.accession[0] AS source_id
-                ORDER BY score DESC"""
+            WHERE n1.short_form = '{neuron}' and exists(r.{similarity_score})
+            WITH c1, n1, r, n2, c2
+            OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
+            WHERE site.is_data_source
+            WITH n2, r, c2, rx, site
+            RETURN DISTINCT apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
+            r.{similarity_score}[0] AS score,
+            apoc.text.join(n2.uniqueFacets, '|') AS tags,
+            REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
+            REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id
+            ORDER BY score DESC"""
 
     if limit is not None:
         main_query += f" LIMIT {limit}"
@@ -590,7 +592,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
                 'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
             },
-            'rows': df.to_dict('records'),
+            'rows': [row['data'] for row in df.to_dict('records')],
             'count': total_count
         }
         return formatted_results

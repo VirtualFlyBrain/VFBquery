@@ -559,7 +559,8 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 WHERE n1.short_form = '{neuron}' AND exists(r.{similarity_score})
                 RETURN COUNT(DISTINCT n2) AS total_count"""
 
-    total_count = vc.nc.commit_list([count_query])[0]['total_count']
+    count_results = vc.nc.commit_list([count_query])
+    total_count = count_results[0]['total_count'] if 'total_count' in count_results[0] else 0
 
     main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
                 WHERE n1.short_form = '{neuron}'

@@ -493,6 +493,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+    WITH i, p, site, rx, templ, ds, lic, COUNT(i) AS count
     RETURN apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
        apoc.text.join(i.uniqueFacets, '|') AS tags,
        apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
@@ -500,7 +501,8 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
        REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
        apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
        apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
-       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license
+       REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
+       count
     """
 
     if limit is not None:
@@ -525,7 +527,8 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "source": {"title": "Data Source", "type": "markdown", "order": 5},
             "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
         },
-        "rows": df.to_dict('records')
+        "rows": df.to_dict('records'),
+        "count": df['count'][0] if 'count' in df.columns and not df.empty else 0
     }
 
     return formatted_results

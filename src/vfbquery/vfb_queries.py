@@ -646,15 +646,15 @@ def fill_query_results(term_info):
             function = globals().get(query['function'])
             
             if function:
-                print(f"Function {query['function']} found")
+                # print(f"Function {query['function']} found")
                 
                 # Unpack the default dictionary and pass its contents as arguments
                 function_args = query['takes'].get("default", {})
-                print(f"Function args: {function_args}")
+                # print(f"Function args: {function_args}")
 
                 # Modify this line to use the correct arguments and pass the default arguments
                 result = function(return_dataframe=False, limit=query['preview'], **function_args)
-                print(f"Function result: {result}")
+                # print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns
                 filtered_result = []
@@ -687,7 +687,7 @@ def fill_query_results(term_info):
                 
                 query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
                 query['count'] = result['count']
-                print(f"Filtered result: {filtered_result}")
+                # print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")
         else:

@@ -591,14 +591,14 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
             WHERE site.is_data_source
             WITH n2, r, c2, rx, site
-            OPTIONAL MATCH (n2)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+            OPTIONAL MATCH (n2)<-[:depicts]-(:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             RETURN DISTINCT n2.short_form as id,
             apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
             r.{similarity_score}[0] AS score,
             apoc.text.join(n2.uniqueFacets, '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
             REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id,
-            apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]) as thumbnail
+            apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]) as thumbnail
             ORDER BY score DESC"""
 
     if limit is not None:

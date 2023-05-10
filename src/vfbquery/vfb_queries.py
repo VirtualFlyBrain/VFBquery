@@ -537,7 +537,22 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
             "license": {"title": "License", "type": "markdown", "order": 8},
         },
-        'rows': [row for row in df.to_dict('records')],
+        "rows": [
+            {
+                key: row[key]
+                for key in [
+                    "label",
+                    "tags",
+                    "parent",
+                    "source",
+                    "source_id",
+                    "template",
+                    "dataset",
+                    "license",
+                ]
+            }
+            for row in df.to_dict("records")
+        ],
         "count": total_count
     }
 

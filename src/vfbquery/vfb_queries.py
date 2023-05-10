@@ -434,9 +434,9 @@ def SimilarMorphologyTo_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id","score","name","tags"]
+    preview_columns = ["id","score","name","tags","thumbnail"]
 
-    return Query(query=query, label=label, function=function, takes=takes, preview=preview)
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 def ListAllAvailableImages_to_schema(name, take_default):
     query = "ListAllAvailableImages"
@@ -447,7 +447,7 @@ def ListAllAvailableImages_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 1
-    preview_columns = ["id","label","tags"]
+    preview_columns = ["id","label","tags","thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 

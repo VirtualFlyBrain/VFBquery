@@ -859,7 +859,7 @@ vfb.get_term_info('VFB_00101567')
 
 Queries:
 ```python
-vfb.get_instances('FBbt_00003748')
+vfb.get_instances('FBbt_00003748', return_dataframe=False)
 ```
 ```json
 {

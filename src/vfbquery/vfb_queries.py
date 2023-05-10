@@ -503,14 +503,16 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
     OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    RETURN apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
+    RETURN i.short_form as id,
+           apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
            apoc.text.join(i.uniqueFacets, '|') AS tags,
            apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
            REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
            REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
            apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
            apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
-           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license
+           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
+           REPLACE(COALESCE(r.thumbnail[0],""),"thumbnail.png","thumbnailT.png") as thumbnail
     """
 
     if limit is not None:
@@ -528,6 +530,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
     # Format the results
     formatted_results = {
         "headers": {
+            "id": {"title": "Add", "type": "selection_id", "order": -1},
             "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
             "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
             "template": {"title": "Template", "type": "markdown", "order": 4},
@@ -536,11 +539,13 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
             "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
             "license": {"title": "License", "type": "markdown", "order": 8},
+            "thumbnail": {"title": "Thumbnail", "type": "png", "order": 9}
         },
         "rows": [
             {
                 key: row[key]
                 for key in [
+                    "id",
                     "label",
                     "tags",
                     "parent",
@@ -549,6 +554,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
                     "template",
                     "dataset",
                     "license",
+                    "thumbnail"
                 ]
             }
             for row in df.to_dict("records")
@@ -584,7 +590,8 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
             WHERE site.is_data_source
             WITH n2, r, c2, rx, site
-            RETURN DISTINCT apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
+            RETURN DISTINCT n2.short_form as id,
+            apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
             r.{similarity_score}[0] AS score,
             apoc.text.join(n2.uniqueFacets, '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
@@ -605,6 +612,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     else:
         formatted_results = {
             "headers": {
+                "id": {"title": "Add", "type": "selection_id", "order": -1},
                 "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {0: "Desc"}},
                 "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
                 "tags": {"title": "Tags", "type": "tags", "order": 2},
@@ -615,6 +623,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 {
                     key: row[key]
                     for key in [
+                        "id",
                         "name",
                         "score",
                         "tags",

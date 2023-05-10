@@ -434,6 +434,7 @@ def SimilarMorphologyTo_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
+    preview_columns = ["id","score","name","tags"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview)
 
@@ -446,7 +447,7 @@ def ListAllAvailableImages_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 1
-    preview_columns = ["label","parent"]
+    preview_columns = ["id","label","tags"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -512,7 +513,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
            apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
            apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
            REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
-           REPLACE(COALESCE(r.thumbnail[0],""),"thumbnail.png","thumbnailT.png") as thumbnail
+           apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + i.short_form] as thumbnail
     """
 
     if limit is not None:
@@ -539,7 +540,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
             "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
             "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
             "license": {"title": "License", "type": "markdown", "order": 8},
-            "thumbnail": {"title": "Thumbnail", "type": "png", "order": 9}
+            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
         },
         "rows": [
             {
@@ -590,12 +591,14 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
             WHERE site.is_data_source
             WITH n2, r, c2, rx, site
+            OPTIONAL MATCH (n2)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             RETURN DISTINCT n2.short_form as id,
             apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
             r.{similarity_score}[0] AS score,
             apoc.text.join(n2.uniqueFacets, '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
             REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id
+            apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form] as thumbnail
             ORDER BY score DESC"""
 
     if limit is not None:
@@ -618,6 +621,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 "tags": {"title": "Tags", "type": "tags", "order": 2},
                 "source": {"title": "Source", "type": "metadata", "order": 3},
                 "source_id": {"title": "Source ID", "type": "metadata", "order": 4},
+                "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
             },
             "rows": [
                 {
@@ -629,6 +633,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                         "tags",
                         "source",
                         "source_id",
+                        "thumbnail"
                     ]
                 }
                 for row in df.to_dict("records")

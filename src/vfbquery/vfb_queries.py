@@ -600,15 +600,27 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
         return df
     else:
         formatted_results = {
-            'headers': {
-                'score': {'title': 'Score', 'type': 'numeric', 'order': 1, 'sort': {0: 'Desc'}},
-                'name': {'title': 'Name', 'type': 'markdown', 'order': 1, 'sort': {1: 'Asc'}},
-                'tags': {'title': 'Tags', 'type': 'tags', 'order': 2},
-                'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
-                'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
+            "headers": {
+                "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {0: "Desc"}},
+                "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
+                "tags": {"title": "Tags", "type": "tags", "order": 2},
+                "source": {"title": "Source", "type": "metadata", "order": 3},
+                "source_id": {"title": "Source ID", "type": "metadata", "order": 4},
             },
-            'rows': [x[0]['row'] for x in df['data']],
-            'count': total_count
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "name",
+                        "score",
+                        "tags",
+                        "source",
+                        "source_id",
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
         }
         return formatted_results
 

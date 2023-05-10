@@ -573,7 +573,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             r.{similarity_score}[0] AS score,
             apoc.text.join(n2.uniqueFacets, '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
-            REPLACE(apoc.text.format("[%s](%s)",[rx.accession,site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id
+            REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id
             ORDER BY score DESC"""
 
     if limit is not None:

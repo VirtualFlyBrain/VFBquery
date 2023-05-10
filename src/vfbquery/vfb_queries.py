@@ -640,7 +640,7 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
 
 def fill_query_results(term_info):
     for query in term_info['Queries']:
-        print(f"Query Keys:{query.keys()}")
+        # print(f"Query Keys:{query.keys()}")
         
         if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
             function = globals().get(query['function'])

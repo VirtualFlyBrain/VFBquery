@@ -594,7 +594,11 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     if limit is not None:
         main_query += f" LIMIT {limit}"
 
-    df = pd.DataFrame.from_records(vc.nc.commit_list([main_query]))
+    # Run the query using VFB_connect
+    results = vc.nc.commit_list([main_query])
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(dict_cursor(results))
 
     if return_dataframe:
         return df

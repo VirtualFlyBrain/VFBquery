@@ -158,13 +158,6 @@ vfb.get_term_info('VFB_00000001')
 
 ```json
 {
-   'Name':'fru-M-200266',
-   'Tags':[
-      'Adult',
-      'Expression_pattern_fragment',
-      'Nervous_system',
-      'Neuron'
-   ],
    'SuperTypes':[
       'Entity',
       'Adult',
@@ -179,35 +172,16 @@ vfb.get_term_info('VFB_00000001')
       'FlyCircuit',
       'NBLAST'
    ],
-   'Id':'VFB_00000001',
-   'IsClass':False,
-   'Images':{
-      'VFB_00101567':[
-         {
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd',
-            'obj':'https://virtualflybrain.org/reports/VFB_00000001/volume.obj',
-            'label':'fru-M-200266',
-            'id':'VFB_00000001',
-            'thumbnail_transparent':'https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png',
-            'swc':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc',
-            'thumbnail':'https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png',
-            'wlz':'https://virtualflybrain.org/reports/VFB_00000001/volume.wlz'
-         }
-      ],
-      'VFB_00017894':[
-         {
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.nrrd',
-            'obj':'https://virtualflybrain.org/reports/VFB_00000001/volume.obj',
-            'label':'fru-M-200266',
-            'id':'VFB_00000001',
-            'thumbnail_transparent':'https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png',
-            'swc':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.swc',
-            'thumbnail':'https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png',
-            'wlz':'https://virtualflybrain.org/reports/VFB_00000001/volume.wlz'
-         }
-      ]
-   },
    'IsIndividual':True,
+   'Meta':{
+      'Name':'[fru-M-200266](VFB_00000001)',
+      'Description':'',
+      'Comment':'OutAge: Adult 5~15 days',
+      'Types':'[adult DM6 lineage neuron](FBbt_00050144); [expression pattern fragment](VFBext_0000004)',
+      'Relationships':'[expresses](RO_0002292): [Scer\\GAL4[fru.P1.D]](FBal0276838); [is part of](BFO_0000050): [Scer\\GAL4[fru.P1.D] expression pattern](VFBexp_FBal0276838), [adult brain](FBbt_00003624), [male organism](FBbt_00007004); [overlaps](RO_0002131): [adult antennal lobe](FBbt_00007401), [adult crepine](FBbt_00045037), [adult lateral accessory lobe](FBbt_00003681), [superior posterior slope](FBbt_00045040), [vest](FBbt_00040041)',
+      'Cross References':'[FlyCircuit 1.0](http://flycircuit.tw): [fru-M-200266](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-M-200266)'
+   },
+   'Id':'VFB_00000001',
    'Queries':[
       {
          'query':'SimilarMorphologyTo',
@@ -220,19 +194,129 @@ vfb.get_term_info('VFB_00000001')
                   'Neuron'
                ]
             },
-            'default':'VFB_00000001'
-         }
+            'default':{
+               'neuron':'VFB_00000001',
+               'similarity_score':'NBLAST_score'
+            }
+         },
+         'preview':5,
+         'preview_columns':[
+            'id',
+            'score',
+            'name',
+            'tags',
+            'thumbnail'
+         ],
+         'preview_results':{
+            'headers':{
+               'id':{
+                  'title':'Add',
+                  'type':'selection_id',
+                  'order':-1
+               },
+               'score':{
+                  'title':'Score',
+                  'type':'numeric',
+                  'order':1,
+                  'sort':{
+                     0:'Desc'
+                  }
+               },
+               'name':{
+                  'title':'Name',
+                  'type':'markdown',
+                  'order':1,
+                  'sort':{
+                     1:'Asc'
+                  }
+               },
+               'tags':{
+                  'title':'Tags',
+                  'type':'tags',
+                  'order':2
+               },
+               'thumbnail':{
+                  'title':'Thumbnail',
+                  'type':'markdown',
+                  'order':9
+               }
+            },
+            'rows':[
+               {
+                  'id':'VFB_00000333',
+                  'score':0.61,
+                  'name':'[fru-M-000204](VFB_00000333)',
+                  'tags':'Nervous_system|Expression_pattern_fragment|Neuron|Adult',
+                  'thumbnail':"[![fru-M-000204 aligned to JRC2018Unisex](http://virtualflybrain.org/reports/VFB_00000333/thumbnail.png 'fru-M-000204 aligned to JRC2018Unisex')](VFB_00101567,VFB_00000333)"
+               },
+               {
+                  'id':'VFB_00000333',
+                  'score':0.61,
+                  'name':'[fru-M-000204](VFB_00000333)',
+                  'tags':'Nervous_system|Expression_pattern_fragment|Neuron|Adult',
+                  'thumbnail':"[![fru-M-000204 aligned to adult brain template JFRC2](http://virtualflybrain.org/reports/VFB_00000333/thumbnail.png 'fru-M-000204 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00000333)"
+               },
+               {
+                  'id':'VFB_00002439',
+                  'score':0.6,
+                  'name':'[fru-M-900020](VFB_00002439)',
+                  'tags':'Expression_pattern_fragment|Nervous_system|Neuron|Adult',
+                  'thumbnail':"[![fru-M-900020 aligned to JRC2018Unisex](http://www.virtualflybrain.org/data/VFB/i/0000/2439/VFB_00101567/thumbnail.png 'fru-M-900020 aligned to JRC2018Unisex')](VFB_00101567,VFB_00002439)"
+               },
+               {
+                  'id':'VFB_00002439',
+                  'score':0.6,
+                  'name':'[fru-M-900020](VFB_00002439)',
+                  'tags':'Expression_pattern_fragment|Nervous_system|Neuron|Adult',
+                  'thumbnail':"[![fru-M-900020 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0000/2439/thumbnail.png 'fru-M-900020 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00002439)"
+               },
+               {
+                  'id':'VFB_00001880',
+                  'score':0.59,
+                  'name':'[fru-M-100041](VFB_00001880)',
+                  'tags':'Nervous_system|Expression_pattern_fragment|Neuron|Adult',
+                  'thumbnail':"[![fru-M-100041 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0000/1880/thumbnail.png 'fru-M-100041 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00001880)"
+               }
+            ]
+         },
+         'count':60
       }
    ],
-   'Meta':{
-      'Name':'[fru-M-200266](VFB_00000001)',
-      'Description':'',
-      'Comment':'OutAge: Adult 5~15 days',
-      'Types':'[adult DM6 lineage neuron](FBbt_00050144); [expression pattern fragment](VFBext_0000004)',
-      'Relationships':'[expresses](RO_0002292): [Scer\\GAL4[fru.P1.D]](FBal0276838); [is part of](BFO_0000050): [Scer\\GAL4[fru.P1.D] expression pattern](VFBexp_FBal0276838), [adult brain](FBbt_00003624), [male organism](FBbt_00007004); [overlaps](RO_0002131): [adult antennal lobe](FBbt_00007401), [adult crepine](FBbt_00045037), [adult lateral accessory lobe](FBbt_00003681), [superior posterior slope](FBbt_00045040), [vest](FBbt_00040041)',
-      'Cross References':'[FlyCircuit 1.0](http://flycircuit.tw): [fru-M-200266](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-M-200266)'
+   'Images':{
+      'VFB_00101567':[
+         {
+            'thumbnail_transparent':'https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png',
+            'id':'VFB_00000001',
+            'obj':'https://virtualflybrain.org/reports/VFB_00000001/volume.obj',
+            'thumbnail':'https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png',
+            'swc':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc',
+            'label':'fru-M-200266',
+            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd',
+            'wlz':'https://virtualflybrain.org/reports/VFB_00000001/volume.wlz'
+         }
+      ],
+      'VFB_00017894':[
+         {
+            'thumbnail_transparent':'https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png',
+            'id':'VFB_00000001',
+            'obj':'https://virtualflybrain.org/reports/VFB_00000001/volume.obj',
+            'thumbnail':'https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png',
+            'swc':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.swc',
+            'label':'fru-M-200266',
+            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0000/0001/volume.nrrd',
+            'wlz':'https://virtualflybrain.org/reports/VFB_00000001/volume.wlz'
+         }
+      ]
    },
-   'IsTemplate':False
+   'IsTemplate':False,
+   'IsClass':False,
+   'Tags':[
+      'Adult',
+      'Expression_pattern_fragment',
+      'Nervous_system',
+      'Neuron'
+   ],
+   'Name':'fru-M-200266'
 }
 ```
 Template example:

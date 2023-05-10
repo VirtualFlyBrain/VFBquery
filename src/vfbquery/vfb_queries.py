@@ -592,7 +592,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 'source': {'title': 'Source', 'type': 'metadata', 'order': 3},
                 'source_id': {'title': 'Source ID', 'type': 'metadata', 'order': 4},
             },
-            'rows': df['data'].apply(lambda x: x['row']).tolist(),
+            'rows': [x[0]['row'] for x in df['data']],
             'count': total_count
         }
         return formatted_results

@@ -18,6 +18,23 @@ vfb.get_term_info('FBbt_00003748')
 ```
 ```json
 {
+   'Name':'medulla',
+   'Meta':{
+      'Name':'[medulla](FBbt_00003748)',
+      'Description':'The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).',
+      'Comment':'',
+      'Types':'[synaptic neuropil domain](FBbt_00040007)',
+      'Relationships':'[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)',
+      'Cross References':'![Insect Brain DB](https://insectbraindb.org/app/assets/images/Megalopta_frontal.png) [Insect Brain DB](https://insectbraindb.org/): [38](https://insectbraindb.org/app/structures/38)'
+   },
+   'Id':'FBbt_00003748',
+   'Tags':[
+      'Adult',
+      'Nervous_system',
+      'Synaptic_neuropil_domain',
+      'Visual_system'
+   ],
+   'IsClass':True,
    'Queries':[
       {
          'query':'ListAllAvailableImages',
@@ -34,7 +51,7 @@ vfb.get_term_info('FBbt_00003748')
                'short_form':'FBbt_00003748'
             }
          },
-         'preview':1,
+         'preview':0,
          'preview_columns':[
             'id',
             'label',
@@ -68,18 +85,14 @@ vfb.get_term_info('FBbt_00003748')
                }
             },
             'rows':[
-               {
-                  'id':'VFB_00030810',
-                  'label':'[medulla on adult brain template Ito2014](VFB_00030810)',
-                  'tags':'Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain',
-                  'thumbnail':"[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](http://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
-               }
+               
             ]
          },
          'count':4
       }
    ],
-   'IsClass':True,
+   'IsTemplate':False,
+   'IsIndividual':False,
    'SuperTypes':[
       'Entity',
       'Adult',
@@ -90,69 +103,51 @@ vfb.get_term_info('FBbt_00003748')
       'Synaptic_neuropil_domain',
       'Visual_system'
    ],
-   'IsIndividual':False,
-   'Name':'medulla',
-   'IsTemplate':False,
-   'Id':'FBbt_00003748',
-   'Tags':[
-      'Adult',
-      'Nervous_system',
-      'Synaptic_neuropil_domain',
-      'Visual_system'
-   ],
    'Examples':{
       'VFB_00030786':[
          {
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.wlz',
-            'id':'VFB_00030810',
             'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnailT.png',
             'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume_man.obj',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png',
+            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.wlz',
+            'label':'medulla on adult brain template Ito2014',
+            'id':'VFB_00030810',
             'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.nrrd',
-            'label':'medulla on adult brain template Ito2014'
+            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png'
          }
       ],
       'VFB_00101567':[
          {
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz',
-            'id':'VFB_00102107',
             'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png',
             'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png',
+            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz',
+            'label':'ME on JRC2018Unisex adult brain',
+            'id':'VFB_00102107',
             'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd',
-            'label':'ME on JRC2018Unisex adult brain'
+            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png'
          }
       ],
       'VFB_00017894':[
          {
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.wlz',
-            'id':'VFB_00030624',
             'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnailT.png',
             'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume_man.obj',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnail.png',
+            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.wlz',
+            'label':'medulla on adult brain template JFRC2',
+            'id':'VFB_00030624',
             'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.nrrd',
-            'label':'medulla on adult brain template JFRC2'
+            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnail.png'
          }
       ],
       'VFB_00101384':[
          {
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz',
-            'id':'VFB_00101385',
             'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnailT.png',
             'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png',
+            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz',
+            'label':'ME(R) on JRC_FlyEM_Hemibrain',
+            'id':'VFB_00101385',
             'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd',
-            'label':'ME(R) on JRC_FlyEM_Hemibrain'
+            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png'
          }
       ]
-   },
-   'Meta':{
-      'Name':'[medulla](FBbt_00003748)',
-      'Description':'The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).',
-      'Comment':'',
-      'Types':'[synaptic neuropil domain](FBbt_00040007)',
-      'Relationships':'[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)',
-      'Cross References':'![Insect Brain DB](https://insectbraindb.org/app/assets/images/Megalopta_frontal.png) [Insect Brain DB](https://insectbraindb.org/): [38](https://insectbraindb.org/app/structures/38)'
    }
 }
 ```

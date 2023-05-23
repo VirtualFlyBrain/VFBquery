@@ -5,6 +5,7 @@ from marshmallow import Schema, fields, post_load
 from typing import List, Tuple
 import pandas as pd
 from marshmallow import ValidationError
+import json
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -28,6 +29,40 @@ class QuerySchema(Schema):
     label = fields.String(required=True)
     function = fields.String(required=True)
     takes = fields.Nested(TakesSchema(), many=True)
+
+class License:
+    def __init__(self, iri, short_form, label, icon, source, source_iri):
+        self.iri = iri 
+        self.short_form = short_form 
+        self.label = label
+        self.icon = icon
+        self.source = source
+        self.source_iri = source_iri
+
+class LicenseSchema(Schema):
+    iri        = fields.String(required=True)
+    short_form = fields.String(required=True)
+    label      = fields.String(required=True)
+    icon       = fields.String(required=True)
+    source     = fields.String(required=True)
+    source_iri = fields.String(required=True)
+
+
+class LicenseField(fields.Nested):
+    def __init__(self, **kwargs):
+        super().__init__(LicenseSchema(), **kwargs)
+
+    def _serialize(self, value, attr, obj, **kwargs):
+        if value is None:
+            return value
+        if not isinstance(value, License):
+            raise ValidationError("Invalid input")
+        return {"iri": value.iri, "short_form": value.short_form, "label": value.label,"icon": value.icon, "source": value.source, "source_iri": value.source_iri}
+
+    def _deserialize(self, value, attr=None, data=None, **kwargs):
+        if value is None:
+            return value
+        return f"iri={value.iri}, short_form={value.short_form}, label={value.label},iri={value.icon}, short_form={value.source}, label={value.source_iri}" 
 
 class Coordinates:
     def __init__(self, X, Y, Z):
@@ -158,6 +193,7 @@ class TermInfoOutputSchema(Schema):
     Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsTemplate = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
+    Licenses = fields.Dict(keys=fields.String(), values=fields.Nested(LicenseSchema(), missing={}), required=False, allow_none=True)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
@@ -240,6 +276,19 @@ def term_info_parse_object(results, short_form):
                 images[image.image.template_anatomy.short_form].append(record)
             # Add the thumbnails to the term info
             termInfo["Images"] = images
+
+        if vfbTerm.dataset_license and len(vfbTerm.dataset_license) > 0: 
+            licenses = {}
+            for idx, dataset_license in enumerate(vfbTerm.dataset_license):
+                iri = dataset_license.license.core.iri
+                short_form = dataset_license.license.core.short_form
+                label = dataset_license.license.core.label
+                icon = dataset_license.license.icon
+                source_iri = dataset_license.dataset.core.iri
+                source = dataset_license.dataset.core.label
+                license = License(iri, short_form, label, icon, source, source_iri)
+                licenses[str(idx)] = license 
+            termInfo["Licenses"] = licenses
               
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             termInfo["IsTemplate"] = True
@@ -336,6 +385,15 @@ def ListAllAvailableImages_to_schemma(name, take_default):
   query["takes"] = takes 
   return query 
 
+def serialize_solr_output(results):
+    # Serialize the sanitized dictionary to JSON
+    json_string = json.dumps(results.docs[0], ensure_ascii=False)
+    json_string = json_string.replace('\\', '')
+    json_string = json_string.replace('"{', '{')
+    json_string = json_string.replace('}"', '}')
+    json_string = json_string.replace("\'", '-')
+    return json_string 
+
 def get_term_info(short_form: str):
     """
     Retrieves the term info for the given term short form.
@@ -346,6 +404,8 @@ def get_term_info(short_form: str):
     try:
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
+        sanitized_results = serialize_solr_output(results)
+        print(sanitized_results)
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         return parsed_object

@@ -57,13 +57,18 @@ class LicenseField(fields.Nested):
             return value
         if not isinstance(value, License):
             raise ValidationError("Invalid input")
-        return {"iri": value.iri, "short_form": value.short_form, "label": value.label,"icon": value.icon, "source": value.source, "source_iri": value.source_iri}
+        return {"iri": value.iri
+                , "short_form": value.short_form
+                , "label": value.label
+                ,"icon": value.icon
+                , "source": value.source
+                , "source_iri": value.source_iri}
 
-    def _deserialize(self, value, attr=None, data=None, **kwargs):
+    def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return value
-        return f"iri={value.iri}, short_form={value.short_form}, label={value.label},iri={value.icon}, short_form={value.source}, label={value.source_iri}" 
-
+        return LicenseSchema().load(value)
+    
 class Coordinates:
     def __init__(self, X, Y, Z):
         self.X = X
@@ -193,7 +198,7 @@ class TermInfoOutputSchema(Schema):
     Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsTemplate = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
-    Licenses = fields.Dict(keys=fields.String(), values=fields.Nested(LicenseSchema(), missing={}), required=False, allow_none=True)
+    Licenses = fields.Dict(keys=fields.Integer(), values=fields.Nested(LicenseSchema()), required=False, allow_none=True)
 
 def term_info_parse_object(results, short_form):
     termInfo = {}
@@ -280,14 +285,14 @@ def term_info_parse_object(results, short_form):
         if vfbTerm.dataset_license and len(vfbTerm.dataset_license) > 0: 
             licenses = {}
             for idx, dataset_license in enumerate(vfbTerm.dataset_license):
-                iri = dataset_license.license.core.iri
-                short_form = dataset_license.license.core.short_form
-                label = dataset_license.license.core.label
-                icon = dataset_license.license.icon
-                source_iri = dataset_license.dataset.core.iri
-                source = dataset_license.dataset.core.label
-                license = License(iri, short_form, label, icon, source, source_iri)
-                licenses[str(idx)] = license 
+                record = {}
+                record['iri'] = dataset_license.license.core.iri
+                record['short_form'] = dataset_license.license.core.short_form
+                record['label'] = dataset_license.license.core.label
+                record['icon'] = dataset_license.license.icon
+                record['source_iri'] = dataset_license.dataset.core.iri
+                record['source'] = dataset_license.dataset.core.label
+                licenses[idx] = record 
             termInfo["Licenses"] = licenses
               
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:

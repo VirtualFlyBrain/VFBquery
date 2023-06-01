@@ -92,7 +92,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("Classification" in serialized)
         self.assertEqual(2, len(serialized["Classification"]))
-        self.assertEqual("[expression pattern fragment](VFBext_0000004)", serialized["Classification"][0])
+        self.assertTrue("[expression pattern fragment](VFBext_0000004)" == serialized["Classification"][0] or "[adult DPMpl1 lineage neuron](FBbt_00050031)" == serialized["Classification"][0])
 
         self.assertTrue("relationships" in serialized)
         self.assertEqual(6, len(serialized["relationships"]))

@@ -928,7 +928,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          'source_id':'',
          'template':'[JRC2018Unisex](VFB_00101567)',
          'dataset':'[JRC 2018 templates & ROIs](JRC2018)',
-         'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)',
+         'license':'',
          'thumbnail':"[![ME on JRC2018Unisex adult brain aligned to JRC2018Unisex](http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018Unisex')](VFB_00101567,VFB_00102107)"
       },
       {
@@ -940,7 +940,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          'source_id':'',
          'template':'[JRC_FlyEM_Hemibrain](VFB_00101384)',
          'dataset':'[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)',
-         'license':'[CC-BY_4.0](VFBlicense_CC_BY_4_0)',
+         'license':'',
          'thumbnail':"[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain')](VFB_00101384,VFB_00101385)"
       },
       {
@@ -952,7 +952,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          'source_id':'',
          'template':'[adult brain template Ito2014](VFB_00030786)',
          'dataset':'[BrainName neuropils and tracts - Ito half-brain](BrainName_Ito_half_brain)',
-         'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)',
+         'license':'',
          'thumbnail':"[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](http://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
       },
       {
@@ -964,8 +964,8 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          'source_id':'',
          'template':'[adult brain template JFRC2](VFB_00017894)',
          'dataset':'[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)',
-         'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)',
-         'thumbnail':"[![medulla on adult brain template JFRC2 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnail.png 'medulla on adult brain template JFRC2 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00030624)"
+         'license':'',
+         'thumbnail':"[![medulla on adult brain template JFRC2 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00030624)"
       }
    ],
    'count':4

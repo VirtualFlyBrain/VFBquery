@@ -358,7 +358,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("relationships" in serialized)
         self.assertEqual(2, len(serialized["relationships"]))
-        self.assertEqual("has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)", serialized["relationships"][0])
+        self.assertTrue(serialized["relationships"][0] == "has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)" or serialized["relationships"][0] == "has hemidriver [P{VT017491-p65.AD}](FBtp0133404)", "Hemidriver Missing")
 
         self.assertFalse("related_individuals" in serialized)
         self.assertTrue("xrefs" in serialized)

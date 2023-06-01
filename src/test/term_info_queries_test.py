@@ -59,7 +59,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual(0, len(terminfo.xrefs))
 
-        self.assertEqual(3, len(terminfo.pub_syn))
+        self.assertEqual(5, len(terminfo.pub_syn))
 
         # TODO: XXX check vfb_connect version
         # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)

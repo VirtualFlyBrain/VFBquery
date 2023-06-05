@@ -413,26 +413,33 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)
         self.assertEqual(10, len(serialized["examples"]))
-        self.assertEqual({'name': 'VPNp&v1 clone of Ito 2013',
-                          'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/VFB_00101567/thumbnailT.png',
-                          'reference': 'VFB_00020254',
-                          'format': 'PNG'}, serialized["examples"][0])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'PSa1 clone of Ito 2013',
-                          'reference': 'VFB_00020206'}, serialized["examples"][1])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0248/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'VLPl2 clone of Ito 2013',
-                          'reference': 'VFB_00020248'}, serialized["examples"][2])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0209/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'LALv1 clone of Ito 2013',
-                          'reference': 'VFB_00020209'}, serialized["examples"][3])
-        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0202/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'DM4 clone of Ito 2013',
-                          'reference': 'VFB_00020202'}, serialized["examples"][4])
+        expected = [
+            {'name': 'VPNp&v1 clone of Ito 2013',
+            'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0254/VFB_00101567/thumbnailT.png',
+            'reference': 'VFB_00020254',
+            'format': 'PNG'},
+            {'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnailT.png',
+            'format': 'PNG',
+            'name': 'PSa1 clone of Ito 2013',
+            'reference': 'VFB_00020206'},
+            {'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0248/VFB_00101567/thumbnailT.png',
+            'format': 'PNG',
+            'name': 'VLPl2 clone of Ito 2013',
+            'reference': 'VFB_00020248'},
+            {'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0209/VFB_00101567/thumbnailT.png',
+            'format': 'PNG',
+            'name': 'LALv1 clone of Ito 2013',
+            'reference': 'VFB_00020209'},
+            {'data': 'https://www.virtualflybrain.org/data/VFB/i/0002/0202/VFB_00101567/thumbnailT.png',
+            'format': 'PNG',
+            'name': 'DM4 clone of Ito 2013',
+            'reference': 'VFB_00020202'}
+        ]
+
+        expected_set = set(frozenset(d.items()) for d in expected)
+        result_set = set(frozenset(d.items()) for d in serialized["examples"])
+
+        self.assertEqual(expected_set, result_set)
 
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)

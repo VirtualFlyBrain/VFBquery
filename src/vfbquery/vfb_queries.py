@@ -505,6 +505,15 @@ def ListAllAvailableImages_to_schema(name, take_default):
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
+def serialize_solr_output(results):
+    # Serialize the sanitized dictionary to JSON
+    json_string = json.dumps(results.docs[0], ensure_ascii=False)
+    json_string = json_string.replace('\\', '')
+    json_string = json_string.replace('"{', '{')
+    json_string = json_string.replace('}"', '}')
+    json_string = json_string.replace("\'", '-')
+    return json_string 
+
 def get_term_info(short_form: str, preview: bool = False):
     """
     Retrieves the term info for the given term short form.

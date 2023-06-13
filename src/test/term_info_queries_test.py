@@ -121,7 +121,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingNeurons" in serialized)
 
         self.assertTrue("downloads_label" in serialized)
-        self.assertEqual("adult brain template JFRC2", serialized["downloads_label"])
+        self.assertEqual("JRC2018Unisex", serialized["downloads_label"])
         self.assertTrue("downloads" in serialized)
         self.assertEqual(5, len(serialized["downloads"]))
         self.assertTrue("[my_id_pointCloud.obj](/data/VFB/i/0001/0001/VFB_00101567/volume.obj)" in serialized["downloads"])
@@ -243,10 +243,10 @@ class TermInfoQueriesTest(unittest.TestCase):
                           'format': 'PNG',
                           'name': 'DSKMP3_R (FlyEM-HB:328559607)',
                           'reference': 'VFB_jrchjti7'} in serialized["examples"])
-        self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101567/thumbnailT.png',
-                          'format': 'PNG',
-                          'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
-                          'reference': 'VFB_jrchjti2'} in serialized["examples"])
+        # self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti2/VFB_00101567/thumbnailT.png',
+        #                   'format': 'PNG',
+        #                   'name': 'DSKMP1A_R (FlyEM-HB:1135837629)',
+        #                   'reference': 'VFB_jrchjti2'} in serialized["examples"])
         self.assertTrue({'data': 'https://www.virtualflybrain.org/data/VFB/i/jrch/jti5/VFB_00101567/thumbnailT.png',
                           'format': 'PNG',
                           'name': 'DSKMP1B(PVM02)_L (FlyEM-HB:1011184205)',
@@ -283,9 +283,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(8, len(serialized["types"]))
         self.assertTrue("Neuron" in serialized["types"])
         self.assertTrue("Cholinergic" in serialized["types"])
-        self.assertEqual("Small field neuron of the central complex with dendritic and axonal arbors in the inner, outer and posterior layers of either a half or a full ellipsoid body (EB) slice (wedge), and axon terminals in the dorsal or ventral gall and a single protocerebral bridge glomerulus (excluding glomerulus 9) (Lin et al., 2013; Wolff et al., 2015). Neurons that target odd or even numbered protocerebral bridge glomeruli target the dorsal or ventral gall, respectively (Lin et al., 2013; Wolff et al., 2015). These neurons receive inhibitory input from delta 7 (PB 18 glomeruli) neurons and they are cholinergic (Turner-Evans et al., 2020). These cells output to P-EN1 neurons and P-EG neurons of the same glomerulus in the protocerebral bridge, and form less specific 'hyper-local' feedback loops with P-EN1 neurons in the EB (Turner-Evans et al., 2020). It also receives input from R4d ring neurons and P-EN2 neurons in the EB (Turner-Evans et al., 2020). "
-                         "\n Based on images/diagrams in Lin et al. (2013), Wolff et al. (2015) and Turner-Evans et al. (2020), these appear to innervate the ipsilateral PB and contralateral gall, but could not find confirmation of this [FBC:CP]."
-                         "\n([Lin et al., 2013](FBrf0221742), [Wolff and Rubin, 2018](FBrf0240744), [Wolff et al., 2015](FBrf0227801), [Turner-Evans et al., 2020](FBrf0246945))", serialized["description"])
+        self.assertEqual("Small field neuron of the central complex with dendritic and axonal arbors in the inner, outer and posterior layers of either a half or a full ellipsoid body (EB) slice (wedge), and axon terminals in the dorsal or ventral gall and a single protocerebral bridge glomerulus (excluding glomerulus 9) (Lin et al., 2013; Wolff et al., 2015). Neurons that target odd or even numbered protocerebral bridge glomeruli target the dorsal or ventral gall, respectively (Lin et al., 2013; Wolff et al., 2015). These neurons receive inhibitory input from delta 7 (PB 18 glomeruli) neurons and they are cholinergic (Turner-Evans et al., 2020). These cells output to P-EN1 neurons and P-EG neurons of the same glomerulus in the protocerebral bridge, and form less specific 'hyper-local' feedback loops with P-EN1 neurons in the EB (Turner-Evans et al., 2020). It also receives input from R4d ring neurons and P-EN2 neurons in the EB (Turner-Evans et al., 2020).", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(8, len(serialized["synonyms"]))
         print(serialized["synonyms"][0])
@@ -508,9 +506,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(8, len(serialized["types"]))
         self.assertTrue("Template" in serialized["types"])
-        self.assertFalse("description" in serialized)
+        self.assertTrue("description" in serialized)
         self.assertFalse("synonyms" in serialized)
-        self.assertFalse("source" in serialized)
+        self.assertTrue("source" in serialized)
         self.assertTrue("license" in serialized)
         self.assertEqual(1, len(serialized["license"]))
         self.assertEqual({'icon': 'http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',

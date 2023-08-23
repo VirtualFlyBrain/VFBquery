@@ -554,7 +554,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
 
     # Get the total count of rows
     count_query = f"""
-    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
           (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
     RETURN COUNT(r) AS total_count
     """
@@ -564,7 +564,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
 
     # Define the main Cypher query
     query = f"""
-    MATCH (i:Individual)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
           (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
           (i)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)

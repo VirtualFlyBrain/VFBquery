@@ -700,7 +700,6 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
                         "id",
                         "order",
                         "name",
-                        "score",
                         "tags",
                         "thumbnail",
                         "dataset",

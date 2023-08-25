@@ -991,3 +991,10 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
    'count':4
 }
 ```
+
+```python
+vfb.get_templates(return_dataframe=False)
+```
+```json
+{}
+```

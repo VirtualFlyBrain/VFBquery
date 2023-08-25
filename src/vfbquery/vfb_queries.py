@@ -631,8 +631,89 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
 
     return formatted_results
 
-    
-def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = None):
+def get_templates(limit: int = -1, return_dataframe: bool = False):
+    """Get list of templates
+
+    :param limit: maximum number of results to return (default None, returns all results)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+    :return: list of templates (id, label, tags, source (db) id, accession_in_source) + similarity score.
+    :rtype: pandas.DataFrame or list of dicts
+
+    """
+    count_query = """(t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
+                RETURN COUNT(DISTINCT t) AS total_count"""
+
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+
+    # Define the main Cypher query
+    query = f"""
+    MATCH (t:Template)-[:INSTANCEOF]->(p:Class),
+          (t)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template),
+          (t)-[:has_source]->(ds:DataSet)-[:has_license]->(lic:License)
+    RETURN t.short_form as id,
+           apoc.text.format("[%s](%s)",[COALESCE(t.symbol[0],t.label),t.short_form]) AS name,
+           apoc.text.join(t.uniqueFacets, '|') AS tags,
+           apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
+           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
+           REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail,
+           99 as order
+           ORDER BY id Desc
+    """
+
+    if limit != -1:
+        query += f" LIMIT {limit}"
+
+    # Run the query using VFB_connect
+    results = vc.nc.commit_list([query])
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(dict_cursor(results))
+
+    template_order = ["VFB_00101567","VFB_00200000","VFB_00017894","VFB_00101384","VFB_00050000","VFB_00049000","VFB_00100000","VFB_00030786","VFB_00110000","VFB_00120000"]
+
+    order = 1
+
+    for template in template_order:
+        df.loc[df['id'] == template, 'order'] = order
+        order += 1
+
+    if return_dataframe:
+        return df
+
+    # Format the results
+    formatted_results = {
+        "headers": {
+                "id": {"title": "Add", "type": "selection_id", "order": -1},
+                "order": {"title": "Order", "type": "numeric", "order": 1, "sort": {0: "Asc"}},
+                "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
+                "tags": {"title": "Tags", "type": "tags", "order": 2},
+                "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
+                "dataset": {"title": "Dataset", "type": "metadata", "order": 3},
+                "license": {"title": "License", "type": "metadata", "order": 4}
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "order",
+                        "name",
+                        "score",
+                        "tags",
+                        "thumbnail",
+                        "dataset",
+                        "license"
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
+        }
+    return formatted_results
+
+def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1):
     """Get JSON report of individual neurons similar to input neuron
 
     :param neuron:
@@ -667,7 +748,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail
             ORDER BY score DESC"""
 
-    if limit is not None:
+    if limit != -1:
         main_query += f" LIMIT {limit}"
 
     # Run the query using VFB_connect

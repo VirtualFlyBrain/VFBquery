@@ -657,7 +657,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
            apoc.text.join(t.uniqueFacets, '|') AS tags,
            apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
            REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
-           REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail,
+           REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(t.symbol[0],t.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(t.symbol[0],t.label), t.short_form]), "[![null]( 'null')](null)", "") as thumbnail,
            99 as order
            ORDER BY id Desc
     """

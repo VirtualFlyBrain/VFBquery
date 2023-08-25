@@ -539,16 +539,16 @@ def get_term_info(short_form: str, preview: bool = False):
         print("Schema validation error when parsing response")
         print("Error details:", e)
         print("Original data:", results)
-        print("Parsed object:", parsed_object)    
+        print("Parsed object:", parsed_object)
     except IndexError:
         print(f"No results found for ID '{short_form}'")
-        print("Error accessing SOLR server!") 
-                
-def get_instances(short_form: str, return_dataframe=True, limit: int = None):
+        print("Error accessing SOLR server!")
+
+def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
     Retrieves available instances for the given class short form.
     :param short_form: short form of the class
-    :param limit: maximum number of results to return (default None, returns all results)
+    :param limit: maximum number of results to return (default -1, returns all results)
     :return: results rows
     """
 
@@ -582,7 +582,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
            ORDER BY id Desc
     """
 
-    if limit is not None:
+    if limit != -1:
         query += f" LIMIT {limit}"
 
     # Run the query using VFB_connect
@@ -634,7 +634,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = None):
 def get_templates(limit: int = -1, return_dataframe: bool = False):
     """Get list of templates
 
-    :param limit: maximum number of results to return (default None, returns all results)
+    :param limit: maximum number of results to return (default -1, returns all results)
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
     :return: list of templates (id, label, tags, source (db) id, accession_in_source) + similarity score.
     :rtype: pandas.DataFrame or list of dicts
@@ -719,7 +719,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     :param neuron:
     :param similarity_score: Optionally specify similarity score to chose
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
-    :param limit: maximum number of results to return (default None, returns all results)
+    :param limit: maximum number of results to return (default -1, returns all results)
     :return: list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
     :rtype: pandas.DataFrame or list of dicts
 

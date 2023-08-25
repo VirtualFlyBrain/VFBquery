@@ -640,7 +640,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
     :rtype: pandas.DataFrame or list of dicts
 
     """
-    count_query = """(t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
+    count_query = """MATCH (t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
                 RETURN COUNT(DISTINCT t) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])

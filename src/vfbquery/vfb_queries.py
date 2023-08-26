@@ -679,6 +679,9 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
         df.loc[df['id'] == template, 'order'] = order
         order += 1
 
+    # Sort the DataFrame by 'order'
+    df = df.sort_values('order')
+
     if return_dataframe:
         return df
 

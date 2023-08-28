@@ -1042,6 +1042,15 @@ vfb.get_templates(return_dataframe=False)
   },
   'rows':[
     {
+      'id':'VFB_00101567',
+      'order':1,
+      'name':'[JRC2018Unisex](VFB_00101567)',
+      'tags':'Nervous_system|Adult',
+      'thumbnail':"[![JRC2018Unisex](http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png 'JRC2018Unisex')](VFB_00101567)",
+      'dataset':'[JRC 2018 templates & ROIs](JRC2018)',
+      'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'
+    },
+    {
       'id':'VFB_00200000',
       'order':2,
       'name':'[JRC2018UnisexVNC](VFB_00200000)',
@@ -1051,30 +1060,12 @@ vfb.get_templates(return_dataframe=False)
       'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'
     },
     {
-      'id':'VFB_00120000',
-      'order':10,
-      'name':'[Adult T1 Leg (Kuan2020)](VFB_00120000)',
-      'tags':'Adult|Anatomy',
-      'thumbnail':"[![Adult T1 Leg (Kuan2020)](http://www.virtualflybrain.org/data/VFB/i/0012/0000/VFB_00120000/thumbnail.png 'Adult T1 Leg (Kuan2020)')](VFB_00120000)",
-      'dataset':'[Millimeter-scale imaging of a Drosophila leg at single-neuron resolution](Kuan2020)',
-      'license':'[CC-BY_4.0](VFBlicense_CC_BY_4_0)'
-    },
-    {
-      'id':'VFB_00110000',
-      'order':9,
-      'name':'[Adult Head (McKellar2020)](VFB_00110000)',
-      'tags':'Adult|Anatomy',
-      'thumbnail':"[![Adult Head (McKellar2020)](http://www.virtualflybrain.org/data/VFB/i/0011/0000/VFB_00110000/thumbnail.png 'Adult Head (McKellar2020)')](VFB_00110000)",
-      'dataset':'[Split-GAL4 lines from McKellar et al., 2020](McKellar2020)',
-      'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
-    },
-    {
-      'id':'VFB_00101567',
-      'order':1,
-      'name':'[JRC2018Unisex](VFB_00101567)',
+      'id':'VFB_00017894',
+      'order':3,
+      'name':'[adult brain template JFRC2](VFB_00017894)',
       'tags':'Nervous_system|Adult',
-      'thumbnail':"[![JRC2018Unisex](http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png 'JRC2018Unisex')](VFB_00101567)",
-      'dataset':'[JRC 2018 templates & ROIs](JRC2018)',
+      'thumbnail':"[![adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0001/7894/VFB_00017894/thumbnail.png 'adult brain template JFRC2')](VFB_00017894)",
+      'dataset':'[FlyLight - GMR GAL4 collection (Jenett2012)](Jenett2012)',
       'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'
     },
     {
@@ -1085,15 +1076,6 @@ vfb.get_templates(return_dataframe=False)
       'thumbnail':"[![JRC_FlyEM_Hemibrain](http://www.virtualflybrain.org/data/VFB/i/0010/1384/thumbnail.png 'JRC_FlyEM_Hemibrain')](VFB_00101384)",
       'dataset':'[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)',
       'license':'[CC-BY_4.0](VFBlicense_CC_BY_4_0)'
-    },
-    {
-      'id':'VFB_00100000',
-      'order':7,
-      'name':'[adult VNS template - Court2018](VFB_00100000)',
-      'tags':'Nervous_system|Adult|Ganglion',
-      'thumbnail':"[![adult VNS template - Court2018](http://www.virtualflybrain.org/data/VFB/i/0010/0000/thumbnail.png 'adult VNS template - Court2018')](VFB_00100000)",
-      'dataset':'[Adult VNS neuropils (Court2017)](Court2017)',
-      'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
     },
     {
       'id':'VFB_00050000',
@@ -1123,6 +1105,15 @@ vfb.get_templates(return_dataframe=False)
       'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
     },
     {
+      'id':'VFB_00100000',
+      'order':7,
+      'name':'[adult VNS template - Court2018](VFB_00100000)',
+      'tags':'Nervous_system|Adult|Ganglion',
+      'thumbnail':"[![adult VNS template - Court2018](http://www.virtualflybrain.org/data/VFB/i/0010/0000/thumbnail.png 'adult VNS template - Court2018')](VFB_00100000)",
+      'dataset':'[Adult VNS neuropils (Court2017)](Court2017)',
+      'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
+    },
+    {
       'id':'VFB_00030786',
       'order':8,
       'name':'[adult brain template Ito2014](VFB_00030786)',
@@ -1132,13 +1123,22 @@ vfb.get_templates(return_dataframe=False)
       'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
     },
     {
-      'id':'VFB_00017894',
-      'order':3,
-      'name':'[adult brain template JFRC2](VFB_00017894)',
-      'tags':'Nervous_system|Adult',
-      'thumbnail':"[![adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0001/7894/VFB_00017894/thumbnail.png 'adult brain template JFRC2')](VFB_00017894)",
-      'dataset':'[FlyLight - GMR GAL4 collection (Jenett2012)](Jenett2012)',
-      'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'
+      'id':'VFB_00110000',
+      'order':9,
+      'name':'[Adult Head (McKellar2020)](VFB_00110000)',
+      'tags':'Adult|Anatomy',
+      'thumbnail':"[![Adult Head (McKellar2020)](http://www.virtualflybrain.org/data/VFB/i/0011/0000/VFB_00110000/thumbnail.png 'Adult Head (McKellar2020)')](VFB_00110000)",
+      'dataset':'[Split-GAL4 lines from McKellar et al., 2020](McKellar2020)',
+      'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
+    },
+    {
+      'id':'VFB_00120000',
+      'order':10,
+      'name':'[Adult T1 Leg (Kuan2020)](VFB_00120000)',
+      'tags':'Adult|Anatomy',
+      'thumbnail':"[![Adult T1 Leg (Kuan2020)](http://www.virtualflybrain.org/data/VFB/i/0012/0000/VFB_00120000/thumbnail.png 'Adult T1 Leg (Kuan2020)')](VFB_00120000)",
+      'dataset':'[Millimeter-scale imaging of a Drosophila leg at single-neuron resolution](Kuan2020)',
+      'license':'[CC-BY_4.0](VFBlicense_CC_BY_4_0)'
     }
   ],
   'count':10

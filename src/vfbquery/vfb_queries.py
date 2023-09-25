@@ -715,6 +715,43 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
         }
     return formatted_results
 
+def get_related_anatomy(template_short_form: str, limit: int = -1, return_dataframe: bool = False):
+    """
+    Retrieve related anatomical structures for a given template.
+
+    :param template_short_form: The short form of the template to query.
+    :param limit: Maximum number of results to return. Default is -1, which returns all results.
+    :param return_dataframe: If True, returns results as a pandas DataFrame. Otherwise, returns a list of dicts.
+    :return: Related anatomical structures and paths.
+    """
+
+    # Define the Cypher query
+    query = f"""
+    MATCH (root:Class)<-[:INSTANCEOF]-(t:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(c:Individual)-[:depicts]->(image:Individual)-[r:INSTANCEOF]->(anat:Class:Anatomy)
+    WHERE exists(ie.index)
+    WITH root, anat,r,image
+    MATCH p=allshortestpaths((root)<-[:SUBCLASSOF|part_of*..50]-(anat))
+    UNWIND nodes(p) as n
+    UNWIND nodes(p) as m
+    WITH * WHERE id(n) < id(m)
+    MATCH path = allShortestPaths( (n)-[:SUBCLASSOF|part_of*..1]-(m) )
+    RETURN collect(distinct {{ node_id: id(anat), short_form: anat.short_form, image: image.short_form }}) AS image_nodes, id(root) AS root, collect(path)
+    """
+
+    if limit != -1:
+        query += f" LIMIT {limit}"
+
+    # Execute the query using your database connection (e.g., VFB_connect)
+    results = vc.nc.commit_list([query])
+
+    # Convert the results to a DataFrame (if needed)
+    if return_dataframe:
+        df = pd.DataFrame.from_records(results)
+        return df
+
+    # Otherwise, return the raw results
+    return results
+
 def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1):
     """Get JSON report of individual neurons similar to input neuron
 

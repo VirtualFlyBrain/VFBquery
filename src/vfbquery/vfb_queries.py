@@ -869,10 +869,10 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     OPTIONAL MATCH (c:Class:Neuron) WHERE c.short_form starts with "FBbt_" AND toLower(c.label)=toLower(l+" neuron")
     """
     if not summary_mode:
-        count_query = f"""{query_common}'
+        count_query = f"""{query_common}
                     RETURN COUNT(DISTINCT b) AS total_count"""
     else:
-        count_query = f"""{query_common}'
+        count_query = f"""{query_common}
                     RETURN COUNT(DISTINCT c) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])

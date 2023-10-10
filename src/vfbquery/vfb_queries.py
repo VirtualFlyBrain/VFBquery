@@ -881,9 +881,9 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
         apoc.text.format("[%s](%s)", [b.label, b.short_form]) as Name,
         apoc.text.format("[%s](%s)", [neuronType.label, neuronType.short_form]) as Type,
         apoc.text.join(b.uniqueFacets, '|') as Gross_Type,
-        apoc.text.format("[%s](%s)", [templ.label, templ.short_form]) as Template_Space,
+        apoc.text.join(collect(apoc.text.format("[%s](%s)", [templ.label, templ.short_form])), ', ') as Template_Space,
         apoc.text.format("[%s](%s)", [imagingTechnique.label, imagingTechnique.short_form]) as Imaging_Technique,
-        REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(b.symbol[0],b.label), REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(b.symbol[0],b.label), b.short_form]), "[![null]( 'null')](null)", "") as Images
+        apoc.text.join(collect(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(b.symbol[0],b.label), REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(b.symbol[0],b.label), b.short_form]), "[![null]( 'null')](null)", ""), ' | ') as Images
     ORDER BY Weight Desc
     """
 

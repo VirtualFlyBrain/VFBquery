@@ -828,6 +828,87 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
         }
         return formatted_results
 
+def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve neurons that have synapses into the specified neuron, along with the neurotransmitter
+    types, and additional information about the neurons.
+
+    :param neuron_short_form: The short form identifier of the neuron to query.
+    :param return_dataframe: If True, returns results as a pandas DataFrame. Otherwise, returns a dictionary.
+    :param limit: Maximum number of results to return. Default is -1, which returns all results.
+    :return: Neurons, neurotransmitter types, and additional neuron information.
+    """
+
+    # Define the Cypher query
+    query = f"""
+    MATCH (a:has_neuron_connectivity {{short_form:'{neuron_short_form}'}})<-[r:synapsed_to]-(b:has_neuron_connectivity)
+    UNWIND(labels(b)) as l
+    WITH * WHERE l contains "ergic"
+    OPTIONAL MATCH (c:Class:Neuron) WHERE c.short_form starts with "FBbt_" AND toLower(c.label)=toLower(l+" neuron")
+    OPTIONAL MATCH (b)-[:INSTANCEOF]->(neuronType:Class),
+                   (b)<-[:depicts]-(imageChannel:Individual)-[image:in_register_with]->(templateChannel:Template)-[:depicts]->(templ:Template),
+                   (imageChannel)-[:is_specified_output_of]->(imagingTechnique:Class)
+    RETURN 
+        b.short_form as id,
+        apoc.text.format("[%s](%s)", [l, c.short_form]) as Neurotransmitter, 
+        sum(r.weight[0]) as Weight,
+        apoc.text.format("[%s](%s)", [b.label, b.short_form]) as Name,
+        apoc.text.format("[%s](%s)", [neuronType.label, neuronType.short_form]) as Type,
+        apoc.text.join(b.uniqueFacets, '|') as Gross_Type,
+        apoc.text.format("[%s](%s)", [templ.label, templ.short_form]) as Template_Space,
+        apoc.text.format("[%s](%s)", [imagingTechnique.label, imagingTechnique.short_form]) as Imaging_Technique,
+        REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(b.symbol[0],b.label), REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(b.symbol[0],b.label), b.short_form]), "[![null]( 'null')](null)", "") as Images
+    ORDER BY Weight Desc
+    """
+
+    if limit != -1:
+        query += f" LIMIT {limit}"
+
+    # Execute the query using your database connection (e.g., vc.nc)
+    results = vc.nc.commit_list([query])
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(dict_cursor(results))
+
+    # If return_dataframe is True, return the results as a DataFrame
+    if return_dataframe:
+        return df
+
+    # Format the results for the preview
+    preview_results = {
+        "headers": {
+            "id": {"title": "ID", "type": "text", "order": -1},
+            "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
+            "Weight": {"title": "Weight", "type": "numeric", "order": 1},
+            "Name": {"title": "Name", "type": "markdown", "order": 2},
+            "Type": {"title": "Type", "type": "markdown", "order": 3},
+            "Gross_Type": {"title": "Gross Type", "type": "text", "order": 4},
+            "Template_Space": {"title": "Template Space", "type": "markdown", "order": 5},
+            "Imaging_Technique": {"title": "Imaging Technique", "type": "markdown", "order": 6},
+            "Images": {"title": "Images", "type": "markdown", "order": 7}
+        },
+        "rows": [
+            {
+                key: row[key]
+                for key in [
+                    "id",
+                    "Neurotransmitter",
+                    "Weight",
+                    "Name",
+                    "Type",
+                    "Gross_Type",
+                    "Template_Space",
+                    "Imaging_Technique",
+                    "Images"
+                ]
+            }
+            for row in df.to_dict("records")
+        ]
+    }
+
+    return preview_results
+
+
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
     Checks if the given list contains all the tags passed.

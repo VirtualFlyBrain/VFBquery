@@ -474,6 +474,9 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
+            q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
 

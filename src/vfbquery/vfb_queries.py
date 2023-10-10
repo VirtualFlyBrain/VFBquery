@@ -22,6 +22,7 @@ class Query:
         self.preview = preview
         self.preview_columns = preview_columns
         self.preview_results = preview_results
+        self.output_format = output_format
         self.count = count
 
     def __str__(self):
@@ -36,6 +37,7 @@ class Query:
             "preview": self.preview,
             "preview_columns": self.preview_columns,
             "preview_results": self.preview_results,
+            "output_format": self.output_format,
             "count": self.count,
         }
 
@@ -49,6 +51,7 @@ class Query:
             preview=data["preview"],
             preview_columns=data["preview_columns"],
             preview_results=data["preview_results"],
+            output_format=data.get("output_format", 'table'),
             count=data["count"],
         )
 
@@ -64,6 +67,7 @@ class QuerySchema(Schema):
     preview = fields.Integer(required=False, missing=0)
     preview_columns = fields.List(fields.String(), required=False, missing=[])
     preview_results = fields.List(fields.Dict(), required=False, missing=[])
+    output_format = fields.String(required=False, missing='table')
     count = fields.Integer(required=False, missing=-1)
 
 class License:
@@ -479,6 +483,20 @@ def term_info_parse_object(results, short_form):
     # print("termInfo object before schema validation:", termInfo)
     return TermInfoOutputSchema().load(termInfo)
 
+def NeuronInputsTo_to_schema(name, take_default):
+    query = "NeuronInputsTo"
+    label = f"Find neurons with synapses into {name}"
+    function = "get_individual_neuron_inputs"
+    takes = {
+        "neuron_short_form": {"$and": ["Individual", "Neuron"]},
+        "default": take_default,
+    }
+    preview = -1
+    preview_columns = ["Neurotransmitter", "Weight"]
+    output_format = "ribbon"
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns, output_format=output_format)
+
 def SimilarMorphologyTo_to_schema(name, take_default):
     query = "SimilarMorphologyTo"
     label = f"Find similar neurons to {name}"
@@ -828,23 +846,24 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
         }
         return formatted_results
 
-def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1, preview_mode: bool = False):
     """
-    Retrieve neurons that have synapses into the specified neuron, along with the neurotransmitter
-    types, and additional information about the neurons.
+    ...
 
-    :param neuron_short_form: The short form identifier of the neuron to query.
-    :param return_dataframe: If True, returns results as a pandas DataFrame. Otherwise, returns a dictionary.
-    :param limit: Maximum number of results to return. Default is -1, which returns all results.
-    :return: Neurons, neurotransmitter types, and additional neuron information.
+    :param preview_mode: If True, returns a preview of the results with summed weights for each neurotransmitter type.
+    :return: ...
     """
 
-    # Define the Cypher query
-    query = f"""
+    # Define the common part of the Cypher query
+    query_common = f"""
     MATCH (a:has_neuron_connectivity {{short_form:'{neuron_short_form}'}})<-[r:synapsed_to]-(b:has_neuron_connectivity)
     UNWIND(labels(b)) as l
     WITH * WHERE l contains "ergic"
     OPTIONAL MATCH (c:Class:Neuron) WHERE c.short_form starts with "FBbt_" AND toLower(c.label)=toLower(l+" neuron")
+    """
+
+    # Define the part of the query for normal mode
+    query_normal = f"""
     OPTIONAL MATCH (b)-[:INSTANCEOF]->(neuronType:Class),
                    (b)<-[:depicts]-(imageChannel:Individual)-[image:in_register_with]->(templateChannel:Template)-[:depicts]->(templ:Template),
                    (imageChannel)-[:is_specified_output_of]->(imagingTechnique:Class)
@@ -861,7 +880,19 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     ORDER BY Weight Desc
     """
 
-    if limit != -1:
+    # Define the part of the query for preview mode
+    query_preview = f"""
+    RETURN
+        apoc.text.format("[%s](%s)", [l, c.short_form]) as Neurotransmitter, 
+        sum(r.weight[0]) as Weight
+    GROUP BY l, c.short_form
+    ORDER BY Weight Desc
+    """
+
+    # Choose the appropriate part of the query based on the preview_mode parameter
+    query = query_common + (query_preview if preview_mode else query_normal)
+
+    if limit != -1 and not preview_mode:
         query += f" LIMIT {limit}"
 
     # Execute the query using your database connection (e.g., vc.nc)

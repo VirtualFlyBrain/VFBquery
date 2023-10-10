@@ -14,7 +14,7 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], count=-1):
+    def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], output_format="table", count=-1):
         self.query = query
         self.label = label
         self.function = function
@@ -868,6 +868,16 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     WITH * WHERE l contains "ergic"
     OPTIONAL MATCH (c:Class:Neuron) WHERE c.short_form starts with "FBbt_" AND toLower(c.label)=toLower(l+" neuron")
     """
+    if not summary_mode:
+        count_query = f"""{query_common}'
+                    RETURN COUNT(DISTINCT b) AS total_count"""
+    else:
+        count_query = f"""{query_common}'
+                    RETURN COUNT(DISTINCT c) AS total_count"""
+
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the part of the query for normal mode
     query_normal = f"""
@@ -912,38 +922,60 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
         return df
 
     # Format the results for the preview
-    preview_results = {
-        "headers": {
-            "id": {"title": "ID", "type": "text", "order": -1},
-            "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
-            "Weight": {"title": "Weight", "type": "numeric", "order": 1},
-            "Name": {"title": "Name", "type": "markdown", "order": 2},
-            "Type": {"title": "Type", "type": "markdown", "order": 3},
-            "Gross_Type": {"title": "Gross Type", "type": "text", "order": 4},
-            "Template_Space": {"title": "Template Space", "type": "markdown", "order": 5},
-            "Imaging_Technique": {"title": "Imaging Technique", "type": "markdown", "order": 6},
-            "Images": {"title": "Images", "type": "markdown", "order": 7}
-        },
-        "rows": [
-            {
-                key: row[key]
-                for key in [
-                    "id",
-                    "Neurotransmitter",
-                    "Weight",
-                    "Name",
-                    "Type",
-                    "Gross_Type",
-                    "Template_Space",
-                    "Imaging_Technique",
-                    "Images"
-                ]
-            }
-            for row in df.to_dict("records")
-        ]
-    }
-
-    return preview_results
+    if not summary_mode:
+        results = {
+            "headers": {
+                "id": {"title": "ID", "type": "text", "order": -1},
+                "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
+                "Weight": {"title": "Weight", "type": "numeric", "order": 1},
+                "Name": {"title": "Name", "type": "markdown", "order": 2},
+                "Type": {"title": "Type", "type": "markdown", "order": 3},
+                "Gross_Type": {"title": "Gross Type", "type": "text", "order": 4},
+                "Template_Space": {"title": "Template Space", "type": "markdown", "order": 5},
+                "Imaging_Technique": {"title": "Imaging Technique", "type": "markdown", "order": 6},
+                "Images": {"title": "Images", "type": "markdown", "order": 7}
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "Neurotransmitter",
+                        "Weight",
+                        "Name",
+                        "Type",
+                        "Gross_Type",
+                        "Template_Space",
+                        "Imaging_Technique",
+                        "Images"
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
+        }
+    else:
+        results = {
+            "headers": {
+                "id": {"title": "ID", "type": "text", "order": -1},
+                "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
+                "Weight": {"title": "Weight", "type": "numeric", "order": 1},
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "Neurotransmitter",
+                        "Weight",
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
+        }
+    
+    return results
 
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:

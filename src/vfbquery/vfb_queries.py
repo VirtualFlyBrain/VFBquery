@@ -846,12 +846,16 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
         }
         return formatted_results
 
-def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1, preview_mode: bool = False):
+def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1, summary_mode: bool = False):
     """
-    ...
+    Retrieve neurons that have synapses into the specified neuron, along with the neurotransmitter
+    types, and additional information about the neurons.
 
-    :param preview_mode: If True, returns a preview of the results with summed weights for each neurotransmitter type.
-    :return: ...
+    :param neuron_short_form: The short form identifier of the neuron to query.
+    :param return_dataframe: If True, returns results as a pandas DataFrame. Otherwise, returns a dictionary.
+    :param limit: Maximum number of results to return. Default is -1, which returns all results.
+    :param summary_mode: If True, returns a preview of the results with summed weights for each neurotransmitter type.
+    :return: Neurons, neurotransmitter types, and additional neuron information.
     """
 
     # Define the common part of the Cypher query
@@ -889,10 +893,10 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     ORDER BY Weight Desc
     """
 
-    # Choose the appropriate part of the query based on the preview_mode parameter
-    query = query_common + (query_preview if preview_mode else query_normal)
+    # Choose the appropriate part of the query based on the summary_mode parameter
+    query = query_common + (query_preview if summary_mode else query_normal)
 
-    if limit != -1 and not preview_mode:
+    if limit != -1 and not summary_mode:
         query += f" LIMIT {limit}"
 
     # Execute the query using your database connection (e.g., vc.nc)
@@ -956,7 +960,8 @@ def fill_query_results(term_info):
         
         if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
             function = globals().get(query['function'])
-            
+            summary_mode = query.get('output_format', 'table') == 'ribbon'
+
             if function:
                 # print(f"Function {query['function']} found")
                 
@@ -965,7 +970,10 @@ def fill_query_results(term_info):
                 # print(f"Function args: {function_args}")
 
                 # Modify this line to use the correct arguments and pass the default arguments
-                result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                if summary_mode:
+                    result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode, **function_args)
+                else:
+                    result = function(return_dataframe=False, limit=query['preview'], **function_args)
                 # print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns

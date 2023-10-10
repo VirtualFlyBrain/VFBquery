@@ -889,10 +889,9 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
 
     # Define the part of the query for preview mode
     query_preview = f"""
-    RETURN
+    RETURN DISTINCT c.short_form as id,
         apoc.text.format("[%s](%s)", [l, c.short_form]) as Neurotransmitter, 
         sum(r.weight[0]) as Weight
-    GROUP BY l, c.short_form
     ORDER BY Weight Desc
     """
 

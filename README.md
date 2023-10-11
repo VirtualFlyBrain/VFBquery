@@ -18,137 +18,138 @@ vfb.get_term_info('FBbt_00003748')
 ```
 ```json
 {
-   'Name':'medulla',
-   'Meta':{
-      'Name':'[medulla](FBbt_00003748)',
-      'Description':'The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).',
-      'Comment':'',
-      'Types':'[synaptic neuropil domain](FBbt_00040007)',
-      'Relationships':'[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)',
-      'Cross References':'![Insect Brain DB](https://insectbraindb.org/app/assets/images/Megalopta_frontal.png) [Insect Brain DB](https://insectbraindb.org/): [38](https://insectbraindb.org/app/structures/38)'
-   },
-   'Id':'FBbt_00003748',
-   'Tags':[
-      'Adult',
-      'Nervous_system',
-      'Synaptic_neuropil_domain',
-      'Visual_system'
-   ],
-   'IsClass':True,
-   'Queries':[
-      {
-         'query':'ListAllAvailableImages',
-         'label':'List all available images of medulla',
-         'function':'get_instances',
-         'takes':{
-            'short_form':{
-               '$and':[
-                  'Class',
-                  'Anatomy'
-               ]
-            },
-            'default':{
-               'short_form':'FBbt_00003748'
+  'Name':'medulla',
+  'Id':'FBbt_00003748',
+  'SuperTypes':[
+    'Entity',
+    'Adult',
+    'Anatomy',
+    'Class',
+    'Nervous_system',
+    'Synaptic_neuropil',
+    'Synaptic_neuropil_domain',
+    'Visual_system'
+  ],
+  'Meta':{
+    'Name':'[medulla](FBbt_00003748)',
+    'Description':'The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).',
+    'Comment':'',
+    'Types':'[synaptic neuropil domain](FBbt_00040007)',
+    'Relationships':'[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)',
+    'Cross References':'![Insect Brain DB](https://insectbraindb.org/app/assets/images/Megalopta_frontal.png) [Insect Brain DB](https://insectbraindb.org/): [38](https://insectbraindb.org/app/structures/38)'
+  },
+  'Tags':[
+    'Adult',
+    'Nervous_system',
+    'Synaptic_neuropil_domain',
+    'Visual_system'
+  ],
+  'Queries':[
+    {
+      'query':'ListAllAvailableImages',
+      'label':'List all available images of medulla',
+      'function':'get_instances',
+      'takes':{
+        'short_form':{
+          '$and':[
+            'Class',
+            'Anatomy'
+          ]
+        },
+        'default':{
+          'short_form':'FBbt_00003748'
+        }
+      },
+      'preview':0,
+      'preview_columns':[
+        'id',
+        'label',
+        'tags',
+        'thumbnail'
+      ],
+      'preview_results':{
+        'headers':{
+          'id':{
+            'title':'Add',
+            'type':'selection_id',
+            'order':-1
+          },
+          'label':{
+            'title':'Name',
+            'type':'markdown',
+            'order':0,
+            'sort':{
+              0:'Asc'
             }
-         },
-         'preview':0,
-         'preview_columns':[
-            'id',
-            'label',
-            'tags',
-            'thumbnail'
-         ],
-         'preview_results':{
-            'headers':{
-               'id':{
-                  'title':'Add',
-                  'type':'selection_id',
-                  'order':-1
-               },
-               'label':{
-                  'title':'Name',
-                  'type':'markdown',
-                  'order':0,
-                  'sort':{
-                     0:'Asc'
-                  }
-               },
-               'tags':{
-                  'title':'Gross Types',
-                  'type':'tags',
-                  'order':3
-               },
-               'thumbnail':{
-                  'title':'Thumbnail',
-                  'type':'markdown',
-                  'order':9
-               }
-            },
-            'rows':[
-               
-            ]
-         },
-         'count':4
+          },
+          'tags':{
+            'title':'Gross Types',
+            'type':'tags',
+            'order':3
+          },
+          'thumbnail':{
+            'title':'Thumbnail',
+            'type':'markdown',
+            'order':9
+          }
+        },
+        'rows':[
+          
+        ]
+      },
+      'output_format':'table',
+      'count':4
+    }
+  ],
+  'IsIndividual':False,
+  'IsClass':True,
+  'Examples':{
+    'VFB_00030786':[
+      {
+        'id':'VFB_00030810',
+        'label':'medulla on adult brain template Ito2014',
+        'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png',
+        'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnailT.png',
+        'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.nrrd',
+        'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.wlz',
+        'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume_man.obj'
       }
-   ],
-   'IsTemplate':False,
-   'IsIndividual':False,
-   'SuperTypes':[
-      'Entity',
-      'Adult',
-      'Anatomy',
-      'Class',
-      'Nervous_system',
-      'Synaptic_neuropil',
-      'Synaptic_neuropil_domain',
-      'Visual_system'
-   ],
-   'Examples':{
-      'VFB_00030786':[
-         {
-            'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnailT.png',
-            'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume_man.obj',
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.wlz',
-            'label':'medulla on adult brain template Ito2014',
-            'id':'VFB_00030810',
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/volume.nrrd',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0810/thumbnail.png'
-         }
-      ],
-      'VFB_00101567':[
-         {
-            'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png',
-            'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj',
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz',
-            'label':'ME on JRC2018Unisex adult brain',
-            'id':'VFB_00102107',
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png'
-         }
-      ],
-      'VFB_00017894':[
-         {
-            'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnailT.png',
-            'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume_man.obj',
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.wlz',
-            'label':'medulla on adult brain template JFRC2',
-            'id':'VFB_00030624',
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.nrrd',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnail.png'
-         }
-      ],
-      'VFB_00101384':[
-         {
-            'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnailT.png',
-            'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj',
-            'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz',
-            'label':'ME(R) on JRC_FlyEM_Hemibrain',
-            'id':'VFB_00101385',
-            'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd',
-            'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png'
-         }
-      ]
-   }
+    ],
+    'VFB_00101567':[
+      {
+        'id':'VFB_00102107',
+        'label':'ME on JRC2018Unisex adult brain',
+        'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png',
+        'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png',
+        'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd',
+        'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz',
+        'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj'
+      }
+    ],
+    'VFB_00017894':[
+      {
+        'id':'VFB_00030624',
+        'label':'medulla on adult brain template JFRC2',
+        'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnail.png',
+        'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/thumbnailT.png',
+        'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.nrrd',
+        'wlz':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume.wlz',
+        'obj':'https://www.virtualflybrain.org/data/VFB/i/0003/0624/volume_man.obj'
+      }
+    ],
+    'VFB_00101384':[
+      {
+        'id':'VFB_00101385',
+        'label':'ME(R) on JRC_FlyEM_Hemibrain',
+        'thumbnail':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png',
+        'thumbnail_transparent':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnailT.png',
+        'nrrd':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd',
+        'wlz':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz',
+        'obj':'https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj'
+      }
+    ]
+  },
+  'IsTemplate':False
 }
 ```
 Individual example:
@@ -285,6 +286,7 @@ vfb.get_term_info('VFB_00000001')
           }
         ]
       },
+      'output_format':'table',
       'count':60
     }
   ],

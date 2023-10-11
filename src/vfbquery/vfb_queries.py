@@ -14,7 +14,7 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 vc = VfbConnect()
 
 class Query:
-    def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], count=-1):
+    def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], output_format="table", count=-1):
         self.query = query
         self.label = label
         self.function = function
@@ -22,6 +22,7 @@ class Query:
         self.preview = preview
         self.preview_columns = preview_columns
         self.preview_results = preview_results
+        self.output_format = output_format
         self.count = count
 
     def __str__(self):
@@ -36,6 +37,7 @@ class Query:
             "preview": self.preview,
             "preview_columns": self.preview_columns,
             "preview_results": self.preview_results,
+            "output_format": self.output_format,
             "count": self.count,
         }
 
@@ -49,6 +51,7 @@ class Query:
             preview=data["preview"],
             preview_columns=data["preview_columns"],
             preview_results=data["preview_results"],
+            output_format=data.get("output_format", 'table'),
             count=data["count"],
         )
 
@@ -64,6 +67,7 @@ class QuerySchema(Schema):
     preview = fields.Integer(required=False, missing=0)
     preview_columns = fields.List(fields.String(), required=False, missing=[])
     preview_results = fields.List(fields.Dict(), required=False, missing=[])
+    output_format = fields.String(required=False, missing='table')
     count = fields.Integer(required=False, missing=-1)
 
 class License:
@@ -470,6 +474,9 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
+            q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
         # Add the queries to the term info
         termInfo["Queries"] = queries
 
@@ -478,6 +485,20 @@ def term_info_parse_object(results, short_form):
         termInfo["Queries"] = [query.to_dict() for query in termInfo["Queries"]]
     # print("termInfo object before schema validation:", termInfo)
     return TermInfoOutputSchema().load(termInfo)
+
+def NeuronInputsTo_to_schema(name, take_default):
+    query = "NeuronInputsTo"
+    label = f"Find neurons with synapses into {name}"
+    function = "get_individual_neuron_inputs"
+    takes = {
+        "neuron_short_form": {"$and": ["Individual", "Neuron"]},
+        "default": take_default,
+    }
+    preview = -1
+    preview_columns = ["Neurotransmitter", "Weight"]
+    output_format = "ribbon"
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns, output_format=output_format)
 
 def SimilarMorphologyTo_to_schema(name, take_default):
     query = "SimilarMorphologyTo"
@@ -828,6 +849,135 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
         }
         return formatted_results
 
+def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, limit: int = -1, summary_mode: bool = False):
+    """
+    Retrieve neurons that have synapses into the specified neuron, along with the neurotransmitter
+    types, and additional information about the neurons.
+
+    :param neuron_short_form: The short form identifier of the neuron to query.
+    :param return_dataframe: If True, returns results as a pandas DataFrame. Otherwise, returns a dictionary.
+    :param limit: Maximum number of results to return. Default is -1, which returns all results.
+    :param summary_mode: If True, returns a preview of the results with summed weights for each neurotransmitter type.
+    :return: Neurons, neurotransmitter types, and additional neuron information.
+    """
+
+    # Define the common part of the Cypher query
+    query_common = f"""
+    MATCH (a:has_neuron_connectivity {{short_form:'{neuron_short_form}'}})<-[r:synapsed_to]-(b:has_neuron_connectivity)
+    UNWIND(labels(b)) as l
+    WITH * WHERE l contains "ergic"
+    OPTIONAL MATCH (c:Class:Neuron) WHERE c.short_form starts with "FBbt_" AND toLower(c.label)=toLower(l+" neuron")
+    """
+    if not summary_mode:
+        count_query = f"""{query_common}
+                    RETURN COUNT(DISTINCT b) AS total_count"""
+    else:
+        count_query = f"""{query_common}
+                    RETURN COUNT(DISTINCT c) AS total_count"""
+
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+
+    # Define the part of the query for normal mode
+    query_normal = f"""
+    OPTIONAL MATCH (b)-[:INSTANCEOF]->(neuronType:Class),
+                   (b)<-[:depicts]-(imageChannel:Individual)-[image:in_register_with]->(templateChannel:Template)-[:depicts]->(templ:Template),
+                   (imageChannel)-[:is_specified_output_of]->(imagingTechnique:Class)
+    RETURN 
+        b.short_form as id,
+        apoc.text.format("[%s](%s)", [l, c.short_form]) as Neurotransmitter, 
+        sum(r.weight[0]) as Weight,
+        apoc.text.format("[%s](%s)", [b.label, b.short_form]) as Name,
+        apoc.text.format("[%s](%s)", [neuronType.label, neuronType.short_form]) as Type,
+        apoc.text.join(b.uniqueFacets, '|') as Gross_Type,
+        apoc.text.join(collect(apoc.text.format("[%s](%s)", [templ.label, templ.short_form])), ', ') as Template_Space,
+        apoc.text.format("[%s](%s)", [imagingTechnique.label, imagingTechnique.short_form]) as Imaging_Technique,
+        apoc.text.join(collect(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(b.symbol[0],b.label), REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(b.symbol[0],b.label), b.short_form]), "[![null]( 'null')](null)", "")), ' | ') as Images
+    ORDER BY Weight Desc
+    """
+
+    # Define the part of the query for preview mode
+    query_preview = f"""
+    RETURN DISTINCT c.short_form as id,
+        apoc.text.format("[%s](%s)", [l, c.short_form]) as Neurotransmitter, 
+        sum(r.weight[0]) as Weight
+    ORDER BY Weight Desc
+    """
+
+    # Choose the appropriate part of the query based on the summary_mode parameter
+    query = query_common + (query_preview if summary_mode else query_normal)
+
+    if limit != -1 and not summary_mode:
+        query += f" LIMIT {limit}"
+
+    # Execute the query using your database connection (e.g., vc.nc)
+    results = vc.nc.commit_list([query])
+
+    # Convert the results to a DataFrame
+    df = pd.DataFrame.from_records(dict_cursor(results))
+
+    # If return_dataframe is True, return the results as a DataFrame
+    if return_dataframe:
+        return df
+
+    # Format the results for the preview
+    if not summary_mode:
+        results = {
+            "headers": {
+                "id": {"title": "ID", "type": "text", "order": -1},
+                "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
+                "Weight": {"title": "Weight", "type": "numeric", "order": 1},
+                "Name": {"title": "Name", "type": "markdown", "order": 2},
+                "Type": {"title": "Type", "type": "markdown", "order": 3},
+                "Gross_Type": {"title": "Gross Type", "type": "text", "order": 4},
+                "Template_Space": {"title": "Template Space", "type": "markdown", "order": 5},
+                "Imaging_Technique": {"title": "Imaging Technique", "type": "markdown", "order": 6},
+                "Images": {"title": "Images", "type": "markdown", "order": 7}
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "Neurotransmitter",
+                        "Weight",
+                        "Name",
+                        "Type",
+                        "Gross_Type",
+                        "Template_Space",
+                        "Imaging_Technique",
+                        "Images"
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
+        }
+    else:
+        results = {
+            "headers": {
+                "id": {"title": "ID", "type": "text", "order": -1},
+                "Neurotransmitter": {"title": "Neurotransmitter", "type": "markdown", "order": 0},
+                "Weight": {"title": "Weight", "type": "numeric", "order": 1},
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "Neurotransmitter",
+                        "Weight",
+                    ]
+                }
+                for row in df.to_dict("records")
+            ],
+            "count": total_count
+        }
+    
+    return results
+
+
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     """
     Checks if the given list contains all the tags passed.
@@ -844,7 +994,8 @@ def fill_query_results(term_info):
         
         if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
             function = globals().get(query['function'])
-            
+            summary_mode = query.get('output_format', 'table') == 'ribbon'
+
             if function:
                 # print(f"Function {query['function']} found")
                 
@@ -853,7 +1004,10 @@ def fill_query_results(term_info):
                 # print(f"Function args: {function_args}")
 
                 # Modify this line to use the correct arguments and pass the default arguments
-                result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                if summary_mode:
+                    result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode, **function_args)
+                else:
+                    result = function(return_dataframe=False, limit=query['preview'], **function_args)
                 # print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns

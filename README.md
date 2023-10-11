@@ -286,6 +286,7 @@ vfb.get_term_info('VFB_00000001')
           }
         ]
       },
+      'output_format':'table',
       'count':60
     }
   ],

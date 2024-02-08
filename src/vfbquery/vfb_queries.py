@@ -427,7 +427,7 @@ def term_info_parse_object(results, short_form):
                 if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
                     record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
             if len(image.index) > 0:
-              record[image.index] = int(image.index[0])
+              record[int(image.index[0])] = int(image.index[0])
             vars(image).keys()
             image_vars = vars(image)
             if 'center' in image_vars.keys():

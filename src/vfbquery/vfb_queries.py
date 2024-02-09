@@ -249,8 +249,12 @@ def term_info_parse_object(results, short_form):
     termInfo = {}
     if results.hits > 0 and results.docs and len(results.docs) > 0:
         termInfo["Meta"] = {}
-        # Deserialize the term info from the first result
-        vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
+        try:
+            # Deserialize the term info from the first result
+            vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
+        except KeyError:
+            print(f"results missing 'term_info': {results.docs[0]}")
+            return None
         queries = []
         termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(vfbTerm.term.core.label, vfbTerm.term.core.short_form)
@@ -282,7 +286,6 @@ def term_info_parse_object(results, short_form):
             pass
         except AttributeError:
             print(f"vfbTerm.term.comment: {vfbTerm.term}")
-        
         if vfbTerm.parents and len(vfbTerm.parents) > 0:
             parents = []
 

@@ -253,7 +253,7 @@ def term_info_parse_object(results, short_form):
             # Deserialize the term info from the first result
             vfbTerm = deserialize_term_info(results.docs[0]['term_info'][0])
         except KeyError:
-            print(f"results missing 'term_info': {results.docs[0]}")
+            print(f"SOLR doc missing 'term_info': {results.docs[0]}")
             return None
         queries = []
         termInfo["Id"] = vfbTerm.term.core.short_form

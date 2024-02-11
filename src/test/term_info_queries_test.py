@@ -256,7 +256,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("references" in serialized)
         self.assertEqual(1, len(serialized["references"]))
         self.assertEqual({'link': '[Söderberg et al., 2012, Front. Endocrinol. 3: 109](FBrf0219451)',
-                          'refs': ['https://doi.org/10.3389/fendo.2012.00109',
+                          'refs': ['http://flybase.org/reports/FBrf0219451',
                                    'http://www.ncbi.nlm.nih.gov/pubmed/?term=22969751'],
                           'types': ' pub'}, serialized["references"][0])
         self.assertFalse("targetingSplits" in serialized)

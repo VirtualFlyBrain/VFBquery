@@ -979,7 +979,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
       },
       {
          'id':'VFB_00101385',
-         'label':'[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)',
+         'label':'[ME%28R%29 on JRC_FlyEM_Hemibrain](VFB_00101385)',
          'tags':'Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain',
          'parent':'[medulla](FBbt_00003748)',
          'source':'',
@@ -1009,7 +1009,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          'source':'',
          'source_id':'',
          'template':'[adult brain template JFRC2](VFB_00017894)',
-         'dataset':'[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)',
+         'dataset':'[BrainName neuropils on adult brain JFRC2 %28Jenett, Shinomya%29](JenettShinomya_BrainName)',
          'license':'',
          'thumbnail':"[![medulla on adult brain template JFRC2 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00030624)"
       }

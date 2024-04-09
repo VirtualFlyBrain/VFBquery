@@ -252,35 +252,51 @@ def encode_markdown_links(df, columns):
     :param columns: List of column names to apply encoding to.
     """
     def encode_label(label):
-        # Encode brackets for image inside link markdown
-        if label.startswith("[!["):
-            # Splitting into parts: image markdown and link URL
-            parts = label.split("](")
-            image_markdown, link_url = parts[0], parts[1]
+        try:
+            # Check if label starts with image markdown syntax
+            if label.startswith("[!["):
+                parts = label.split("](")
+                if len(parts) < 3:
+                    # Not enough parts, possibly malformed input; return original label
+                    return label
+                
+                image_markdown, link_url = parts[0], parts[2]
+                # Further split the image markdown to extract label, image URL, and title
+                image_parts = image_markdown.split('[')[2].split('](')
+                if len(image_parts) < 2:
+                    # Not enough parts after second split; return original label
+                    return label
+                
+                image_label, image_details = image_parts[0], image_parts[1]
+                image_url, image_title = image_details.rsplit("'", 1)[0].rsplit(" '", 1)
+                
+                # Encode brackets in the image label and title
+                image_label_encoded = image_label.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
+                image_title_encoded = image_title.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
+                
+                # Reconstruct the image markdown and the full markdown link
+                encoded_image_markdown = f"[![{image_label_encoded}]({image_url} '{image_title_encoded}')]({link_url}"
+                return encoded_image_markdown
             
-            # Further split the image markdown to get label, image URL, and title
-            image_parts = image_markdown.split('[')[2].split('](')
-            image_label, image_details = image_parts[0], image_parts[1]
-            image_url, image_title = image_details.rsplit("'", 1)[0].rsplit(" '", 1)
-            
-            # Encode brackets in the image label and title
-            image_label_encoded = image_label.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
-            image_title_encoded = image_title.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
-            
-            # Reconstruct the image markdown and the full markdown link
-            encoded_image_markdown = f"[![{image_label_encoded}]({image_url} '{image_title_encoded}')]({link_url}"
-            return encoded_image_markdown
-        
-        # Process regular markdown links
-        elif '(' in label and ')' in label:
-            parts = label.split('](')
-            label_part = parts[0][1:]  # Remove the leading '['
-            # Encode brackets in the label part
-            label_part_encoded = label_part.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
-            # Reconstruct the markdown link with the encoded label
-            encoded_label = f"[{label_part_encoded}]({parts[1]}"
-            return encoded_label
-        
+            # Process regular markdown links
+            elif '(' in label and ')' in label:
+                parts = label.split('](')
+                if len(parts) < 2:
+                    # Not enough parts for a valid markdown link; return original label
+                    return label
+                
+                label_part = parts[0][1:]  # Remove the leading '['
+                # Encode brackets in the label part
+                label_part_encoded = label_part.replace('(', '%28').replace(')', '%29').replace('[', '%5B').replace(']', '%5D')
+                # Reconstruct the markdown link with the encoded label
+                encoded_label = f"[{label_part_encoded}]({parts[1]}"
+                return encoded_label
+        except Exception as e:
+            # In case of any other unexpected error, log or print the error and return the original label
+            print(f"Error processing label: {label}, error: {e}")
+            return label
+
+        # If none of the conditions above match, return the original label
         return label
 
     for column in columns:
@@ -592,8 +608,6 @@ def get_term_info(short_form: str, preview: bool = False):
     try:
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
-        sanitized_results = serialize_solr_output(results)
-        print(sanitized_results)
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         term_info = fill_query_results(parsed_object)
@@ -607,9 +621,16 @@ def get_term_info(short_form: str, preview: bool = False):
         print("Error details:", e)
         print("Original data:", results)
         print("Parsed object:", parsed_object)
-    except IndexError:
+    except IndexError as e:
         print(f"No results found for ID '{short_form}'")
-        print("Error accessing SOLR server!")
+        print("Error details:", e)
+        if parsed_object:
+            print("Parsed object:", parsed_object)
+            if term_info: 
+                print("Term info:", term_info)
+        else:
+            print("Error accessing SOLR server!")
+
 
 def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """

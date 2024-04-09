@@ -1091,7 +1091,7 @@ vfb.get_templates(return_dataframe=False)
          'name':'[adult brain template JFRC2](VFB_00017894)',
          'tags':'Nervous_system|Adult',
          'thumbnail':"[![adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0001/7894/VFB_00017894/thumbnail.png 'adult brain template JFRC2')](VFB_00017894)",
-         'dataset':'[FlyLight - GMR GAL4 collection (Jenett2012)](Jenett2012)',
+         'dataset':'[FlyLight - GMR GAL4 collection %28Jenett2012%29](Jenett2012)',
          'license':'[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'
       },
       {
@@ -1109,7 +1109,7 @@ vfb.get_templates(return_dataframe=False)
          'name':'[L1 larval CNS ssTEM - Cardona/Janelia](VFB_00050000)',
          'tags':'Nervous_system|Larva',
          'thumbnail':"[![L1 larval CNS ssTEM - Cardona/Janelia](http://www.virtualflybrain.org/data/VFB/i/0005/0000/VFB_00050000/thumbnail.png 'L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000)",
-         'dataset':'[larval hugin neurons - EM (Schlegel2016)](Schlegel2016)',
+         'dataset':'[larval hugin neurons - EM %28Schlegel2016%29](Schlegel2016)',
          'license':'[CC-BY_4.0](VFBlicense_CC_BY_4_0)'
       },
       {
@@ -1118,7 +1118,7 @@ vfb.get_templates(return_dataframe=False)
          'name':'[L1 larval CNS ssTEM - Cardona/Janelia](VFB_00050000)',
          'tags':'Nervous_system|Larva',
          'thumbnail':"[![L1 larval CNS ssTEM - Cardona/Janelia](http://www.virtualflybrain.org/data/VFB/i/0005/0000/VFB_00050000/thumbnail.png 'L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000)",
-         'dataset':'[Neurons involved in larval fast escape response - EM (Ohyama2016)](Ohyama2015)',
+         'dataset':'[Neurons involved in larval fast escape response - EM %28Ohyama2016%29](Ohyama2015)',
          'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
       },
       {
@@ -1127,7 +1127,7 @@ vfb.get_templates(return_dataframe=False)
          'name':'[L3 CNS template - Wood2018](VFB_00049000)',
          'tags':'Nervous_system|Larva',
          'thumbnail':"[![L3 CNS template - Wood2018](http://www.virtualflybrain.org/data/VFB/i/0004/9000/thumbnail.png 'L3 CNS template - Wood2018')](VFB_00049000)",
-         'dataset':'[L3 Larval CNS Template (Truman2016)](Truman2016)',
+         'dataset':'[L3 Larval CNS Template %28Truman2016%29](Truman2016)',
          'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
       },
       {
@@ -1136,7 +1136,7 @@ vfb.get_templates(return_dataframe=False)
          'name':'[adult VNS template - Court2018](VFB_00100000)',
          'tags':'Nervous_system|Adult|Ganglion',
          'thumbnail':"[![adult VNS template - Court2018](http://www.virtualflybrain.org/data/VFB/i/0010/0000/thumbnail.png 'adult VNS template - Court2018')](VFB_00100000)",
-         'dataset':'[Adult VNS neuropils (Court2017)](Court2017)',
+         'dataset':'[Adult VNS neuropils %28Court2017%29](Court2017)',
          'license':'[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)'
       },
       {
@@ -1151,7 +1151,7 @@ vfb.get_templates(return_dataframe=False)
       {
          'id':'VFB_00110000',
          'order':9,
-         'name':'[Adult Head (McKellar2020)](VFB_00110000)',
+         'name':'[Adult Head %28McKellar2020%29](VFB_00110000)',
          'tags':'Adult|Anatomy',
          'thumbnail':"[![Adult Head (McKellar2020)](http://www.virtualflybrain.org/data/VFB/i/0011/0000/VFB_00110000/thumbnail.png 'Adult Head (McKellar2020)')](VFB_00110000)",
          'dataset':'[GAL4 lines from McKellar et al., 2020](McKellar2020)',
@@ -1160,7 +1160,7 @@ vfb.get_templates(return_dataframe=False)
       {
          'id':'VFB_00120000',
          'order':10,
-         'name':'[Adult T1 Leg (Kuan2020)](VFB_00120000)',
+         'name':'[Adult T1 Leg %28Kuan2020%29](VFB_00120000)',
          'tags':'Adult|Anatomy',
          'thumbnail':"[![Adult T1 Leg (Kuan2020)](http://www.virtualflybrain.org/data/VFB/i/0012/0000/VFB_00120000/thumbnail.png 'Adult T1 Leg (Kuan2020)')](VFB_00120000)",
          'dataset':'[Millimeter-scale imaging of a Drosophila leg at single-neuron resolution](Kuan2020)',

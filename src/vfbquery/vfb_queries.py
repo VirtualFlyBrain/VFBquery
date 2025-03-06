@@ -319,6 +319,19 @@ def encode_markdown_links(df, columns):
     
 def term_info_parse_object(results, short_form):
     termInfo = {}
+    termInfo["SuperTypes"] = []
+    termInfo["Tags"] = []
+    termInfo["Queries"] = []
+    termInfo["IsClass"] = False
+    termInfo["IsIndividual"] = False
+    termInfo["IsTemplate"] = False
+    termInfo["Images"] = {}
+    termInfo["Examples"] = {}
+    termInfo["Domains"] = {}
+    termInfo["Licenses"] = {}
+    termInfo["Publications"] = []
+    termInfo["Synonyms"] = []
+    
     if results.hits > 0 and results.docs and len(results.docs) > 0:
         termInfo["Meta"] = {}
         try:

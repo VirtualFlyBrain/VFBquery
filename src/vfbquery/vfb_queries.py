@@ -370,6 +370,7 @@ def term_info_parse_object(results, short_form):
 
         if vfbTerm.relationships and len(vfbTerm.relationships) > 0:
             relationships = []
+            pubs_from_relationships = [] # New: Collect publication references from relationships
 
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
@@ -381,6 +382,28 @@ def term_info_parse_object(results, short_form):
                 elif relationship.relation.label:
                     relation_key = (relationship.relation.label, relationship.relation.label)
                 object_key = (relationship.object.label, relationship.object.short_form)
+                
+                # New: Extract publications from this relationship if they exist
+                if hasattr(relationship, 'pubs') and relationship.pubs:
+                    for pub in relationship.pubs:
+                        if pub.get_miniref():
+                            publication = {}
+                            publication["title"] = pub.core.label if pub.core.label else ""
+                            publication["short_form"] = pub.core.short_form if pub.core.short_form else ""
+                            publication["microref"] = pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else ""
+                            
+                            # Add external references
+                            refs = []
+                            if pub.PubMed:
+                                refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={pub.PubMed}")
+                            if pub.FlyBase:
+                                refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
+                            if pub.DOI:
+                                refs.append(f"https://doi.org/{pub.DOI}")
+                            
+                            publication["refs"] = refs
+                            pubs_from_relationships.append(publication)
+                
                 if relation_key not in grouped_relationships:
                     grouped_relationships[relation_key] = set()
                 grouped_relationships[relation_key].add(object_key)
@@ -398,6 +421,17 @@ def term_info_parse_object(results, short_form):
                 relationships.append("[%s](%s): %s" % (encode_brackets(relation_key[0]), relation_key[1], ', '.join(relation_objects)))
             termInfo["Meta"]["Relationships"] = "; ".join(relationships)
 
+            # New: Add relationship publications to main publications list
+            if pubs_from_relationships:
+                if "Publications" not in termInfo:
+                    termInfo["Publications"] = pubs_from_relationships
+                else:
+                    # Merge with existing publications, avoiding duplicates by short_form
+                    existing_pub_short_forms = {pub.get("short_form", "") for pub in termInfo["Publications"]}
+                    for pub in pubs_from_relationships:
+                        if pub.get("short_form", "") not in existing_pub_short_forms:
+                            termInfo["Publications"].append(pub)
+                            existing_pub_short_forms.add(pub.get("short_form", ""))
 
         if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
             xrefs = []
@@ -565,11 +599,11 @@ def term_info_parse_object(results, short_form):
                     
                     # Add external references
                     refs = []
-                    if pub.PubMed:
+                    if hasattr(pub, 'PubMed') and pub.PubMed:
                         refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={pub.PubMed}")
-                    if pub.FlyBase:
+                    if hasattr(pub, 'FlyBase') and pub.FlyBase:
                         refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
-                    if pub.DOI:
+                    if hasattr(pub, 'DOI') and pub.DOI:
                         refs.append(f"https://doi.org/{pub.DOI}")
                     
                     publication["refs"] = refs

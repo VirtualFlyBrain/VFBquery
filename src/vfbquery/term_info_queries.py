@@ -167,7 +167,17 @@ class PubSyn:
         return hash(self.__str__())
 
     def get_microrefs(self):
-        return "(" + ", ".join([pub.get_microref() for pub in self.pubs]) + ")"
+        """
+        Get a list of microreferences for all publications.
+        
+        :return: A list of publication microreferences.
+        """
+        refs = []
+        if hasattr(self, 'pubs') and self.pubs:
+            for pub in self.pubs:
+                if hasattr(pub, 'get_microref') and pub.get_microref():
+                    refs.append(pub.get_microref())
+        return refs
 
 
 @dataclass_json
@@ -958,7 +968,7 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
     if vfb_term.get_references():
         data["references"] = vfb_term.get_references()
 
-    # queries
+        # queries
     # TODO requires geppettoModelAccess.getQueries() ??
 
     # Targeting Splits

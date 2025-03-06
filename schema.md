@@ -72,7 +72,15 @@ The base schema returned by term info queries:
   ],
   "IsIndividual": "Boolean",
   "IsClass": "Boolean",
-  "IsTemplate": "Boolean"
+  "IsTemplate": "Boolean",
+  "Publications": [
+    {
+      "title": "String (publication title)",
+      "short_form": "String (publication ID)",
+      "microref": "String (short citation)",
+      "refs": ["String (URL to external reference)"]
+    }
+  ]
 }
 ```
 

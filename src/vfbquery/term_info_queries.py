@@ -762,11 +762,61 @@ def deserialize_term_info(terminfo: str) -> VfbTerminfo:
 def deserialize_term_info_from_dict(terminfo: dict) -> VfbTerminfo:
     """
     Deserializes the given terminfo vfb_json dictionary to VfbTerminfo object.
+    Handles both direct VfbTerminfo dictionaries and API response dictionaries.
 
     :param terminfo: vfb_json dictionary
     :return: VfbTerminfo object
     """
-    return from_dict(data_class=VfbTerminfo, data=terminfo)
+    # Check if this is already in VfbTerminfo format with a 'term' field
+    if 'term' in terminfo:
+        return from_dict(data_class=VfbTerminfo, data=terminfo)
+    
+    # Otherwise, convert from API response format to VfbTerminfo format
+    # Create the core MinimalEntityInfo structure
+    core = {
+        'short_form': terminfo.get('id', ''),
+        'iri': terminfo.get('iri', f"http://purl.obolibrary.org/obo/{terminfo.get('id', '')}"),
+        'label': terminfo.get('label', ''),
+        'types': terminfo.get('tags', []),
+        'unique_facets': terminfo.get('tags', []),
+        'symbol': terminfo.get('symbol', '')
+    }
+    
+    # Create the term structure
+    term = {
+        'core': core,
+        'description': [terminfo.get('description', '')],
+        'comment': [],
+        'iri': '',
+        'link': terminfo.get('link', ''),
+        'icon': terminfo.get('logo', '')
+    }
+    
+    # Create the minimal VfbTerminfo structure
+    structured_data = {
+        'term': term,
+        'query': 'Get JSON for Term',
+        'version': terminfo.get('version', ''),
+        'xrefs': []
+    }
+    
+    # Add additional fields from the original terminfo if they exist
+    if 'parents_id' in terminfo and 'parents_label' in terminfo:
+        parents = []
+        for i, parent_id in enumerate(terminfo['parents_id']):
+            if i < len(terminfo['parents_label']):
+                parent_label = terminfo['parents_label'][i]
+                parents.append({
+                    'short_form': parent_id,
+                    'iri': f"http://purl.obolibrary.org/obo/{parent_id}",
+                    'label': parent_label,
+                    'types': [],
+                    'unique_facets': [],
+                    'symbol': ''
+                })
+        structured_data['parents'] = parents
+    
+    return from_dict(data_class=VfbTerminfo, data=structured_data)
 
 
 def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template: Optional[str] = None, show_types=False) -> dict:

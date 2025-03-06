@@ -1284,5 +1284,3 @@ def fill_query_results(term_info):
         else:
             print("Preview key not found or preview is 0")
     return term_info
-``` 
-

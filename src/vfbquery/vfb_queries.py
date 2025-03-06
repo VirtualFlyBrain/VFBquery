@@ -265,37 +265,37 @@ def encode_markdown_links(df, columns):
     :param columns: List of column names to apply encoding to.
     """
     def encode_label(label):
+        if not isinstance(label, str):
+            return label
+            
         try:
-            # Check if label starts with image markdown syntax
+            # Process linked images (format: [![alt text](image_url "title")](link))
             if label.startswith("[!["):
-                parts = label.split("](")
-                if len(parts) < 3:
-                    # Not enough parts, possibly malformed input; return original label
+                # Split into image part and link part
+                parts = label.split(")](")
+                if len(parts) < 2:
                     return label
                 
-                image_markdown, link_url = parts[0], parts[2]
-                # Further split the image markdown to extract label, image URL, and title
-                image_parts = image_markdown.split('[')[2].split('](')
+                image_part = parts[0]
+                link_part = parts[1]
+                
+                # Process the image part
+                image_parts = image_part.split("](")
                 if len(image_parts) < 2:
-                    # Not enough parts after second split; return original label
                     return label
                 
-                image_label, image_details = image_parts[0], image_parts[1]
-                image_url, image_title = image_details.rsplit("'", 1)[0].rsplit(" '", 1)
+                alt_text = image_parts[0][3:]  # Remove the "[![" prefix
+                # Encode brackets in alt text
+                alt_text_encoded = encode_brackets(alt_text)
                 
-                # Encode brackets in the image label and title
-                image_label_encoded = encode_brackets(image_label)
-                image_title_encoded = encode_brackets(image_title)
-                
-                # Reconstruct the image markdown and the full markdown link
-                encoded_image_markdown = f"[![{image_label_encoded}]({image_url} '{image_title_encoded}')]({link_url}"
-                return encoded_image_markdown
+                # Reconstruct the linked image with encoded alt text
+                encoded_label = f"[![{alt_text_encoded}]({image_parts[1]})]({link_part}"
+                return encoded_label
             
             # Process regular markdown links
-            elif '(' in label and ')' in label:
-                parts = label.split('](')
+            elif label.startswith("[") and "](" in label:
+                parts = label.split("](")
                 if len(parts) < 2:
-                    # Not enough parts for a valid markdown link; return original label
                     return label
                 
                 label_part = parts[0][1:]  # Remove the leading '['
@@ -304,6 +304,7 @@ def encode_markdown_links(df, columns):
                 # Reconstruct the markdown link with the encoded label
                 encoded_label = f"[{label_part_encoded}]({parts[1]}"
                 return encoded_label
+                
         except Exception as e:
             # In case of any other unexpected error, log or print the error and return the original label
             print(f"Error processing label: {label}, error: {e}")

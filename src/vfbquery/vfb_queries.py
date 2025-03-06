@@ -231,6 +231,8 @@ class TermInfoOutputSchema(Schema):
     IsTemplate = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
     Licenses = fields.Dict(keys=fields.Integer(), values=fields.Nested(LicenseSchema()), required=False, allow_none=True)
+    Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
+    Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False, allow_none=True)
 
     @post_load
     def make_term_info(self, data, **kwargs):
@@ -432,7 +434,7 @@ def term_info_parse_object(results, short_form):
                 record = {}
                 record["id"] = image.anatomy.short_form
                 label = image.anatomy.label
-                if image.anatomy.symbol != "" and len(image.anatomy.symbol) > 0:
+                if image.anatomy.symbol and len(image.anatomy.symbol) > 0:
                     label = image.anatomy.symbol
                 record["label"] = label
                 if not image.channel_image.image.template_anatomy.short_form in images.keys():
@@ -455,7 +457,7 @@ def term_info_parse_object(results, short_form):
                 record = {}
                 record["id"] = vfbTerm.term.core.short_form
                 label = vfbTerm.term.core.label
-                if vfbTerm.term.core.symbol != "" and len(vfbTerm.term.core.symbol) > 0:
+                if vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
                     label = vfbTerm.term.core.symbol
                 record["label"] = label
                 if not image.image.template_anatomy.short_form in images.keys():
@@ -550,6 +552,109 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
             q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
             queries.append(q)
+        
+        # Add Publications to the termInfo object
+        if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
+            publications = []
+            for pub in vfbTerm.pubs:
+                if pub.get_miniref():
+                    publication = {}
+                    publication["title"] = pub.core.label if pub.core.label else ""
+                    publication["short_form"] = pub.core.short_form if pub.core.short_form else ""
+                    publication["microref"] = pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else ""
+                    
+                    # Add external references
+                    refs = []
+                    if pub.PubMed:
+                        refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={pub.PubMed}")
+                    if pub.FlyBase:
+                        refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
+                    if pub.DOI:
+                        refs.append(f"https://doi.org/{pub.DOI}")
+                    
+                    publication["refs"] = refs
+                    publications.append(publication)
+            
+            termInfo["Publications"] = publications
+
+        # Add Synonyms for Class entities
+        if termInfo["SuperTypes"] and "Class" in termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
+            synonyms = []
+            for syn in vfbTerm.pub_syn:
+                if hasattr(syn, 'synonym') and syn.synonym:
+                    synonym = {}
+                    synonym["label"] = syn.synonym.label if hasattr(syn.synonym, 'label') else ""
+                    synonym["scope"] = syn.synonym.scope if hasattr(syn.synonym, 'scope') else "exact"
+                    synonym["type"] = syn.synonym.type if hasattr(syn.synonym, 'type') else "synonym"
+                    
+                    # Add publication if available
+                    if hasattr(syn, 'pub') and syn.pub and hasattr(syn.pub, 'get_microref'):
+                        synonym["publication"] = syn.pub.get_microref()
+                    
+                    synonyms.append(synonym)
+            
+            # Only add the synonyms if we found any
+            if synonyms:
+                termInfo["Synonyms"] = synonyms
+
+        # Alternative approach for extracting synonyms from relationships
+        if "Class" in termInfo["SuperTypes"] and vfbTerm.relationships and len(vfbTerm.relationships) > 0:
+            synonyms = []
+            for relationship in vfbTerm.relationships:
+                if (relationship.relation.label == "has_exact_synonym" or 
+                    relationship.relation.label == "has_broad_synonym" or 
+                    relationship.relation.label == "has_narrow_synonym"):
+                    
+                    synonym = {}
+                    synonym["label"] = relationship.object.label
+                    
+                    # Determine scope based on relation type
+                    if relationship.relation.label == "has_exact_synonym":
+                        synonym["scope"] = "exact"
+                    elif relationship.relation.label == "has_broad_synonym":
+                        synonym["scope"] = "broad"
+                    elif relationship.relation.label == "has_narrow_synonym":
+                        synonym["scope"] = "narrow"
+                    
+                    synonym["type"] = "synonym"
+                    synonyms.append(synonym)
+            
+            # Only add the synonyms if we found any
+            if synonyms and "Synonyms" not in termInfo:
+                termInfo["Synonyms"] = synonyms
+
+        # Special handling for Publication entities
+        if termInfo["SuperTypes"] and "Publication" in termInfo["SuperTypes"] and vfbTerm.pub_specific_content:
+            publication = {}
+            publication["title"] = vfbTerm.pub_specific_content.title if hasattr(vfbTerm.pub_specific_content, 'title') else ""
+            publication["short_form"] = vfbTerm.term.core.short_form
+            publication["microref"] = termInfo["Name"]
+            
+            # Add external references
+            refs = []
+            if hasattr(vfbTerm.pub_specific_content, 'PubMed') and vfbTerm.pub_specific_content.PubMed:
+                refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={vfbTerm.pub_specific_content.PubMed}")
+            if hasattr(vfbTerm.pub_specific_content, 'FlyBase') and vfbTerm.pub_specific_content.FlyBase:
+                refs.append(f"http://flybase.org/reports/{vfbTerm.pub_specific_content.FlyBase}")
+            if hasattr(vfbTerm.pub_specific_content, 'DOI') and vfbTerm.pub_specific_content.DOI:
+                refs.append(f"https://doi.org/{vfbTerm.pub_specific_content.DOI}")
+            
+            publication["refs"] = refs
+            termInfo["Publications"] = [publication]
+
+        # Append new synonyms to any existing ones
+        if synonyms:
+            if "Synonyms" not in termInfo:
+                termInfo["Synonyms"] = synonyms
+            else:
+                # Create a set of existing synonym labels to avoid duplicates
+                existing_labels = {syn["label"] for syn in termInfo["Synonyms"]}
+                # Only append synonyms that don't already exist
+                for synonym in synonyms:
+                    if synonym["label"] not in existing_labels:
+                        termInfo["Synonyms"].append(synonym)
+                        existing_labels.add(synonym["label"])
+
         # Add the queries to the term info
         termInfo["Queries"] = queries
 

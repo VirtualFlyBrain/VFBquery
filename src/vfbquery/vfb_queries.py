@@ -2,7 +2,7 @@ import pysolr
 from .term_info_queries import deserialize_term_info
 from vfb_connect.cross_server_tools import VfbConnect, dict_cursor
 from marshmallow import Schema, fields, post_load
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any, Union
 import pandas as pd
 from marshmallow import ValidationError
 import json
@@ -327,17 +327,21 @@ def term_info_parse_object(results, short_form):
         except KeyError:
             print(f"SOLR doc missing 'term_info': {results.docs[0]}")
             return None
+        except Exception as e:
+            print(f"Error deserializing term info: {e}")
+            return None
+            
         queries = []
         # Initialize synonyms variable to avoid UnboundLocalError
         synonyms = []
         termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(encode_brackets(vfbTerm.term.core.label), vfbTerm.term.core.short_form)
         mainlabel = vfbTerm.term.core.label
-        if vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
+        if hasattr(vfbTerm.term.core, 'symbol') and vfbTerm.term.core.symbol and len(vfbTerm.term.core.symbol) > 0:
             termInfo["Meta"]["Symbol"] = "[%s](%s)"%(encode_brackets(vfbTerm.term.core.symbol), vfbTerm.term.core.short_form)
             mainlabel = vfbTerm.term.core.symbol
         termInfo["Name"] = mainlabel
-        termInfo["SuperTypes"] = vfbTerm.term.core.types
+        termInfo["SuperTypes"] = vfbTerm.term.core.types if hasattr(vfbTerm.term.core, 'types') else []
         if "Class" in termInfo["SuperTypes"]:
             termInfo["IsClass"] = True
         elif "Individual" in termInfo["SuperTypes"]:
@@ -345,22 +349,21 @@ def term_info_parse_object(results, short_form):
         try:
             # Retrieve tags from the term's unique_facets attribute
             termInfo["Tags"] = vfbTerm.term.core.unique_facets
-        except NameError:
+        except (NameError, AttributeError):
             # If unique_facets attribute doesn't exist, use the term's types
-            termInfo["Tags"] = vfbTerm.term.core.types
+            termInfo["Tags"] = vfbTerm.term.core.types if hasattr(vfbTerm.term.core, 'types') else []
         try:
             # Retrieve description from the term's description attribute
             termInfo["Meta"]["Description"] = "%s"%("".join(vfbTerm.term.description))
-        except NameError:
+        except (NameError, AttributeError):
             pass
         try:
             # Retrieve comment from the term's comment attribute
             termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
-        except NameError:
+        except (NameError, AttributeError):
             pass
-        except AttributeError:
-            print(f"vfbTerm.term.comment: {vfbTerm.term}")
-        if vfbTerm.parents and len(vfbTerm.parents) > 0:
+        
+        if hasattr(vfbTerm, 'parents') and vfbTerm.parents and len(vfbTerm.parents) > 0:
             parents = []
 
             # Sort the parents alphabetically
@@ -370,37 +373,45 @@ def term_info_parse_object(results, short_form):
                 parents.append("[%s](%s)"%(encode_brackets(parent.label), parent.short_form))
             termInfo["Meta"]["Types"] = "; ".join(parents)
 
-        if vfbTerm.relationships and len(vfbTerm.relationships) > 0:
+        if hasattr(vfbTerm, 'relationships') and vfbTerm.relationships and len(vfbTerm.relationships) > 0:
             relationships = []
             pubs_from_relationships = [] # New: Collect publication references from relationships
 
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
             for relationship in vfbTerm.relationships:
-                if relationship.relation.short_form:
+                if hasattr(relationship.relation, 'short_form') and relationship.relation.short_form:
                     relation_key = (relationship.relation.label, relationship.relation.short_form)
-                elif relationship.relation.iri:
+                elif hasattr(relationship.relation, 'iri') and relationship.relation.iri:
                     relation_key = (relationship.relation.label, relationship.relation.iri.split('/')[-1])
-                elif relationship.relation.label:
+                elif hasattr(relationship.relation, 'label') and relationship.relation.label:
                     relation_key = (relationship.relation.label, relationship.relation.label)
-                object_key = (relationship.object.label, relationship.object.short_form)
+                else:
+                    # Skip relationships with no identifiable relation
+                    continue
+                    
+                if not hasattr(relationship, 'object') or not hasattr(relationship.object, 'label'):
+                    # Skip relationships with missing object information
+                    continue
+                    
+                object_key = (relationship.object.label, getattr(relationship.object, 'short_form', ''))
                 
                 # New: Extract publications from this relationship if they exist
                 if hasattr(relationship, 'pubs') and relationship.pubs:
                     for pub in relationship.pubs:
-                        if pub.get_miniref():
+                        if hasattr(pub, 'get_miniref') and pub.get_miniref():
                             publication = {}
-                            publication["title"] = pub.core.label if pub.core.label else ""
-                            publication["short_form"] = pub.core.short_form if pub.core.short_form else ""
+                            publication["title"] = pub.core.label if hasattr(pub, 'core') and hasattr(pub.core, 'label') else ""
+                            publication["short_form"] = pub.core.short_form if hasattr(pub, 'core') and hasattr(pub.core, 'short_form') else ""
                             publication["microref"] = pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else ""
                             
                             # Add external references
                             refs = []
-                            if pub.PubMed:
+                            if hasattr(pub, 'PubMed') and pub.PubMed:
                                 refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={pub.PubMed}")
-                            if pub.FlyBase:
+                            if hasattr(pub, 'FlyBase') and pub.FlyBase:
                                 refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
-                            if pub.DOI:
+                            if hasattr(pub, 'DOI') and pub.DOI:
                                 refs.append(f"https://doi.org/{pub.DOI}")
                             
                             publication["refs"] = refs
@@ -434,34 +445,6 @@ def term_info_parse_object(results, short_form):
                         if pub.get("short_form", "") not in existing_pub_short_forms:
                             termInfo["Publications"].append(pub)
                             existing_pub_short_forms.add(pub.get("short_form", ""))
-
-        if vfbTerm.xrefs and len(vfbTerm.xrefs) > 0:
-            xrefs = []
-
-            # Group xrefs by site
-            grouped_xrefs = {}
-            for xref in vfbTerm.xrefs:
-                site_key = (xref.site.label, xref.homepage, xref.icon)
-                link_key = (xref.accession, xref.link())
-                if site_key not in grouped_xrefs:
-                    grouped_xrefs[site_key] = set()
-                grouped_xrefs[site_key].add(link_key)
-
-            # Sort the grouped_xrefs by site_key
-            sorted_grouped_xrefs = dict(sorted(grouped_xrefs.items()))
-
-            # Append the grouped xrefs to termInfo
-            for site_key, link_set in sorted_grouped_xrefs.items():
-                # Sort the link_set by link_key
-                sorted_link_set = sorted(list(link_set))
-                links = []
-                for link_key in sorted_link_set:
-                    links.append("[%s](%s)" % (link_key[0], link_key[1]))
-                if site_key[2]:
-                    xrefs.append("![%s](%s) [%s](%s): %s" % (site_key[0], site_key[2], site_key[0], site_key[1], ', '.join(links)))
-                else:
-                    xrefs.append("[%s](%s): %s" % (site_key[0], site_key[1], ', '.join(links)))
-            termInfo["Meta"]["Cross References"] = "; ".join(xrefs)
 
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
@@ -708,7 +691,12 @@ def term_info_parse_object(results, short_form):
     if "Queries" in termInfo:
         termInfo["Queries"] = [query.to_dict() for query in termInfo["Queries"]]
     # print("termInfo object before schema validation:", termInfo)
-    return TermInfoOutputSchema().load(termInfo)
+    try:
+        return TermInfoOutputSchema().load(termInfo)
+    except ValidationError as e:
+        print(f"Validation error when parsing term info: {e}")
+        # Return the raw termInfo as a fallback
+        return termInfo
 
 def NeuronInputsTo_to_schema(name, take_default):
     query = "NeuronInputsTo"
@@ -772,27 +760,35 @@ def get_term_info(short_form: str, preview: bool = False):
         results = vfb_solr.search('id:' + short_form)
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
-        term_info = fill_query_results(parsed_object)
-        if not term_info:
-            print("Failed to fill query preview results!")
-            return term_info
-        return parsed_object
+        if parsed_object:
+            term_info = fill_query_results(parsed_object)
+            if not term_info:
+                print("Failed to fill query preview results!")
+                return parsed_object
+            return parsed_object
+        else:
+            print(f"No valid term info found for ID '{short_form}'")
+            return None
     except ValidationError as e:
         # handle the validation error
         print("Schema validation error when parsing response")
         print("Error details:", e)
         print("Original data:", results)
         print("Parsed object:", parsed_object)
+        return parsed_object
     except IndexError as e:
         print(f"No results found for ID '{short_form}'")
         print("Error details:", e)
         if parsed_object:
             print("Parsed object:", parsed_object)
-            if term_info: 
+            if 'term_info' in locals():
                 print("Term info:", term_info)
         else:
             print("Error accessing SOLR server!")
-
+        return None
+    except Exception as e:
+        print(f"Unexpected error when retrieving term info: {type(e).__name__}: {e}")
+        return parsed_object
 
 def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
@@ -1288,4 +1284,5 @@ def fill_query_results(term_info):
         else:
             print("Preview key not found or preview is 0")
     return term_info
+``` 
 

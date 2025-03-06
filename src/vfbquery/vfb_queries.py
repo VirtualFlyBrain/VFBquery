@@ -328,6 +328,8 @@ def term_info_parse_object(results, short_form):
             print(f"SOLR doc missing 'term_info': {results.docs[0]}")
             return None
         queries = []
+        # Initialize synonyms variable to avoid UnboundLocalError
+        synonyms = []
         termInfo["Id"] = vfbTerm.term.core.short_form
         termInfo["Meta"]["Name"] = "[%s](%s)"%(encode_brackets(vfbTerm.term.core.label), vfbTerm.term.core.short_form)
         mainlabel = vfbTerm.term.core.label

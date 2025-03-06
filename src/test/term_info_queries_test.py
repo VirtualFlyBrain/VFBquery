@@ -38,7 +38,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_deserialization_from_dict(self):
-        vfbTerm = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048514'], "Get JSON for Neuron Class")[0]
+        vfbTerm = self.vc.get_TermInfo(['FBbt_00048514'], return_dataframe=False)[0]
         start_time = time.time()
         terminfo = deserialize_term_info_from_dict(vfbTerm)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -68,7 +68,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_serialization_individual_anatomy(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00010001'], "Get JSON for Individual")[0]
+        term_info_dict = self.vc.get_TermInfo(['VFB_00010001'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -152,7 +152,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("[JRC2018Unisex](VFB_00101567)", serialized["template"])
 
     def test_term_info_serialization_class(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048531'], "Get JSON for Class")[0]
+        term_info_dict = self.vc.get_TermInfo(['FBbt_00048531'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -202,7 +202,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00048999'], "Get JSON for Neuron Class")[0]
+        term_info_dict = self.vc.get_TermInfo(['FBbt_00048999'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -268,7 +268,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class2(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBbt_00047030'], "Get JSON for Neuron Class")[0]
+        term_info_dict = self.vc.get_TermInfo(['FBbt_00047030'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -329,7 +329,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_split_class(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBexp_FBtp0124468FBtp0133404'], "Get JSON for Split Class")[0]
+        term_info_dict = self.vc.get_TermInfo(['VFBexp_FBtp0124468FBtp0133404'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -383,7 +383,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_dataset(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['Ito2013'], "Get JSON for DataSet")[0]
+        term_info_dict = self.vc.get_TermInfo(['Ito2013'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -456,7 +456,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_license(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFBlicense_CC_BY_NC_3_0'], "Get JSON for License")[0]
+        term_info_dict = self.vc.get_TermInfo(['VFBlicense_CC_BY_NC_3_0'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -493,7 +493,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_template(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['VFB_00200000'], "Get JSON for Template")[0]
+        term_info_dict = self.vc.get_TermInfo(['VFB_00200000'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -554,7 +554,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])
 
     def test_term_info_serialization_pub(self):
-        term_info_dict = self.vc.neo_query_wrapper._get_TermInfo(['FBrf0243986'], "Get JSON for pub")[0]
+        term_info_dict = self.vc.get_TermInfo(['FBrf0243986'], return_dataframe=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)

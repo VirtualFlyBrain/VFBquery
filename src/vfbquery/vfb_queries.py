@@ -621,8 +621,18 @@ def term_info_parse_object(results, short_form):
                     synonym["scope"] = syn.synonym.scope if hasattr(syn.synonym, 'scope') else "exact"
                     synonym["type"] = syn.synonym.type if hasattr(syn.synonym, 'type') else "synonym"
                     
-                    # Add publication if available
-                    if hasattr(syn, 'pub') and syn.pub and hasattr(syn.pub, 'get_microref'):
+                    # Enhanced publication handling - handle multiple publications
+                    if hasattr(syn, 'pubs') and syn.pubs:
+                        pub_refs = []
+                        for pub in syn.pubs:
+                            if hasattr(pub, 'get_microref') and pub.get_microref():
+                                pub_refs.append(pub.get_microref())
+                        
+                        if pub_refs:
+                            # Join multiple publication references with commas
+                            synonym["publication"] = ", ".join(pub_refs)
+                    # Fallback to single pub if pubs collection not available
+                    elif hasattr(syn, 'pub') and syn.pub and hasattr(syn.pub, 'get_microref'):
                         synonym["publication"] = syn.pub.get_microref()
                     
                     synonyms.append(synonym)

@@ -35,7 +35,7 @@ jobs:
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/results.append(\1)/g' >> test_examples.py
           echo 'from src.vfbquery.term_info_queries import *' > test_results.py
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' | sed 's/\btrue\b/True/g' | sed 's/\bfalse\b/False/g' >> test_results.py
-          pip install colorama
+          pip install colorama deepdiff
           python -c """
           import sys
           import json
@@ -84,9 +84,11 @@ jobs:
                     print(f'\\n{Fore.YELLOW}Changed values:{Style.RESET_ALL}')
                     for key, value in diff['values_changed'].items():
                         path = key.replace('root', '')
+                        old_val = value.get('old_value', 'N/A')
+                        new_val = value.get('new_value', 'N/A')
                         print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
-                        print(f'    {Fore.RED}- {value["old_value"]}{Style.RESET_ALL}')
-                        print(f'    {Fore.GREEN}+ {value["new_value"]}{Style.RESET_ALL}')
+                        print(f'    {Fore.RED}- {old_val}{Style.RESET_ALL}')
+                        print(f'    {Fore.GREEN}+ {new_val}{Style.RESET_ALL}')
                 
                 if 'iterable_item_added' in diff:
                     print(f'\\n{Fore.GREEN}Added list items:{Style.RESET_ALL}')
@@ -100,21 +102,33 @@ jobs:
                         path = key.replace('root', '')
                         print(f'  {Fore.RED}-{path}: {value}{Style.RESET_ALL}')
                         
-                # Check for list order differences even though we're ignoring them for the comparison
                 if 'type_changes' in diff:
                     print(f'\\n{Fore.YELLOW}Type changes:{Style.RESET_ALL}')
                     for key, value in diff['type_changes'].items():
                         path = key.replace('root', '')
+                        old_type = type(value.get('old_value', 'N/A')).__name__
+                        new_type = type(value.get('new_value', 'N/A')).__name__
+                        old_val = value.get('old_value', 'N/A')
+                        new_val = value.get('new_value', 'N/A')
                         print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
-                        print(f'    {Fore.RED}- {type(value["old_value"]).__name__}: {value["old_value"]}{Style.RESET_ALL}')
-                        print(f'    {Fore.GREEN}+ {type(value["new_value"]).__name__}: {value["new_value"]}{Style.RESET_ALL}')
-            
+                        print(f'    {Fore.RED}- {old_type}: {old_val}{Style.RESET_ALL}')
+                        print(f'    {Fore.GREEN}+ {new_type}: {new_val}{Style.RESET_ALL}')
+
+                # Print a summary of the differences
+                print(f'\\n{Fore.YELLOW}Summary of differences:{Style.RESET_ALL}')
+                print(f'  {Fore.GREEN}Added:{Style.RESET_ALL} {len(diff.get("dictionary_item_added", []))} keys, {len(diff.get("iterable_item_added", {}))} list items')
+                print(f'  {Fore.RED}Removed:{Style.RESET_ALL} {len(diff.get("dictionary_item_removed", []))} keys, {len(diff.get("iterable_item_removed", {}))} list items')
+                print(f'  {Fore.YELLOW}Changed:{Style.RESET_ALL} {len(diff.get("values_changed", {}))} values, {len(diff.get("type_changes", {}))} type changes')
+          
+            else:
+                print(f'\\n{Fore.GREEN}Example #{i+1}: ✓ PASS{Style.RESET_ALL}')
+          
           if failed:
               print(f'\\n{Fore.RED}Some examples failed. Please check the differences above.{Style.RESET_ALL}')
               sys.exit(1)
           else:
               print(f'\\n{Fore.GREEN}All examples passed!{Style.RESET_ALL}')
-          sys.stdout = sys.__stdout__"""
+          """
         shell: /usr/bin/bash -e {0}
         env:
           pythonLocation: /opt/hostedtoolcache/Python/3.8.16/x64

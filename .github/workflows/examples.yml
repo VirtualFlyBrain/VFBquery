@@ -35,6 +35,7 @@ jobs:
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/results.append(\1)/g' >> test_examples.py
           echo 'from src.vfbquery.term_info_queries import *' > test_results.py
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' | sed 's/\btrue\b/True/g' | sed 's/\bfalse\b/False/g' >> test_results.py
+          pip install colorama
           python -c """
           import sys
           import json
@@ -42,31 +43,80 @@ jobs:
           from deepdiff import DeepDiff
           from io import StringIO
           from test_results import results
+          from colorama import Fore, Back, Style, init
+          init(autoreset=True)
+
           json_blocks = results
           from test_examples import results
           python_blocks = results
 
           print(f'Found {len(python_blocks)} Python code blocks')
           print(f'Found {len(json_blocks)} JSON blocks')
-      
-          for python_code, expected_json in zip(python_blocks, json_blocks):
+
+          failed = False
+          
+          for i, (python_code, expected_json) in enumerate(zip(python_blocks, json_blocks)):
             # Compare the output JSON with the expected JSON
-            diff = DeepDiff(expected_json, python_code, ignore_order=True, ignore_numeric_type_changes=True)
-      
+            diff = DeepDiff(expected_json, python_code, 
+                           ignore_order=True, 
+                           ignore_numeric_type_changes=True,
+                           report_repetition=True,
+                           verbose_level=2)
+            
             if diff:
-                print('Error in example:')
-                print('Expected JSON:')
-                print(expected_json)
-                print('Output JSON:')
-                print(python_code)
-                print('Difference:')
-                print(diff)
-                sys.exit(1)
-      
-          print('All examples passed.')
+                failed = True
+                print(f'\\n{Fore.RED}Error in example #{i+1}:{Style.RESET_ALL}')
+                
+                # Print a cleaner diff output
+                if 'dictionary_item_added' in diff:
+                    print(f'\\n{Fore.GREEN}Added keys:{Style.RESET_ALL}')
+                    for item in diff['dictionary_item_added']:
+                        key = item.replace('root', '')
+                        print(f'  {Fore.GREEN}+{key}{Style.RESET_ALL}')
+                
+                if 'dictionary_item_removed' in diff:
+                    print(f'\\n{Fore.RED}Removed keys:{Style.RESET_ALL}')
+                    for item in diff['dictionary_item_removed']:
+                        key = item.replace('root', '')
+                        print(f'  {Fore.RED}-{key}{Style.RESET_ALL}')
+                
+                if 'values_changed' in diff:
+                    print(f'\\n{Fore.YELLOW}Changed values:{Style.RESET_ALL}')
+                    for key, value in diff['values_changed'].items():
+                        path = key.replace('root', '')
+                        print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
+                        print(f'    {Fore.RED}- {value["old_value"]}{Style.RESET_ALL}')
+                        print(f'    {Fore.GREEN}+ {value["new_value"]}{Style.RESET_ALL}')
+                
+                if 'iterable_item_added' in diff:
+                    print(f'\\n{Fore.GREEN}Added list items:{Style.RESET_ALL}')
+                    for key, value in diff['iterable_item_added'].items():
+                        path = key.replace('root', '')
+                        print(f'  {Fore.GREEN}+{path}: {value}{Style.RESET_ALL}')
+                
+                if 'iterable_item_removed' in diff:
+                    print(f'\\n{Fore.RED}Removed list items:{Style.RESET_ALL}')
+                    for key, value in diff['iterable_item_removed'].items():
+                        path = key.replace('root', '')
+                        print(f'  {Fore.RED}-{path}: {value}{Style.RESET_ALL}')
+                        
+                # Check for list order differences even though we're ignoring them for the comparison
+                if 'type_changes' in diff:
+                    print(f'\\n{Fore.YELLOW}Type changes:{Style.RESET_ALL}')
+                    for key, value in diff['type_changes'].items():
+                        path = key.replace('root', '')
+                        print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
+                        print(f'    {Fore.RED}- {type(value["old_value"]).__name__}: {value["old_value"]}{Style.RESET_ALL}')
+                        print(f'    {Fore.GREEN}+ {type(value["new_value"]).__name__}: {value["new_value"]}{Style.RESET_ALL}')
+            
+          if failed:
+              print(f'\\n{Fore.RED}Some examples failed. Please check the differences above.{Style.RESET_ALL}')
+              sys.exit(1)
+          else:
+              print(f'\\n{Fore.GREEN}All examples passed!{Style.RESET_ALL}')
           sys.stdout = sys.__stdout__"""
         shell: /usr/bin/bash -e {0}
         env:
           pythonLocation: /opt/hostedtoolcache/Python/3.8.16/x64
           LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.8.16/x64/lib
-        
+

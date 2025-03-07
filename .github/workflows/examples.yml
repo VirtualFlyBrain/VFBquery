@@ -94,13 +94,21 @@ jobs:
                     print(f'\\n{Fore.GREEN}Added list items:{Style.RESET_ALL}')
                     for key, value in diff['iterable_item_added'].items():
                         path = key.replace('root', '')
-                        print(f'  {Fore.GREEN}+{path}: {value}{Style.RESET_ALL}')
+                        # For complex objects, just show the key and indicate it's a complex object
+                        if isinstance(value, (dict, list)):
+                            print(f'  {Fore.GREEN}+{path}: [complex object]{Style.RESET_ALL}')
+                        else:
+                            print(f'  {Fore.GREEN}+{path}: {value}{Style.RESET_ALL}')
                 
                 if 'iterable_item_removed' in diff:
                     print(f'\\n{Fore.RED}Removed list items:{Style.RESET_ALL}')
                     for key, value in diff['iterable_item_removed'].items():
                         path = key.replace('root', '')
-                        print(f'  {Fore.RED}-{path}: {value}{Style.RESET_ALL}')
+                        # For complex objects, just show the key and indicate it's a complex object
+                        if isinstance(value, (dict, list)):
+                            print(f'  {Fore.RED}-{path}: [complex object]{Style.RESET_ALL}')
+                        else:
+                            print(f'  {Fore.RED}-{path}: {value}{Style.RESET_ALL}')
                         
                 if 'type_changes' in diff:
                     print(f'\\n{Fore.YELLOW}Type changes:{Style.RESET_ALL}')
@@ -111,14 +119,21 @@ jobs:
                         old_val = value.get('old_value', 'N/A')
                         new_val = value.get('new_value', 'N/A')
                         print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
-                        print(f'    {Fore.RED}- {old_type}: {old_val}{Style.RESET_ALL}')
-                        print(f'    {Fore.GREEN}+ {new_type}: {new_val}{Style.RESET_ALL}')
+                        print(f'    {Fore.RED}- {old_type}: {str(old_val)[:100] + "..." if len(str(old_val)) > 100 else old_val}{Style.RESET_ALL}')
+                        print(f'    {Fore.GREEN}+ {new_type}: {str(new_val)[:100] + "..." if len(str(new_val)) > 100 else new_val}{Style.RESET_ALL}')
 
                 # Print a summary of the differences
                 print(f'\\n{Fore.YELLOW}Summary of differences:{Style.RESET_ALL}')
-                print(f'  {Fore.GREEN}Added:{Style.RESET_ALL} {len(diff.get("dictionary_item_added", []))} keys, {len(diff.get("iterable_item_added", {}))} list items')
-                print(f'  {Fore.RED}Removed:{Style.RESET_ALL} {len(diff.get("dictionary_item_removed", []))} keys, {len(diff.get("iterable_item_removed", {}))} list items')
-                print(f'  {Fore.YELLOW}Changed:{Style.RESET_ALL} {len(diff.get("values_changed", {}))} values, {len(diff.get("type_changes", {}))} type changes')
+                add_keys = len(diff.get('dictionary_item_added', []))
+                add_items = len(diff.get('iterable_item_added', {}))
+                rem_keys = len(diff.get('dictionary_item_removed', []))
+                rem_items = len(diff.get('iterable_item_removed', {}))
+                changed_vals = len(diff.get('values_changed', {}))
+                type_changes = len(diff.get('type_changes', {}))
+                
+                print(f'  {Fore.GREEN}Added:{Style.RESET_ALL} {add_keys} keys, {add_items} list items')
+                print(f'  {Fore.RED}Removed:{Style.RESET_ALL} {rem_keys} keys, {rem_items} list items')
+                print(f'  {Fore.YELLOW}Changed:{Style.RESET_ALL} {changed_vals} values, {type_changes} type changes')
           
             else:
                 print(f'\\n{Fore.GREEN}Example #{i+1}: ✓ PASS{Style.RESET_ALL}')

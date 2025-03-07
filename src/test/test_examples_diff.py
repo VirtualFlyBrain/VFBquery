@@ -62,12 +62,33 @@ def compare_objects(obj1, obj2, path=''):
                     f'    {Fore.GREEN}+ {obj2}{Style.RESET_ALL}']
         return []
 
+def stringify_numeric_keys(obj):
+    """Convert numeric dictionary keys to strings in nested objects"""
+    if isinstance(obj, dict):
+        result = {}
+        for k, v in obj.items():
+            # Convert numeric keys to strings
+            if isinstance(k, (int, float)):
+                key = str(k)
+            else:
+                key = k
+            # Recursively process nested structures
+            result[key] = stringify_numeric_keys(v)
+        return result
+    elif isinstance(obj, list):
+        return [stringify_numeric_keys(item) for item in obj]
+    else:
+        return obj
+
 def format_for_readme(data):
     """Format data as nicely formatted JSON for README.md"""
     try:
+        # First stringify any numeric dictionary keys
+        data_with_string_keys = stringify_numeric_keys(data)
+        
         # Use json.dumps with indentation for pretty printing
         # Use custom encoder to handle NumPy types
-        formatted = json.dumps(data, indent=3, cls=NumpyEncoder)
+        formatted = json.dumps(data_with_string_keys, indent=3, cls=NumpyEncoder)
         
         # Replace 'true' and 'false' with 'True' and 'False' for Python compatibility
         formatted = formatted.replace('true', 'True').replace('false', 'False')

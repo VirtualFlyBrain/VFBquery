@@ -48,6 +48,22 @@ def compare_objects(obj1, obj2, path=''):
                     f'    {Fore.GREEN}+ {obj2}{Style.RESET_ALL}']
         return []
 
+def format_for_readme(data):
+    """Format data as nicely formatted JSON for README.md"""
+    try:
+        # Use json.dumps with indentation for pretty printing
+        # Indent with 3 spaces to match your README style
+        formatted = json.dumps(data, indent=3)
+        
+        # Replace 'true' and 'false' with 'True' and 'False' for Python compatibility
+        formatted = formatted.replace('true', 'True').replace('false', 'False')
+        
+        # Format as markdown code block
+        result = "```json\n" + formatted + "\n```"
+        return result
+    except Exception as e:
+        return f"Error formatting JSON: {str(e)}"
+
 def main():
     init(autoreset=True)
     
@@ -222,6 +238,14 @@ def main():
             print(f'  {Fore.GREEN}Added:{Style.RESET_ALL} {add_keys} keys, {add_items} list items')
             print(f'  {Fore.RED}Removed:{Style.RESET_ALL} {rem_keys} keys, {rem_items} list items')
             print(f'  {Fore.YELLOW}Changed:{Style.RESET_ALL} {changed_vals} values, {type_changes} type changes')
+
+            # After printing the summary, add the formatted output for README
+            print(f'\n{Fore.CYAN}Suggested README update for example #{i+1}:{Style.RESET_ALL}')
+            
+            # Mark a clear copy-paste section
+            print(f'\n{Fore.CYAN}--- COPY FROM HERE ---{Style.RESET_ALL}')
+            print(format_for_readme(python_code).replace('\033[36m', '').replace('\033[0m', ''))
+            print(f'{Fore.CYAN}--- END COPY ---{Style.RESET_ALL}')
       
         else:
             print(f'\n{Fore.GREEN}Example #{i+1}: ✓ PASS{Style.RESET_ALL}')

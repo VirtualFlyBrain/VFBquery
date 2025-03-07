@@ -4,6 +4,20 @@ import vfbquery as vfb
 from deepdiff import DeepDiff
 from io import StringIO
 from colorama import Fore, Back, Style, init
+import numpy as np
+
+# Custom JSON encoder to handle NumPy types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super(NumpyEncoder, self).default(obj)
 
 def get_brief_dict_representation(d, max_items=3, max_len=50):
     '''Create a brief representation of a dictionary'''
@@ -52,8 +66,8 @@ def format_for_readme(data):
     """Format data as nicely formatted JSON for README.md"""
     try:
         # Use json.dumps with indentation for pretty printing
-        # Indent with 3 spaces to match your README style
-        formatted = json.dumps(data, indent=3)
+        # Use custom encoder to handle NumPy types
+        formatted = json.dumps(data, indent=3, cls=NumpyEncoder)
         
         # Replace 'true' and 'false' with 'True' and 'False' for Python compatibility
         formatted = formatted.replace('true', 'True').replace('false', 'False')

@@ -13,6 +13,9 @@ def extract_code_blocks(readme_path):
     with open(readme_path, 'r') as f:
         content = f.read()
     
+    # First strip outer markdown blocks
+    content = re.sub(r'````markdown(.*?)````', r'\1', content, flags=re.DOTALL)
+
     # Extract Python code blocks
     python_pattern = r'```python(.*?)```'
     python_blocks = re.findall(python_pattern, content, re.DOTALL)

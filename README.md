@@ -16,7 +16,6 @@ Class example:
 ```python
 vfb.get_term_info('FBbt_00003748')
 ```
-
 ```json
 {
    "Name": "medulla",
@@ -210,7 +209,6 @@ Individual example:
 ```python
 vfb.get_term_info('VFB_00000001')
 ```
-
 ```json
 {
    "Name": "fru-M-200266",

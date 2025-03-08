@@ -49,6 +49,7 @@ def generate_python_file(python_blocks, output_path):
     Generates a Python file containing the extracted code blocks wrapped in a results list.
     """
     with open(output_path, 'w') as f:
+        f.write('import vfbquery as vfb\n\n')  # Add import statement
         f.write('results = []\n')
         for block in python_blocks:
             f.write(f'results.append({block})\n')

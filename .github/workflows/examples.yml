@@ -29,12 +29,14 @@ jobs:
           cat test_examples.py
           python test_examples.py
 
+      - name: Parse README.md and generate test files
+        run: |
+          python -m src.test.readme_parser
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run examples from README.md and compare JSON outputs
         run: |
-          echo 'results = []' > test_examples.py
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/results.append(\1)/g' >> test_examples.py
-          echo 'from src.vfbquery.term_info_queries import *' > test_results.py
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' | sed 's/\btrue\b/True/g' | sed 's/\bfalse\b/False/g' >> test_results.py
           python -m src.test.test_examples_diff
         env:
           PYTHONPATH: ${{ github.workspace }}

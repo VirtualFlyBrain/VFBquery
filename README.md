@@ -1085,7 +1085,6 @@ Queries:
 ```python
 vfb.get_instances('FBbt_00003748', return_dataframe=False)
 ```
-
 ```json
 {
    "headers": {

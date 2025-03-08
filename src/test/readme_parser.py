@@ -13,15 +13,12 @@ def extract_code_blocks(readme_path):
     with open(readme_path, 'r') as f:
         content = f.read()
     
-    # First strip outer markdown blocks
-    content = re.sub(r'````markdown(.*?)````', r'\1', content, flags=re.DOTALL)
-
-    # Extract Python code blocks
-    python_pattern = r'```python(.*?)```'
+    # Extract Python code blocks with proper anchoring to avoid nested confusion
+    python_pattern = r'```python\s*(.*?)\s*```'
     python_blocks = re.findall(python_pattern, content, re.DOTALL)
     
-    # Extract JSON code blocks
-    json_pattern = r'```json(.*?)```'
+    # Extract JSON code blocks with proper anchoring
+    json_pattern = r'```json\s*(.*?)\s*```'
     json_blocks = re.findall(json_pattern, content, re.DOTALL)
     
     # Process Python blocks to extract vfb calls

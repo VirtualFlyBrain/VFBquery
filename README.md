@@ -124,6 +124,7 @@ vfb.get_term_info('FBbt_00003748')
       }
    ],
    "IsIndividual": False,
+   "Images": {},
    "IsClass": True,
    "Examples": {
       "VFB_00030786": [
@@ -172,6 +173,9 @@ vfb.get_term_info('FBbt_00003748')
       ]
    },
    "IsTemplate": False,
+   "Domains": {},
+   "Licenses": {},
+   "Publications": [],
    "Synonyms": [
       {
          "label": "ME",
@@ -366,7 +370,9 @@ vfb.get_term_info('VFB_00000001')
       ]
    },
    "IsClass": False,
+   "Examples": {},
    "IsTemplate": False,
+   "Domains": {},
    "Licenses": {
       "0": {
          "iri": "http://virtualflybrain.org/reports/VFBlicense_FlyCircuit_License",
@@ -376,7 +382,9 @@ vfb.get_term_info('VFB_00000001')
          "source": "FlyCircuit 1.0 - single neurons (Chiang2010)",
          "source_iri": "http://virtualflybrain.org/reports/Chiang2010"
       }
-   }
+   },
+   "Publications": [],
+   "Synonyms": []
 }
 ```
 
@@ -443,6 +451,7 @@ vfb.get_term_info('VFB_00101567')
       ]
    },
    "IsClass": False,
+   "Examples": {},
    "IsTemplate": True,
    "Domains": {
       "0": {
@@ -1019,7 +1028,9 @@ vfb.get_term_info('VFB_00101567')
          "source": "JRC 2018 templates & ROIs",
          "source_iri": "http://virtualflybrain.org/reports/JRC2018"
       }
-   }
+   },
+   "Publications": [],
+   "Synonyms": []
 }
 ```
 

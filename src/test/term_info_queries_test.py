@@ -45,7 +45,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         print(vfbTerm)
         print(terminfo)
 
-        self.assertEqual("Get JSON for Neuron Class", terminfo.query)
+        self.assertEqual("Get JSON for Term", terminfo.query)
 
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
@@ -79,7 +79,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("symbol" in serialized)
         self.assertFalse("logo" in serialized)
         self.assertFalse("link" in serialized)
-        self.assertEqual(12, len(serialized["types"]))
+        self.assertEqual(14, len(serialized["types"]))
         self.assertEqual("OutAge: Adult 5~15 days", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(1, len(serialized["license"]))
@@ -165,7 +165,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(4, len(serialized["types"]))
         self.assertTrue("Anatomy" in serialized["types"])
-        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([King, 1970](FBrf0021038), [Spradling, 1993](FBrf0064777))", serialized["description"])
+        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.- ([King, 1970](FBrf0021038), [Spradling, 1993](FBrf0064777))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(1, len(serialized["synonyms"]))
         self.assertEqual("has_exact_synonym: germarial 2-cell cluster ([King, 1970](FBrf0021038))", serialized["synonyms"][0])
@@ -215,7 +215,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(8, len(serialized["types"]))
         self.assertTrue("Neuron" in serialized["types"])
-        self.assertEqual("Any adult neuron that expresses the neuropeptide Drosulfakinin (Dsk).\n([Söderberg et al., 2012](FBrf0219451))", serialized["description"])
+        self.assertEqual("Any adult neuron that expresses the neuropeptide Drosulfakinin (Dsk).- ([Söderberg et al., 2012](FBrf0219451))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(4, len(serialized["synonyms"]))
         self.assertTrue("has_exact_synonym: adult dsk neuron ([Söderberg et al., 2012](FBrf0219451))" in serialized["synonyms"])
@@ -280,7 +280,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("EPG", serialized["symbol"])
         self.assertFalse("logo" in serialized)
         self.assertFalse("link" in serialized)
-        self.assertEqual(9, len(serialized["types"]))
+        self.assertEqual(10, len(serialized["types"]))
         self.assertTrue("Neuron" in serialized["types"])
         self.assertTrue("Cholinergic" in serialized["types"])
         self.assertEqual("Small field neuron of the central complex with dendritic and axonal arbors in the inner, outer and posterior layers of either a half or a full ellipsoid body (EB) slice (wedge), and axon terminals in the dorsal or ventral gall and a single protocerebral bridge glomerulus (excluding glomerulus 9) (Lin et al., 2013; Wolff et al., 2015). Neurons that target odd or even numbered protocerebral bridge glomeruli target the dorsal or ventral gall, respectively (Lin et al., 2013; Wolff et al., 2015). These neurons receive inhibitory input from delta 7 (PB 18 glomeruli) neurons and they are cholinergic (Turner-Evans et al., 2020). These cells output to P-EN1 neurons and P-EG neurons of the same glomerulus in the protocerebral bridge, and form less specific 'hyper-local' feedback loops with P-EN1 neurons in the EB (Turner-Evans et al., 2020). It also receives input from R4d ring neurons and P-EN2 neurons in the EB (Turner-Evans et al., 2020).", serialized["description"])
@@ -464,8 +464,9 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual("CC-BY-NC_3.0 [VFBlicense_CC_BY_NC_3_0]", serialized["label"])
         self.assertFalse("title" in serialized)
-        self.assertFalse("symbol" in serialized)
-        self.assertTrue("logo" in serialized)
+        self.assertTrue("symbol" in serialized)
+        self.assertEqual("CC_BY_NC", serialized["symbol"])
+        self.assertFalse("logo" in serialized)
         self.assertEqual(
             "[https://creativecommons.org/licenses/by-nc/3.0/legalcode]"
             "(http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc.png)", serialized["logo"])
@@ -501,7 +502,8 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual("JRC2018UnisexVNC [VFB_00200000]", serialized["label"])
         self.assertFalse("title" in serialized)
-        self.assertFalse("symbol" in serialized)
+        self.assertTrue("symbol" in serialized)
+        self.assertEqual("JRCVNC2018U", serialized["symbol"])
         self.assertFalse("logo" in serialized)
         self.assertFalse("link" in serialized)
         self.assertEqual(8, len(serialized["types"]))

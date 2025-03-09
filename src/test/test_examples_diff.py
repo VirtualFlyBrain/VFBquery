@@ -103,11 +103,17 @@ def format_for_readme(data):
         return f"Error formatting JSON: {str(e)}"
 
 def remove_nulls(data):
-    """Recursively remove keys with null values from dictionaries/lists."""
     if isinstance(data, dict):
-        return {k: remove_nulls(v) for k, v in data.items() if v is not None}
+        new_dict = {}
+        for k, v in data.items():
+            cleaned = remove_nulls(v)
+            # Skip None, empty dicts or empty lists
+            if cleaned is None or cleaned == {} or cleaned == []:
+                continue
+            new_dict[k] = cleaned
+        return new_dict
     elif isinstance(data, list):
-        return [remove_nulls(item) for item in data if item is not None]
+        return [remove_nulls(item) for item in data if remove_nulls(item) not in [None, {}, []]]
     return data
 
 def main():

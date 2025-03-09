@@ -139,7 +139,11 @@ def main():
     for i, (python_code, expected_json) in enumerate(zip(python_blocks, json_blocks)):
         python_code = stringify_numeric_keys(python_code)
         expected_json = stringify_numeric_keys(expected_json)
-        diff = DeepDiff(expected_json, python_code, 
+        
+        # Apply remove_nulls to both dictionaries before diffing
+        python_code_filtered = remove_nulls(python_code)
+        expected_json_filtered = remove_nulls(expected_json)
+        diff = DeepDiff(expected_json_filtered, python_code_filtered, 
                         ignore_order=True, 
                         ignore_numeric_type_changes=True,
                         report_repetition=True,

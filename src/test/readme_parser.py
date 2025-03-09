@@ -39,8 +39,12 @@ def extract_code_blocks(readme_path):
             json_obj = json.loads(json_text)
             processed_json_blocks.append(json_obj)
         except json.JSONDecodeError as e:
-            print(f"Error parsing JSON block: {e}")
-            print(f"Problematic JSON: {json_text[:100]}...")
+            # Determine a context range around the error position
+            start = max(e.pos - 20, 0)
+            end = e.pos + 20
+            context = json_text[start:end]
+            print(f"Error parsing JSON block: {e.msg} at line {e.lineno} column {e.colno} (char {e.pos})")
+            print(f"Context: ...{context}...")
     
     return processed_python_blocks, processed_json_blocks
 

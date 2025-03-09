@@ -86,9 +86,12 @@ def format_for_readme(data):
         # First stringify any numeric dictionary keys
         data_with_string_keys = stringify_numeric_keys(data)
         
+        # Remove keys with null values
+        data_filtered = remove_nulls(data_with_string_keys)
+        
         # Use json.dumps with indentation for pretty printing
         # Use custom encoder to handle NumPy types
-        formatted = json.dumps(data_with_string_keys, indent=3, cls=NumpyEncoder)
+        formatted = json.dumps(data_filtered, indent=3, cls=NumpyEncoder)
         
         # Replace 'true' and 'false' with 'True' and 'False' for Python compatibility
         formatted = formatted.replace('true', 'True').replace('false', 'False')
@@ -98,6 +101,14 @@ def format_for_readme(data):
         return result
     except Exception as e:
         return f"Error formatting JSON: {str(e)}"
+
+def remove_nulls(data):
+    """Recursively remove keys with null values from dictionaries/lists."""
+    if isinstance(data, dict):
+        return {k: remove_nulls(v) for k, v in data.items() if v is not None}
+    elif isinstance(data, list):
+        return [remove_nulls(item) for item in data if item is not None]
+    return data
 
 def main():
     init(autoreset=True)

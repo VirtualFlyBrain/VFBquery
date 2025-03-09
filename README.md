@@ -463,7 +463,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj",
          "index": 0,
-         "center": null,
          "type_label": "adult brain",
          "type_id": "FBbt_00003624"
       },
@@ -476,7 +475,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj",
          "index": 3,
-         "center": null,
          "type_label": "medulla",
          "type_id": "FBbt_00003748"
       },
@@ -489,7 +487,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume_man.obj",
          "index": 4,
-         "center": null,
          "type_label": "accessory medulla",
          "type_id": "FBbt_00045003"
       },
@@ -502,7 +499,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume_man.obj",
          "index": 5,
-         "center": null,
          "type_label": "lobula",
          "type_id": "FBbt_00003852"
       },
@@ -515,7 +511,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume_man.obj",
          "index": 6,
-         "center": null,
          "type_label": "lobula plate",
          "type_id": "FBbt_00003885"
       },
@@ -528,7 +523,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume_man.obj",
          "index": 7,
-         "center": null,
          "type_label": "calyx of adult mushroom body",
          "type_id": "FBbt_00007385"
       },
@@ -541,7 +535,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume_man.obj",
          "index": 10,
-         "center": null,
          "type_label": "pedunculus of adult mushroom body",
          "type_id": "FBbt_00007453"
       },
@@ -554,7 +547,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume_man.obj",
          "index": 11,
-         "center": null,
          "type_label": "adult mushroom body alpha-lobe",
          "type_id": "FBbt_00110657"
       },
@@ -567,7 +559,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume_man.obj",
          "index": 12,
-         "center": null,
          "type_label": "adult mushroom body alpha'-lobe",
          "type_id": "FBbt_00013691"
       },
@@ -580,7 +571,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume_man.obj",
          "index": 13,
-         "center": null,
          "type_label": "adult mushroom body beta-lobe",
          "type_id": "FBbt_00110658"
       },
@@ -593,7 +583,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume_man.obj",
          "index": 14,
-         "center": null,
          "type_label": "adult mushroom body beta'-lobe",
          "type_id": "FBbt_00013694"
       },
@@ -606,7 +595,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume_man.obj",
          "index": 15,
-         "center": null,
          "type_label": "adult mushroom body gamma-lobe",
          "type_id": "FBbt_00013695"
       },
@@ -619,7 +607,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume_man.obj",
          "index": 16,
-         "center": null,
          "type_label": "fan-shaped body",
          "type_id": "FBbt_00003679"
       },
@@ -632,7 +619,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume_man.obj",
          "index": 18,
-         "center": null,
          "type_label": "ellipsoid body",
          "type_id": "FBbt_00003678"
       },
@@ -645,7 +631,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume_man.obj",
          "index": 19,
-         "center": null,
          "type_label": "protocerebral bridge",
          "type_id": "FBbt_00003668"
       },
@@ -658,7 +643,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume_man.obj",
          "index": 21,
-         "center": null,
          "type_label": "bulb",
          "type_id": "FBbt_00003682"
       },
@@ -671,7 +655,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume_man.obj",
          "index": 22,
-         "center": null,
          "type_label": "adult lateral accessory lobe",
          "type_id": "FBbt_00003681"
       },
@@ -684,7 +667,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume_man.obj",
          "index": 23,
-         "center": null,
          "type_label": "anterior optic tubercle",
          "type_id": "FBbt_00007059"
       },
@@ -697,7 +679,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume_man.obj",
          "index": 24,
-         "center": null,
          "type_label": "anterior ventrolateral protocerebrum",
          "type_id": "FBbt_00040043"
       },
@@ -710,7 +691,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume_man.obj",
          "index": 25,
-         "center": null,
          "type_label": "posterior ventrolateral protocerebrum",
          "type_id": "FBbt_00040042"
       },
@@ -723,7 +703,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume_man.obj",
          "index": 26,
-         "center": null,
          "type_label": "posterior lateral protocerebrum",
          "type_id": "FBbt_00040044"
       },
@@ -736,7 +715,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume_man.obj",
          "index": 27,
-         "center": null,
          "type_label": "wedge",
          "type_id": "FBbt_00045027"
       },
@@ -749,7 +727,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume_man.obj",
          "index": 28,
-         "center": null,
          "type_label": "adult lateral horn",
          "type_id": "FBbt_00007053"
       },
@@ -762,7 +739,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume_man.obj",
          "index": 29,
-         "center": null,
          "type_label": "superior lateral protocerebrum",
          "type_id": "FBbt_00007054"
       },
@@ -775,7 +751,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume_man.obj",
          "index": 30,
-         "center": null,
          "type_label": "superior intermediate protocerebrum",
          "type_id": "FBbt_00045032"
       },
@@ -788,7 +763,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume_man.obj",
          "index": 31,
-         "center": null,
          "type_label": "superior medial protocerebrum",
          "type_id": "FBbt_00007055"
       },
@@ -801,7 +775,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume_man.obj",
          "index": 32,
-         "center": null,
          "type_label": "adult crepine",
          "type_id": "FBbt_00045037"
       },
@@ -814,7 +787,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume_man.obj",
          "index": 33,
-         "center": null,
          "type_label": "adult round body",
          "type_id": "FBbt_00048509"
       },
@@ -827,7 +799,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume_man.obj",
          "index": 34,
-         "center": null,
          "type_label": "rubus",
          "type_id": "FBbt_00040038"
       },
@@ -840,7 +811,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume_man.obj",
          "index": 35,
-         "center": null,
          "type_label": "superior clamp",
          "type_id": "FBbt_00040048"
       },
@@ -853,7 +823,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume_man.obj",
          "index": 36,
-         "center": null,
          "type_label": "inferior clamp",
          "type_id": "FBbt_00040049"
       },
@@ -866,7 +835,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume_man.obj",
          "index": 37,
-         "center": null,
          "type_label": "inferior bridge",
          "type_id": "FBbt_00040050"
       },
@@ -879,7 +847,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume_man.obj",
          "index": 38,
-         "center": null,
          "type_label": "antler",
          "type_id": "FBbt_00045039"
       },
@@ -892,7 +859,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume_man.obj",
          "index": 39,
-         "center": null,
          "type_label": "adult antennal lobe",
          "type_id": "FBbt_00007401"
       },
@@ -905,7 +871,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume_man.obj",
          "index": 40,
-         "center": null,
          "type_label": "vest",
          "type_id": "FBbt_00040041"
       },
@@ -918,7 +883,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume_man.obj",
          "index": 41,
-         "center": null,
          "type_label": "epaulette",
          "type_id": "FBbt_00040040"
       },
@@ -931,7 +895,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume_man.obj",
          "index": 42,
-         "center": null,
          "type_label": "gorget",
          "type_id": "FBbt_00040039"
       },
@@ -944,7 +907,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume_man.obj",
          "index": 43,
-         "center": null,
          "type_label": "superior posterior slope",
          "type_id": "FBbt_00045040"
       },
@@ -957,7 +919,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume_man.obj",
          "index": 44,
-         "center": null,
          "type_label": "inferior posterior slope",
          "type_id": "FBbt_00045046"
       },
@@ -970,7 +931,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume_man.obj",
          "index": 45,
-         "center": null,
          "type_label": "saddle",
          "type_id": "FBbt_00045048"
       },
@@ -983,7 +943,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume_man.obj",
          "index": 46,
-         "center": null,
          "type_label": "antennal mechanosensory and motor center",
          "type_id": "FBbt_00003982"
       },
@@ -996,7 +955,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume_man.obj",
          "index": 47,
-         "center": null,
          "type_label": "flange",
          "type_id": "FBbt_00045050"
       },
@@ -1009,7 +967,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume_man.obj",
          "index": 48,
-         "center": null,
          "type_label": "cantle",
          "type_id": "FBbt_00045051"
       },
@@ -1022,7 +979,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume_man.obj",
          "index": 49,
-         "center": null,
          "type_label": "prow",
          "type_id": "FBbt_00040051"
       },
@@ -1035,7 +991,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume_man.obj",
          "index": 50,
-         "center": null,
          "type_label": "adult gnathal ganglion",
          "type_id": "FBbt_00014013"
       },
@@ -1048,7 +1003,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume_man.obj",
          "index": 59,
-         "center": null,
          "type_label": "gall",
          "type_id": "FBbt_00040060"
       },
@@ -1061,7 +1015,6 @@ vfb.get_term_info('VFB_00101567')
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume.wlz",
          "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume_man.obj",
          "index": 94,
-         "center": null,
          "type_label": "nodulus",
          "type_id": "FBbt_00003680"
       }

@@ -137,12 +137,13 @@ def main():
     failed = False
     
     for i, (python_code, expected_json) in enumerate(zip(python_blocks, json_blocks)):
-        # Compare the output JSON with the expected JSON
+        python_code = stringify_numeric_keys(python_code)
+        expected_json = stringify_numeric_keys(expected_json)
         diff = DeepDiff(expected_json, python_code, 
-                       ignore_order=True, 
-                       ignore_numeric_type_changes=True,
-                       report_repetition=True,
-                       verbose_level=2)
+                        ignore_order=True, 
+                        ignore_numeric_type_changes=True,
+                        report_repetition=True,
+                        verbose_level=2)
         
         if diff:
             failed = True

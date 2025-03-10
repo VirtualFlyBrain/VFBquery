@@ -184,7 +184,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("references" in serialized)
         self.assertEqual(2, len(serialized["references"]))
         self.assertEqual({'link': '[Spradling, 1993, Bate, Martinez Arias, 1993: 1--70](FBrf0064777)',
-                          'refs': [],
+                          'refs': ['http://flybase.org/reports/FBrf0064777'],
                           'types': ' pub'}, serialized["references"][0])
         self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
                           'refs': [],

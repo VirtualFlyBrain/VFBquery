@@ -100,7 +100,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("xrefs" in serialized)
         self.assertEqual(1, len(serialized["xrefs"]))
-        self.assertEqual("[fru-F-500075 on FlyCircuit 1.0](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-F-500075)", serialized["xrefs"][0]["label"])
+        self.assertEqual("[fru-F-500075 on FlyCircuit 1.1](http://flycircuit.tw/modules.php?name=clearpage&op=detail_table&neuron=fru-F-500075)", serialized["xrefs"][0]["label"])
 
         self.assertFalse("examples" in serialized)
         self.assertTrue("thumbnail" in serialized)

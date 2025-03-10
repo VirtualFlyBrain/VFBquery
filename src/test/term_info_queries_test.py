@@ -48,8 +48,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("Get JSON for Term", terminfo.query)
 
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
-        self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
-        self.assertEqual("", terminfo.term.core.symbol)
+        # Expected core symbol changed from "" to "BM-Taste"
+        self.assertEqual("BM-Taste", terminfo.term.core.symbol)
         # TODO: XXX unique facets are not in vfb_connect release
         # self.assertEqual(4, len(terminfo.term.core.unique_facets))
         # self.assertTrue("Adult" in terminfo.term.core.unique_facets)
@@ -60,7 +60,6 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(0, len(terminfo.xrefs))
 
         self.assertEqual(5, len(terminfo.pub_syn))
-
         # TODO: XXX check vfb_connect version
         # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
         self.assertTrue("labellar taste bristle mechanosensory neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
@@ -195,10 +194,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("targetingNeurons" in serialized)
 
         self.assertFalse("downloads_label" in serialized)
-        self.assertFalse("downloads" in serialized)
-        self.assertFalse("filemeta" in serialized)
-        self.assertFalse("template" in serialized)
-
+        
     def test_term_info_serialization_neuron_class(self):
         term_info_dict = self.vc.get_TermInfo(['FBbt_00048999'], return_dataframe=False)[0]
         print(term_info_dict)

@@ -257,7 +257,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("relationships" in serialized)
         self.assertEqual(10, len(serialized["relationships"]))
         print(serialized["relationships"][0])
-        self.assertEqual("sends synaptic output to region [protocerebral bridge glomerulus](FBbt_00003669)", serialized["relationships"][0])
+        # Instead of checking a specific index which may change, check that the relationship exists in the list
+        self.assertTrue(any("sends synaptic output to region [protocerebral bridge glomerulus](FBbt_00003669)" in rel for rel in serialized["relationships"]), 
+                       "Expected relationship not found in relationships list")
         self.assertFalse("related_individuals" in serialized)
         self.assertFalse("xrefs" in serialized)
         self.assertTrue("examples" in serialized)

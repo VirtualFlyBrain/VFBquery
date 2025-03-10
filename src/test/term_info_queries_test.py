@@ -187,7 +187,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                           'refs': ['http://flybase.org/reports/FBrf0064777'],
                           'types': ' pub'}, serialized["references"][0])
         self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
-                          'refs': [],
+                          'refs': ['http://flybase.org/reports/FBrf0021038'],
                           'types': ' pub'}, serialized["references"][1])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)

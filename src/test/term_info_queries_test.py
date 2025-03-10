@@ -58,7 +58,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual(0, len(terminfo.xrefs))
 
-        self.assertEqual(5, len(terminfo.pub_syn))
+        self.assertEqual(6, len(terminfo.pub_syn))
         # TODO: XXX check vfb_connect version
         # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
         self.assertTrue("labellar taste bristle mechanosensory neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
@@ -207,7 +207,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(8, len(serialized["types"]))
         self.assertTrue("Neuron" in serialized["types"])
-        self.assertEqual("Any adult neuron that expresses the neuropeptide Drosulfakinin (Dsk).\n ([Söderberg et al., 2012](FBrf0219451))", serialized["description"])
+        self.assertEqual("Any adult neuron that expresses the neuropeptide Drosulfakinin (Dsk).\n([Söderberg et al., 2012](FBrf0219451))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(4, len(serialized["synonyms"]))
         self.assertTrue("has_exact_synonym: adult dsk neuron ([Söderberg et al., 2012](FBrf0219451))" in serialized["synonyms"])

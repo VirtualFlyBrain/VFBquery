@@ -457,7 +457,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("title" in serialized)
         self.assertTrue("symbol" in serialized)
         self.assertEqual("CC_BY_NC", serialized["symbol"])
-        self.assertFalse("logo" in serialized)
+        self.assertTrue("logo" in serialized)
         self.assertTrue("link" in serialized)
         self.assertEqual("[https://creativecommons.org/licenses/by-nc/3.0/legalcode](https://creativecommons.org/licenses/by-nc/3.0/legalcode)", serialized["link"])
         self.assertEqual(3, len(serialized["types"]))

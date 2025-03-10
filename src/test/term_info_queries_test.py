@@ -244,7 +244,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("Turner-Evans et al., 2020" in description)
         
         self.assertTrue("synonyms" in serialized)
-        self.assertEqual(8, len(serialized["synonyms"]))
+        self.assertEqual(9, len(serialized["synonyms"]))
         print(serialized["synonyms"][0])
         self.assertTrue("has_exact_synonym: EB-PB 1 glomerulus-D/Vgall neuron" in serialized["synonyms"])
         self.assertFalse("source" in serialized)

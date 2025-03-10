@@ -44,7 +44,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         print(vfbTerm)
         print(terminfo)
 
-        self.assertEqual("Get JSON for Term", terminfo.query)
+        self.assertEqual("Get JSON for Neuron Class", terminfo.query)
 
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
         # Expected core symbol changed from "" to "BM-Taste"

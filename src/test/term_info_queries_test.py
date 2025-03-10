@@ -22,11 +22,12 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
         self.assertEqual("BM-Taste", terminfo.term.core.symbol)
+        self.assertIsNotNone(terminfo.term.core.unique_facets)
         self.assertEqual(4, len(terminfo.term.core.unique_facets))
-        self.assertTrue("Adult" in terminfo.term.core.unique_facets)
-        self.assertTrue("Mechanosensory_system" in terminfo.term.core.unique_facets)
-        self.assertTrue("Nervous_system" in terminfo.term.core.unique_facets)
-        self.assertTrue("Sensory_neuron" in terminfo.term.core.unique_facets)
+        self.assertTrue(terminfo.term.core.unique_facets is not None and "Adult" in terminfo.term.core.unique_facets)
+        self.assertTrue(terminfo.term.core.unique_facets is not None and "Mechanosensory_system" in terminfo.term.core.unique_facets)
+        self.assertTrue(terminfo.term.core.unique_facets is not None and "Nervous_system" in terminfo.term.core.unique_facets)
+        self.assertTrue(terminfo.term.core.unique_facets is not None and "Sensory_neuron" in terminfo.term.core.unique_facets)
 
         self.assertEqual(0, len(terminfo.xrefs))
 
@@ -89,7 +90,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("Classification" in serialized)
         self.assertEqual(2, len(serialized["Classification"]))
-        self.assertTrue("[expression pattern fragment](VFBext_0000004)" == serialized["Classification"][0] or "[adult DPMpl1 lineage neuron](FBbt_00050031)" == serialized["Classification"][0], "Classification not matched")
+        self.assertTrue("[expression pattern fragment](VFBext_0000004)" == serialized["Classification"][0] or "[adult SMPpv1 lineage neuron](FBbt_00050031)" == serialized["Classification"][0], "Classification not matched")
 
         self.assertTrue("relationships" in serialized)
         self.assertEqual(6, len(serialized["relationships"]))

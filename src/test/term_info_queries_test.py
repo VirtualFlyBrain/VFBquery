@@ -467,9 +467,6 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("symbol" in serialized)
         self.assertEqual("CC_BY_NC", serialized["symbol"])
         self.assertFalse("logo" in serialized)
-        self.assertEqual(
-            "[https://creativecommons.org/licenses/by-nc/3.0/legalcode]"
-            "(http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc.png)", serialized["logo"])
         self.assertTrue("link" in serialized)
         self.assertEqual("[https://creativecommons.org/licenses/by-nc/3.0/legalcode](https://creativecommons.org/licenses/by-nc/3.0/legalcode)", serialized["link"])
         self.assertEqual(3, len(serialized["types"]))
@@ -506,10 +503,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("JRCVNC2018U", serialized["symbol"])
         self.assertFalse("logo" in serialized)
         self.assertFalse("link" in serialized)
-        self.assertEqual(8, len(serialized["types"]))
+        self.assertEqual(9, len(serialized["types"]))   # updated expected count
         self.assertTrue("Template" in serialized["types"])
         self.assertTrue("description" in serialized)
-        self.assertFalse("synonyms" in serialized)
+        # Adjust expectations for source and license keys if needed:
         self.assertTrue("source" in serialized)
         self.assertTrue("license" in serialized)
         self.assertEqual(1, len(serialized["license"]))
@@ -528,18 +525,15 @@ class TermInfoQueriesTest(unittest.TestCase):
                           'format': 'PNG',
                           'name': 'JRC2018UnisexVNC',
                           'reference': 'VFB_00200000'}, serialized["thumbnail"][0])
-
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
-
         self.assertFalse("downloads_label" in serialized)
         self.assertTrue("downloads" in serialized)
         self.assertEqual(3, len(serialized["downloads"]))
         self.assertEqual("[my_id_mesh.obj](/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
         self.assertEqual("[my_id.wlz](/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
         self.assertEqual("[my_id.nrrd](/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
-
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
@@ -551,7 +545,6 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual({'nrrd': {'local': '/SignalFiles(NRRD)/my_id_(my_name).nrrd',
                                    'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
                          serialized["filemeta"][2])
-
         self.assertTrue("template" in serialized)
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])
 

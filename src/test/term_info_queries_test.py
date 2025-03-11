@@ -279,7 +279,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(6, len(serialized["references"]))
 
         self.assertTrue("targetingSplits" in serialized)
-        self.assertEqual(4, len(serialized["targetingSplits"]))
+        self.assertEqual(6, len(serialized["targetingSplits"]))
         self.assertTrue(any("P{R93G12-GAL4.DBD} ∩ P{R19G02-p65.AD}" in split for split in serialized["targetingSplits"]))
         self.assertFalse("targetingNeurons" in serialized)
 

@@ -3,7 +3,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-__version__ = "v0.0.1"
+__version__ = "0.1.0"
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:
@@ -26,7 +26,13 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages(where='src'),
     include_package_data=True,
-    install_requires=["vfb_connect", "dataclasses-json", "dacite", "requests", "pysolr"],
+    install_requires=[
+        "pysolr",
+        "pandas",
+        "marshmallow",
+        "vfb_connect"
+    ],
+    python_requires=">=3.7",
     project_urls={  # Optional
         'Bug Reports': 'https://github.com/VirtualFlyBrain/VFBquery/issues',
         'Source': 'https://github.com/VirtualFlyBrain/VFBquery'

@@ -20,7 +20,7 @@ jobs:
         run: |
             python -m pip install --upgrade pip
             pip install -r requirements.txt
-            pip install deepdiff
+            pip install deepdiff colorama
             pip install .
 
       - name: Run examples from README.md
@@ -29,44 +29,15 @@ jobs:
           cat test_examples.py
           python test_examples.py
 
+      - name: Parse README.md and generate test files
+        run: |
+          python -m src.test.readme_parser
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run examples from README.md and compare JSON outputs
         run: |
-          echo 'results = []' > test_examples.py
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/results.append(\1)/g' >> test_examples.py
-          echo 'from src.vfbquery.term_info_queries import *' > test_results.py
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```json/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' | sed -e ':a;N;$!ba;s/\n/ /g' -e 's/```json/```json\n/g' -e 's/}[[:space:]]*{/},{/g' -e 's/ \+/ /g' | sed -e '1s/^/results=[/' -e '1s/$/]/' | sed 's/\btrue\b/True/g' | sed 's/\bfalse\b/False/g' >> test_results.py
-          python -c """
-          import sys
-          import json
-          import vfbquery as vfb
-          from deepdiff import DeepDiff
-          from io import StringIO
-          from test_results import results
-          json_blocks = results
-          from test_examples import results
-          python_blocks = results
-
-          print(f'Found {len(python_blocks)} Python code blocks')
-          print(f'Found {len(json_blocks)} JSON blocks')
-      
-          for python_code, expected_json in zip(python_blocks, json_blocks):
-            # Compare the output JSON with the expected JSON
-            diff = DeepDiff(expected_json, python_code, ignore_order=True, ignore_numeric_type_changes=True)
-      
-            if diff:
-                print('Error in example:')
-                print('Expected JSON:')
-                print(expected_json)
-                print('Output JSON:')
-                print(python_code)
-                print('Difference:')
-                print(diff)
-                sys.exit(1)
-      
-          print('All examples passed.')
-          sys.stdout = sys.__stdout__"""
-        shell: /usr/bin/bash -e {0}
+          python -m src.test.test_examples_diff
         env:
-          pythonLocation: /opt/hostedtoolcache/Python/3.8.16/x64
-          LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.8.16/x64/lib
-        
+          PYTHONPATH: ${{ github.workspace }}
+

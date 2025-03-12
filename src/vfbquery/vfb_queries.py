@@ -1,6 +1,9 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-from vfb_connect.cross_server_tools import VfbConnect, dict_cursor
+# Replace VfbConnect import with our new SolrTermInfoFetcher
+from .solr_fetcher import SolrTermInfoFetcher
+# Keep dict_cursor if it's used elsewhere
+from vfb_connect.cross_server_tools import dict_cursor
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple, Dict, Any, Union
 import pandas as pd
@@ -10,8 +13,8 @@ import json
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
 
-# Create a VFB connection object for retrieving instances
-vc = VfbConnect()
+# Replace VfbConnect with SolrTermInfoFetcher
+vc = SolrTermInfoFetcher()
 
 class Query:
     def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], output_format="table", count=-1):

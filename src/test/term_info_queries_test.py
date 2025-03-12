@@ -1,13 +1,13 @@
 import unittest
 import time
 from src.vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
-from vfb_connect.cross_server_tools import VfbConnect
+from src.vfbquery.solr_fetcher import SolrTermInfoFetcher
 
 
 class TermInfoQueriesTest(unittest.TestCase):
 
     def setUp(self):
-        self.vc = VfbConnect()
+        self.vc = SolrTermInfoFetcher()
         self.variable = TestVariable("my_id", "my_name")
 
     def test_term_info_deserialization(self):

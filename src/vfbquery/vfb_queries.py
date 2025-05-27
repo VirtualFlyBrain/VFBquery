@@ -525,13 +525,26 @@ def term_info_parse_object(results, short_form):
             images = {}
             image = vfbTerm.template_channel
             record = {}
-            record["id"] = vfbTerm.template_channel.channel.short_form
+            
+            # Validate that the channel ID matches the template ID (numeric part should be the same)
+            template_id = vfbTerm.term.core.short_form
+            channel_id = vfbTerm.template_channel.channel.short_form
+            
+            # Extract numeric parts for validation
+            if template_id and channel_id:
+                template_numeric = template_id.replace("VFB_", "") if template_id.startswith("VFB_") else ""
+                channel_numeric = channel_id.replace("VFBc_", "") if channel_id.startswith("VFBc_") else ""
+                
+                if template_numeric != channel_numeric:
+                    print(f"Warning: Template ID {template_id} does not match channel ID {channel_id}")
+            
+            record["id"] = template_id
             label = vfbTerm.template_channel.channel.label
             if vfbTerm.template_channel.channel.symbol != "" and len(vfbTerm.template_channel.channel.symbol) > 0:
                 label = vfbTerm.template_channel.channel.symbol
             record["label"] = label
-            if not vfbTerm.template_channel.channel.short_form in images.keys():
-                images[vfbTerm.template_channel.channel.short_form]=[]
+            if not template_id in images.keys():
+                images[template_id]=[]
             record["thumbnail"] = image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
             record["thumbnail_transparent"] = image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
             for key in vars(image).keys():
@@ -549,7 +562,7 @@ def term_info_parse_object(results, short_form):
                 record['voxel'] = image.get_voxel()
             if 'orientation' in image_vars.keys():
                 record['orientation'] = image.orientation
-            images[vfbTerm.template_channel.channel.short_form].append(record)
+            images[template_id].append(record)
 
             # Add the thumbnails to the term info
             termInfo["Images"] = images

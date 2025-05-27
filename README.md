@@ -239,7 +239,8 @@ vfb.get_term_info('VFB_00000001')
    "Tags": [
       "Adult",
       "Expression_pattern_fragment",
-      "Neuron"
+      "Neuron",
+      "lineage_CM3"
    ],
    "Queries": [
       {
@@ -305,41 +306,41 @@ vfb.get_term_info('VFB_00000001')
                   "id": "VFB_00000333",
                   "score": "0.61",
                   "name": "[fru-M-000204](VFB_00000333)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult",
-                  "thumbnail": "[![fru-M-000204 aligned to JFRC2](http://virtualflybrain.org/reports/VFB_00000333/thumbnail.png 'fru-M-000204 aligned to JFRC2')](VFB_00017894,VFB_00000333)"
+                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
+                  "thumbnail": "[![fru-M-000204 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0000/0333/VFB_00017894/thumbnail.png 'fru-M-000204 aligned to JFRC2')](VFB_00017894,VFB_00000333)"
                },
                {
                   "id": "VFB_00000333",
                   "score": "0.61",
                   "name": "[fru-M-000204](VFB_00000333)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult",
-                  "thumbnail": "[![fru-M-000204 aligned to JRC2018U](http://virtualflybrain.org/reports/VFB_00000333/thumbnail.png 'fru-M-000204 aligned to JRC2018U')](VFB_00101567,VFB_00000333)"
+                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
+                  "thumbnail": "[![fru-M-000204 aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0000/0333/VFB_00101567/thumbnail.png 'fru-M-000204 aligned to JRC2018U')](VFB_00101567,VFB_00000333)"
                },
                {
                   "id": "VFB_00002439",
                   "score": "0.6",
                   "name": "[fru-M-900020](VFB_00002439)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult",
+                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
                   "thumbnail": "[![fru-M-900020 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0000/2439/VFB_00017894/thumbnail.png 'fru-M-900020 aligned to JFRC2')](VFB_00017894,VFB_00002439)"
                },
                {
                   "id": "VFB_00002439",
                   "score": "0.6",
                   "name": "[fru-M-900020](VFB_00002439)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult",
+                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
                   "thumbnail": "[![fru-M-900020 aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0000/2439/VFB_00101567/thumbnail.png 'fru-M-900020 aligned to JRC2018U')](VFB_00101567,VFB_00002439)"
                },
                {
                   "id": "VFB_00001880",
                   "score": "0.59",
                   "name": "[fru-M-100041](VFB_00001880)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult",
-                  "thumbnail": "[![fru-M-100041 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0000/1880/VFB_00017894/thumbnail.png 'fru-M-100041 aligned to JFRC2')](VFB_00017894,VFB_00001880)"
+                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
+                  "thumbnail": "[![fru-M-100041 aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0000/1880/VFB_00101567/thumbnail.png 'fru-M-100041 aligned to JRC2018U')](VFB_00101567,VFB_00001880)"
                }
             ]
          },
          "output_format": "table",
-         "count": 46
+         "count": 44
       }
    ],
    "IsIndividual": True,
@@ -348,11 +349,11 @@ vfb.get_term_info('VFB_00000001')
          {
             "id": "VFB_00000001",
             "label": "fru-M-200266",
-            "thumbnail": "https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
-            "thumbnail_transparent": "https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/thumbnailT.png",
             "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.nrrd",
-            "wlz": "https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
-            "obj": "https://virtualflybrain.org/reports/VFB_00000001/volume.obj",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.obj",
             "swc": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.swc"
          }
       ],
@@ -360,19 +361,17 @@ vfb.get_term_info('VFB_00000001')
          {
             "id": "VFB_00000001",
             "label": "fru-M-200266",
-            "thumbnail": "https://virtualflybrain.org/reports/VFB_00000001/thumbnail.png",
-            "thumbnail_transparent": "https://virtualflybrain.org/reports/VFB_00000001/thumbnailT.png",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/thumbnailT.png",
             "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd",
-            "wlz": "https://virtualflybrain.org/reports/VFB_00000001/volume.wlz",
-            "obj": "https://virtualflybrain.org/reports/VFB_00000001/volume.obj",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.obj",
             "swc": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc"
          }
       ]
    },
    "IsClass": False,
-   "Examples": {},
    "IsTemplate": False,
-   "Domains": {},
    "Licenses": {
       "0": {
          "iri": "http://virtualflybrain.org/reports/VFBlicense_FlyCircuit_License",
@@ -382,9 +381,7 @@ vfb.get_term_info('VFB_00000001')
          "source": "FlyCircuit 1.0 - single neurons (Chiang2010)",
          "source_iri": "http://virtualflybrain.org/reports/Chiang2010"
       }
-   },
-   "Publications": [],
-   "Synonyms": []
+   }
 }
 ```
 

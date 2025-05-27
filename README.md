@@ -421,10 +421,10 @@ vfb.get_term_info('VFB_00101567')
    "Queries": [],
    "IsIndividual": True,
    "Images": {
-      "VFBc_00101567": [
+      "VFB_00101567": [
          {
-            "id": "VFBc_00101567",
-            "label": "JRC2018Unisex_c",
+            "id": "VFB_00101567",
+            "label": "JRC2018Unisex",
             "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
             "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png",
             "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",

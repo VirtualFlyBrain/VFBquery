@@ -133,9 +133,9 @@ vfb.get_term_info('FBbt_00003748')
             "label": "medulla on adult brain template Ito2014",
             "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png",
             "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnailT.png",
-            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/.nrrd",
-            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/.wlz",
-            "obj": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/_man.obj"
+            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume.nrrd",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume_man.obj"
          }
       ],
       "VFB_00101567": [

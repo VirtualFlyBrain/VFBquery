@@ -329,7 +329,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                                   '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '},
                          serialized["xrefs"][0])
 
-        self.assertFalse("examples" in serialized)
+        self.assertTrue("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)

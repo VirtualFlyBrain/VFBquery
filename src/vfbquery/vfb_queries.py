@@ -537,9 +537,12 @@ def term_info_parse_object(results, short_form):
                 
                 if template_numeric != channel_numeric:
                     print(f"Warning: Template ID {template_id} does not match channel ID {channel_id}")
+                    label = vfbTerm.template_channel.channel.label
+                    record["id"] = channel_id
+                else:
+                    label = vfbTerm.term.core.label
+                    record["id"] = template_id
             
-            record["id"] = template_id
-            label = vfbTerm.template_channel.channel.label
             if vfbTerm.template_channel.channel.symbol != "" and len(vfbTerm.template_channel.channel.symbol) > 0:
                 label = vfbTerm.template_channel.channel.symbol
             record["label"] = label

@@ -38,15 +38,21 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_deserialization_from_dict(self):
+        import pkg_resources
+        print("vfb_connect version:", pkg_resources.get_distribution("vfb_connect").version)
         vfbTerm = self.vc.get_TermInfo(['FBbt_00048514'], return_dataframe=False, summary=False)[0]
         start_time = time.time()
         terminfo = deserialize_term_info_from_dict(vfbTerm)
         print("--- %s seconds ---" % (time.time() - start_time))
-        print(vfbTerm)
-        print(terminfo)
+        print("vfbTerm:", vfbTerm)
+        print("terminfo:", terminfo)
+        # Add debug for unique_facets
+        if hasattr(terminfo.term.core, 'unique_facets'):
+            print("unique_facets:", terminfo.term.core.unique_facets)
+        else:
+            print("unique_facets attribute NOT present!")
 
         self.assertEqual("Get JSON for Neuron Class", terminfo.query)
-
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
         self.assertEqual("BM-Taste", terminfo.term.core.symbol)
         # TODO: XXX unique facets are not in vfb_connect release

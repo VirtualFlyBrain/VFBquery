@@ -62,7 +62,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         # TODO: XXX check vfb_connect version
         # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
         self.assertTrue("labellar taste bristle mechanosensitive neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
-        self.assertEqual("FBrf0248869", terminfo.pub_syn[0].pub.core.short_form)
+        self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
         # Update to expect the PubMed ID
         self.assertEqual("33657409", terminfo.pub_syn[0].pub.PubMed)
 

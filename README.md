@@ -207,7 +207,6 @@ Individual example:
 vfb.get_term_info('VFB_00000001')
 ```
 ```json
-```json
 {
    "Name": "fru-M-200266",
    "Id": "VFB_00000001",

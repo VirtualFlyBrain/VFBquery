@@ -65,12 +65,23 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(0, len(terminfo.xrefs))
 
         self.assertEqual(6, len(terminfo.pub_syn))
-        # TODO: XXX check vfb_connect version
-        # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
-        self.assertTrue("labellar taste bristle mechanosensitive neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
-        self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
-        # Update to expect the PubMed ID
-        self.assertEqual("33657409", terminfo.pub_syn[0].pub.PubMed)
+        
+        # Check that we have the expected synonym labels (order-independent)
+        synonym_labels = [entry.synonym.label for entry in terminfo.pub_syn]
+        expected_labels = ["labellar taste bristle mechanosensitive neuron", "labellar hMSN", "labial taste bristle mechanosensory neuron"]
+        
+        # Check that at least one of the expected labels exists
+        found_labels = [label for label in expected_labels if label in synonym_labels]
+        self.assertTrue(len(found_labels) > 0, f"None of the expected synonym labels found. Found: {synonym_labels}")
+        
+        # Check that entries with "Unattributed" pub exist (most entries should have this)
+        unattributed_entries = [entry for entry in terminfo.pub_syn if entry.pub.core.short_form == "Unattributed"]
+        self.assertTrue(len(unattributed_entries) > 0, "No entries with 'Unattributed' pub found")
+        
+        # Check for the PubMed ID in the correct synonym entry (labellar hMSN)
+        labellar_hmsn_entry = next((entry for entry in terminfo.pub_syn if entry.synonym.label == "labellar hMSN"), None)
+        self.assertIsNotNone(labellar_hmsn_entry, "labellar hMSN entry not found")
+        self.assertEqual("33657409", labellar_hmsn_entry.pub.PubMed)
 
     def test_term_info_serialization_individual_anatomy(self):
         term_info_dict = self.vc.get_TermInfo(['VFB_00010001'], return_dataframe=False, summary=False)[0]

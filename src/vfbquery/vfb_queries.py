@@ -2,13 +2,21 @@ import pysolr
 from .term_info_queries import deserialize_term_info
 # Replace VfbConnect import with our new SolrTermInfoFetcher
 from .solr_fetcher import SolrTermInfoFetcher
-# Keep dict_cursor if it's used elsewhere
-from vfb_connect.cross_server_tools import dict_cursor
+# Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple, Dict, Any, Union
 import pandas as pd
 from marshmallow import ValidationError
 import json
+
+# Lazy import for dict_cursor to avoid GUI library issues
+def get_dict_cursor():
+    """Lazy import dict_cursor to avoid import issues during testing"""
+    try:
+        from vfb_connect.cross_server_tools import dict_cursor
+        return dict_cursor
+    except ImportError as e:
+        raise ImportError(f"vfb_connect is required but could not be imported: {e}")
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)

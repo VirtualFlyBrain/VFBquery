@@ -3,7 +3,6 @@ import json
 import logging
 import pandas as pd
 from typing import List, Dict, Any, Optional, Union
-from vfb_connect import vfb
 
 class SolrTermInfoFetcher:
     """Fetches term information directly from the Solr server instead of using VfbConnect"""
@@ -12,7 +11,19 @@ class SolrTermInfoFetcher:
         """Initialize with the Solr server URL"""
         self.solr_url = solr_url
         self.logger = logging.getLogger(__name__)
-        self.vfb = vfb
+        self._vfb = None  # Lazy load vfb_connect
+    
+    @property
+    def vfb(self):
+        """Lazy load vfb_connect to avoid import issues during testing"""
+        if self._vfb is None:
+            try:
+                from vfb_connect import vfb
+                self._vfb = vfb
+            except ImportError as e:
+                self.logger.error(f"Could not import vfb_connect: {e}")
+                raise ImportError("vfb_connect is required but could not be imported")
+        return self._vfb
     
     def get_TermInfo(self, short_forms: List[str], 
                     return_dataframe: bool = False, 

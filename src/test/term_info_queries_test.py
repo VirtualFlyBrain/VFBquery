@@ -122,7 +122,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                          'reference': '[VFB_00017894,VFB_00010001]'} in serialized["thumbnail"])
 
     def test_term_info_serialization_class(self):
-        term_info_dict = self.vc.get_TermInfo(['FBbt_00048531'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.vc.get_TermInfo(['FBbt_0004853'], return_dataframe=False, summary=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)

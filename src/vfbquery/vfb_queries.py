@@ -846,7 +846,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     RETURN COUNT(r) AS total_count
     """
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the main Cypher query
@@ -876,7 +876,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -934,7 +934,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
                 RETURN COUNT(DISTINCT t) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the main Cypher query
@@ -959,7 +959,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['name', 'dataset', 'license', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -1061,7 +1061,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 RETURN COUNT(DISTINCT n2) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
@@ -1087,7 +1087,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     results = vc.nc.commit_list([main_query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['name', 'source', 'source_id', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -1151,7 +1151,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                     RETURN COUNT(DISTINCT c) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the part of the query for normal mode
@@ -1190,7 +1190,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['Neurotransmitter', 'Type', 'Name', 'Template_Space', 'Imaging_Technique', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)

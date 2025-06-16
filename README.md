@@ -17,7 +17,6 @@ Class example:
 vfb.get_term_info('FBbt_00003748')
 ```
 ```json
-``json
 {
    "Name": "medulla",
    "Id": "FBbt_00003748",

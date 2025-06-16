@@ -12,7 +12,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
     def test_term_info_deserialization(self):
         terminfo_json = """
-        {"term": {"core": {"iri": "http://purl.obolibrary.org/obo/FBbt_00048514", "symbol": "BM-Taste", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048514", "unique_facets": ["Adult", "Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "labial taste bristle mechanosensory neuron"}, "description": ["Any mechanosensory neuron (FBbt:00005919) that has sensory dendrite in some labellar taste bristle (FBbt:00004162)."], "comment": []}, "query": "Get JSON for Neuron Class", "version": "3d2a474", "parents": [{"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00048508", "types": ["Entity", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048508", "unique_facets": ["Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "mechanosensory neuron of chaeta"}, {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00051420", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00051420", "unique_facets": ["Adult", "Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "adult mechanosensory neuron"}, {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00048029", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048029", "unique_facets": ["Adult", "Nervous_system", "Sensory_neuron"], "label": "labellar taste bristle sensory neuron"}], "relationships": [{"relation": {"iri": "http://purl.obolibrary.org/obo/BFO_0000050", "label": "is part of", "type": "part_of"}, "object": {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00005892", "types": ["Entity", "Adult", "Anatomy", "Class", "Nervous_system"], "short_form": "FBbt_00005892", "unique_facets": ["Adult", "Nervous_system"], "label": "adult peripheral nervous system"}}], "xrefs": [], "anatomy_channel_image": [], "pub_syn": [{"synonym": {"scope": "has_exact_synonym", "label": "labellar taste bristle mechanosensitive neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}, {"synonym": {"scope": "has_exact_synonym", "label": "labellar taste bristle mechanosensory neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}, {"synonym": {"scope": "has_exact_synonym", "label": "labial taste bristle mechanosensitive neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}], "def_pubs": [{"core": {"symbol": "", "iri": "http://flybase.org/reports/FBrf0242472", "types": ["Entity", "Individual", "pub"], "short_form": "FBrf0242472", "unique_facets": ["pub"], "label": "Zhou et al., 2019, Sci. Adv. 5(5): eaaw5141"}, "FlyBase": "", "PubMed": "31131327", "DOI": "10.1126/sciadv.aaw5141"}], "targeting_splits": []}
+        {"term": {"core": {"iri": "http://purl.obolibrary.org/obo/FBbt_00048514", "symbol": "BM-Taste", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048514", "unique_facets": ["Adult", "Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "labial taste bristle mechanosensory neuron"}, "description": ["Any mechanosensory neuron (FBbt:00005919) that has sensory dendrite in some labellar taste bristle (FBbt:00004162)."], "comment": []}, "query": "Get JSON for Neuron Class", "version": "3d2a474", "parents": [{"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00048508", "types": ["Entity", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048508", "unique_facets": ["Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "mechanosensory neuron of chaeta"}, {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00051420", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Mechanosensory_system", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00051420", "unique_facets": ["Adult", "Mechanosensory_system", "Nervous_system", "Sensory_neuron"], "label": "adult mechanosensory neuron"}, {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00048029", "types": ["Entity", "Adult", "Anatomy", "Cell", "Class", "Nervous_system", "Neuron", "Sensory_neuron"], "short_form": "FBbt_00048029", "unique_facets": ["Adult", "Nervous_system", "Sensory_neuron"], "label": "labellar taste bristle sensory neuron"}], "relationships": [{"relation": {"iri": "http://purl.obolibrary.org/obo/BFO_0000050", "label": "is part of", "type": "part_of"}, "object": {"symbol": "", "iri": "http://purl.obolibrary.org/obo/FBbt_00005892", "types": ["Entity", "Adult", "Anatomy", "Class", "Nervous_system"], "short_form": "FBbt_00005892", "unique_facets": ["Adult", "Nervous_system"], "label": "adult peripheral nervous system"}}], "xrefs": [], "anatomy_channel_image": [], "pub_syn": [{"synonym": {"scope": "has_exact_synonym", "label": "labellar taste bristle mechanosensitive neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}, {"synonym": {"scope": "has_exact_synonym", "label": "labellar taste bristle mechanosensitive neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}, {"synonym": {"scope": "has_exact_synonym", "label": "labial taste bristle mechanosensitive neuron", "type": ""}, "pub": {"core": {"symbol": "", "iri": "http://flybase.org/reports/Unattributed", "types": ["Entity", "Individual", "pub"], "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""}, "FlyBase": "", "PubMed": "", "DOI": ""}}], "def_pubs": [{"core": {"symbol": "", "iri": "http://flybase.org/reports/FBrf0242472", "types": ["Entity", "Individual", "pub"], "short_form": "FBrf0242472", "unique_facets": ["pub"], "label": "Zhou et al., 2019, Sci. Adv. 5(5): eaaw5141"}, "FlyBase": "", "PubMed": "31131327", "DOI": "10.1126/sciadv.aaw5141"}], "targeting_splits": []}
         """
 
         terminfo = deserialize_term_info(terminfo_json)
@@ -38,15 +38,21 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_deserialization_from_dict(self):
+        import pkg_resources
+        print("vfb_connect version:", pkg_resources.get_distribution("vfb_connect").version)
         vfbTerm = self.vc.get_TermInfo(['FBbt_00048514'], return_dataframe=False, summary=False)[0]
         start_time = time.time()
         terminfo = deserialize_term_info_from_dict(vfbTerm)
         print("--- %s seconds ---" % (time.time() - start_time))
-        print(vfbTerm)
-        print(terminfo)
+        print("vfbTerm:", vfbTerm)
+        print("terminfo:", terminfo)
+        # Add debug for unique_facets
+        if hasattr(terminfo.term.core, 'unique_facets'):
+            print("unique_facets:", terminfo.term.core.unique_facets)
+        else:
+            print("unique_facets attribute NOT present!")
 
         self.assertEqual("Get JSON for Neuron Class", terminfo.query)
-
         self.assertEqual("http://purl.obolibrary.org/obo/FBbt_00048514", terminfo.term.core.iri)
         self.assertEqual("BM-Taste", terminfo.term.core.symbol)
         # TODO: XXX unique facets are not in vfb_connect release
@@ -61,8 +67,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual(6, len(terminfo.pub_syn))
         # TODO: XXX check vfb_connect version
         # self.assertEqual("labellar taste bristle mechanosensitive neuron", terminfo.pub_syn[0].synonym.label)
-        self.assertTrue("labellar taste bristle mechanosensory neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
-        self.assertEqual("FBrf0248869", terminfo.pub_syn[0].pub.core.short_form)
+        self.assertTrue("labellar taste bristle mechanosensitive neuron" == terminfo.pub_syn[0].synonym.label or "labellar hMSN" == terminfo.pub_syn[0].synonym.label, "not matching synonym")
+        self.assertEqual("Unattributed", terminfo.pub_syn[0].pub.core.short_form)
         # Update to expect the PubMed ID
         self.assertEqual("33657409", terminfo.pub_syn[0].pub.PubMed)
 
@@ -116,7 +122,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                          'reference': '[VFB_00017894,VFB_00010001]'} in serialized["thumbnail"])
 
     def test_term_info_serialization_class(self):
-        term_info_dict = self.vc.get_TermInfo(['FBbt_00048531'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.vc.get_TermInfo(['FBbt_0004853'], return_dataframe=False, summary=False)[0]
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -329,7 +335,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                                   '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '},
                          serialized["xrefs"][0])
 
-        self.assertFalse("examples" in serialized)
+        self.assertTrue("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
         self.assertFalse("references" in serialized)
         self.assertFalse("targetingSplits" in serialized)

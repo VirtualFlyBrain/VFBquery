@@ -2,13 +2,21 @@ import pysolr
 from .term_info_queries import deserialize_term_info
 # Replace VfbConnect import with our new SolrTermInfoFetcher
 from .solr_fetcher import SolrTermInfoFetcher
-# Keep dict_cursor if it's used elsewhere
-from vfb_connect.cross_server_tools import dict_cursor
+# Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple, Dict, Any, Union
 import pandas as pd
 from marshmallow import ValidationError
 import json
+
+# Lazy import for dict_cursor to avoid GUI library issues
+def get_dict_cursor():
+    """Lazy import dict_cursor to avoid import issues during testing"""
+    try:
+        from vfb_connect.cross_server_tools import dict_cursor
+        return dict_cursor
+    except ImportError as e:
+        raise ImportError(f"vfb_connect is required but could not be imported: {e}")
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -525,13 +533,29 @@ def term_info_parse_object(results, short_form):
             images = {}
             image = vfbTerm.template_channel
             record = {}
-            record["id"] = vfbTerm.template_channel.channel.short_form
-            label = vfbTerm.template_channel.channel.label
+            
+            # Validate that the channel ID matches the template ID (numeric part should be the same)
+            template_id = vfbTerm.term.core.short_form
+            channel_id = vfbTerm.template_channel.channel.short_form
+            
+            # Extract numeric parts for validation
+            if template_id and channel_id:
+                template_numeric = template_id.replace("VFB_", "") if template_id.startswith("VFB_") else ""
+                channel_numeric = channel_id.replace("VFBc_", "") if channel_id.startswith("VFBc_") else ""
+                
+                if template_numeric != channel_numeric:
+                    print(f"Warning: Template ID {template_id} does not match channel ID {channel_id}")
+                    label = vfbTerm.template_channel.channel.label
+                    record["id"] = channel_id
+                else:
+                    label = vfbTerm.term.core.label
+                    record["id"] = template_id
+            
             if vfbTerm.template_channel.channel.symbol != "" and len(vfbTerm.template_channel.channel.symbol) > 0:
                 label = vfbTerm.template_channel.channel.symbol
             record["label"] = label
-            if not vfbTerm.template_channel.channel.short_form in images.keys():
-                images[vfbTerm.template_channel.channel.short_form]=[]
+            if not template_id in images.keys():
+                images[template_id]=[]
             record["thumbnail"] = image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
             record["thumbnail_transparent"] = image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
             for key in vars(image).keys():
@@ -549,7 +573,7 @@ def term_info_parse_object(results, short_form):
                 record['voxel'] = image.get_voxel()
             if 'orientation' in image_vars.keys():
                 record['orientation'] = image.orientation
-            images[vfbTerm.template_channel.channel.short_form].append(record)
+            images[template_id].append(record)
 
             # Add the thumbnails to the term info
             termInfo["Images"] = images
@@ -822,7 +846,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     RETURN COUNT(r) AS total_count
     """
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the main Cypher query
@@ -852,7 +876,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -910,7 +934,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
                 RETURN COUNT(DISTINCT t) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the main Cypher query
@@ -935,7 +959,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['name', 'dataset', 'license', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -1037,7 +1061,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 RETURN COUNT(DISTINCT n2) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
@@ -1063,7 +1087,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     results = vc.nc.commit_list([main_query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['name', 'source', 'source_id', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
@@ -1127,7 +1151,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                     RETURN COUNT(DISTINCT c) AS total_count"""
 
     count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(dict_cursor(count_results))
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
     # Define the part of the query for normal mode
@@ -1166,7 +1190,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     results = vc.nc.commit_list([query])
 
     # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(dict_cursor(results))
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     columns_to_encode = ['Neurotransmitter', 'Type', 'Name', 'Template_Space', 'Imaging_Technique', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)

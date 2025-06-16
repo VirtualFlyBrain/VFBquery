@@ -8,3 +8,7 @@ src/vfbquery/ontology/__pycache__/
 build/
 test_examples.py
 test_results.py
+.vscode
+.pytest_cache
+.venv
+.vscode/settings.json

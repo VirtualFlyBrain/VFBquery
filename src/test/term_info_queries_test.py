@@ -64,7 +64,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual(0, len(terminfo.xrefs))
 
-        self.assertEqual(6, len(terminfo.pub_syn))
+        self.assertEqual(7, len(terminfo.pub_syn))
         
         # Check that we have the expected synonym labels (order-independent)
         synonym_labels = [entry.synonym.label for entry in terminfo.pub_syn]
@@ -145,7 +145,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(4, len(serialized["types"]))
         self.assertTrue("Anatomy" in serialized["types"])
-        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([Spradling, 1993](FBrf0064777), [King, 1970](FBrf0021038))", serialized["description"])
+        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([King, 1970](FBrf0021038))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(1, len(serialized["synonyms"]))
         self.assertEqual("has_exact_synonym: germarial 2-cell cluster ([King, 1970](FBrf0021038))", serialized["synonyms"][0])
@@ -261,7 +261,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("Turner-Evans et al., 2020" in description)
         
         self.assertTrue("synonyms" in serialized)
-        self.assertEqual(9, len(serialized["synonyms"]))
+        self.assertEqual(10, len(serialized["synonyms"]))
         print(serialized["synonyms"][0])
         self.assertTrue("has_exact_synonym: EB-PB 1 glomerulus-D/Vgall neuron" in serialized["synonyms"])
         self.assertFalse("source" in serialized)

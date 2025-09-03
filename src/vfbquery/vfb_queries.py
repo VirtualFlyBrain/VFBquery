@@ -25,7 +25,7 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.item()
         return super(NumpyEncoder, self).default(obj)
 
-def safe_to_dict(df):
+def safe_to_dict(df, sort_by_id=True):
     """Convert DataFrame to dict with numpy types converted to native Python types"""
     if isinstance(df, pd.DataFrame):
         # Convert numpy dtypes to native Python types
@@ -35,6 +35,11 @@ def safe_to_dict(df):
                 df_copy[col] = df_copy[col].astype('object')
             elif df_copy[col].dtype.name.startswith('float'):
                 df_copy[col] = df_copy[col].astype('object')
+        
+        # Sort by id column in descending order if it exists and sort_by_id is True
+        if sort_by_id and 'id' in df_copy.columns:
+            df_copy = df_copy.sort_values('id', ascending=False)
+        
         return df_copy.to_dict("records")
     return df
 
@@ -518,6 +523,11 @@ def term_info_parse_object(results, short_form):
                     if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.channel_image.image)[key]) > 1:
                         record[key.replace("image_","")] = vars(image.channel_image.image)[key].replace("http://","https://")
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
+            
+            # Sort each template's images by id in descending order (newest first)
+            for template_key in images:
+                images[template_key] = sorted(images[template_key], key=lambda x: x["id"], reverse=True)
+            
             termInfo["Examples"] = images
             # add a query to `queries` list for listing all available images
             q = ListAllAvailableImages_to_schema(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
@@ -541,6 +551,11 @@ def term_info_parse_object(results, short_form):
                     if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.image)[key]) > 1:
                         record[key.replace("image_","")] = vars(image.image)[key].replace("http://","https://")
                 images[image.image.template_anatomy.short_form].append(record)
+            
+            # Sort each template's images by id in descending order (newest first)
+            for template_key in images:
+                images[template_key] = sorted(images[template_key], key=lambda x: x["id"], reverse=True)
+            
             # Add the thumbnails to the term info
             termInfo["Images"] = images
 

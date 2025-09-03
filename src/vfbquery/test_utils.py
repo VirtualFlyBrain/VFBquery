@@ -18,7 +18,7 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.item()
         return super(NumpyEncoder, self).default(obj)
 
-def safe_to_dict(df):
+def safe_to_dict(df, sort_by_id=True):
     """Convert DataFrame to dict with numpy types converted to native Python types"""
     if isinstance(df, pd.DataFrame):
         # Convert numpy dtypes to native Python types
@@ -28,6 +28,11 @@ def safe_to_dict(df):
                 df_copy[col] = df_copy[col].astype('object')
             elif df_copy[col].dtype.name.startswith('float'):
                 df_copy[col] = df_copy[col].astype('object')
+        
+        # Sort by id column in descending order if it exists and sort_by_id is True
+        if sort_by_id and 'id' in df_copy.columns:
+            df_copy = df_copy.sort_values('id', ascending=False)
+        
         return df_copy.to_dict("records")
     return df
 

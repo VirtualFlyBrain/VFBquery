@@ -1,5 +1,35 @@
 import pandas as pd
+import json
+import numpy as np
 from typing import Any, Dict, Union
+
+# Custom JSON encoder to handle NumPy and pandas types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif hasattr(obj, 'item'):  # Handle pandas scalar types
+            return obj.item()
+        return super(NumpyEncoder, self).default(obj)
+
+def safe_to_dict(df):
+    """Convert DataFrame to dict with numpy types converted to native Python types"""
+    if isinstance(df, pd.DataFrame):
+        # Convert numpy dtypes to native Python types
+        df_copy = df.copy()
+        for col in df_copy.columns:
+            if df_copy[col].dtype.name.startswith('int'):
+                df_copy[col] = df_copy[col].astype('object')
+            elif df_copy[col].dtype.name.startswith('float'):
+                df_copy[col] = df_copy[col].astype('object')
+        return df_copy.to_dict("records")
+    return df
 
 def safe_extract_row(result: Any, index: int = 0) -> Dict:
     """
@@ -11,7 +41,9 @@ def safe_extract_row(result: Any, index: int = 0) -> Dict:
     """
     if isinstance(result, pd.DataFrame):
         if not result.empty and len(result.index) > index:
-            return result.iloc[index].to_dict()
+            # Convert to dict using safe method to handle numpy types
+            row_series = result.iloc[index]
+            return {col: (val.item() if hasattr(val, 'item') else val) for col, val in row_series.items()}
         else:
             return {}
     return result
@@ -28,8 +60,8 @@ def patch_vfb_connect_query_wrapper():
         def patched_get_term_info(self, terms, *args, **kwargs):
             result = original_get_term_info(self, terms, *args, **kwargs)
             if isinstance(result, pd.DataFrame):
-                # Return list of row dictionaries instead of DataFrame
-                return [row.to_dict() for i, row in result.iterrows()]
+                # Return list of row dictionaries instead of DataFrame using safe conversion
+                return safe_to_dict(result)
             return result
             
         NeoQueryWrapper._get_TermInfo = patched_get_term_info

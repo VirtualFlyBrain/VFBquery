@@ -1347,7 +1347,7 @@ def fill_query_results(term_info):
                             filtered_item = item
                         filtered_result.append(filtered_item)
                 elif isinstance(result, pd.DataFrame):
-                    filtered_result = result[query['preview_columns']].to_dict('records')
+                    filtered_result = safe_to_dict(result[query['preview_columns']])
                 else:
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 

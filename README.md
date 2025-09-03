@@ -80,15 +80,107 @@ vfb.get_term_info('FBbt_00003748')
                   "sort": {
                      "0": "Asc"
                   }
+               },
+               "tags": {
+                  "title": "Gross Types",
+                  "type": "tags",
+                  "order": 3
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
                }
             },
-            "rows": []
-         }
+            "rows": [
+               {
+                  "id": "VFB_00102107",
+                  "label": "[ME on JRC2018Unisex adult brain](VFB_00102107)",
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+                  "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018U')](VFB_00101567,VFB_00102107)"
+               },
+               {
+                  "id": "VFB_00101385",
+                  "label": "[ME%28R%29 on JRC_FlyEM_Hemibrain](VFB_00101385)",
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+                  "thumbnail": "[![ME%28R%29 on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
+               },
+               {
+                  "id": "VFB_00030810",
+                  "label": "[medulla on adult brain template Ito2014](VFB_00030810)",
+                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+                  "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](http://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
+               },
+               {
+                  "id": "VFB_00030624",
+                  "label": "[medulla on adult brain template JFRC2](VFB_00030624)",
+                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+                  "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030624)"
+               }
+            ]
+         },
+         "output_format": "table",
+         "count": 4
       }
    ],
+   "IsIndividual": false,
+   "IsClass": true,
+   "Examples": {
+      "VFB_00101384": [
+         {
+            "id": "VFB_00101385",
+            "label": "ME(R) on JRC_FlyEM_Hemibrain",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnailT.png",
+            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj"
+         }
+      ],
+      "VFB_00101567": [
+         {
+            "id": "VFB_00102107",
+            "label": "ME on JRC2018Unisex adult brain",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png",
+            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj"
+         }
+      ],
+      "VFB_00017894": [
+         {
+            "id": "VFB_00030624",
+            "label": "medulla on adult brain template JFRC2",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnailT.png",
+            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume.nrrd",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume_man.obj"
+         }
+      ],
+      "VFB_00030786": [
+         {
+            "id": "VFB_00030810",
+            "label": "medulla on adult brain template Ito2014",
+            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png",
+            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnailT.png",
+            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume.nrrd",
+            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume.wlz",
+            "obj": "https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/volume_man.obj"
+         }
+      ]
+   },
+   "IsTemplate": false,
    "Synonyms": [
       {
-         "label": "second optic neuropil",
+         "label": "ME",
+         "scope": "has_exact_synonym",
+         "type": "",
+         "publication": "[Ito et al., 2014](FBrf0224194)"
+      },
+      {
+         "label": "Med",
          "scope": "has_exact_synonym",
          "type": "",
          "publication": "[Chiang et al., 2011](FBrf0212704)"

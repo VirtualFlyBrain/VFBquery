@@ -80,7 +80,15 @@ vfb.get_term_info('FBbt_00003748')
                   "sort": {
                      "0": "Asc"
                   }
-               },
+               }
+            },
+            "rows": []
+         }
+      }
+   ],
+   "Synonyms": [
+      {
+         "label": "second optic neuropil",
          "scope": "has_exact_synonym",
          "type": "",
          "publication": "[Chiang et al., 2011](FBrf0212704)"

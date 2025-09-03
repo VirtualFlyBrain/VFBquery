@@ -1,8 +1,10 @@
 name: Test VFBquery Examples
-
 on:
-    push:
-    pull_request:
+  push:
+  pull_request:
+  workflow_dispatch:  # Enables manual triggering
+  schedule:
+    - cron: '0 0 1 * *'  # Runs at 00:00 UTC on the 1st day of every month
 
 jobs:
   test-examples:
@@ -10,34 +12,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
-
       - name: Install dependencies
         run: |
             python -m pip install --upgrade pip
             pip install -r requirements.txt
             pip install deepdiff colorama
             pip install .
-
       - name: Run examples from README.md
         run: |
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' > test_examples.py
           cat test_examples.py
           python test_examples.py
-
       - name: Parse README.md and generate test files
         run: |
           python -m src.test.readme_parser
         env:
           PYTHONPATH: ${{ github.workspace }}
-
       - name: Run examples from README.md and compare JSON outputs
         run: |
           python -m src.test.test_examples_diff
         env:
           PYTHONPATH: ${{ github.workspace }}
-

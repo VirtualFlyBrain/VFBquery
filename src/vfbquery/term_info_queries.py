@@ -1,5 +1,21 @@
 import re
 import json
+import numpy as np
+
+# Custom JSON encoder to handle NumPy and pandas types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif hasattr(obj, 'item'):  # Handle pandas scalar types
+            return obj.item()
+        return super(NumpyEncoder, self).default(obj)
 import requests
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
@@ -15,7 +31,7 @@ class Coordinates:
     Z: float
 
     def __str__(self):
-        return json.dumps([str(self.X), str(self.Y), str(self.Z)])
+        return json.dumps([str(self.X), str(self.Y), str(self.Z)], cls=NumpyEncoder)
 
 
 class CoordinatesFactory:
@@ -1062,7 +1078,7 @@ def serialize_term_info_to_json(vfb_term: VfbTerminfo, show_types=False) -> str:
     :return: json string representation of the term info object
     """
     term_info_dict = serialize_term_info_to_dict(vfb_term, show_types)
-    return json.dumps(term_info_dict, indent=4)
+    return json.dumps(term_info_dict, indent=4, cls=NumpyEncoder)
 
 
 def process(term_info_response: dict, variable, loaded_template: Optional[str] = None, show_types=False) -> dict:

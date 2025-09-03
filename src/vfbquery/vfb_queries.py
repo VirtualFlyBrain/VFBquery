@@ -8,6 +8,35 @@ from typing import List, Tuple, Dict, Any, Union
 import pandas as pd
 from marshmallow import ValidationError
 import json
+import numpy as np
+
+# Custom JSON encoder to handle NumPy and pandas types
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        elif hasattr(obj, 'item'):  # Handle pandas scalar types
+            return obj.item()
+        return super(NumpyEncoder, self).default(obj)
+
+def safe_to_dict(df):
+    """Convert DataFrame to dict with numpy types converted to native Python types"""
+    if isinstance(df, pd.DataFrame):
+        # Convert numpy dtypes to native Python types
+        df_copy = df.copy()
+        for col in df_copy.columns:
+            if df_copy[col].dtype.name.startswith('int'):
+                df_copy[col] = df_copy[col].astype('object')
+            elif df_copy[col].dtype.name.startswith('float'):
+                df_copy[col] = df_copy[col].astype('object')
+        return df_copy.to_dict("records")
+    return df
 
 # Lazy import for dict_cursor to avoid GUI library issues
 def get_dict_cursor():
@@ -780,8 +809,13 @@ def ListAllAvailableImages_to_schema(name, take_default):
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 def serialize_solr_output(results):
-    # Serialize the sanitized dictionary to JSON
-    json_string = json.dumps(results.docs[0], ensure_ascii=False)
+    # Create a copy of the document and remove Solr-specific fields
+    doc = dict(results.docs[0])
+    # Remove the _version_ field which can cause serialization issues with large integers
+    doc.pop('_version_', None)
+    
+    # Serialize the sanitized dictionary to JSON using NumpyEncoder
+    json_string = json.dumps(doc, ensure_ascii=False, cls=NumpyEncoder)
     json_string = json_string.replace('\\', '')
     json_string = json_string.replace('"{', '{')
     json_string = json_string.replace('}"', '}')
@@ -914,7 +948,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
                     "thumbnail"
                 ]
             }
-            for row in df.to_dict("records")
+            for row in safe_to_dict(df)
         ],
         "count": total_count
     }
@@ -1002,7 +1036,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
                         "license"
                     ]
                 }
-                for row in df.to_dict("records")
+                for row in safe_to_dict(df)
             ],
             "count": total_count
         }
@@ -1118,7 +1152,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                         "thumbnail"
                     ]
                 }
-                for row in df.to_dict("records")
+                for row in safe_to_dict(df)
             ],
             "count": total_count
         }
@@ -1228,7 +1262,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                         "Images"
                     ]
                 }
-                for row in df.to_dict("records")
+                for row in safe_to_dict(df)
             ],
             "count": total_count
         }
@@ -1248,7 +1282,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                         "Weight",
                     ]
                 }
-                for row in df.to_dict("records")
+                for row in safe_to_dict(df)
             ],
             "count": total_count
         }

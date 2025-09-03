@@ -53,6 +53,76 @@ def safe_extract_row(result: Any, index: int = 0) -> Dict:
             return {}
     return result
 
+def sanitize_for_json(obj: Any) -> Any:
+    """
+    Recursively sanitize any data structure to make it JSON serializable.
+    Converts numpy types, pandas types, and other non-serializable types to native Python types.
+    
+    :param obj: Object to sanitize
+    :return: JSON-serializable version of the object
+    """
+    if isinstance(obj, dict):
+        return {key: sanitize_for_json(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, np.bool_):
+        return bool(obj)
+    elif hasattr(obj, 'item'):  # Handle pandas scalar types
+        return obj.item()
+    elif isinstance(obj, pd.DataFrame):
+        return safe_to_dict(obj)
+    elif hasattr(obj, '__dict__'):  # Handle custom objects
+        return sanitize_for_json(obj.__dict__)
+    else:
+        return obj
+
+def safe_json_dumps(obj: Any, **kwargs) -> str:
+    """
+    Safely serialize any object to JSON string, handling numpy and pandas types.
+    
+    :param obj: Object to serialize
+    :param kwargs: Additional arguments to pass to json.dumps
+    :return: JSON string
+    """
+    # Set default arguments
+    default_kwargs = {'indent': 2, 'ensure_ascii': False, 'cls': NumpyEncoder}
+    default_kwargs.update(kwargs)
+    
+    try:
+        # First try with the NumpyEncoder
+        return json.dumps(obj, **default_kwargs)
+    except (TypeError, ValueError):
+        # If that fails, sanitize the object first
+        sanitized_obj = sanitize_for_json(obj)
+        return json.dumps(sanitized_obj, **default_kwargs)
+
+def pretty_print_vfb_result(result: Any, max_length: int = 1000) -> None:
+    """
+    Pretty print any VFB query result in a safe, readable format.
+    
+    :param result: Result from any VFB query function
+    :param max_length: Maximum length of output (truncates if longer)
+    """
+    try:
+        json_str = safe_json_dumps(result)
+        if len(json_str) > max_length:
+            print(json_str[:max_length] + f'\n... (truncated, full length: {len(json_str)} characters)')
+        else:
+            print(json_str)
+    except Exception as e:
+        print(f'Error printing result: {e}')
+        print(f'Result type: {type(result)}')
+        if hasattr(result, '__dict__'):
+            print(f'Result attributes: {list(result.__dict__.keys())}')
+        else:
+            print(f'Result: {str(result)[:max_length]}...')
+
 def patch_vfb_connect_query_wrapper():
     """
     Apply monkey patches to VfbConnect.neo_query_wrapper to make it handle DataFrame results safely.

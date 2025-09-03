@@ -166,13 +166,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)
-        self.assertEqual(2, len(serialized["references"]))
-        self.assertEqual({'link': '[Spradling, 1993, Bate, Martinez Arias, 1993: 1--70](FBrf0064777)',
-                          'refs': ['http://flybase.org/reports/FBrf0064777'],
-                          'types': ' pub'}, serialized["references"][0])
+        self.assertEqual(1, len(serialized["references"]))
         self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
                           'refs': ['http://flybase.org/reports/FBrf0021038'],
-                          'types': ' pub'}, serialized["references"][1])
+                          'types': ' pub'}, serialized["references"][0])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 
@@ -293,7 +290,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("thumbnail" in serialized)
 
         self.assertTrue("references" in serialized)
-        self.assertEqual(6, len(serialized["references"]))
+        self.assertEqual(7, len(serialized["references"]))
 
         self.assertTrue("targetingSplits" in serialized)
         self.assertEqual(6, len(serialized["targetingSplits"]))

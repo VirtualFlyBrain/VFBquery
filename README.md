@@ -285,7 +285,6 @@ Template example:
 ```python
 vfb.get_term_info('VFB_00101567')
 ```
-
 ```json
 {
    "Name": "JRC2018U",

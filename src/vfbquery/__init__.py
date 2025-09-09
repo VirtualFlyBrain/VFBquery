@@ -48,5 +48,18 @@ except ImportError:
     __caching_available__ = False
     print("VFBquery: Caching not available (dependencies missing)")
 
+# SOLR-based result caching (experimental - for cold start optimization)
+try:
+    from .solr_cache_integration import (
+        enable_solr_result_caching,
+        disable_solr_result_caching, 
+        warmup_solr_cache,
+        get_solr_cache_stats as get_solr_cache_stats_func,
+        cleanup_solr_cache
+    )
+    __solr_caching_available__ = True
+except ImportError:
+    __solr_caching_available__ = False
+
 # Version information
 __version__ = "0.1.0"

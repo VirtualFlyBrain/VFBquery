@@ -59,18 +59,11 @@ class SolrResultCache:
         self.max_result_size_mb = max_result_size_mb
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
         
-    def _generate_field_name(self, query_type: str, **params) -> str:
-        """Generate SOLR field name for VFBquery results"""
-        if not params:
-            # Simple case - no parameters
-            return f"vfb_query_{query_type}"
-        else:
-            # Complex case - include parameter hash
-            param_str = json.dumps(sorted(params.items()), sort_keys=True)
-            param_hash = hashlib.md5(param_str.encode()).hexdigest()[:8]
-            return f"vfb_query_{query_type}_{param_hash}"
+    def _get_cache_field_name(self, query_type):
+        """Get the field name for a specific query type"""
+        return f"vfb_query_{query_type}_ss"
     
-    def _create_cache_metadata(self, result: Any) -> Dict[str, Any]:
+    def _create_cache_metadata(self, result: Any) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
         serialized_result = json.dumps(result, cls=NumpyEncoder)
         result_size = len(serialized_result.encode('utf-8'))
@@ -84,7 +77,7 @@ class SolrResultCache:
         expires_at = now + timedelta(hours=self.ttl_hours)  # 2160 hours = 90 days = 3 months
         
         return {
-            "result": serialized_result,
+            "result": result,  # Store original object, not serialized string
             "cached_at": now.isoformat(),
             "expires_at": expires_at.isoformat(),
             "result_size": result_size,
@@ -105,7 +98,7 @@ class SolrResultCache:
         Returns:
             Cached result or None if not found/expired
         """
-        field_name = self._generate_field_name(query_type, **params)
+        field_name = self._get_cache_field_name(query_type)
         
         try:
             # Query existing vfb_json document for cached VFBquery result
@@ -155,8 +148,16 @@ class SolrResultCache:
             # Increment hit count asynchronously
             self._increment_field_hit_count(term_id, field_name, cached_data.get("hit_count", 0))
             
-            # Deserialize and return result
-            result = json.loads(cached_data["result"])
+            # Return cached result 
+            result = cached_data["result"]
+            # If result is a string, parse it as JSON
+            if isinstance(result, str):
+                try:
+                    result = json.loads(result)
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse cached result for {term_id}")
+                    return None
+            
             logger.info(f"Cache hit for {query_type}({term_id})")
             return result
             
@@ -181,7 +182,7 @@ class SolrResultCache:
             logger.debug("Empty result, not caching")
             return False
             
-        field_name = self._generate_field_name(query_type, **params)
+        field_name = self._get_cache_field_name(query_type)
         
         try:
             # Create cached metadata and result
@@ -189,16 +190,50 @@ class SolrResultCache:
             if not cached_data:
                 return False  # Result too large or other issue
                 
-            # Update existing SOLR document with new field using atomic update
-            # This preserves all existing fields in the document
-            update_doc = {
-                "id": term_id,
-                field_name: {"set": json.dumps(cached_data)}
-            }
+            # First, get the existing document to ensure it exists
+            existing_response = requests.get(f"{self.cache_url}/select", params={
+                "q": f"id:{term_id}",
+                "wt": "json",
+                "fl": "id"
+            }, timeout=5)
             
+            if existing_response.status_code != 200:
+                logger.error(f"Cannot access document {term_id} for caching")
+                return False
+            
+            existing_data = existing_response.json()
+            existing_docs = existing_data.get("response", {}).get("docs", [])
+            
+            if not existing_docs:
+                logger.warning(f"Document {term_id} does not exist - cannot add cache field")
+                return False
+            
+            # Fetch complete existing document to preserve all fields
+            complete_doc_response = requests.get(f"{self.cache_url}/select", params={
+                "q": f"id:{term_id}",
+                "wt": "json",
+                "rows": "1"
+            }, timeout=5)
+            
+            if complete_doc_response.status_code != 200:
+                logger.error(f"Cannot fetch complete document {term_id}")
+                return False
+                
+            complete_data = complete_doc_response.json()
+            complete_docs = complete_data.get("response", {}).get("docs", [])
+            
+            if not complete_docs:
+                logger.error(f"Document {term_id} not found for complete fetch")
+                return False
+            
+            # Get the existing document and add our cache field
+            existing_doc = complete_docs[0].copy()
+            existing_doc[field_name] = json.dumps(cached_data)  # Add cache field
+            
+            # Replace entire document (like VFB indexer does)
             response = requests.post(
-                f"{self.cache_url}/update/json/docs",
-                json=[update_doc],
+                f"{self.cache_url}/update",
+                data=json.dumps([existing_doc]),
                 headers={"Content-Type": "application/json"},
                 params={"commit": "true"},  # Immediate commit for availability
                 timeout=10
@@ -208,7 +243,7 @@ class SolrResultCache:
                 logger.info(f"Cached {field_name} for {term_id}, size: {cached_data['result_size']/1024:.1f}KB")
                 return True
             else:
-                logger.error(f"Failed to cache result: HTTP {response.status_code}")
+                logger.error(f"Failed to cache result: HTTP {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
@@ -278,7 +313,7 @@ class SolrResultCache:
         Returns:
             Dictionary with cache age info or None if not cached
         """
-        field_name = self._generate_field_name(query_type, **params)
+        field_name = self._get_cache_field_name(query_type)
         
         try:
             response = requests.get(f"{self.cache_url}/select", params={
@@ -334,7 +369,7 @@ class SolrResultCache:
             
             # Search for documents that have VFBquery cache fields
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info:[* TO *] OR vfb_query_anatomy:[* TO *] OR vfb_query_neuron:[* TO *]",
+                "q": "vfb_query_term_info_str:[* TO *] OR vfb_query_anatomy_str:[* TO *] OR vfb_query_neuron_str:[* TO *]",
                 "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
                 "rows": "1000",  # Process in batches
                 "wt": "json"
@@ -407,7 +442,7 @@ class SolrResultCache:
             # Get documents with VFBquery cache fields
             # Use a specific field search since wildcards may not work in all SOLR versions
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info:[* TO *] OR vfb_query_anatomy:[* TO *] OR vfb_query_neuron:[* TO *]",
+                "q": "vfb_query_term_info_str:[* TO *] OR vfb_query_anatomy_str:[* TO *] OR vfb_query_neuron_str:[* TO *]",
                 "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
                 "rows": "1000",  # Process in batches 
                 "wt": "json"
@@ -432,8 +467,8 @@ class SolrResultCache:
                         if field_name.startswith("vfb_query_"):
                             total_fields += 1
                             
-                            # Extract query type from field name
-                            query_type = field_name.replace("vfb_query_", "").split("_")[0]
+                            # Extract query type from field name (remove vfb_query_ prefix and _str suffix)
+                            query_type = field_name.replace("vfb_query_", "").replace("_str", "")
                             field_stats[query_type] = field_stats.get(query_type, 0) + 1
                             
                             try:

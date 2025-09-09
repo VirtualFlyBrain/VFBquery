@@ -10,55 +10,47 @@ pip install --upgrade vfbquery
 
 ## Quick Start
 
-VFBquery includes **automatic caching** for optimal performance - no configuration needed!
+VFBquery includes **automatic server-side caching** for optimal performance - no configuration needed!
 
 ```python
 import vfbquery as vfb
 
 # First call: ~1-2 seconds (fetches data + populates cache)
-result = vfb.get_term_info('FBbt_00003748')
+result = vfb.get_term_info('FBbt_00003686')
 
 # Subsequent calls: <0.1 seconds (served from cache)
-result = vfb.get_term_info('FBbt_00003748')  # Lightning fast!
+result = vfb.get_term_info('FBbt_00003686')  # Lightning fast!
 ```
 
 ### Default Caching Features
 
 - ✅ **3-month cache duration** (like VFB_connect)
-- ✅ **2GB memory cache** with intelligent size management  
-- ✅ **Persistent disk storage** survives Python restarts
+- ✅ **Server-side SOLR caching** eliminates cold start delays
 - ✅ **Automatic cache invalidation** after 3 months
 - ✅ **Zero configuration required** - works out of the box
+- ✅ **Persistent across sessions** - benefits all users
 
-### Runtime Cache Configuration
+### Cache Configuration
 
-Adjust cache settings dynamically:
+VFBquery uses server-side SOLR caching that's automatically managed. Local memory caching is also available for additional performance:
 
 ```python
 import vfbquery as vfb
 
-# Modify cache duration
+# Local memory cache settings (optional enhancement)
 vfb.set_cache_ttl(720)         # 1 month instead of 3
-vfb.set_cache_ttl(168)         # 1 week
-
-# Adjust memory limits  
 vfb.set_cache_memory_limit(512) # 512MB instead of 2GB
-vfb.set_cache_max_items(1000)   # Limit to 1K items
 
-# Toggle disk persistence
-vfb.disable_disk_cache()        # Memory-only caching
-vfb.enable_disk_cache()         # Restore disk storage
-
-# Monitor cache performance
+# Monitor local cache performance  
 stats = vfb.get_vfbquery_cache_stats()
-print(f"Hit rate: {stats['hit_rate_percent']}%")
+print(f"Local cache hit rate: {stats['hit_rate_percent']}%")
 
 # Get current configuration
 config = vfb.get_cache_config()
 print(f"TTL: {config['cache_ttl_hours']}h, Memory: {config['memory_cache_size_mb']}MB")
 ```
 
-Disable caching globally if needed:
+Disable all caching if needed:
 ```bash
 export VFBQUERY_CACHE_ENABLED=false
 ```
@@ -66,7 +58,7 @@ export VFBQUERY_CACHE_ENABLED=false
 ## Usage Examples
 Class example:
 ```python
-vfb.get_term_info('FBbt_00003748')
+vfb.get_term_info('FBbt_00003686')
 ```
 ```json
 {

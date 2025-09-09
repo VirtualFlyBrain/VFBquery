@@ -14,8 +14,8 @@ This performance test measures the execution time of VFB term info queries for s
 
 ## Performance Thresholds
 
-- Maximum single query time: 5 minutes (300 seconds)
-- Maximum total time for both queries: 7.5 minutes (450 seconds)
+- Maximum single query time: 2 seconds
+- Maximum total time for both queries: 4 seconds
 
 ## Test Results
 

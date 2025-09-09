@@ -1,62 +1,20 @@
 # VFBquery
 
-A high-performance Python library for querying Virtual Fly Brain (VFB) data with built-in intelligent caching.
-
-## Installation
-
+to setup requirements:
 ```bash
 pip install --upgrade vfbquery
 ```
 
-## Quick Start
+To get term info for a term:
+get_term_info(ID)
 
-VFBquery includes **automatic server-side caching** for optimal performance - no configuration needed!
-
+e.g.
 ```python
 import vfbquery as vfb
-
-# First call: ~1-2 seconds (fetches data + populates cache)
-vfb.get_term_info('FBbt_00003686')
-
-# Subsequent calls: <0.1 seconds (served from cache)
-vfb.get_term_info('FBbt_00003686')  # Lightning fast!
 ```
-
-### Default Caching Features
-
-- ✅ **3-month cache duration** (like VFB_connect)
-- ✅ **Server-side SOLR caching** eliminates cold start delays
-- ✅ **Automatic cache invalidation** after 3 months
-- ✅ **Zero configuration required** - works out of the box
-- ✅ **Persistent across sessions** - benefits all users
-
-### Cache Configuration
-
-VFBquery uses server-side SOLR caching that's automatically managed. Local memory caching is also available for additional performance:
-
-```python
-import vfbquery as vfb
-
-# Local memory cache settings (optional enhancement)  
-vfb.set_cache_ttl(720)          # 1 month instead of 3
-vfb.set_cache_memory_limit(512) # 512MB instead of 2GB
-
-# Monitor cache performance
-vfb.get_vfbquery_cache_stats()  # Returns cache statistics
-
-# Get configuration  
-vfb.get_cache_config()          # Returns current config
-```
-
-Disable all caching if needed:
-```bash
-export VFBQUERY_CACHE_ENABLED=false
-```
-
-## Usage Examples
 Class example:
 ```python
-vfb.get_term_info('FBbt_00003686')
+vfb.get_term_info('FBbt_00003748')
 ```
 ```json
 {
@@ -1068,16 +1026,7 @@ vfb.get_term_info('VFB_00101567')
 }
 ```
 
-## Performance
-
-VFBquery provides fast query performance through intelligent caching:
-
-- **First query**: 1-2 seconds (populates cache)
-- **Cached queries**: <0.1 seconds (54,000x faster)
-- **Persistent cache**: Survives Python restarts
-- **Automatic optimization**: No configuration needed
-
-## Queries
+Queries:
 ```python
 vfb.get_instances('FBbt_00003748', return_dataframe=False)
 ```

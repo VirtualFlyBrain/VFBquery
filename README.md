@@ -1026,7 +1026,37 @@ vfb.get_term_info('VFB_00101567')
 }
 ```
 
-Queries:
+## Performance Testing
+
+VFBquery includes automated performance testing to monitor query response times. The performance test measures execution time for specific queries:
+
+- **FBbt_00003748** (mushroom body - anatomical class)  
+- **VFB_00101567** (individual anatomy data)
+
+### Performance Thresholds
+
+- Maximum single query time: 30 seconds
+- Maximum total time for both queries: 45 seconds
+
+### Automated Testing
+
+Performance tests run automatically via GitHub Actions:
+
+- **Daily**: Every day at 2 AM UTC
+- **On commits**: Push to main/dev branches and pull requests  
+- **Manual**: Can be triggered manually from the Actions tab
+
+Results are automatically saved to [`performance.md`](performance.md) in the repository root.
+
+### Running Performance Tests Locally
+
+```bash
+# Install dependencies and run performance test
+pip install -r requirements.txt
+python -m unittest src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance -v
+```
+
+## Queries
 ```python
 vfb.get_instances('FBbt_00003748', return_dataframe=False)
 ```

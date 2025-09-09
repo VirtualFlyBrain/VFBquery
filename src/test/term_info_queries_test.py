@@ -524,6 +524,51 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("filemeta" in serialized)
         self.assertFalse("template" in serialized)
 
+    def test_term_info_performance(self):
+        """
+        Performance test for specific term info queries.
+        Tests the execution time for FBbt_00003748 and VFB_00101567.
+        """
+        import vfbquery as vfb
+        
+        # Test performance for FBbt_00003748 (mushroom body)
+        start_time = time.time()
+        result_1 = vfb.get_term_info('FBbt_00003748')
+        duration_1 = time.time() - start_time
+        
+        # Test performance for VFB_00101567 (individual anatomy)
+        start_time = time.time()
+        result_2 = vfb.get_term_info('VFB_00101567')
+        duration_2 = time.time() - start_time
+        
+        # Print performance metrics for GitHub Actions logs
+        print(f"\n" + "="*50)
+        print(f"Performance Test Results:")
+        print(f"="*50)
+        print(f"FBbt_00003748 query took: {duration_1:.4f} seconds")
+        print(f"VFB_00101567 query took: {duration_2:.4f} seconds")
+        print(f"Total time for both queries: {duration_1 + duration_2:.4f} seconds")
+        print(f"="*50)
+        
+        # Basic assertions to ensure the queries succeeded
+        self.assertIsNotNone(result_1, "FBbt_00003748 query returned None")
+        self.assertIsNotNone(result_2, "VFB_00101567 query returned None")
+        
+        # Performance assertions - fail if queries take too long
+        # These are reasonable thresholds that can be adjusted based on actual performance
+        max_single_query_time = 30.0  # seconds
+        max_total_time = 45.0  # seconds
+        
+        self.assertLess(duration_1, max_single_query_time, 
+                       f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold")
+        self.assertLess(duration_2, max_single_query_time,
+                       f"VFB_00101567 query took {duration_2:.4f}s, exceeding {max_single_query_time}s threshold")
+        self.assertLess(duration_1 + duration_2, max_total_time,
+                       f"Total query time {duration_1 + duration_2:.4f}s exceeds {max_total_time}s threshold")
+        
+        # Log success
+        print("Performance test completed successfully!")
+
 
 class TestVariable:
 

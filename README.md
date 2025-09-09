@@ -1,17 +1,69 @@
 # VFBquery
 
-to setup requirements:
+A high-performance Python library for querying Virtual Fly Brain (VFB) data with built-in intelligent caching.
+
+## Installation
+
 ```bash
 pip install --upgrade vfbquery
 ```
 
-To get term info for a term:
-get_term_info(ID)
+## Quick Start
 
-e.g.
+VFBquery includes **automatic caching** for optimal performance - no configuration needed!
+
 ```python
 import vfbquery as vfb
+
+# First call: ~1-2 seconds (fetches data + populates cache)
+result = vfb.get_term_info('FBbt_00003748')
+
+# Subsequent calls: <0.1 seconds (served from cache)
+result = vfb.get_term_info('FBbt_00003748')  # Lightning fast!
 ```
+
+### Default Caching Features
+
+- ✅ **3-month cache duration** (like VFB_connect)
+- ✅ **2GB memory cache** with intelligent size management  
+- ✅ **Persistent disk storage** survives Python restarts
+- ✅ **Automatic cache invalidation** after 3 months
+- ✅ **Zero configuration required** - works out of the box
+
+### Runtime Cache Configuration
+
+Adjust cache settings dynamically:
+
+```python
+import vfbquery as vfb
+
+# Modify cache duration
+vfb.set_cache_ttl(720)         # 1 month instead of 3
+vfb.set_cache_ttl(24)          # 1 day for development
+
+# Adjust memory limits  
+vfb.set_cache_memory_limit(512) # 512MB instead of 2GB
+vfb.set_cache_max_items(1000)   # Limit to 1K items
+
+# Toggle disk persistence
+vfb.disable_disk_cache()        # Memory-only caching
+vfb.enable_disk_cache()         # Restore disk storage
+
+# Monitor cache performance
+stats = vfb.get_vfbquery_cache_stats()
+print(f"Hit rate: {stats['hit_rate_percent']}%")
+
+# Get current configuration
+config = vfb.get_cache_config()
+print(f"TTL: {config['cache_ttl_hours']}h, Memory: {config['memory_cache_size_mb']}MB")
+```
+
+Disable caching globally if needed:
+```bash
+export VFBQUERY_CACHE_ENABLED=false
+```
+
+## Usage Examples
 Class example:
 ```python
 vfb.get_term_info('FBbt_00003748')

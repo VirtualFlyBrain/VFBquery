@@ -427,7 +427,9 @@ class SolrResultCache:
                 
                 # Analyze each cache document
                 for doc in docs:
-                    query_type = doc.get("query_type", "unknown")
+                    query_type_field = doc.get("query_type", "unknown")
+                    # Handle both list and string formats
+                    query_type = query_type_field[0] if isinstance(query_type_field, list) else query_type_field
                     type_stats[query_type] = type_stats.get(query_type, 0) + 1
                     
                     try:

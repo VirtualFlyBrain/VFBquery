@@ -59,9 +59,7 @@ class SolrResultCache:
         self.max_result_size_mb = max_result_size_mb
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
         
-    def _get_cache_field_name(self, query_type):
-        """Get the field name for a specific query type"""
-        return f"vfb_query_{query_type}_ss"
+    
     
     def _create_cache_metadata(self, result: Any) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
@@ -88,23 +86,23 @@ class SolrResultCache:
     
     def get_cached_result(self, query_type: str, term_id: str, **params) -> Optional[Any]:
         """
-        Retrieve cached result from existing vfb_json SOLR document
+        Retrieve cached result from separate cache document
         
         Args:
             query_type: Type of query ('term_info', 'instances', etc.)
-            term_id: Term identifier (SOLR document ID)
+            term_id: Term identifier 
             **params: Query parameters for field name generation
             
         Returns:
             Cached result or None if not found/expired
         """
-        field_name = self._get_cache_field_name(query_type)
-        
         try:
-            # Query existing vfb_json document for cached VFBquery result
+            # Query for cache document with prefixed ID
+            cache_doc_id = f"vfb_query_{term_id}"
+            
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{term_id}",
-                "fl": f"{field_name}",
+                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "fl": "cache_data",
                 "wt": "json"
             }, timeout=5)  # Short timeout for cache lookups
             
@@ -115,11 +113,18 @@ class SolrResultCache:
             data = response.json()
             docs = data.get("response", {}).get("docs", [])
             
-            if not docs or field_name not in docs[0]:
-                logger.debug(f"Cache miss: No {field_name} field found for {term_id}")
+            if not docs:
+                logger.debug(f"Cache miss: No cache document found for {query_type}:{term_id}")
                 return None
                 
-            cached_field = docs[0][field_name][0] if isinstance(docs[0][field_name], list) else docs[0][field_name]
+            cached_field = docs[0].get("cache_data")
+            if not cached_field:
+                logger.debug(f"Cache miss: No cache_data field found for {term_id}")
+                return None
+                
+            # Handle both list and string formats
+            if isinstance(cached_field, list):
+                cached_field = cached_field[0]
             
             # Parse the cached metadata and result
             cached_data = json.loads(cached_field)
@@ -133,7 +138,7 @@ class SolrResultCache:
                 if now > expires_at:
                     age_days = (now - cached_at).days
                     logger.info(f"Cache expired for {query_type}({term_id}) - age: {age_days} days")
-                    self._clear_expired_field(term_id, field_name)
+                    self._clear_expired_cache_document(cache_doc_id)
                     return None
                     
                 # Log cache age for monitoring
@@ -142,11 +147,11 @@ class SolrResultCache:
                     
             except (KeyError, ValueError) as e:
                 logger.warning(f"Invalid cache metadata for {term_id}: {e}")
-                self._clear_expired_field(term_id, field_name)
+                self._clear_expired_cache_document(cache_doc_id)
                 return None
             
             # Increment hit count asynchronously
-            self._increment_field_hit_count(term_id, field_name, cached_data.get("hit_count", 0))
+            self._increment_cache_hit_count(cache_doc_id, cached_data.get("hit_count", 0))
             
             # Return cached result 
             result = cached_data["result"]
@@ -167,11 +172,14 @@ class SolrResultCache:
     
     def cache_result(self, query_type: str, term_id: str, result: Any, **params) -> bool:
         """
-        Store result as field in existing vfb_json SOLR document
+        Store result as separate cache document with prefixed ID
+        
+        This approach is safer as it never touches original VFB documents,
+        eliminating risk of data loss.
         
         Args:
             query_type: Type of query being cached
-            term_id: Term identifier (SOLR document ID)
+            term_id: Term identifier 
             result: Query result to cache
             **params: Query parameters for field name generation
             
@@ -182,65 +190,35 @@ class SolrResultCache:
             logger.debug("Empty result, not caching")
             return False
             
-        field_name = self._get_cache_field_name(query_type)
-        
         try:
             # Create cached metadata and result
             cached_data = self._create_cache_metadata(result)
             if not cached_data:
                 return False  # Result too large or other issue
                 
-            # First, get the existing document to ensure it exists
-            existing_response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{term_id}",
-                "wt": "json",
-                "fl": "id"
-            }, timeout=5)
+            # Create cache document with prefixed ID
+            cache_doc_id = f"vfb_query_{term_id}"
             
-            if existing_response.status_code != 200:
-                logger.error(f"Cannot access document {term_id} for caching")
-                return False
+            cache_doc = {
+                "id": cache_doc_id,
+                "original_term_id": term_id,
+                "query_type": query_type,
+                "cache_data": json.dumps(cached_data),
+                "cached_at": cached_data["cached_at"],
+                "expires_at": cached_data["expires_at"]
+            }
             
-            existing_data = existing_response.json()
-            existing_docs = existing_data.get("response", {}).get("docs", [])
-            
-            if not existing_docs:
-                logger.warning(f"Document {term_id} does not exist - cannot add cache field")
-                return False
-            
-            # Fetch complete existing document to preserve all fields
-            complete_doc_response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{term_id}",
-                "wt": "json",
-                "rows": "1"
-            }, timeout=5)
-            
-            if complete_doc_response.status_code != 200:
-                logger.error(f"Cannot fetch complete document {term_id}")
-                return False
-                
-            complete_data = complete_doc_response.json()
-            complete_docs = complete_data.get("response", {}).get("docs", [])
-            
-            if not complete_docs:
-                logger.error(f"Document {term_id} not found for complete fetch")
-                return False
-            
-            # Get the existing document and add our cache field
-            existing_doc = complete_docs[0].copy()
-            existing_doc[field_name] = json.dumps(cached_data)  # Add cache field
-            
-            # Replace entire document (like VFB indexer does)
+            # Store cache document 
             response = requests.post(
                 f"{self.cache_url}/update",
-                data=json.dumps([existing_doc]),
+                data=json.dumps([cache_doc]),
                 headers={"Content-Type": "application/json"},
                 params={"commit": "true"},  # Immediate commit for availability
                 timeout=10
             )
             
             if response.status_code == 200:
-                logger.info(f"Cached {field_name} for {term_id}, size: {cached_data['result_size']/1024:.1f}KB")
+                logger.info(f"Cached {query_type} for {term_id} as {cache_doc_id}, size: {cached_data['result_size']/1024:.1f}KB")
                 return True
             else:
                 logger.error(f"Failed to cache result: HTTP {response.status_code} - {response.text}")
@@ -250,61 +228,40 @@ class SolrResultCache:
             logger.error(f"Error caching result: {e}")
             return False
     
-    def _increment_field_hit_count(self, term_id: str, field_name: str, current_count: int):
-        """Asynchronously increment hit count for cached field"""
+
+    def _clear_expired_cache_document(self, cache_doc_id: str):
+        """Delete expired cache document from SOLR"""
         try:
-            # First get the current cached data
-            response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{term_id}",
-                "fl": field_name,
-                "wt": "json"
-            }, timeout=2)
-            
-            if response.status_code == 200:
-                data = response.json()
-                docs = data.get("response", {}).get("docs", [])
-                
-                if docs and field_name in docs[0]:
-                    cached_field = docs[0][field_name][0] if isinstance(docs[0][field_name], list) else docs[0][field_name]
-                    cached_data = json.loads(cached_field)
-                    
-                    # Update hit count
-                    cached_data["hit_count"] = current_count + 1
-                    
-                    # Update the field
-                    update_doc = {
-                        "id": term_id,
-                        field_name: {"set": json.dumps(cached_data)}
-                    }
-                    
-                    requests.post(
-                        f"{self.cache_url}/update/json/docs",
-                        json=[update_doc],
-                        headers={"Content-Type": "application/json"},
-                        params={"commit": "false"},  # Don't commit immediately for performance
-                        timeout=2
-                    )
-        except Exception as e:
-            logger.debug(f"Failed to update hit count: {e}")
-    
-    def _clear_expired_field(self, term_id: str, field_name: str):
-        """Clear expired field from SOLR document"""
-        try:
-            # Remove the expired field from the document
-            update_doc = {
-                "id": term_id,
-                field_name: {"set": None}  # Remove field by setting to null
-            }
-            
             requests.post(
-                f"{self.cache_url}/update/json/docs",
-                json=[update_doc],
-                headers={"Content-Type": "application/json"},
-                params={"commit": "false"},
+                f"{self.cache_url}/update",
+                data=f'<delete><id>{cache_doc_id}</id></delete>',
+                headers={"Content-Type": "application/xml"},
+                params={"commit": "false"},  # Don't commit immediately for performance
                 timeout=2
             )
         except Exception as e:
-            logger.debug(f"Failed to clear expired field: {e}")
+            logger.debug(f"Failed to clear expired cache document: {e}")
+    
+    def _increment_cache_hit_count(self, cache_doc_id: str, current_count: int):
+        """Increment hit count for cache document (background operation)"""
+        try:
+            # Update hit count in cache document
+            new_count = current_count + 1
+            update_doc = {
+                "id": cache_doc_id,
+                "hit_count": {"set": new_count},
+                "last_accessed": {"set": datetime.now().isoformat() + "Z"}
+            }
+            
+            requests.post(
+                f"{self.cache_url}/update",
+                data=json.dumps([update_doc]),
+                headers={"Content-Type": "application/json"},
+                params={"commit": "false"},  # Don't commit immediately for performance
+                timeout=2
+            )
+        except Exception as e:
+            logger.debug(f"Failed to update hit count: {e}")
     
     def get_cache_age(self, query_type: str, term_id: str, **params) -> Optional[Dict[str, Any]]:
         """
@@ -313,12 +270,12 @@ class SolrResultCache:
         Returns:
             Dictionary with cache age info or None if not cached
         """
-        field_name = self._get_cache_field_name(query_type)
-        
         try:
+            cache_doc_id = f"vfb_query_{term_id}"
+            
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{term_id}",
-                "fl": field_name,
+                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "fl": "cache_data,hit_count,last_accessed",
                 "wt": "json"
             }, timeout=5)
             
@@ -326,28 +283,35 @@ class SolrResultCache:
                 data = response.json()
                 docs = data.get("response", {}).get("docs", [])
                 
-                if docs and field_name in docs[0]:
-                    cached_field = docs[0][field_name][0] if isinstance(docs[0][field_name], list) else docs[0][field_name]
-                    cached_data = json.loads(cached_field)
-                    
-                    cached_at = datetime.fromisoformat(cached_data["cached_at"].replace('Z', '+00:00'))
-                    expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
-                    now = datetime.now().astimezone()
-                    
-                    age = now - cached_at
-                    time_to_expiry = expires_at - now
-                    
-                    return {
-                        "cached_at": cached_at.isoformat(),
-                        "expires_at": expires_at.isoformat(),
-                        "age_days": age.days,
-                        "age_hours": age.total_seconds() / 3600,
-                        "time_to_expiry_days": time_to_expiry.days,
-                        "time_to_expiry_hours": time_to_expiry.total_seconds() / 3600,
-                        "is_expired": now > expires_at,
-                        "hit_count": cached_data.get("hit_count", 0),
-                        "size_kb": cached_data.get("result_size", 0) / 1024
-                    }
+                if docs:
+                    doc = docs[0]
+                    cached_field = doc.get("cache_data")
+                    if cached_field:
+                        # Handle both list and string formats
+                        if isinstance(cached_field, list):
+                            cached_field = cached_field[0]
+                        
+                        cached_data = json.loads(cached_field)
+                        
+                        cached_at = datetime.fromisoformat(cached_data["cached_at"].replace('Z', '+00:00'))
+                        expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
+                        now = datetime.now().astimezone()
+                        
+                        age = now - cached_at
+                        time_to_expiry = expires_at - now
+                        
+                        return {
+                            "cached_at": cached_at.isoformat(),
+                            "expires_at": expires_at.isoformat(),
+                            "age_days": age.days,
+                            "age_hours": age.total_seconds() / 3600,
+                            "time_to_expiry_days": time_to_expiry.days,
+                            "time_to_expiry_hours": time_to_expiry.total_seconds() / 3600,
+                            "is_expired": now > expires_at,
+                            "hit_count": doc.get("hit_count", cached_data.get("hit_count", 0)),
+                            "size_kb": cached_data.get("result_size", 0) / 1024,
+                            "last_accessed": doc.get("last_accessed", ["Never"])[0] if isinstance(doc.get("last_accessed"), list) else doc.get("last_accessed", "Never")
+                        }
         except Exception as e:
             logger.debug(f"Error getting cache age: {e}")
             
@@ -355,22 +319,21 @@ class SolrResultCache:
     
     def cleanup_expired_entries(self) -> int:
         """
-        Clean up expired VFBquery cache fields from documents
+        Clean up expired VFBquery cache documents
         
-        Note: Since we're storing cache data as fields in existing vfb_json documents,
-        this method scans for documents with VFBquery cache fields and removes expired ones.
+        This method scans for cache documents (IDs starting with vfb_query_) and removes expired ones.
         
         Returns:
-            Number of expired fields cleaned up
+            Number of expired cache documents cleaned up
         """
         try:
             now = datetime.now().astimezone()
             cleaned_count = 0
             
-            # Search for documents that have VFBquery cache fields
+            # Search for all cache documents
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info_ss:[* TO *] OR vfb_query_anatomy_ss:[* TO *] OR vfb_query_neuron_ss:[* TO *]",
-                "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
+                "q": "id:vfb_query_*",
+                "fl": "id,cache_data,expires_at",
                 "rows": "1000",  # Process in batches
                 "wt": "json"
             }, timeout=30)
@@ -378,52 +341,54 @@ class SolrResultCache:
             if response.status_code == 200:
                 data = response.json()
                 docs = data.get("response", {}).get("docs", [])
+                expired_ids = []
                 
                 for doc in docs:
                     doc_id = doc["id"]
-                    updates = {}
                     
-                    # Check each VFBquery field for expiration
-                    for field_name, field_value in doc.items():
-                        if field_name.startswith("vfb_query_"):
-                            try:
-                                # Handle both list and string field values
-                                cached_field = field_value[0] if isinstance(field_value, list) else field_value
-                                cached_data = json.loads(cached_field)
-                                
-                                expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
-                                
-                                if now > expires_at:
-                                    # Mark field for removal
-                                    updates[field_name] = {"set": None}
-                                    cleaned_count += 1
-                                    logger.debug(f"Marking {field_name} for removal from {doc_id}")
-                                    
-                            except (json.JSONDecodeError, KeyError, ValueError) as e:
-                                # Invalid cache data - remove it
-                                updates[field_name] = {"set": None}
-                                cleaned_count += 1
-                                logger.debug(f"Removing invalid cache field {field_name} from {doc_id}: {e}")
-                    
-                    # Apply updates if any fields need removal
-                    if updates:
-                        updates["id"] = doc_id
+                    try:
+                        # Check expiration using expires_at field if available, or cache_data
+                        expires_at = None
                         
-                        update_response = requests.post(
-                            f"{self.cache_url}/update/json/docs",
-                            json=[updates],
-                            headers={"Content-Type": "application/json"},
-                            params={"commit": "false"},  # Batch commit at end
-                            timeout=10
-                        )
+                        if "expires_at" in doc:
+                            expires_at_field = doc["expires_at"]
+                            expires_at_str = expires_at_field[0] if isinstance(expires_at_field, list) else expires_at_field
+                            expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+                        elif "cache_data" in doc:
+                            # Fallback to parsing cache_data
+                            cached_field = doc["cache_data"]
+                            if isinstance(cached_field, list):
+                                cached_field = cached_field[0]
+                            cached_data = json.loads(cached_field)
+                            expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
                         
-                        if update_response.status_code != 200:
-                            logger.warning(f"Failed to update {doc_id}: HTTP {update_response.status_code}")
+                        if expires_at and now > expires_at:
+                            expired_ids.append(doc_id)
+                            cleaned_count += 1
+                            logger.debug(f"Marking cache document {doc_id} for removal (expired)")
+                            
+                    except (json.JSONDecodeError, KeyError, ValueError) as e:
+                        # Invalid cache data - remove it
+                        expired_ids.append(doc_id)
+                        cleaned_count += 1
+                        logger.debug(f"Marking invalid cache document {doc_id} for removal: {e}")
                 
-                # Commit all changes
-                if cleaned_count > 0:
-                    requests.post(f"{self.cache_url}/update", params={"commit": "true"}, timeout=10)
-                    logger.info(f"Cleaned up {cleaned_count} expired cache fields")
+                # Delete expired cache documents in batch
+                if expired_ids:
+                    delete_xml = "<delete>" + "".join(f"<id>{doc_id}</id>" for doc_id in expired_ids) + "</delete>"
+                    
+                    delete_response = requests.post(
+                        f"{self.cache_url}/update",
+                        data=delete_xml,
+                        headers={"Content-Type": "application/xml"},
+                        params={"commit": "true"},  # Commit deletions immediately
+                        timeout=10
+                    )
+                    
+                    if delete_response.status_code != 200:
+                        logger.warning(f"Failed to delete expired cache documents: HTTP {delete_response.status_code}")
+                    else:
+                        logger.info(f"Cleaned up {cleaned_count} expired cache documents")
                 
             return cleaned_count
             
@@ -433,17 +398,16 @@ class SolrResultCache:
     
     def get_cache_stats(self) -> Dict[str, Any]:
         """
-        Get VFBquery cache statistics from field-based storage
+        Get VFBquery cache statistics from cache documents
         
         Returns:
-            Dictionary with cache statistics including field counts and age distribution
+            Dictionary with cache statistics including document counts and age distribution
         """
         try:
-            # Get documents with VFBquery cache fields
-            # Use a specific field search since wildcards may not work in all SOLR versions
+            # Get all cache documents
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info_ss:[* TO *] OR vfb_query_anatomy_ss:[* TO *] OR vfb_query_neuron_ss:[* TO *]",
-                "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
+                "q": "id:vfb_query_*",
+                "fl": "id,query_type,cache_data,hit_count,last_accessed,cached_at,expires_at",
                 "rows": "1000",  # Process in batches 
                 "wt": "json"
             }, timeout=30)
@@ -451,37 +415,55 @@ class SolrResultCache:
             if response.status_code == 200:
                 data = response.json()
                 docs = data.get("response", {}).get("docs", [])
-                total_docs_with_cache = data.get("response", {}).get("numFound", 0)
+                total_cache_docs = data.get("response", {}).get("numFound", 0)
                 
-                field_stats = {}
-                total_fields = 0
+                type_stats = {}
                 total_size = 0
                 expired_count = 0
+                total_hits = 0
                 age_buckets = {"0-1d": 0, "1-7d": 0, "7-30d": 0, "30-90d": 0, ">90d": 0}
                 
                 now = datetime.now().astimezone()
                 
-                # Analyze each document's cache fields
+                # Analyze each cache document
                 for doc in docs:
-                    for field_name, field_value in doc.items():
-                        if field_name.startswith("vfb_query_"):
-                            total_fields += 1
+                    query_type = doc.get("query_type", "unknown")
+                    type_stats[query_type] = type_stats.get(query_type, 0) + 1
+                    
+                    try:
+                        # Get cache data and metadata
+                        cached_field = doc.get("cache_data")
+                        if cached_field:
+                            # Handle both list and string formats
+                            if isinstance(cached_field, list):
+                                cached_field = cached_field[0]
                             
-                            # Extract query type from field name (remove vfb_query_ prefix and _ss suffix)
-                            query_type = field_name.replace("vfb_query_", "").replace("_ss", "")
-                            field_stats[query_type] = field_stats.get(query_type, 0) + 1
+                            cached_data = json.loads(cached_field)
+                            total_size += len(cached_field)
                             
-                            try:
-                                # Handle both list and string field values
-                                cached_field = field_value[0] if isinstance(field_value, list) else field_value
-                                cached_data = json.loads(cached_field)
-                                
-                                # Calculate age and size
+                            # Get timestamps from document fields or cache_data
+                            cached_at = None
+                            expires_at = None
+                            
+                            # Try document fields first
+                            if "cached_at" in doc:
+                                cached_at_field = doc["cached_at"]
+                                cached_at_str = cached_at_field[0] if isinstance(cached_at_field, list) else cached_at_field
+                                cached_at = datetime.fromisoformat(cached_at_str.replace('Z', '+00:00'))
+                            
+                            if "expires_at" in doc:
+                                expires_at_field = doc["expires_at"]
+                                expires_at_str = expires_at_field[0] if isinstance(expires_at_field, list) else expires_at_field
+                                expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+                            
+                            # Fallback to cache_data
+                            if not cached_at and "cached_at" in cached_data:
                                 cached_at = datetime.fromisoformat(cached_data["cached_at"].replace('Z', '+00:00'))
+                            if not expires_at and "expires_at" in cached_data:
                                 expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
-                                
+                            
+                            if cached_at and expires_at:
                                 age_days = (now - cached_at).days
-                                total_size += len(cached_field)
                                 
                                 # Check if expired
                                 if now > expires_at:
@@ -498,31 +480,37 @@ class SolrResultCache:
                                     age_buckets["30-90d"] += 1
                                 else:
                                     age_buckets[">90d"] += 1
+                            
+                            # Get hit count
+                            hit_count = doc.get("hit_count", cached_data.get("hit_count", 0))
+                            if isinstance(hit_count, list):
+                                hit_count = hit_count[0]
+                            total_hits += int(hit_count) if hit_count else 0
                                     
-                            except (json.JSONDecodeError, KeyError, ValueError):
-                                # Invalid cache data
-                                expired_count += 1
+                    except (json.JSONDecodeError, KeyError, ValueError):
+                        # Invalid cache data
+                        expired_count += 1
                 
                 return {
-                    "total_cache_fields": total_fields,
-                    "documents_with_cache": total_docs_with_cache,
-                    "cache_by_type": field_stats,
-                    "expired_fields": expired_count,
+                    "total_cache_documents": total_cache_docs,
+                    "cache_by_type": type_stats,
+                    "expired_documents": expired_count,
                     "age_distribution": age_buckets,
+                    "total_hits": total_hits,
                     "estimated_size_bytes": total_size,
                     "estimated_size_mb": round(total_size / (1024 * 1024), 2),
-                    "cache_efficiency": round((total_fields - expired_count) / max(total_fields, 1) * 100, 1)
+                    "cache_efficiency": round((total_cache_docs - expired_count) / max(total_cache_docs, 1) * 100, 1)
                 }
             
         except Exception as e:
             logger.error(f"Error getting cache stats: {e}")
             
         return {
-            "total_cache_fields": 0,
-            "documents_with_cache": 0,
+            "total_cache_documents": 0,
             "cache_by_type": {},
-            "expired_fields": 0,
+            "expired_documents": 0,
             "age_distribution": {},
+            "total_hits": 0,
             "estimated_size_bytes": 0,
             "estimated_size_mb": 0.0,
             "cache_efficiency": 0.0

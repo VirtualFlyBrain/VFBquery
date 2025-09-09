@@ -9,6 +9,7 @@ import pandas as pd
 from marshmallow import ValidationError
 import json
 import numpy as np
+from .solr_result_cache import with_solr_cache
 
 # Custom JSON encoder to handle NumPy and pandas types
 class NumpyEncoder(json.JSONEncoder):
@@ -837,9 +838,11 @@ def serialize_solr_output(results):
     json_string = json_string.replace("\'", '-')
     return json_string 
 
+@with_solr_cache('term_info')
 def get_term_info(short_form: str, preview: bool = False):
     """
     Retrieves the term info for the given term short form.
+    Results are cached in SOLR for 3 months to improve performance.
 
     :param short_form: short form of the term
     :return: term info

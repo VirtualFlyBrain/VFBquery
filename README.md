@@ -16,10 +16,10 @@ VFBquery includes **automatic server-side caching** for optimal performance - no
 import vfbquery as vfb
 
 # First call: ~1-2 seconds (fetches data + populates cache)
-result = vfb.get_term_info('FBbt_00003686')
+vfb.get_term_info('FBbt_00003686')
 
 # Subsequent calls: <0.1 seconds (served from cache)
-result = vfb.get_term_info('FBbt_00003686')  # Lightning fast!
+vfb.get_term_info('FBbt_00003686')  # Lightning fast!
 ```
 
 ### Default Caching Features
@@ -37,17 +37,15 @@ VFBquery uses server-side SOLR caching that's automatically managed. Local memor
 ```python
 import vfbquery as vfb
 
-# Local memory cache settings (optional enhancement)
-vfb.set_cache_ttl(720)         # 1 month instead of 3
+# Local memory cache settings (optional enhancement)  
+vfb.set_cache_ttl(720)          # 1 month instead of 3
 vfb.set_cache_memory_limit(512) # 512MB instead of 2GB
 
-# Monitor local cache performance  
-stats = vfb.get_vfbquery_cache_stats()
-print(f"Local cache hit rate: {stats['hit_rate_percent']}%")
+# Monitor cache performance
+vfb.get_vfbquery_cache_stats()  # Returns cache statistics
 
-# Get current configuration
-config = vfb.get_cache_config()
-print(f"TTL: {config['cache_ttl_hours']}h, Memory: {config['memory_cache_size_mb']}MB")
+# Get configuration  
+vfb.get_cache_config()          # Returns current config
 ```
 
 Disable all caching if needed:

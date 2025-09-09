@@ -57,8 +57,8 @@ jobs:
           
           ## Performance Thresholds
           
-          - Maximum single query time: 30 seconds
-          - Maximum total time for both queries: 45 seconds
+          - Maximum single query time: 5 minutes (300 seconds)
+          - Maximum total time for both queries: 7.5 minutes (450 seconds)
           
           ## Test Results
           

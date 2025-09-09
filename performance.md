@@ -16,8 +16,17 @@ This performance test measures the execution time of VFB term info queries for s
 
 ## Performance Thresholds
 
-- Maximum single query time: 30 seconds
-- Maximum total time for both queries: 45 seconds
+- Maximum single query time: 5 minutes (300 seconds)
+- Maximum total time for both queries: 7.5 minutes (450 seconds)
+
+### Performance Levels
+
+- 🟢 **Excellent**: < 1 minute total
+- 🟡 **Good**: 1-3 minutes total
+- 🟠 **Acceptable**: 3-5 minutes total  
+- 🔴 **Slow**: > 5 minutes total
+
+*Note: Complex anatomical class queries can take 2-3 minutes due to extensive data processing, while individual anatomy queries are typically much faster.*
 
 ## Test Results
 

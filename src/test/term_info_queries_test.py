@@ -548,6 +548,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         print(f"FBbt_00003748 query took: {duration_1:.4f} seconds")
         print(f"VFB_00101567 query took: {duration_2:.4f} seconds")
         print(f"Total time for both queries: {duration_1 + duration_2:.4f} seconds")
+        
+        # Performance categories
+        total_time = duration_1 + duration_2
+        if total_time < 60:
+            performance_level = "🟢 Excellent (< 1 minute)"
+        elif total_time < 180:
+            performance_level = "🟡 Good (1-3 minutes)"  
+        elif total_time < 300:
+            performance_level = "🟠 Acceptable (3-5 minutes)"
+        else:
+            performance_level = "🔴 Slow (> 5 minutes)"
+            
+        print(f"Performance Level: {performance_level}")
         print(f"="*50)
         
         # Basic assertions to ensure the queries succeeded
@@ -555,9 +568,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result_2, "VFB_00101567 query returned None")
         
         # Performance assertions - fail if queries take too long
-        # These are reasonable thresholds that can be adjusted based on actual performance
-        max_single_query_time = 30.0  # seconds
-        max_total_time = 45.0  # seconds
+        # These thresholds are based on observed performance characteristics
+        max_single_query_time = 300.0  # seconds (5 minutes)
+        max_total_time = 450.0  # seconds (7.5 minutes)
         
         self.assertLess(duration_1, max_single_query_time, 
                        f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold")

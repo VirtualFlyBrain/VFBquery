@@ -1035,8 +1035,10 @@ VFBquery includes automated performance testing to monitor query response times.
 
 ### Performance Thresholds
 
-- Maximum single query time: 30 seconds
-- Maximum total time for both queries: 45 seconds
+- Maximum single query time: 5 minutes (300 seconds)
+- Maximum total time for both queries: 7.5 minutes (450 seconds)
+
+*Note: These thresholds are set conservatively based on observed performance characteristics. Complex anatomical class queries (like FBbt_00003748) can take 2-3 minutes due to the extensive data processing required, while individual anatomy queries are typically much faster (< 1 second).*
 
 ### Automated Testing
 

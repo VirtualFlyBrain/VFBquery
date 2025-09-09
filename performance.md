@@ -1,63 +1,37 @@
-# VFBquery Performance Analysis
+# VFBquery Performance Test Results
 
-## Executive Summary
+**Test Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+**Git Commit:** 8ff2eec7423afbdf1dc8773cf3e674b6bf9a98fe
+**Branch:** dev
+**Workflow Run:** 17589292536
 
-VFBquery provides optimal performance through intelligent caching, delivering up to 54,000x speedup for repeated queries.
+## Test Overview
 
-## Performance Comparison
+This performance test measures the execution time of VFB term info queries for specific terms:
 
-### Without Caching
+- **FBbt_00003748**: mushroom body (anatomical class)
+- **VFB_00101567**: individual anatomy data
 
-- First query: 1-2 seconds
-- Subsequent queries: 1-2 seconds (no improvement)
+## Performance Thresholds
 
-### With VFBquery Caching (Default)
+- Maximum single query time: 5 minutes (300 seconds)
+- Maximum total time for both queries: 7.5 minutes (450 seconds)
 
-- First query: 1-2 seconds (populates cache)  
-- Subsequent queries: <0.1 seconds (54,000x faster)
+## Test Results
 
-## Caching Features
-
-VFBquery includes intelligent caching enabled by default:
-
-- **Automatic caching**: Works transparently without configuration
-- **3-month TTL**: Balances performance and data freshness
-- **2GB memory limit**: Prevents memory bloat with LRU eviction
-- **Disk persistence**: Cache survives Python restarts
-
-## Best Practices
-
-### Production Deployment
-
-- **Caching is enabled by default** - no configuration needed
-- **Monitor cache performance** with `get_vfbquery_cache_stats()`
-- **Adjust memory limits** if needed for long-running applications
-- **Use environment variable** to disable caching in specific scenarios
-
-## VFBquery Caching Features
-
-**Production-Ready Caching (Enabled by Default):**
-
-- ✅ Multi-layer caching (SOLR, parsing, query results, responses)
-- ✅ Memory + disk persistence
-- ✅ 3-month TTL with 2GB memory limit
-- ✅ Zero configuration required
-- ✅ Environment variable control (`VFBQUERY_CACHE_ENABLED`)
-- ✅ Cache statistics and monitoring
-
-**Performance Results:**
-
-- 54,000x speedup for repeated `get_term_info` calls
-- Sub-millisecond response times after initial cache population
-- Backward compatible with all existing VFBquery code
-
-**Usage:**
-
-```python
-import vfbquery as vfb
-
-# Caching works automatically
-result = vfb.get_term_info('FBbt_00003748')  # Fast on repeat calls!
+```
+$(cat performance_test_output.log)
 ```
 
-See `CACHING.md` for complete documentation.
+## Summary
+
+✅ **Test Status**: Performance test completed
+
+- **FBbt_00003748 Query Time**: 155.0068 seconds
+- **VFB_00101567 Query Time**: 0.2188 seconds
+- **Total Query Time**: 155.2256 seconds
+
+🎉 **Result**: All performance thresholds met!
+
+---
+*Last updated: 2025-09-09 16:35:11 UTC*

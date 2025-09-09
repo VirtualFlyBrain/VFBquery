@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
 **Test Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-**Git Commit:** 2bbc9087a75ced7e9a2fbe5d51d2bb30929963d5
+**Git Commit:** ae4061604ba14c11fb5ac6145c4604c34f365619
 **Branch:** dev
-**Workflow Run:** 17595352611
+**Workflow Run:** 17595864510
 
 ## Test Overview
 
@@ -27,11 +27,11 @@ $(cat performance_test_output.log)
 
 ✅ **Test Status**: Performance test completed
 
-- **FBbt_00003748 Query Time**: 1.0536 seconds
-- **VFB_00101567 Query Time**: 1.0304 seconds
-- **Total Query Time**: 2.0839 seconds
+- **FBbt_00003748 Query Time**: 1.1024 seconds
+- **VFB_00101567 Query Time**: 1.0704 seconds
+- **Total Query Time**: 2.1728 seconds
 
 🎉 **Result**: All performance thresholds met!
 
 ---
-*Last updated: 2025-09-09 20:54:03 UTC*
+*Last updated: 2025-09-09 21:15:40 UTC*

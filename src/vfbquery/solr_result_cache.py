@@ -369,7 +369,7 @@ class SolrResultCache:
             
             # Search for documents that have VFBquery cache fields
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info_str:[* TO *] OR vfb_query_anatomy_str:[* TO *] OR vfb_query_neuron_str:[* TO *]",
+                "q": "vfb_query_term_info_ss:[* TO *] OR vfb_query_anatomy_ss:[* TO *] OR vfb_query_neuron_ss:[* TO *]",
                 "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
                 "rows": "1000",  # Process in batches
                 "wt": "json"

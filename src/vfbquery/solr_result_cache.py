@@ -442,7 +442,7 @@ class SolrResultCache:
             # Get documents with VFBquery cache fields
             # Use a specific field search since wildcards may not work in all SOLR versions
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "vfb_query_term_info_str:[* TO *] OR vfb_query_anatomy_str:[* TO *] OR vfb_query_neuron_str:[* TO *]",
+                "q": "vfb_query_term_info_ss:[* TO *] OR vfb_query_anatomy_ss:[* TO *] OR vfb_query_neuron_ss:[* TO *]",
                 "fl": "id,vfb_query_*",  # Get ID and all VFBquery fields
                 "rows": "1000",  # Process in batches 
                 "wt": "json"
@@ -467,8 +467,8 @@ class SolrResultCache:
                         if field_name.startswith("vfb_query_"):
                             total_fields += 1
                             
-                            # Extract query type from field name (remove vfb_query_ prefix and _str suffix)
-                            query_type = field_name.replace("vfb_query_", "").replace("_str", "")
+                            # Extract query type from field name (remove vfb_query_ prefix and _ss suffix)
+                            query_type = field_name.replace("vfb_query_", "").replace("_ss", "")
                             field_stats[query_type] = field_stats.get(query_type, 0) + 1
                             
                             try:

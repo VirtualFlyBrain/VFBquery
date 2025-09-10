@@ -2,7 +2,37 @@ import requests
 import json
 import logging
 import pandas as pd
+import sys
 from typing import List, Dict, Any, Optional, Union
+from unittest.mock import MagicMock
+
+class GraphicsLibraryMocker:
+    """Context manager to mock graphics libraries during vfb_connect import"""
+    
+    def __init__(self):
+        self.mocked_modules = [
+            'vispy', 'vispy.scene', 'vispy.util', 'vispy.util.fonts', 
+            'vispy.util.fonts._triage', 'vispy.util.fonts._quartz', 
+            'vispy.ext', 'vispy.ext.cocoapy', 'navis.plotting', 
+            'navis.plotting.vispy', 'navis.plotting.vispy.viewer'
+        ]
+        self.original_modules = {}
+    
+    def __enter__(self):
+        # Store original modules and mock graphics libraries
+        for module_name in self.mocked_modules:
+            if module_name in sys.modules:
+                self.original_modules[module_name] = sys.modules[module_name]
+            sys.modules[module_name] = MagicMock()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Restore original modules
+        for module_name in self.mocked_modules:
+            if module_name in self.original_modules:
+                sys.modules[module_name] = self.original_modules[module_name]
+            else:
+                sys.modules.pop(module_name, None)
 
 class SolrTermInfoFetcher:
     """Fetches term information directly from the Solr server instead of using VfbConnect"""
@@ -12,18 +42,27 @@ class SolrTermInfoFetcher:
         self.solr_url = solr_url
         self.logger = logging.getLogger(__name__)
         self._vfb = None  # Lazy load vfb_connect
+        self._nc = None   # Lazy load neo4j connection
     
     @property
     def vfb(self):
-        """Lazy load vfb_connect to avoid import issues during testing"""
+        """Lazy load vfb_connect with graphics libraries mocked"""
         if self._vfb is None:
             try:
-                from vfb_connect import vfb
-                self._vfb = vfb
+                with GraphicsLibraryMocker():
+                    from vfb_connect import vfb
+                    self._vfb = vfb
             except ImportError as e:
                 self.logger.error(f"Could not import vfb_connect: {e}")
                 raise ImportError("vfb_connect is required but could not be imported")
         return self._vfb
+    
+    @property
+    def nc(self):
+        """Lazy load Neo4j connection from vfb_connect"""
+        if self._nc is None:
+            self._nc = self.vfb.nc
+        return self._nc
     
     def get_TermInfo(self, short_forms: List[str], 
                     return_dataframe: bool = False, 
@@ -95,6 +134,11 @@ class SolrTermInfoFetcher:
         
         This allows us to use this class as a drop-in replacement for VfbConnect
         while only implementing the methods we want to customize.
+        Special handling for 'nc' (Neo4j connection) to avoid graphics imports.
         """
+        # Handle Neo4j connection separately to use our mocked import
+        if name == 'nc':
+            return self.nc
+        
         self.logger.debug(f"Passing through method call: {name}")
         return getattr(self.vfb, name)

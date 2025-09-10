@@ -1018,23 +1018,70 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
         if limit != -1 and limit > 0:
             anatomy_images = anatomy_images[:limit]
         
-        # Convert anatomy_channel_image to instance rows
+        # Convert anatomy_channel_image to instance rows with rich data
         rows = []
         for img in anatomy_images:
             anatomy = img.get('anatomy', {})
+            channel_image = img.get('channel_image', {})
+            image_info = channel_image.get('image', {}) if channel_image else {}
+            template_anatomy = image_info.get('template_anatomy', {}) if image_info else {}
+            
+            # Extract tags from unique_facets (matching original Neo4j format)
+            unique_facets = anatomy.get('unique_facets', [])
+            # Add common anatomy type tags that are typically present
+            anatomy_types = anatomy.get('types', [])
+            tag_candidates = []
+            
+            # Include relevant type information that appears in tags
+            for tag_type in ['Nervous_system', 'Adult', 'Visual_system', 'Synaptic_neuropil_domain', 'Synaptic_neuropil']:
+                if tag_type in anatomy_types or tag_type in unique_facets:
+                    tag_candidates.append(tag_type)
+            
+            # Use unique_facets as primary source, fallback to filtered types
+            tags_list = unique_facets if unique_facets else tag_candidates
+            tags = '|'.join(tags_list)
+            
+            # Extract thumbnail URL
+            thumbnail_url = image_info.get('image_thumbnail', '') if image_info else ''
+            
+            # Format thumbnail with proper markdown link (matching Neo4j format)
+            thumbnail = ''
+            if thumbnail_url and template_anatomy:
+                template_label = template_anatomy.get('label', '')
+                template_short_form = template_anatomy.get('short_form', '')
+                anatomy_label = anatomy.get('label', '')
+                anatomy_short_form = anatomy.get('short_form', '')
+                
+                if template_label and anatomy_label:
+                    # Create thumbnail markdown link matching the original format
+                    alt_text = f"{anatomy_label} aligned to {template_label}"
+                    link_target = f"{template_short_form},{anatomy_short_form}"
+                    thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({link_target})"
+            
+            # Format template information
+            template_formatted = ''
+            if template_anatomy:
+                template_label = template_anatomy.get('label', '')
+                template_short_form = template_anatomy.get('short_form', '')
+                if template_label and template_short_form:
+                    template_formatted = f"[{template_label}]({template_short_form})"
+            
             row = {
                 'id': anatomy.get('short_form', ''),
                 'label': f"[{anatomy.get('label', 'Unknown')}]({anatomy.get('short_form', '')})",
-                'tags': '|'.join(anatomy.get('tags', [])) if anatomy.get('tags') else '',
+                'tags': tags,
                 'parent': f"[{term_info.get('term', {}).get('core', {}).get('label', 'Unknown')}]({short_form})",
-                'source': '',  # Not available in SOLR anatomy_channel_image
+                'source': '',  # Not readily available in SOLR anatomy_channel_image
                 'source_id': '',
-                'template': anatomy.get('template', ''),  # May need formatting
-                'dataset': '',  # Not available in SOLR anatomy_channel_image
+                'template': template_formatted,
+                'dataset': '',  # Not readily available in SOLR anatomy_channel_image
                 'license': '',
-                'thumbnail': ''  # Could potentially extract from image data
+                'thumbnail': thumbnail
             }
             rows.append(row)
+        
+        # Sort by ID to match expected ordering (Neo4j uses "ORDER BY id Desc")
+        rows.sort(key=lambda x: x['id'], reverse=True)
         
         total_count = len(anatomy_images)
         

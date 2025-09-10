@@ -862,9 +862,21 @@ def get_term_info(short_form: str, preview: bool = False):
                         return term_info
                     else:
                         print("Failed to fill query preview results!")
+                        # Set default values for queries when fill_query_results fails
+                        for query in parsed_object.get('Queries', []):
+                            # Set default preview_results structure
+                            query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
+                            # Set count to 0 when we can't get the real count
+                            query['count'] = 0
                         return parsed_object
                 except Exception as e:
-                    print(f"Error filling query results (continuing without query data): {e}")
+                    print(f"Error filling query results (setting default values): {e}")
+                    # Set default values for queries when fill_query_results fails
+                    for query in parsed_object.get('Queries', []):
+                        # Set default preview_results structure
+                        query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
+                        # Set count to 0 when we can't get the real count
+                        query['count'] = 0
                     return parsed_object
             else:
                 # No queries to fill, return parsed object directly
@@ -1339,15 +1351,22 @@ def fill_query_results(term_info):
             if function:
                 # print(f"Function {query['function']} found")
                 
-                # Unpack the default dictionary and pass its contents as arguments
-                function_args = query['takes'].get("default", {})
-                # print(f"Function args: {function_args}")
+                try:
+                    # Unpack the default dictionary and pass its contents as arguments
+                    function_args = query['takes'].get("default", {})
+                    # print(f"Function args: {function_args}")
 
-                # Modify this line to use the correct arguments and pass the default arguments
-                if summary_mode:
-                    result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode, **function_args)
-                else:
-                    result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                    # Modify this line to use the correct arguments and pass the default arguments
+                    if summary_mode:
+                        result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode, **function_args)
+                    else:
+                        result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                except Exception as e:
+                    print(f"Error executing query function {query['function']}: {e}")
+                    # Set default values for failed query
+                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
+                    query['count'] = 0
+                    continue
                 # print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns

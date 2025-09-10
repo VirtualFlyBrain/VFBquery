@@ -554,8 +554,31 @@ def with_solr_cache(query_type: str):
             if cached_result is not None:
                 # Validate that cached result has essential fields for term_info
                 if query_type == 'term_info':
-                    if (cached_result and isinstance(cached_result, dict) and 
-                        cached_result.get('Id') and cached_result.get('Name')):
+                    is_valid = (cached_result and isinstance(cached_result, dict) and 
+                               cached_result.get('Id') and cached_result.get('Name'))
+                    
+                    # Additional validation for query results
+                    if is_valid and 'Queries' in cached_result:
+                        logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
+                        for i, query in enumerate(cached_result['Queries']):
+                            count = query.get('count', 0)
+                            preview_results = query.get('preview_results')
+                            headers = preview_results.get('headers', []) if isinstance(preview_results, dict) else []
+                            
+                            logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
+                            
+                            # Check if query has unrealistic count (0 or -1) which indicates failed execution
+                            if count <= 0:
+                                is_valid = False
+                                logger.debug(f"Cached result has invalid query count {count} for {term_id}")
+                                break
+                            # Check if preview_results is missing or has empty headers when it should have data
+                            if not isinstance(preview_results, dict) or not headers:
+                                is_valid = False
+                                logger.debug(f"Cached result has invalid preview_results structure for {term_id}")
+                                break
+                    
+                    if is_valid:
                         logger.debug(f"Using valid cached result for {term_id}")
                         return cached_result
                     else:

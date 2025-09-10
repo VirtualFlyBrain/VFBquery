@@ -908,46 +908,170 @@ def get_term_info(short_form: str, preview: bool = False):
 def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
     Retrieves available instances for the given class short form.
+    Uses SOLR term_info data when Neo4j is unavailable (fallback mode).
     :param short_form: short form of the class
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: results rows
     """
+    
+    try:
+        # Try to use original Neo4j implementation first
+        # Get the total count of rows
+        count_query = f"""
+        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+              (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
+        RETURN COUNT(r) AS total_count
+        """
+        count_results = vc.nc.commit_list([count_query])
+        count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+        total_count = count_df['total_count'][0] if not count_df.empty else 0
 
-    # Get the total count of rows
-    count_query = f"""
-    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
-          (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
-    RETURN COUNT(r) AS total_count
+        # Define the main Cypher query
+        query = f"""
+        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+              (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
+              (i)-[:has_source]->(ds:DataSet)
+        OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
+        OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+        RETURN i.short_form as id,
+               apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
+               apoc.text.join(i.uniqueFacets, '|') AS tags,
+               apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
+               REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
+               apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
+               apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + i.short_form]), "[![null]( 'null')](null)", "") as thumbnail
+               ORDER BY id Desc
+        """
+
+        if limit != -1:
+            query += f" LIMIT {limit}"
+
+        # Run the query using VFB_connect
+        results = vc.nc.commit_list([query])
+        
+        # Convert the results to a DataFrame
+        df = pd.DataFrame.from_records(get_dict_cursor()(results))
+
+        columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
+        df = encode_markdown_links(df, columns_to_encode)
+        
+        if return_dataframe:
+            return df
+
+        # Format the results
+        formatted_results = {
+            "headers": _get_instances_headers(),
+            "rows": [
+                {
+                    key: row[key]
+                    for key in [
+                        "id",
+                        "label",
+                        "tags",
+                        "parent",
+                        "source",
+                        "source_id",
+                        "template",
+                        "dataset",
+                        "license",
+                        "thumbnail"
+                    ]
+                }
+                for row in safe_to_dict(df)
+            ],
+            "count": total_count
+        }
+
+        return formatted_results
+        
+    except Exception as e:
+        # Fallback to SOLR-based implementation when Neo4j is unavailable
+        print(f"Neo4j unavailable ({e}), using SOLR fallback for get_instances")
+        return _get_instances_from_solr(short_form, return_dataframe, limit)
+
+def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int = -1):
     """
-    count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
-    total_count = count_df['total_count'][0] if not count_df.empty else 0
-
-    # Define the main Cypher query
-    query = f"""
-    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
-          (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
-          (i)-[:has_source]->(ds:DataSet)
-    OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
-    OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
-    RETURN i.short_form as id,
-           apoc.text.format("[%s](%s)",[COALESCE(i.symbol[0],i.label),i.short_form]) AS label,
-           apoc.text.join(i.uniqueFacets, '|') AS tags,
-           apoc.text.format("[%s](%s)",[COALESCE(p.symbol[0],p.label),p.short_form]) AS parent,
-           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
-           REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
-           apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]) AS template,
-           apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
-           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
-           REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(i.symbol[0],i.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + i.short_form]), "[![null]( 'null')](null)", "") as thumbnail
-           ORDER BY id Desc
+    SOLR-based fallback implementation for get_instances.
+    Extracts instance data from term_info anatomy_channel_image array.
     """
+    try:
+        # Get term_info data from SOLR
+        term_info_results = vc.get_TermInfo([short_form], return_dataframe=False)
+        
+        if len(term_info_results) == 0:
+            # Return empty results with proper structure
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_instances_headers(),
+                "rows": [],
+                "count": 0
+            }
+        
+        term_info = term_info_results[0]
+        anatomy_images = term_info.get('anatomy_channel_image', [])
+        
+        # Apply limit if specified
+        if limit != -1 and limit > 0:
+            anatomy_images = anatomy_images[:limit]
+        
+        # Convert anatomy_channel_image to instance rows
+        rows = []
+        for img in anatomy_images:
+            anatomy = img.get('anatomy', {})
+            row = {
+                'id': anatomy.get('short_form', ''),
+                'label': f"[{anatomy.get('label', 'Unknown')}]({anatomy.get('short_form', '')})",
+                'tags': '|'.join(anatomy.get('tags', [])) if anatomy.get('tags') else '',
+                'parent': f"[{term_info.get('term', {}).get('core', {}).get('label', 'Unknown')}]({short_form})",
+                'source': '',  # Not available in SOLR anatomy_channel_image
+                'source_id': '',
+                'template': anatomy.get('template', ''),  # May need formatting
+                'dataset': '',  # Not available in SOLR anatomy_channel_image
+                'license': '',
+                'thumbnail': ''  # Could potentially extract from image data
+            }
+            rows.append(row)
+        
+        total_count = len(anatomy_images)
+        
+        if return_dataframe:
+            return pd.DataFrame(rows)
+        
+        return {
+            "headers": _get_instances_headers(),
+            "rows": rows,
+            "count": total_count
+        }
+        
+    except Exception as e:
+        print(f"Error in SOLR fallback for get_instances: {e}")
+        # Return empty results with proper structure
+        if return_dataframe:
+            return pd.DataFrame()
+        return {
+            "headers": _get_instances_headers(),
+            "rows": [],
+            "count": 0
+        }
 
-    if limit != -1:
-        query += f" LIMIT {limit}"
-
-    # Run the query using VFB_connect
-    results = vc.nc.commit_list([query])
+def _get_instances_headers():
+    """Return standard headers for get_instances results"""
+    return {
+        "id": {"title": "Add", "type": "selection_id", "order": -1},
+        "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
+        "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
+        "template": {"title": "Template", "type": "markdown", "order": 4},
+        "tags": {"title": "Gross Types", "type": "tags", "order": 3},
+        "source": {"title": "Data Source", "type": "markdown", "order": 5},
+        "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
+        "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
+        "license": {"title": "License", "type": "markdown", "order": 8},
+        "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
+    }
 
     # Convert the results to a DataFrame
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
@@ -1399,7 +1523,13 @@ def fill_query_results(term_info):
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
                 query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
-                query['count'] = result['count']
+                # Handle count extraction based on result type
+                if isinstance(result, dict) and 'count' in result:
+                    query['count'] = result['count']
+                elif isinstance(result, pd.DataFrame):
+                    query['count'] = len(result)
+                else:
+                    query['count'] = 0
                 # print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

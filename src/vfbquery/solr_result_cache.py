@@ -59,8 +59,6 @@ class SolrResultCache:
         self.max_result_size_mb = max_result_size_mb
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
         
-    
-    
     def _create_cache_metadata(self, result: Any) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
         serialized_result = json.dumps(result, cls=NumpyEncoder)

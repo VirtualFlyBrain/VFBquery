@@ -203,7 +203,7 @@ class SolrResultCache:
                 "id": cache_doc_id,
                 "original_term_id": term_id,
                 "query_type": query_type,
-                "cache_data": json.dumps(cached_data),
+                "cache_data": json.dumps(cached_data, cls=NumpyEncoder),
                 "cached_at": cached_data["cached_at"],
                 "expires_at": cached_data["expires_at"]
             }

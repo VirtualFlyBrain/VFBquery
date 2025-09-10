@@ -116,7 +116,7 @@ def remove_nulls(data):
         filtered = []
         for item in data:
             cleaned_item = remove_nulls(item)
-            if cleaned_item is not None and cleaned_item != {} and (not isinstance(cleaned_item, list) or len(cleaned_item) > 0):
+            if cleaned_item is not None and cleaned_item != {} and cleaned_item != []:
                 filtered.append(cleaned_item)
         return filtered
     return data

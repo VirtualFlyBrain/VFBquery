@@ -552,17 +552,39 @@ def with_solr_cache(query_type: str):
             # Try cache first
             cached_result = cache.get_cached_result(query_type, term_id, **kwargs)
             if cached_result is not None:
-                return cached_result
+                # Validate that cached result has essential fields for term_info
+                if query_type == 'term_info':
+                    if (cached_result and isinstance(cached_result, dict) and 
+                        cached_result.get('Id') and cached_result.get('Name')):
+                        logger.debug(f"Using valid cached result for {term_id}")
+                        return cached_result
+                    else:
+                        logger.warning(f"Cached result incomplete for {term_id}, re-executing function")
+                        # Don't return the incomplete cached result, continue to execute function
+                else:
+                    return cached_result
             
             # Execute function and cache result
             result = func(*args, **kwargs)
             
             # Cache the result asynchronously to avoid blocking
             if result:
-                try:
-                    cache.cache_result(query_type, term_id, result, **kwargs)
-                except Exception as e:
-                    logger.debug(f"Failed to cache result: {e}")
+                # Validate result before caching for term_info
+                if query_type == 'term_info':
+                    if (result and isinstance(result, dict) and 
+                        result.get('Id') and result.get('Name')):
+                        try:
+                            cache.cache_result(query_type, term_id, result, **kwargs)
+                            logger.debug(f"Cached complete result for {term_id}")
+                        except Exception as e:
+                            logger.debug(f"Failed to cache result: {e}")
+                    else:
+                        logger.warning(f"Not caching incomplete result for {term_id}")
+                else:
+                    try:
+                        cache.cache_result(query_type, term_id, result, **kwargs)
+                    except Exception as e:
+                        logger.debug(f"Failed to cache result: {e}")
             
             return result
         

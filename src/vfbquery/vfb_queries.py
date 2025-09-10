@@ -854,11 +854,21 @@ def get_term_info(short_form: str, preview: bool = False):
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         if parsed_object:
-            term_info = fill_query_results(parsed_object)
-            if not term_info:
-                print("Failed to fill query preview results!")
+            # Only try to fill query results if there are queries to fill
+            if parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
+                try:
+                    term_info = fill_query_results(parsed_object)
+                    if term_info:
+                        return term_info
+                    else:
+                        print("Failed to fill query preview results!")
+                        return parsed_object
+                except Exception as e:
+                    print(f"Error filling query results (continuing without query data): {e}")
+                    return parsed_object
+            else:
+                # No queries to fill, return parsed object directly
                 return parsed_object
-            return parsed_object
         else:
             print(f"No valid term info found for ID '{short_form}'")
             return None

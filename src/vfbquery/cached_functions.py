@@ -7,6 +7,14 @@ inspired by VFB_connect optimizations.
 
 from typing import Dict, Any, Optional
 from .cache_enhancements import cache_result, get_cache
+
+
+def is_valid_term_info_result(result):
+    """Check if a term_info result has the essential fields"""
+    if not result or not isinstance(result, dict):
+        return False
+    # Check for essential fields
+    return result.get('Id') and result.get('Name')
 from .vfb_queries import (
     get_term_info as _original_get_term_info,
     get_instances as _original_get_instances,
@@ -57,8 +65,24 @@ def get_term_info_cached(short_form: str, preview: bool = False):
     # Check for complete result in cache first
     cache_key = cache._generate_cache_key("term_info_complete", short_form, preview)
     cached_result = cache.get(cache_key)
+    print(f"DEBUG: Cache lookup for {short_form}: {'HIT' if cached_result is not None else 'MISS'}")
     if cached_result is not None:
-        return cached_result
+        # Validate that cached result has essential fields
+        if not is_valid_term_info_result(cached_result):
+            print(f"DEBUG: Cached result incomplete for {short_form}, falling back to original function")
+            print(f"DEBUG: cached_result keys: {list(cached_result.keys()) if cached_result else 'None'}")
+            print(f"DEBUG: cached_result Id: {cached_result.get('Id', 'MISSING') if cached_result else 'None'}")
+            print(f"DEBUG: cached_result Name: {cached_result.get('Name', 'MISSING') if cached_result else 'None'}")
+            
+            # Fall back to original function and cache the complete result
+            fallback_result = _original_get_term_info(short_form, preview)
+            if is_valid_term_info_result(fallback_result):
+                print(f"DEBUG: Fallback successful, caching complete result for {short_form}")
+                cache.set(cache_key, fallback_result)
+            return fallback_result
+        else:
+            print(f"DEBUG: Using valid cached result for {short_form}")
+            return cached_result
     
     parsed_object = None
     try:
@@ -69,15 +93,53 @@ def get_term_info_cached(short_form: str, preview: bool = False):
         parsed_object = cached_term_info_parse_object(results, short_form)
         
         if parsed_object:
-            # Use cached query result filling
-            term_info = cached_fill_query_results(parsed_object)
-            if not term_info:
-                print("Failed to fill query preview results!")
-                return parsed_object
-            
-            # Cache the complete result
-            cache.set(cache_key, parsed_object)
-            return parsed_object
+            # Use cached query result filling (skip if queries would fail)
+            if parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
+                try:
+                    term_info = cached_fill_query_results(parsed_object)
+                    if term_info:
+                        # Validate result before caching
+                        if term_info.get('Id') and term_info.get('Name'):
+                            # Cache the complete result
+                            cache.set(cache_key, term_info)
+                            return term_info
+                        else:
+                            print(f"Query result for {short_form} is incomplete, falling back to original function...")
+                            return _original_get_term_info(short_form, preview)
+                    else:
+                        print("Failed to fill query preview results!")
+                        # Validate result before caching
+                        if parsed_object.get('Id') and parsed_object.get('Name'):
+                            # Cache the complete result
+                            cache.set(cache_key, parsed_object)
+                            return parsed_object
+                        else:
+                            print(f"Parsed object for {short_form} is incomplete, falling back to original function...")
+                            return _original_get_term_info(short_form, preview)
+                except Exception as e:
+                    print(f"Error filling query results (continuing without query data): {e}")
+                    # Validate result before caching
+                    if is_valid_term_info_result(parsed_object):
+                        cache.set(cache_key, parsed_object)
+                        return parsed_object
+                    else:
+                        print(f"DEBUG: Exception case - parsed object incomplete for {short_form}, falling back to original function")
+                        fallback_result = _original_get_term_info(short_form, preview)
+                        if is_valid_term_info_result(fallback_result):
+                            cache.set(cache_key, fallback_result)
+                        return fallback_result
+            else:
+                # No queries to fill, validate result before caching
+                if parsed_object.get('Id') and parsed_object.get('Name'):
+                    # Cache and return parsed object directly
+                    cache.set(cache_key, parsed_object)
+                    return parsed_object
+                else:
+                    print(f"DEBUG: No queries case - parsed object incomplete for {short_form}, falling back to original function...")
+                    fallback_result = _original_get_term_info(short_form, preview)
+                    if is_valid_term_info_result(fallback_result):
+                        cache.set(cache_key, fallback_result)
+                    return fallback_result
         else:
             print(f"No valid term info found for ID '{short_form}'")
             return None

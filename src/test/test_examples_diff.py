@@ -108,7 +108,7 @@ def remove_nulls(data):
         for k, v in data.items():
             cleaned = remove_nulls(v)
             # Skip None, empty dicts or empty lists
-            if cleaned is None or cleaned == {} or (isinstance(cleaned, list) and len(cleaned) == 0):
+            if cleaned is None or cleaned == {} or cleaned == []:
                 continue
             new_dict[k] = cleaned
         return new_dict

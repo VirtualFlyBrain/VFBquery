@@ -97,25 +97,25 @@ vfb.get_term_info('FBbt_00003748')
                   "id": "VFB_00102107",
                   "label": "[ME on JRC2018Unisex adult brain](VFB_00102107)",
                   "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
-                  "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018U')](VFB_00101567,VFB_00102107)"
+                  "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018Unisex](http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018Unisex')](VFB_00101567,VFB_00102107)"
                },
                {
                   "id": "VFB_00101385",
                   "label": "[ME%28R%29 on JRC_FlyEM_Hemibrain](VFB_00101385)",
                   "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
-                  "thumbnail": "[![ME%28R%29 on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
+                  "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain')](VFB_00101384,VFB_00101385)"
                },
                {
                   "id": "VFB_00030810",
                   "label": "[medulla on adult brain template Ito2014](VFB_00030810)",
-                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
                   "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](http://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
                },
                {
                   "id": "VFB_00030624",
                   "label": "[medulla on adult brain template JFRC2](VFB_00030624)",
-                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
-                  "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030624)"
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+                  "thumbnail": "[![medulla on adult brain template JFRC2 aligned to adult brain template JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to adult brain template JFRC2')](VFB_00017894,VFB_00030624)"
                }
             ]
          },

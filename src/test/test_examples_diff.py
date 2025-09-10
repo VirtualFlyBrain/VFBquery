@@ -113,7 +113,12 @@ def remove_nulls(data):
             new_dict[k] = cleaned
         return new_dict
     elif isinstance(data, list):
-        return [remove_nulls(item) for item in data if remove_nulls(item) not in [None, {}, []]]
+        filtered = []
+        for item in data:
+            cleaned_item = remove_nulls(item)
+            if cleaned_item is not None and cleaned_item != {} and cleaned_item != []:
+                filtered.append(cleaned_item)
+        return filtered
     return data
 
 def main():

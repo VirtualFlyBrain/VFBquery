@@ -40,7 +40,7 @@ jobs:
         if: always()  # Always run this step, even if the test fails
         run: |
           # Create performance.md file
-          cat > performance.md << 'EOF'
+          cat > performance.md << EOF
           # VFBquery Performance Test Results
           
           **Test Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')

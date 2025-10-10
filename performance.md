@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2025-10-09 02:56:25 UTC
-**Git Commit:** 7b854d23b91a850e73f34a7ffc36920fa630d600
+**Test Date:** 2025-10-10 02:56:57 UTC
+**Git Commit:** 1727e7b28f4edaad8b409021f223462a7101dc75
 **Branch:** main
-**Workflow Run:** 18364076541
+**Workflow Run:** 18395059675
 
 ## Test Overview
 
@@ -25,11 +25,11 @@ This performance test measures the execution time of VFB term info queries for s
 
 ✅ **Test Status**: Performance test completed
 
-- **FBbt_00003748 Query Time**: 1.2278 seconds
-- **VFB_00101567 Query Time**: 1.1680 seconds
-- **Total Query Time**: 2.3958 seconds
+- **FBbt_00003748 Query Time**: 1.2893 seconds
+- **VFB_00101567 Query Time**: 0.6020 seconds
+- **Total Query Time**: 1.8913 seconds
 
 🎉 **Result**: All performance thresholds met!
 
 ---
-*Last updated: 2025-10-09 02:56:25 UTC*
+*Last updated: 2025-10-10 02:56:57 UTC*

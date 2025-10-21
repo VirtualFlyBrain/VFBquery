@@ -1102,7 +1102,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
       },
       {
          "id": "VFB_00101385",
-         "label": "[ME%28R%29 on JRC_FlyEM_Hemibrain](VFB_00101385)",
+         "label": "[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)",
          "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
          "parent": "[medulla](FBbt_00003748)",
          "source": "",
@@ -1110,7 +1110,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          "template": "[JRCFIB2018Fum](VFB_00101384)",
          "dataset": "[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)",
          "license": "",
-         "thumbnail": "[![ME%28R%29 on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
+         "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
       },
       {
          "id": "VFB_00030810",
@@ -1283,7 +1283,7 @@ vfb.get_templates(return_dataframe=False)
       {
          "id": "VFB_00120000",
          "order": 10,
-         "name": "[Adult T1 Leg %28Kuan2020%29](VFB_00120000)",
+         "name": "[Adult T1 Leg (Kuan2020)](VFB_00120000)",
          "tags": "Adult|Anatomy",
          "thumbnail": "[![Adult T1 Leg (Kuan2020)](http://www.virtualflybrain.org/data/VFB/i/0012/0000/VFB_00120000/thumbnail.png 'Adult T1 Leg (Kuan2020)')](VFB_00120000)",
          "dataset": "[Millimeter-scale imaging of a Drosophila leg at single-neuron resolution](Kuan2020)",

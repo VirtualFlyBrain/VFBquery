@@ -28,10 +28,17 @@ def extract_code_blocks(readme_path):
         vfb_calls = re.findall(r'(vfb\.[^)]*\))', block)
         if vfb_calls:
             # Add force_refresh=True to each call to ensure fresh data in tests
-            # Exception: get_templates() doesn't support force_refresh (no SOLR cache)
+            # Exceptions:
+            # - get_templates() doesn't support force_refresh (no SOLR cache)
+            # - Performance test terms (FBbt_00003748, VFB_00101567) should use cache
             for call in vfb_calls:
                 # Check if this is get_templates() - if so, don't add force_refresh
                 if 'get_templates' in call:
+                    processed_python_blocks.append(call)
+                    continue
+                
+                # Check if this call uses performance test terms - skip force_refresh for those
+                if 'FBbt_00003748' in call or 'VFB_00101567' in call:
                     processed_python_blocks.append(call)
                     continue
                 

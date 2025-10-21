@@ -9,6 +9,7 @@ import pandas as pd
 from marshmallow import ValidationError
 import json
 import numpy as np
+from urllib.parse import unquote
 from .solr_result_cache import with_solr_cache
 
 # Custom JSON encoder to handle NumPy and pandas types
@@ -311,14 +312,13 @@ class TermInfoOutputSchema(Schema):
 
 def encode_brackets(text):
     """
-    Encodes brackets in the given text.
+    Encodes square brackets in the given text to prevent breaking markdown link syntax.
+    Parentheses are NOT encoded as they don't break markdown syntax.
 
     :param text: The text to encode.
-    :return: The text with brackets encoded.
+    :return: The text with square brackets encoded.
     """
-    return (text.replace('(', '%28')
-                .replace(')', '%29')
-                .replace('[', '%5B')
+    return (text.replace('[', '%5B')
                 .replace(']', '%5D'))
 
 def encode_markdown_links(df, columns):
@@ -1055,12 +1055,16 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 template_label = template_anatomy.get('label', '')
                 if template_anatomy.get('symbol') and len(template_anatomy.get('symbol', '')) > 0:
                     template_label = template_anatomy.get('symbol')
+                # Decode URL-encoded strings from SOLR (e.g., ME%28R%29 -> ME(R))
+                template_label = unquote(template_label)
                 template_short_form = template_anatomy.get('short_form', '')
                 
                 # Prefer symbol over label for anatomy (matching Neo4j behavior)
                 anatomy_label = anatomy.get('label', '')
                 if anatomy.get('symbol') and len(anatomy.get('symbol', '')) > 0:
                     anatomy_label = anatomy.get('symbol')
+                # Decode URL-encoded strings from SOLR (e.g., ME%28R%29 -> ME(R))
+                anatomy_label = unquote(anatomy_label)
                 anatomy_short_form = anatomy.get('short_form', '')
                 
                 if template_label and anatomy_label:
@@ -1077,6 +1081,8 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 template_label = template_anatomy.get('label', '')
                 if template_anatomy.get('symbol') and len(template_anatomy.get('symbol', '')) > 0:
                     template_label = template_anatomy.get('symbol')
+                # Decode URL-encoded strings from SOLR (e.g., ME%28R%29 -> ME(R))
+                template_label = unquote(template_label)
                 template_short_form = template_anatomy.get('short_form', '')
                 if template_label and template_short_form:
                     template_formatted = f"[{template_label}]({template_short_form})"
@@ -1085,6 +1091,8 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
             anatomy_label = anatomy.get('label', 'Unknown')
             if anatomy.get('symbol') and len(anatomy.get('symbol', '')) > 0:
                 anatomy_label = anatomy.get('symbol')
+            # Decode URL-encoded strings from SOLR (e.g., ME%28R%29 -> ME(R))
+            anatomy_label = unquote(anatomy_label)
             anatomy_short_form = anatomy.get('short_form', '')
             
             row = {

@@ -101,9 +101,9 @@ vfb.get_term_info('FBbt_00003748')
                },
                {
                   "id": "VFB_00101385",
-                  "label": "[ME%28R%29 on JRC_FlyEM_Hemibrain](VFB_00101385)",
+                  "label": "[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)",
                   "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
-                  "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRC_FlyEM_Hemibrain')](VFB_00101384,VFB_00101385)"
+                  "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
                },
                {
                   "id": "VFB_00030810",

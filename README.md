@@ -1132,7 +1132,7 @@ vfb.get_instances('FBbt_00003748', return_dataframe=False)
          "source": "",
          "source_id": "",
          "template": "[JFRC2](VFB_00017894)",
-         "dataset": "[BrainName neuropils on adult brain JFRC2 %28Jenett, Shinomya%29](JenettShinomya_BrainName)",
+         "dataset": "[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)",
          "license": "",
          "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030624)"
       }
@@ -1214,7 +1214,7 @@ vfb.get_templates(return_dataframe=False)
          "name": "[JFRC2](VFB_00017894)",
          "tags": "Nervous_system|Adult",
          "thumbnail": "[![JFRC2](http://www.virtualflybrain.org/data/VFB/i/0001/7894/VFB_00017894/thumbnail.png 'JFRC2')](VFB_00017894)",
-         "dataset": "[FlyLight - GMR GAL4 collection %28Jenett2012%29](Jenett2012)",
+         "dataset": "[FlyLight - GMR GAL4 collection (Jenett2012)](Jenett2012)",
          "license": "[CC-BY-NC-SA](VFBlicense_CC_BY_NC_SA_4_0)"
       },
       {
@@ -1232,7 +1232,7 @@ vfb.get_templates(return_dataframe=False)
          "name": "[L1 larval CNS ssTEM - Cardona/Janelia](VFB_00050000)",
          "tags": "Nervous_system|Larva",
          "thumbnail": "[![L1 larval CNS ssTEM - Cardona/Janelia](http://www.virtualflybrain.org/data/VFB/i/0005/0000/VFB_00050000/thumbnail.png 'L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000)",
-         "dataset": "[Neurons involved in larval fast escape response - EM %28Ohyama2016%29](Ohyama2015)",
+         "dataset": "[Neurons involved in larval fast escape response - EM (Ohyama2016)](Ohyama2015)",
          "license": "[CC_BY_SA](VFBlicense_CC_BY_SA_4_0)"
       },
       {
@@ -1241,7 +1241,7 @@ vfb.get_templates(return_dataframe=False)
          "name": "[L1 larval CNS ssTEM - Cardona/Janelia](VFB_00050000)",
          "tags": "Nervous_system|Larva",
          "thumbnail": "[![L1 larval CNS ssTEM - Cardona/Janelia](http://www.virtualflybrain.org/data/VFB/i/0005/0000/VFB_00050000/thumbnail.png 'L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000)",
-         "dataset": "[larval hugin neurons - EM %28Schlegel2016%29](Schlegel2016)",
+         "dataset": "[larval hugin neurons - EM (Schlegel2016)](Schlegel2016)",
          "license": "[CC_BY](VFBlicense_CC_BY_4_0)"
       },
       {
@@ -1250,7 +1250,7 @@ vfb.get_templates(return_dataframe=False)
          "name": "[L3 CNS template - Wood2018](VFB_00049000)",
          "tags": "Nervous_system|Larva",
          "thumbnail": "[![L3 CNS template - Wood2018](http://www.virtualflybrain.org/data/VFB/i/0004/9000/VFB_00049000/thumbnail.png 'L3 CNS template - Wood2018')](VFB_00049000)",
-         "dataset": "[L3 Larval CNS Template %28Truman2016%29](Truman2016)",
+         "dataset": "[L3 Larval CNS Template (Truman2016)](Truman2016)",
          "license": "[CC_BY_SA](VFBlicense_CC_BY_SA_4_0)"
       },
       {
@@ -1259,7 +1259,7 @@ vfb.get_templates(return_dataframe=False)
          "name": "[COURT2018VNS](VFB_00100000)",
          "tags": "Nervous_system|Adult|Ganglion",
          "thumbnail": "[![COURT2018VNS](http://www.virtualflybrain.org/data/VFB/i/0010/0000/VFB_00100000/thumbnail.png 'COURT2018VNS')](VFB_00100000)",
-         "dataset": "[Adult VNS neuropils %28Court2017%29](Court2017)",
+         "dataset": "[Adult VNS neuropils (Court2017)](Court2017)",
          "license": "[CC_BY_SA](VFBlicense_CC_BY_SA_4_0)"
       },
       {
@@ -1274,7 +1274,7 @@ vfb.get_templates(return_dataframe=False)
       {
          "id": "VFB_00110000",
          "order": 9,
-         "name": "[Adult Head %28McKellar2020%29](VFB_00110000)",
+         "name": "[Adult Head (McKellar2020)](VFB_00110000)",
          "tags": "Adult|Anatomy",
          "thumbnail": "[![Adult Head (McKellar2020)](http://www.virtualflybrain.org/data/VFB/i/0011/0000/VFB_00110000/thumbnail.png 'Adult Head (McKellar2020)')](VFB_00110000)",
          "dataset": "[GAL4 lines from McKellar et al., 2020](McKellar2020)",

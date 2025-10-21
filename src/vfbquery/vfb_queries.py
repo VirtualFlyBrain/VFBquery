@@ -59,6 +59,23 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 # Replace VfbConnect with SolrTermInfoFetcher
 vc = SolrTermInfoFetcher()
 
+def initialize_vfb_connect():
+    """
+    Initialize VFB_connect by triggering the lazy load of the vfb and nc properties.
+    This causes VFB_connect to cache all terms, which takes ~95 seconds on first call.
+    Subsequent calls to functions using vc.nc will be fast.
+    
+    :return: True if initialization successful, False otherwise
+    """
+    try:
+        # Access the properties to trigger lazy loading
+        _ = vc.vfb
+        _ = vc.nc
+        return True
+    except Exception as e:
+        print(f"Failed to initialize VFB_connect: {e}")
+        return False
+
 class Query:
     def __init__(self, query, label, function, takes, preview=0, preview_columns=[], preview_results=[], output_format="table", count=-1):
         self.query = query

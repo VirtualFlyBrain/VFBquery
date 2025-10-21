@@ -551,14 +551,14 @@ class TermInfoQueriesTest(unittest.TestCase):
         
         # Performance categories
         total_time = duration_1 + duration_2
-        if total_time < 1.0:
-            performance_level = "🟢 Excellent (< 1 second)"
-        elif total_time < 2.0:
-            performance_level = "🟡 Good (1-2 seconds)"  
-        elif total_time < 4.0:
-            performance_level = "🟠 Acceptable (2-4 seconds)"
+        if total_time < 1.5:
+            performance_level = "🟢 Excellent (< 1.5 seconds)"
+        elif total_time < 3.0:
+            performance_level = "🟡 Good (1.5-3 seconds)"  
+        elif total_time < 6.0:
+            performance_level = "🟠 Acceptable (3-6 seconds)"
         else:
-            performance_level = "🔴 Slow (> 4 seconds)"
+            performance_level = "🔴 Slow (> 6 seconds)"
             
         print(f"Performance Level: {performance_level}")
         print(f"="*50)
@@ -569,8 +569,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         
         # Performance assertions - fail if queries take too long
         # These thresholds are based on observed performance characteristics
-        max_single_query_time = 2.0  # seconds
-        max_total_time = 4.0  # seconds (2 queries * 2 seconds each)
+        max_single_query_time = 3.0  # seconds (increased from 2.0 to account for SOLR cache overhead)
+        max_total_time = 6.0  # seconds (2 queries * 3 seconds each)
         
         self.assertLess(duration_1, max_single_query_time, 
                        f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold")

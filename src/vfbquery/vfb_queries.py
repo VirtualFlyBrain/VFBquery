@@ -323,7 +323,8 @@ def encode_brackets(text):
 
 def encode_markdown_links(df, columns):
     """
-    Encodes brackets in the labels and titles within markdown links and images, leaving the link syntax intact.
+    Encodes brackets in the labels within markdown links, leaving the link syntax intact.
+    Does NOT encode alt text in linked images ([![...](...)(...)] format).
     :param df: DataFrame containing the query results.
     :param columns: List of column names to apply encoding to.
     """
@@ -332,28 +333,10 @@ def encode_markdown_links(df, columns):
             return label
             
         try:
-            # Process linked images (format: [![alt text](image_url "title")](link))
+            # Skip linked images (format: [![alt text](image_url "title")](link))
+            # These should NOT be encoded
             if label.startswith("[!["):
-                # Split into image part and link part
-                parts = label.split(")](")
-                if len(parts) < 2:
-                    return label
-                
-                image_part = parts[0]
-                link_part = parts[1]
-                
-                # Process the image part
-                image_parts = image_part.split("](")
-                if len(image_parts) < 2:
-                    return label
-                
-                alt_text = image_parts[0][3:]  # Remove the "[![" prefix
-                # Encode brackets in alt text
-                alt_text_encoded = encode_brackets(alt_text)
-                
-                # Reconstruct the linked image with encoded alt text
-                encoded_label = f"[![{alt_text_encoded}]({image_parts[1]})]({link_part}"
-                return encoded_label
+                return label
             
             # Process regular markdown links
             elif label.startswith("[") and "](" in label:
@@ -1067,9 +1050,16 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
             # Format thumbnail with proper markdown link (matching Neo4j format)
             thumbnail = ''
             if thumbnail_url and template_anatomy:
+                # Prefer symbol over label for template (matching Neo4j behavior)
                 template_label = template_anatomy.get('label', '')
+                if template_anatomy.get('symbol') and len(template_anatomy.get('symbol', '')) > 0:
+                    template_label = template_anatomy.get('symbol')
                 template_short_form = template_anatomy.get('short_form', '')
+                
+                # Prefer symbol over label for anatomy (matching Neo4j behavior)
                 anatomy_label = anatomy.get('label', '')
+                if anatomy.get('symbol') and len(anatomy.get('symbol', '')) > 0:
+                    anatomy_label = anatomy.get('symbol')
                 anatomy_short_form = anatomy.get('short_form', '')
                 
                 if template_label and anatomy_label:
@@ -1082,13 +1072,18 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
             # Format template information
             template_formatted = ''
             if template_anatomy:
+                # Prefer symbol over label (matching Neo4j behavior)
                 template_label = template_anatomy.get('label', '')
+                if template_anatomy.get('symbol') and len(template_anatomy.get('symbol', '')) > 0:
+                    template_label = template_anatomy.get('symbol')
                 template_short_form = template_anatomy.get('short_form', '')
                 if template_label and template_short_form:
                     template_formatted = f"[{template_label}]({template_short_form})"
             
-            # Handle label formatting (match Neo4j format)
+            # Handle label formatting (match Neo4j format - prefer symbol over label)
             anatomy_label = anatomy.get('label', 'Unknown')
+            if anatomy.get('symbol') and len(anatomy.get('symbol', '')) > 0:
+                anatomy_label = anatomy.get('symbol')
             anatomy_short_form = anatomy.get('short_form', '')
             
             row = {

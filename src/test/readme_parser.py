@@ -27,7 +27,22 @@ def extract_code_blocks(readme_path):
         # Look for vfb.* calls and extract them
         vfb_calls = re.findall(r'(vfb\.[^)]*\))', block)
         if vfb_calls:
-            processed_python_blocks.extend(vfb_calls)
+            # Add force_refresh=True to each call to ensure fresh data in tests
+            for call in vfb_calls:
+                # Check if the call already has parameters
+                if '(' in call and ')' in call:
+                    # Insert force_refresh=True before the closing parenthesis
+                    # Handle both cases: with and without existing parameters
+                    if call.rstrip(')').endswith('('):
+                        # No parameters: vfb.function()
+                        modified_call = call[:-1] + 'force_refresh=True)'
+                    else:
+                        # Has parameters: vfb.function(param1, param2)
+                        modified_call = call[:-1] + ', force_refresh=True)'
+                    processed_python_blocks.append(modified_call)
+                else:
+                    # Shouldn't happen, but include original call if no parentheses
+                    processed_python_blocks.append(call)
     
     # Process JSON blocks
     processed_json_blocks = []

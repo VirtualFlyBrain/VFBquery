@@ -570,15 +570,20 @@ def with_solr_cache(query_type: str):
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
+            # Check if force_refresh is requested (pop it before passing to function)
+            force_refresh = kwargs.pop('force_refresh', False)
+            
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
+            # For functions like get_templates that don't have a term_id, use query_type as cache key
             if not term_id:
-                logger.warning("No term_id found for caching")
-                return func(*args, **kwargs)
-            
-            # Check if force_refresh is requested
-            force_refresh = kwargs.pop('force_refresh', False)
+                if query_type == 'templates':
+                    # Use a fixed cache key for templates since it doesn't take a term_id
+                    term_id = 'all_templates'
+                else:
+                    logger.warning(f"No term_id found for caching {query_type}")
+                    return func(*args, **kwargs)
             
             cache = get_solr_cache()
             

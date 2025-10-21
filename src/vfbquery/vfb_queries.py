@@ -1191,7 +1191,6 @@ def _get_instances_headers():
 
     return formatted_results
 
-@with_solr_cache('templates')
 def get_templates(limit: int = -1, return_dataframe: bool = False):
     """Get list of templates
 

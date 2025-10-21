@@ -1058,8 +1058,11 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
             # Use the ordered tags to match expected format
             tags = '|'.join(ordered_tags)
             
-            # Extract thumbnail URL
+            # Extract thumbnail URL and convert to HTTPS
             thumbnail_url = image_info.get('image_thumbnail', '') if image_info else ''
+            if thumbnail_url:
+                # Replace http with https and thumbnailT.png with thumbnail.png
+                thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
             
             # Format thumbnail with proper markdown link (matching Neo4j format)
             thumbnail = ''
@@ -1071,6 +1074,7 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 
                 if template_label and anatomy_label:
                     # Create thumbnail markdown link matching the original format
+                    # DO NOT encode brackets in alt text - that's done later by encode_markdown_links
                     alt_text = f"{anatomy_label} aligned to {template_label}"
                     link_target = f"{template_short_form},{anatomy_short_form}"
                     thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({link_target})"
@@ -1083,22 +1087,13 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 if template_label and template_short_form:
                     template_formatted = f"[{template_label}]({template_short_form})"
             
-            # Handle URL encoding for labels (match Neo4j format)
+            # Handle label formatting (match Neo4j format)
             anatomy_label = anatomy.get('label', 'Unknown')
             anatomy_short_form = anatomy.get('short_form', '')
             
-            # URL encode special characters in label for markdown links (matching Neo4j behavior)
-            # Only certain labels need encoding (like those with parentheses)
-            import urllib.parse
-            if '(' in anatomy_label or ')' in anatomy_label:
-                # URL encode but keep spaces and common characters
-                encoded_label = urllib.parse.quote(anatomy_label, safe=' -_.')
-            else:
-                encoded_label = anatomy_label
-            
             row = {
                 'id': anatomy_short_form,
-                'label': f"[{encoded_label}]({anatomy_short_form})",
+                'label': f"[{anatomy_label}]({anatomy_short_form})",
                 'tags': tags,
                 'parent': f"[{term_info.get('term', {}).get('core', {}).get('label', 'Unknown')}]({short_form})",
                 'source': '',  # Not readily available in SOLR anatomy_channel_image
@@ -1116,7 +1111,11 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
         total_count = len(anatomy_images)
         
         if return_dataframe:
-            return pd.DataFrame(rows)
+            df = pd.DataFrame(rows)
+            # Apply encoding to markdown links (matches Neo4j implementation)
+            columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
+            df = encode_markdown_links(df, columns_to_encode)
+            return df
         
         return {
             "headers": _get_instances_headers(),

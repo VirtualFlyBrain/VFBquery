@@ -905,6 +905,7 @@ def get_term_info(short_form: str, preview: bool = False):
         print(f"Unexpected error when retrieving term info: {type(e).__name__}: {e}")
         return parsed_object
 
+@with_solr_cache('instances')
 def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
     Retrieves available instances for the given class short form.
@@ -1190,6 +1191,7 @@ def _get_instances_headers():
 
     return formatted_results
 
+@with_solr_cache('templates')
 def get_templates(limit: int = -1, return_dataframe: bool = False):
     """Get list of templates
 

@@ -1,4 +1,5 @@
 from .vfb_queries import *
+from .solr_result_cache import get_solr_cache
 
 # Caching enhancements (optional import - don't break if dependencies missing)
 try:
@@ -47,6 +48,26 @@ try:
 except ImportError:
     __caching_available__ = False
     print("VFBquery: Caching not available (dependencies missing)")
+
+# Convenience function for clearing SOLR cache entries
+def clear_solr_cache(query_type: str, term_id: str) -> bool:
+    """
+    Clear a specific SOLR cache entry to force refresh
+    
+    Args:
+        query_type: Type of query ('term_info', 'instances', etc.)
+        term_id: Term identifier (e.g., 'FBbt_00003748')
+    
+    Returns:
+        True if successfully cleared, False otherwise
+    
+    Example:
+        >>> import vfbquery as vfb
+        >>> vfb.clear_solr_cache('term_info', 'FBbt_00003748')
+        >>> result = vfb.get_term_info('FBbt_00003748')  # Will fetch fresh data
+    """
+    cache = get_solr_cache()
+    return cache.clear_cache_entry(query_type, term_id)
 
 # SOLR-based result caching (experimental - for cold start optimization)
 try:

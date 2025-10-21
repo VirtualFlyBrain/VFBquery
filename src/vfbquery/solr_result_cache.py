@@ -240,6 +240,36 @@ class SolrResultCache:
         except Exception as e:
             logger.debug(f"Failed to clear expired cache document: {e}")
     
+    def clear_cache_entry(self, query_type: str, term_id: str) -> bool:
+        """
+        Manually clear a specific cache entry to force refresh
+        
+        Args:
+            query_type: Type of query ('term_info', 'instances', etc.)
+            term_id: Term identifier
+            
+        Returns:
+            True if successfully cleared, False otherwise
+        """
+        try:
+            cache_doc_id = f"vfb_query_{term_id}"
+            response = requests.post(
+                f"{self.cache_url}/update",
+                data=f'<delete><id>{cache_doc_id}</id></delete>',
+                headers={"Content-Type": "application/xml"},
+                params={"commit": "true"},  # Commit immediately to ensure it's cleared
+                timeout=5
+            )
+            if response.status_code == 200:
+                logger.info(f"Cleared cache entry for {query_type}({term_id})")
+                return True
+            else:
+                logger.error(f"Failed to clear cache entry: HTTP {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"Error clearing cache entry: {e}")
+            return False
+    
     def _increment_cache_hit_count(self, cache_doc_id: str, current_count: int):
         """Increment hit count for cache document (background operation)"""
         try:
@@ -533,57 +563,73 @@ def with_solr_cache(query_type: str):
     
     Usage:
         @with_solr_cache('term_info')
-        def get_term_info(short_form, **kwargs):
+        def get_term_info(short_form, force_refresh=False, **kwargs):
             # ... existing implementation
+    
+    The decorated function can accept a 'force_refresh' parameter to bypass cache.
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
+            # Check if force_refresh is requested (pop it before passing to function)
+            force_refresh = kwargs.pop('force_refresh', False)
+            
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
+            # For functions like get_templates that don't have a term_id, use query_type as cache key
             if not term_id:
-                logger.warning("No term_id found for caching")
-                return func(*args, **kwargs)
+                if query_type == 'templates':
+                    # Use a fixed cache key for templates since it doesn't take a term_id
+                    term_id = 'all_templates'
+                else:
+                    logger.warning(f"No term_id found for caching {query_type}")
+                    return func(*args, **kwargs)
             
             cache = get_solr_cache()
             
-            # Try cache first
-            cached_result = cache.get_cached_result(query_type, term_id, **kwargs)
-            if cached_result is not None:
-                # Validate that cached result has essential fields for term_info
-                if query_type == 'term_info':
-                    is_valid = (cached_result and isinstance(cached_result, dict) and 
-                               cached_result.get('Id') and cached_result.get('Name'))
-                    
-                    # Additional validation for query results
-                    if is_valid and 'Queries' in cached_result:
-                        logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
-                        for i, query in enumerate(cached_result['Queries']):
-                            count = query.get('count', 0)
-                            preview_results = query.get('preview_results')
-                            headers = preview_results.get('headers', []) if isinstance(preview_results, dict) else []
-                            
-                            logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
-                            
-                            # Check if query has unrealistic count (0 or -1) which indicates failed execution
-                            if count <= 0:
-                                is_valid = False
-                                logger.debug(f"Cached result has invalid query count {count} for {term_id}")
-                                break
-                            # Check if preview_results is missing or has empty headers when it should have data
-                            if not isinstance(preview_results, dict) or not headers:
-                                is_valid = False
-                                logger.debug(f"Cached result has invalid preview_results structure for {term_id}")
-                                break
-                    
-                    if is_valid:
-                        logger.debug(f"Using valid cached result for {term_id}")
-                        return cached_result
+            # Clear cache if force_refresh is True
+            if force_refresh:
+                logger.info(f"Force refresh requested for {query_type}({term_id})")
+                cache.clear_cache_entry(query_type, term_id)
+            
+            # Try cache first (will be empty if force_refresh was True)
+            if not force_refresh:
+                cached_result = cache.get_cached_result(query_type, term_id, **kwargs)
+                if cached_result is not None:
+                    # Validate that cached result has essential fields for term_info
+                    if query_type == 'term_info':
+                        is_valid = (cached_result and isinstance(cached_result, dict) and 
+                                   cached_result.get('Id') and cached_result.get('Name'))
+                        
+                        # Additional validation for query results
+                        if is_valid and 'Queries' in cached_result:
+                            logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
+                            for i, query in enumerate(cached_result['Queries']):
+                                count = query.get('count', 0)
+                                preview_results = query.get('preview_results')
+                                headers = preview_results.get('headers', []) if isinstance(preview_results, dict) else []
+                                
+                                logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
+                                
+                                # Check if query has unrealistic count (0 or -1) which indicates failed execution
+                                if count <= 0:
+                                    is_valid = False
+                                    logger.debug(f"Cached result has invalid query count {count} for {term_id}")
+                                    break
+                                # Check if preview_results is missing or has empty headers when it should have data
+                                if not isinstance(preview_results, dict) or not headers:
+                                    is_valid = False
+                                    logger.debug(f"Cached result has invalid preview_results structure for {term_id}")
+                                    break
+                        
+                        if is_valid:
+                            logger.debug(f"Using valid cached result for {term_id}")
+                            return cached_result
+                        else:
+                            logger.warning(f"Cached result incomplete for {term_id}, re-executing function")
+                            # Don't return the incomplete cached result, continue to execute function
                     else:
-                        logger.warning(f"Cached result incomplete for {term_id}, re-executing function")
-                        # Don't return the incomplete cached result, continue to execute function
-                else:
-                    return cached_result
+                        return cached_result
             
             # Execute function and cache result
             result = func(*args, **kwargs)

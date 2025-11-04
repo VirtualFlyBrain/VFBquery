@@ -635,7 +635,19 @@ def with_solr_cache(query_type: str):
             result = func(*args, **kwargs)
             
             # Cache the result asynchronously to avoid blocking
-            if result:
+            # Handle DataFrame, dict, and other result types properly
+            result_is_valid = False
+            if result is not None:
+                if hasattr(result, 'empty'):  # DataFrame
+                    result_is_valid = not result.empty
+                elif isinstance(result, dict):
+                    result_is_valid = bool(result)
+                elif isinstance(result, (list, str)):
+                    result_is_valid = len(result) > 0
+                else:
+                    result_is_valid = True
+            
+            if result_is_valid:
                 # Validate result before caching for term_info
                 if query_type == 'term_info':
                     if (result and isinstance(result, dict) and 

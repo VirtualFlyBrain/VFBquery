@@ -658,6 +658,15 @@ def term_info_parse_object(results, short_form):
             q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # NeuronsPartHere query - for Class+Anatomy terms (synaptic neuropils, etc.)
+        # Matches XMI criteria: Class + Synaptic_neuropil, or other anatomical regions
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
+            "Anatomy" in termInfo["SuperTypes"]
+        ):
+            q = NeuronsPartHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -821,6 +830,30 @@ def ListAllAvailableImages_to_schema(name, take_default):
     }
     preview = 5
     preview_columns = ["id","label","tags","thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+def NeuronsPartHere_to_schema(name, take_default):
+    """
+    Schema for NeuronsPartHere query.
+    Finds neuron classes that have some part overlapping with the specified anatomical region.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil (types.1 + types.5)
+    - Additional type matches for comprehensive coverage
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: "Neuron and overlaps some $ID"
+    """
+    query = "NeuronsPartHere"
+    label = f"Neurons with some part in {name}"
+    function = "get_neurons_with_part_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -1543,6 +1576,184 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     :return: True if lst contains all tags, False otherwise
     """
     return all(tag in lst for tag in tags)
+
+@with_solr_cache('neurons_part_here')
+def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves neuron classes that have some part overlapping with the specified anatomical region.
+    
+    This implements the NeuronsPartHere query from the VFB XMI specification.
+    Query chain (from XMI): Owlery (Index 1) → Process → SOLR (Index 3)
+    OWL query: "'Neuron' that 'overlaps' some '<anatomical_region>'"
+    
+    :param short_form: short form of the anatomical region (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Neuron classes with parts in the specified region
+    """
+    
+    try:
+        # Step 1: Query Owlery for neuron classes that overlap this anatomical region
+        # This uses the OWL reasoner to find all neuron subclasses matching the pattern
+        neuron_class_ids = vc.vfb.oc.get_subclasses(
+            query=f"'Neuron' that 'overlaps' some '{short_form}'",
+            query_by_label=True,
+            verbose=False
+        )
+        
+        if not neuron_class_ids:
+            # No neurons found - return empty results
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_neurons_part_here_headers(),
+                "rows": [],
+                "count": 0
+            }
+        
+        # Apply limit if specified (before SOLR query to save processing)
+        if limit != -1 and limit > 0:
+            neuron_class_ids = neuron_class_ids[:limit]
+        
+        total_count = len(neuron_class_ids)
+        
+        # Step 2: Query SOLR directly for just the anat_query field
+        # For Class terms (neuron classes), the field is 'anat_query' not 'anat_image_query'
+        # This matches the original VFBquery pattern and contains all result row metadata
+        # This is much faster than loading full term_info for each neuron
+        rows = []
+        for neuron_id in neuron_class_ids:
+            try:
+                # Query SOLR with fl=anat_query to get only the result table data
+                # This is the same field used in the original VFBquery implementation
+                results = vfb_solr.search(
+                    q=f'id:{neuron_id}',
+                    fl='anat_query',
+                    rows=1
+                )
+                
+                if results.hits > 0 and results.docs and 'anat_query' in results.docs[0]:
+                    # Parse the anat_query JSON string
+                    anat_query_str = results.docs[0]['anat_query'][0]
+                    anat_data = json.loads(anat_query_str)
+                    
+                    # Extract core term information
+                    term_core = anat_data.get('term', {}).get('core', {})
+                    neuron_short_form = term_core.get('short_form', neuron_id)
+                    
+                    # Extract label (prefer symbol over label, matching Neo4j behavior)
+                    label_text = term_core.get('label', 'Unknown')
+                    if term_core.get('symbol') and len(term_core.get('symbol', '')) > 0:
+                        label_text = term_core.get('symbol')
+                    # Decode URL-encoded strings from SOLR
+                    from urllib.parse import unquote
+                    label_text = unquote(label_text)
+                    
+                    # Extract tags from unique_facets
+                    tags = '|'.join(term_core.get('unique_facets', []))
+                    
+                    # Extract thumbnail from anatomy_channel_image if available
+                    thumbnail = ''
+                    anatomy_images = anat_data.get('anatomy_channel_image', [])
+                    if anatomy_images and len(anatomy_images) > 0:
+                        # Get the first anatomy channel image (example instance)
+                        first_img = anatomy_images[0]
+                        channel_image = first_img.get('channel_image', {})
+                        image_info = channel_image.get('image', {})
+                        thumbnail_url = image_info.get('image_thumbnail', '')
+                        
+                        if thumbnail_url:
+                            # Convert to HTTPS and use non-transparent version
+                            thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
+                            
+                            # Format thumbnail markdown with template info
+                            template_anatomy = image_info.get('template_anatomy', {})
+                            if template_anatomy:
+                                template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
+                                template_label = unquote(template_label)
+                                # Get the anatomy info for alt text
+                                anatomy_info = first_img.get('anatomy', {})
+                                anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
+                                anatomy_label = unquote(anatomy_label)
+                                alt_text = f"{anatomy_label} aligned to {template_label}"
+                                thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({neuron_short_form})"
+                    
+                    # Extract source information from xrefs if available
+                    source = ''
+                    source_id = ''
+                    xrefs = anat_data.get('xrefs', [])
+                    if xrefs and len(xrefs) > 0:
+                        # Get the first data source xref
+                        for xref in xrefs:
+                            if xref.get('is_data_source', False):
+                                site_info = xref.get('site', {})
+                                site_label = site_info.get('symbol') or site_info.get('label', '')
+                                site_short_form = site_info.get('short_form', '')
+                                if site_label and site_short_form:
+                                    source = f"[{site_label}]({site_short_form})"
+                                
+                                accession = xref.get('accession', '')
+                                link_base = xref.get('link_base', '')
+                                if accession and link_base:
+                                    source_id = f"[{accession}]({link_base}{accession})"
+                                break
+                    
+                    # Build row matching expected format
+                    row = {
+                        'id': neuron_short_form,
+                        'label': f"[{label_text}]({neuron_short_form})",
+                        'tags': tags,
+                        'source': source,
+                        'source_id': source_id,
+                        'thumbnail': thumbnail
+                    }
+                    rows.append(row)
+                    
+            except Exception as e:
+                print(f"Error fetching SOLR data for {neuron_id}: {e}")
+                continue
+        
+        # Convert to DataFrame if requested
+        if return_dataframe:
+            df = pd.DataFrame(rows)
+            # Apply markdown encoding
+            columns_to_encode = ['label', 'thumbnail']
+            df = encode_markdown_links(df, columns_to_encode)
+            return df
+        
+        # Convert to expected format with proper headers
+        formatted_results = {
+            "headers": _get_neurons_part_here_headers(),
+            "rows": rows,
+            "count": total_count
+        }
+        
+        return formatted_results
+        
+    except Exception as e:
+        print(f"Error in get_neurons_with_part_in: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return empty results with proper structure
+        if return_dataframe:
+            return pd.DataFrame()
+        return {
+            "headers": _get_neurons_part_here_headers(),
+            "rows": [],
+            "count": 0
+        }
+
+def _get_neurons_part_here_headers():
+    """Return standard headers for get_neurons_with_part_in results"""
+    return {
+        "id": {"title": "Add", "type": "selection_id", "order": -1},
+        "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
+        "tags": {"title": "Tags", "type": "tags", "order": 2},
+        "source": {"title": "Data Source", "type": "metadata", "order": 3},
+        "source_id": {"title": "Data Source ID", "type": "metadata", "order": 4},
+        "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
+    }
+
 
 def fill_query_results(term_info):
     for query in term_info['Queries']:

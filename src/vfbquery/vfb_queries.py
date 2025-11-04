@@ -667,6 +667,54 @@ def term_info_parse_object(results, short_form):
             q = NeuronsPartHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # NeuronsSynaptic query - for synaptic neuropils and visual systems
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
+            "Visual_system" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = NeuronsSynaptic_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # NeuronsPresynapticHere query - for synaptic neuropils and visual systems
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
+            "Visual_system" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = NeuronsPresynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # NeuronsPostsynapticHere query - for synaptic neuropils and visual systems
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
+            "Visual_system" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = NeuronsPostsynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # ComponentsOf query - for clones
+        # Matches XMI criteria: Class + Clone
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Clone"]):
+            q = ComponentsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # PartsOf query - for any Class
+        # Matches XMI criteria: Class (any)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]):
+            q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # SubclassesOf query - for any Class
+        # Matches XMI criteria: Class (any)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]):
+            q = SubclassesOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -853,6 +901,156 @@ def NeuronsPartHere_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 10  # Show 10 preview results with example images
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronsSynaptic_to_schema(name, take_default):
+    """
+    Schema for NeuronsSynaptic query.
+    Finds neuron classes that have synaptic terminals in the specified anatomical region.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Visual_system
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: "Neuron and has_synaptic_terminals_in some $ID"
+    """
+    query = "NeuronsSynaptic"
+    label = f"Neurons with synaptic terminals in {name}"
+    function = "get_neurons_with_synapses_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronsPresynapticHere_to_schema(name, take_default):
+    """
+    Schema for NeuronsPresynapticHere query.
+    Finds neuron classes that have presynaptic terminals in the specified anatomical region.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Visual_system
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: "Neuron and has_presynaptic_terminal_in some $ID"
+    """
+    query = "NeuronsPresynapticHere"
+    label = f"Neurons with presynaptic terminals in {name}"
+    function = "get_neurons_with_presynaptic_terminals_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronsPostsynapticHere_to_schema(name, take_default):
+    """
+    Schema for NeuronsPostsynapticHere query.
+    Finds neuron classes that have postsynaptic terminals in the specified anatomical region.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Visual_system
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: "Neuron and has_postsynaptic_terminal_in some $ID"
+    """
+    query = "NeuronsPostsynapticHere"
+    label = f"Neurons with postsynaptic terminals in {name}"
+    function = "get_neurons_with_postsynaptic_terminals_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def ComponentsOf_to_schema(name, take_default):
+    """
+    Schema for ComponentsOf query.
+    Finds components (parts) of the specified anatomical class.
+    
+    Matching criteria from XMI:
+    - Class + Clone
+    
+    Query chain: Owlery part_of query → process → SOLR
+    OWL query: "part_of some $ID"
+    """
+    query = "ComponentsOf"
+    label = f"Components of {name}"
+    function = "get_components_of"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def PartsOf_to_schema(name, take_default):
+    """
+    Schema for PartsOf query.
+    Finds parts of the specified anatomical class.
+    
+    Matching criteria from XMI:
+    - Class (any)
+    
+    Query chain: Owlery part_of query → process → SOLR
+    OWL query: "part_of some $ID"
+    """
+    query = "PartsOf"
+    label = f"Parts of {name}"
+    function = "get_parts_of"
+    takes = {
+        "short_form": {"$and": ["Class"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def SubclassesOf_to_schema(name, take_default):
+    """
+    Schema for SubclassesOf query.
+    Finds subclasses of the specified class.
+    
+    Matching criteria from XMI:
+    - Class (any)
+    
+    Query chain: Owlery subclasses query → process → SOLR
+    OWL query: Direct subclasses of $ID
+    """
+    query = "SubclassesOf"
+    label = f"Subclasses of {name}"
+    function = "get_subclasses_of"
+    takes = {
+        "short_form": {"$and": ["Class"]},
+        "default": take_default,
+    }
+    preview = 10
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1584,164 +1782,137 @@ def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int 
     
     This implements the NeuronsPartHere query from the VFB XMI specification.
     Query chain (from XMI): Owlery (Index 1) → Process → SOLR (Index 3)
-    OWL query: "'Neuron' that 'overlaps' some '<anatomical_region>'"
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002131> some <$ID>
+    Where: FBbt_00005106 = neuron, RO_0002131 = overlaps
     
     :param short_form: short form of the anatomical region (Class)
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with parts in the specified region
     """
+    owl_query = f"<FBbt_00005106> and <RO_0002131> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
+                                    solr_field='anat_query', include_source=True)
+
+
+@with_solr_cache('neurons_synaptic')
+def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves neuron classes that have synaptic terminals in the specified anatomical region.
     
-    try:
-        # Step 1: Query Owlery for neuron classes that overlap this anatomical region
-        # This uses the OWL reasoner to find all neuron subclasses matching the pattern
-        neuron_class_ids = vc.vfb.oc.get_subclasses(
-            query=f"'Neuron' that 'overlaps' some '{short_form}'",
-            query_by_label=True,
-            verbose=False
-        )
-        
-        if not neuron_class_ids:
-            # No neurons found - return empty results
-            if return_dataframe:
-                return pd.DataFrame()
-            return {
-                "headers": _get_neurons_part_here_headers(),
-                "rows": [],
-                "count": 0
-            }
-        
-        # Apply limit if specified (before SOLR query to save processing)
-        if limit != -1 and limit > 0:
-            neuron_class_ids = neuron_class_ids[:limit]
-        
-        total_count = len(neuron_class_ids)
-        
-        # Step 2: Query SOLR directly for just the anat_query field
-        # For Class terms (neuron classes), the field is 'anat_query' not 'anat_image_query'
-        # This matches the original VFBquery pattern and contains all result row metadata
-        # This is much faster than loading full term_info for each neuron
-        rows = []
-        for neuron_id in neuron_class_ids:
-            try:
-                # Query SOLR with fl=anat_query to get only the result table data
-                # This is the same field used in the original VFBquery implementation
-                results = vfb_solr.search(
-                    q=f'id:{neuron_id}',
-                    fl='anat_query',
-                    rows=1
-                )
-                
-                if results.hits > 0 and results.docs and 'anat_query' in results.docs[0]:
-                    # Parse the anat_query JSON string
-                    anat_query_str = results.docs[0]['anat_query'][0]
-                    anat_data = json.loads(anat_query_str)
-                    
-                    # Extract core term information
-                    term_core = anat_data.get('term', {}).get('core', {})
-                    neuron_short_form = term_core.get('short_form', neuron_id)
-                    
-                    # Extract label (prefer symbol over label, matching Neo4j behavior)
-                    label_text = term_core.get('label', 'Unknown')
-                    if term_core.get('symbol') and len(term_core.get('symbol', '')) > 0:
-                        label_text = term_core.get('symbol')
-                    # Decode URL-encoded strings from SOLR
-                    from urllib.parse import unquote
-                    label_text = unquote(label_text)
-                    
-                    # Extract tags from unique_facets
-                    tags = '|'.join(term_core.get('unique_facets', []))
-                    
-                    # Extract thumbnail from anatomy_channel_image if available
-                    thumbnail = ''
-                    anatomy_images = anat_data.get('anatomy_channel_image', [])
-                    if anatomy_images and len(anatomy_images) > 0:
-                        # Get the first anatomy channel image (example instance)
-                        first_img = anatomy_images[0]
-                        channel_image = first_img.get('channel_image', {})
-                        image_info = channel_image.get('image', {})
-                        thumbnail_url = image_info.get('image_thumbnail', '')
-                        
-                        if thumbnail_url:
-                            # Convert to HTTPS and use non-transparent version
-                            thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
-                            
-                            # Format thumbnail markdown with template info
-                            template_anatomy = image_info.get('template_anatomy', {})
-                            if template_anatomy:
-                                template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
-                                template_label = unquote(template_label)
-                                # Get the anatomy info for alt text
-                                anatomy_info = first_img.get('anatomy', {})
-                                anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
-                                anatomy_label = unquote(anatomy_label)
-                                alt_text = f"{anatomy_label} aligned to {template_label}"
-                                thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({neuron_short_form})"
-                    
-                    # Extract source information from xrefs if available
-                    source = ''
-                    source_id = ''
-                    xrefs = anat_data.get('xrefs', [])
-                    if xrefs and len(xrefs) > 0:
-                        # Get the first data source xref
-                        for xref in xrefs:
-                            if xref.get('is_data_source', False):
-                                site_info = xref.get('site', {})
-                                site_label = site_info.get('symbol') or site_info.get('label', '')
-                                site_short_form = site_info.get('short_form', '')
-                                if site_label and site_short_form:
-                                    source = f"[{site_label}]({site_short_form})"
-                                
-                                accession = xref.get('accession', '')
-                                link_base = xref.get('link_base', '')
-                                if accession and link_base:
-                                    source_id = f"[{accession}]({link_base}{accession})"
-                                break
-                    
-                    # Build row matching expected format
-                    row = {
-                        'id': neuron_short_form,
-                        'label': f"[{label_text}]({neuron_short_form})",
-                        'tags': tags,
-                        'source': source,
-                        'source_id': source_id,
-                        'thumbnail': thumbnail
-                    }
-                    rows.append(row)
-                    
-            except Exception as e:
-                print(f"Error fetching SOLR data for {neuron_id}: {e}")
-                continue
-        
-        # Convert to DataFrame if requested
-        if return_dataframe:
-            df = pd.DataFrame(rows)
-            # Apply markdown encoding
-            columns_to_encode = ['label', 'thumbnail']
-            df = encode_markdown_links(df, columns_to_encode)
-            return df
-        
-        # Convert to expected format with proper headers
-        formatted_results = {
-            "headers": _get_neurons_part_here_headers(),
-            "rows": rows,
-            "count": total_count
-        }
-        
-        return formatted_results
-        
-    except Exception as e:
-        print(f"Error in get_neurons_with_part_in: {e}")
-        import traceback
-        traceback.print_exc()
-        # Return empty results with proper structure
-        if return_dataframe:
-            return pd.DataFrame()
-        return {
-            "headers": _get_neurons_part_here_headers(),
-            "rows": [],
-            "count": 0
-        }
+    This implements the NeuronsSynaptic query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002130> some <$ID>
+    Where: FBbt_00005106 = neuron, RO_0002130 = has synaptic terminals in
+    Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
+    
+    :param short_form: short form of the anatomical region (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Neuron classes with synaptic terminals in the specified region
+    """
+    owl_query = f"<FBbt_00005106> and <RO_0002130> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+
+
+@with_solr_cache('neurons_presynaptic')
+def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves neuron classes that have presynaptic terminals in the specified anatomical region.
+    
+    This implements the NeuronsPresynapticHere query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002113> some <$ID>
+    Where: FBbt_00005106 = neuron, RO_0002113 = has presynaptic terminal in
+    Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
+    
+    :param short_form: short form of the anatomical region (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Neuron classes with presynaptic terminals in the specified region
+    """
+    owl_query = f"<FBbt_00005106> and <RO_0002113> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+
+
+@with_solr_cache('neurons_postsynaptic')
+def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves neuron classes that have postsynaptic terminals in the specified anatomical region.
+    
+    This implements the NeuronsPostsynapticHere query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002110> some <$ID>
+    Where: FBbt_00005106 = neuron, RO_0002110 = has postsynaptic terminal in
+    Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
+    
+    :param short_form: short form of the anatomical region (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Neuron classes with postsynaptic terminals in the specified region
+    """
+    owl_query = f"<FBbt_00005106> and <RO_0002110> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+
+
+@with_solr_cache('components_of')
+def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves components (parts) of the specified anatomical class.
+    
+    This implements the ComponentsOf query from the VFB XMI specification.
+    Query chain (from XMI): Owlery Part of → Process → SOLR
+    OWL query (from XMI): object=<BFO_0000050> some <$ID>
+    Where: BFO_0000050 = part of
+    Matching criteria: Class + Clone
+    
+    :param short_form: short form of the anatomical class
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Components of the specified class
+    """
+    owl_query = f"<BFO_0000050> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+
+
+@with_solr_cache('parts_of')
+def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves parts of the specified anatomical class.
+    
+    This implements the PartsOf query from the VFB XMI specification.
+    Query chain (from XMI): Owlery Part of → Process → SOLR
+    OWL query (from XMI): object=<BFO_0000050> some <$ID>
+    Where: BFO_0000050 = part of
+    Matching criteria: Class (any)
+    
+    :param short_form: short form of the anatomical class
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Parts of the specified class
+    """
+    owl_query = f"<BFO_0000050> some <{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+
+
+@with_solr_cache('subclasses_of')
+def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves subclasses of the specified class.
+    
+    This implements the SubclassesOf query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query: Direct subclasses of '<class>'
+    Matching criteria: Class (any)
+    
+    :param short_form: short form of the class
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Subclasses of the specified class
+    """
+    # For subclasses, we query the class itself (Owlery subclasses endpoint handles this)
+    owl_query = f"'{short_form}'"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
 
 def _get_neurons_part_here_headers():
     """Return standard headers for get_neurons_with_part_in results"""
@@ -1753,6 +1924,177 @@ def _get_neurons_part_here_headers():
         "source_id": {"title": "Data Source ID", "type": "metadata", "order": 4},
         "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
     }
+
+
+def _get_standard_query_headers():
+    """Return standard headers for most query results (no source/source_id)"""
+    return {
+        "id": {"title": "Add", "type": "selection_id", "order": -1},
+        "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
+        "tags": {"title": "Tags", "type": "tags", "order": 2},
+        "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
+    }
+
+
+def _owlery_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
+                              limit: int = -1, solr_field: str = 'anat_query', 
+                              include_source: bool = False):
+    """
+    Shared helper function for Owlery-based queries.
+    
+    This implements the common pattern:
+    1. Query Owlery for class IDs matching an OWL pattern
+    2. Fetch details from SOLR for each class
+    3. Format results as DataFrame or dict
+    
+    :param owl_query_string: OWL query in VFB label syntax (e.g., "'Neuron' that 'overlaps' some 'FBbt_00003748'")
+    :param short_form: The anatomical region or entity short form
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
+    :param limit: Maximum number of results to return (default -1 for all)
+    :param solr_field: SOLR field to query (default 'anat_query' for Class, 'anat_image_query' for Individuals)
+    :param include_source: Whether to include source and source_id columns
+    :return: Query results
+    """
+    try:
+        # Step 1: Query Owlery for classes matching the OWL pattern
+        class_ids = vc.vfb.oc.get_subclasses(
+            query=owl_query_string,
+            query_by_label=True,
+            verbose=False
+        )
+        
+        if not class_ids:
+            # No results found - return empty
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
+                "rows": [],
+                "count": 0
+            }
+        
+        # Apply limit if specified (before SOLR query to save processing)
+        if limit != -1 and limit > 0:
+            class_ids = class_ids[:limit]
+        
+        total_count = len(class_ids)
+        
+        # Step 2: Query SOLR for each class to get detailed information
+        rows = []
+        for class_id in class_ids:
+            try:
+                # Query SOLR with specified field
+                results = vfb_solr.search(
+                    q=f'id:{class_id}',
+                    fl=solr_field,
+                    rows=1
+                )
+                
+                if results.hits > 0 and results.docs and solr_field in results.docs[0]:
+                    # Parse the SOLR field JSON string
+                    field_data_str = results.docs[0][solr_field][0]
+                    field_data = json.loads(field_data_str)
+                    
+                    # Extract core term information
+                    term_core = field_data.get('term', {}).get('core', {})
+                    class_short_form = term_core.get('short_form', class_id)
+                    
+                    # Extract label (prefer symbol over label)
+                    label_text = term_core.get('label', 'Unknown')
+                    if term_core.get('symbol') and len(term_core.get('symbol', '')) > 0:
+                        label_text = term_core.get('symbol')
+                    label_text = unquote(label_text)
+                    
+                    # Extract tags from unique_facets
+                    tags = '|'.join(term_core.get('unique_facets', []))
+                    
+                    # Extract thumbnail from anatomy_channel_image if available
+                    thumbnail = ''
+                    anatomy_images = field_data.get('anatomy_channel_image', [])
+                    if anatomy_images and len(anatomy_images) > 0:
+                        first_img = anatomy_images[0]
+                        channel_image = first_img.get('channel_image', {})
+                        image_info = channel_image.get('image', {})
+                        thumbnail_url = image_info.get('image_thumbnail', '')
+                        
+                        if thumbnail_url:
+                            # Convert to HTTPS and use non-transparent version
+                            thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
+                            
+                            # Format thumbnail markdown
+                            template_anatomy = image_info.get('template_anatomy', {})
+                            if template_anatomy:
+                                template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
+                                template_label = unquote(template_label)
+                                anatomy_info = first_img.get('anatomy', {})
+                                anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
+                                anatomy_label = unquote(anatomy_label)
+                                alt_text = f"{anatomy_label} aligned to {template_label}"
+                                thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
+                    
+                    # Build row
+                    row = {
+                        'id': class_short_form,
+                        'label': f"[{label_text}]({class_short_form})",
+                        'tags': tags,
+                        'thumbnail': thumbnail
+                    }
+                    
+                    # Optionally add source information
+                    if include_source:
+                        source = ''
+                        source_id = ''
+                        xrefs = field_data.get('xrefs', [])
+                        if xrefs and len(xrefs) > 0:
+                            for xref in xrefs:
+                                if xref.get('is_data_source', False):
+                                    site_info = xref.get('site', {})
+                                    site_label = site_info.get('symbol') or site_info.get('label', '')
+                                    site_short_form = site_info.get('short_form', '')
+                                    if site_label and site_short_form:
+                                        source = f"[{site_label}]({site_short_form})"
+                                    
+                                    accession = xref.get('accession', '')
+                                    link_base = xref.get('link_base', '')
+                                    if accession and link_base:
+                                        source_id = f"[{accession}]({link_base}{accession})"
+                                    break
+                        row['source'] = source
+                        row['source_id'] = source_id
+                    
+                    rows.append(row)
+                    
+            except Exception as e:
+                print(f"Error fetching SOLR data for {class_id}: {e}")
+                continue
+        
+        # Convert to DataFrame if requested
+        if return_dataframe:
+            df = pd.DataFrame(rows)
+            # Apply markdown encoding
+            columns_to_encode = ['label', 'thumbnail']
+            df = encode_markdown_links(df, columns_to_encode)
+            return df
+        
+        # Return formatted dict
+        return {
+            "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
+            "rows": rows,
+            "count": total_count
+        }
+        
+    except Exception as e:
+        print(f"Error in Owlery query: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return empty results
+        if return_dataframe:
+            return pd.DataFrame()
+        return {
+            "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
+            "rows": [],
+            "count": 0
+        }
 
 
 def fill_query_results(term_info):

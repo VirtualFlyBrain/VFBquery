@@ -121,23 +121,113 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 
 ### ✅ CONVERTED - Queries with Python Implementation
 
+---
+
+### ✅ FULLY CONVERTED - Complete Implementation
+
 #### 1. **NeuronsPartHere** ✅
 - **ID**: `NeuronsPartHere`
-- **Name**: "Neurons with any part here"
-- **Description**: "Neurons with some part in $NAME"
+- **Name**: "Neuron Classes with some part in a region"
+- **Description**: "Neuron classes with some part overlapping $NAME"
 - **Matching Criteria**: 
+  - Class + Synaptic_neuropil
+  - Class + Anatomy (broader match)
+- **Query Chain**: Owlery subclass query → Process → SOLR
+- **OWL Query**: `'Neuron' that 'overlaps' some '{short_form}'`
+- **Python Function**: `get_neurons_with_part_in()`
+- **Schema Function**: `NeuronsPartHere_to_schema()`
+- **Cache Key**: `'neurons_part_here'`
+- **Preview**: 10 results with images (id, label, tags, thumbnail, source)
+- **Status**: ✅ **FULLY IMPLEMENTED** with tests
+
+#### 2. **NeuronsSynaptic** ✅
+- **ID**: `NeuronsSynaptic`
+- **Name**: "Neurons with synaptic terminals in region"
+- **Description**: "Neuron classes with synaptic terminals in $NAME"
+- **Matching Criteria**:
   - Class + Synaptic_neuropil
   - Class + Visual_system
   - Class + Synaptic_neuropil_domain
-- **Query Chain**: Owlery subclass → Process → SOLR
-- **OWL Query**: `object=<FBbt_00005106> and <RO_0002131> some <$ID>`
-- **Python Function**: `get_neurons_with_part_in()`
-- **Schema Function**: `NeuronsPartHere_to_schema()`
+- **Query Chain**: Owlery subclass query → Process → SOLR
+- **OWL Query**: `'Neuron' that 'has synaptic terminals in' some '{short_form}'`
+- **Python Function**: `get_neurons_with_synapses_in()`
+- **Schema Function**: `NeuronsSynaptic_to_schema()`
+- **Cache Key**: `'neurons_synaptic'`
 - **Preview**: 10 results (id, label, tags, thumbnail)
-- **Status**: ✅ **FULLY IMPLEMENTED** (Nov 4, 2025)
-- **Test Coverage**: `test_neurons_part_here.py` (6 tests, 100% passing)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
 
-#### 2. **ListAllAvailableImages** ✅
+#### 3. **NeuronsPresynapticHere** ✅
+- **ID**: `NeuronsPresynapticHere`
+- **Name**: "Neurons with presynaptic terminals in region"
+- **Description**: "Neuron classes with presynaptic terminals in $NAME"
+- **Matching Criteria**:
+  - Class + Synaptic_neuropil
+  - Class + Visual_system
+  - Class + Synaptic_neuropil_domain
+- **Query Chain**: Owlery subclass query → Process → SOLR
+- **OWL Query**: `'Neuron' that 'has presynaptic terminal in' some '{short_form}'`
+- **Python Function**: `get_neurons_with_presynaptic_terminals_in()`
+- **Schema Function**: `NeuronsPresynapticHere_to_schema()`
+- **Cache Key**: `'neurons_presynaptic'`
+- **Preview**: 10 results (id, label, tags, thumbnail)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
+
+#### 4. **NeuronsPostsynapticHere** ✅
+- **ID**: `NeuronsPostsynapticHere`
+- **Name**: "Neurons with postsynaptic terminals in region"
+- **Description**: "Neuron classes with postsynaptic terminals in $NAME"
+- **Matching Criteria**:
+  - Class + Synaptic_neuropil
+  - Class + Visual_system
+  - Class + Synaptic_neuropil_domain
+- **Query Chain**: Owlery subclass query → Process → SOLR
+- **OWL Query**: `'Neuron' that 'has postsynaptic terminal in' some '{short_form}'`
+- **Python Function**: `get_neurons_with_postsynaptic_terminals_in()`
+- **Schema Function**: `NeuronsPostsynapticHere_to_schema()`
+- **Cache Key**: `'neurons_postsynaptic'`
+- **Preview**: 10 results (id, label, tags, thumbnail)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
+
+#### 5. **ComponentsOf** ✅
+- **ID**: `ComponentsOf`
+- **Name**: "Components of"
+- **Description**: "Components of $NAME"
+- **Matching Criteria**: Class + Clone
+- **Query Chain**: Owlery Part of → Process → SOLR
+- **OWL Query**: `'part of' some '{short_form}'`
+- **Python Function**: `get_components_of()`
+- **Schema Function**: `ComponentsOf_to_schema()`
+- **Cache Key**: `'components_of'`
+- **Preview**: 10 results (id, label, tags, thumbnail)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
+
+#### 6. **PartsOf** ✅
+- **ID**: `PartsOf`
+- **Name**: "Parts of"
+- **Description**: "Parts of $NAME"
+- **Matching Criteria**: Class (any)
+- **Query Chain**: Owlery Part of → Process → SOLR
+- **OWL Query**: `'part of' some '{short_form}'`
+- **Python Function**: `get_parts_of()`
+- **Schema Function**: `PartsOf_to_schema()`
+- **Cache Key**: `'parts_of'`
+- **Preview**: 10 results (id, label, tags, thumbnail)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
+
+#### 7. **SubclassesOf** ✅
+- **ID**: `SubclassesOf`
+- **Name**: "Subclasses of"
+- **Description**: "Subclasses of $NAME"
+- **Matching Criteria**: Class (any)
+- **Query Chain**: Owlery subclasses query → Process → SOLR
+- **OWL Query**: `'{short_form}'` (direct class query)
+- **Python Function**: `get_subclasses_of()`
+- **Schema Function**: `SubclassesOf_to_schema()`
+- **Cache Key**: `'subclasses_of'`
+- **Preview**: 10 results (id, label, tags, thumbnail)
+- **Status**: ✅ **FULLY IMPLEMENTED** with term_info integration
+
+#### 8. **ListAllAvailableImages** ✅
 - **ID**: `ListAllAvailableImages`
 - **Name**: "List all available images for class with examples"
 - **Description**: "List all available images of $NAME"
@@ -148,7 +238,7 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Preview**: 5 results (id, label, tags, thumbnail)
 - **Status**: ✅ **FULLY IMPLEMENTED**
 
-#### 3. **SimilarMorphologyTo** ✅ (Partial)
+#### 9. **SimilarMorphologyTo** ✅ (Partial)
 - **ID**: `SimilarMorphologyTo` / `has_similar_morphology_to`
 - **Name**: "NBLAST similarity neo Query"
 - **Description**: "Neurons with similar morphology to $NAME [NBLAST mean score]"
@@ -159,7 +249,7 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Preview**: 5 results (id, score, name, tags, thumbnail)
 - **Status**: ✅ **IMPLEMENTED** (may need preview enhancement)
 
-#### 4. **NeuronInputsTo** ✅ (Partial)
+#### 10. **NeuronInputsTo** ✅ (Partial)
 - **ID**: `NeuronInputsTo`
 - **Name**: "Neuron inputs query"
 - **Description**: "Find neurons with synapses into $NAME"
@@ -172,30 +262,9 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 
 ---
 
-### 🔶 PARTIALLY CONVERTED - Schema Exists, Implementation Incomplete
-
-#### 5. **ComponentsOf** 🔶
-- **ID**: `ComponentsOf`
-- **Name**: "Components of"
-- **Description**: "Components of $NAME"
-- **Matching Criteria**: Class + Clone
-- **Query Chain**: Owlery Part of → Process → SOLR
-- **OWL Query**: `object=<BFO_0000050> some <$ID>`
-- **Status**: 🔶 **SCHEMA EXISTS** - needs full implementation
-
-#### 6. **PartsOf** 🔶
-- **ID**: `PartsOf`
-- **Name**: "Parts of"
-- **Description**: "Parts of $NAME"
-- **Matching Criteria**: Class (any)
-- **Query Chain**: Owlery Part of → Process → SOLR
-- **Status**: 🔶 **SCHEMA EXISTS** - needs full implementation
-
----
-
 ### ❌ NOT CONVERTED - XMI Only
 
-#### 7. **ExpressionOverlapsHere** ❌
+#### 11. **ExpressionOverlapsHere** ❌
 - **ID**: `ExpressionOverlapsHere`
 - **Name**: "Expression overlapping what anatomy"
 - **Description**: "Anatomy $NAME is expressed in"
@@ -236,37 +305,7 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **OWL Query**: `object=<FBbt_00005106> and <RO_0002131> some <$ID>` (instances, not classes)
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 11. **NeuronsSynaptic** ❌
-- **ID**: `NeuronsSynaptic`
-- **Name**: "Neurons Synaptic"
-- **Description**: "Neurons with synaptic terminals in $NAME"
-- **Matching Criteria**:
-  - Class + Synaptic_neuropil
-  - Class + Visual_system
-  - Class + Synaptic_neuropil_domain
-- **Query Chain**: Owlery → Process → SOLR
-- **OWL Query**: `object=<FBbt_00005106> and <RO_0002130> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
-
-#### 12. **NeuronsPresynapticHere** ❌
-- **ID**: `NeuronsPresynapticHere`
-- **Name**: "Neurons Presynaptic"
-- **Description**: "Neurons with presynaptic terminals in $NAME"
-- **Matching Criteria**: Class + Synaptic_neuropil, Visual_system, Synaptic_neuropil_domain
-- **Query Chain**: Owlery → Process → SOLR
-- **OWL Query**: `object=<FBbt_00005106> and <RO_0002113> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
-
-#### 13. **NeuronsPostsynapticHere** ❌
-- **ID**: `NeuronsPostsynapticHere`
-- **Name**: "Neurons Postsynaptic"
-- **Description**: "Neurons with postsynaptic terminals in $NAME"
-- **Matching Criteria**: Class + Synaptic_neuropil, Visual_system, Synaptic_neuropil_domain
-- **Query Chain**: Owlery → Process → SOLR
-- **OWL Query**: `object=<FBbt_00005106> and <RO_0002110> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
-
-#### 14. **PaintedDomains** ❌
+#### 12. **PaintedDomains** ❌
 - **ID**: `PaintedDomains` / `domainsForTempId`
 - **Name**: "Show all painted domains for template"
 - **Description**: "List all painted anatomy available for $NAME"
@@ -312,16 +351,7 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Query Chain**: Neo4j → Neo4j Pass → SOLR
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 19. **SubclassesOf** ❌
-- **ID**: `SubclassesOf` / `subclasses`
-- **Name**: "Subclasses of"
-- **Description**: "Subclasses of $NAME"
-- **Matching Criteria**: Class (any)
-- **Query Chain**: Owlery → Process → SOLR
-- **OWL Query**: `object=<$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
-
-#### 20. **AlignedDatasets** ❌
+#### 19. **AlignedDatasets** ❌
 - **ID**: `AlignedDatasets` / `template_2_datasets_ids`
 - **Name**: "Show all datasets aligned to template"
 - **Description**: "List all datasets aligned to $NAME"
@@ -459,24 +489,32 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 
 ### Statistics
 - **Total VFB Queries**: 35
-- **✅ Fully Implemented**: 4 (11%)
+- **✅ Fully Implemented**: 10 (29%)
 - **🔶 Partially Implemented**: 2 (6%)
-- **❌ Not Implemented**: 29 (83%)
+- **❌ Not Implemented**: 23 (66%)
+
+### Recently Implemented (This Session)
+- ✅ **NeuronsSynaptic** - neurons with synaptic terminals in region
+- ✅ **NeuronsPresynapticHere** - neurons with presynaptic terminals in region
+- ✅ **NeuronsPostsynapticHere** - neurons with postsynaptic terminals in region
+- ✅ **ComponentsOf** - components of anatomical structures
+- ✅ **PartsOf** - parts of anatomical structures
+- ✅ **SubclassesOf** - subclasses of a class
 
 ### Implementation Priority Categories
 
 #### High Priority (Common Use Cases)
-1. ❌ **NeuronsSynaptic** - synaptic terminal queries are very common
-2. ❌ **NeuronsPresynapticHere** - presynaptic connectivity is essential
-3. ❌ **NeuronsPostsynapticHere** - postsynaptic connectivity is essential
+1. ✅ **NeuronsSynaptic** - synaptic terminal queries are very common (COMPLETED)
+2. ✅ **NeuronsPresynapticHere** - presynaptic connectivity is essential (COMPLETED)
+3. ✅ **NeuronsPostsynapticHere** - postsynaptic connectivity is essential (COMPLETED)
 4. ❌ **ExpressionOverlapsHere** - expression pattern queries are frequent
-5. ❌ **ComponentsOf** - anatomical hierarchy navigation
-6. ❌ **PartsOf** - anatomical hierarchy navigation
+5. ✅ **ComponentsOf** - anatomical hierarchy navigation (COMPLETED)
+6. ✅ **PartsOf** - anatomical hierarchy navigation (COMPLETED)
 
 #### Medium Priority (Specialized Queries)
 7. ❌ **neuron_region_connectivity_query** - connectivity analysis
 8. ❌ **neuron_neuron_connectivity_query** - circuit analysis
-9. ❌ **SubclassesOf** - ontology navigation
+9. ✅ **SubclassesOf** - ontology navigation (COMPLETED)
 10. ❌ **anatScRNAseqQuery** - transcriptomics integration
 11. ❌ **clusterExpression** - gene expression analysis
 

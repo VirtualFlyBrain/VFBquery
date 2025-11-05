@@ -608,8 +608,9 @@ def with_solr_cache(query_type: str):
                         is_valid = (cached_result and isinstance(cached_result, dict) and 
                                    cached_result.get('Id') and cached_result.get('Name'))
                         
-                        # Additional validation for query results
-                        if is_valid and 'Queries' in cached_result:
+                        # Additional validation for query results - only when preview=True
+                        preview = kwargs.get('preview', True)  # Default is True
+                        if is_valid and preview and 'Queries' in cached_result:
                             logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
                             for i, query in enumerate(cached_result['Queries']):
                                 count = query.get('count', 0)

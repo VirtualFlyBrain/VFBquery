@@ -1961,21 +1961,6 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     """
     try:
         # Step 1: Query Owlery for classes matching the OWL pattern
-        # Construct the full Owlery URL for debugging
-        owlery_base = "https://owl.virtualflybrain.org/kbs/vfb"  # Default
-        try:
-            if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
-                owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
-        except Exception:
-            pass
-        
-        # Construct the actual API call URL (what vfb_connect calls)
-        from urllib.parse import quote
-        query_encoded = quote(owl_query_string, safe='')
-        owlery_url = f"{owlery_base}/subclasses?object={query_encoded}"
-        
-        print(f"DEBUG Owlery: {owlery_url}")
-        
         class_ids = vc.vfb.oc.get_subclasses(
             query=owl_query_string,
             query_by_label=query_by_label,
@@ -2110,7 +2095,20 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         }
         
     except Exception as e:
-        print(f"ERROR Owlery query failed: {e}")
+        # Construct the Owlery URL for debugging failed queries
+        owlery_base = "https://owl.virtualflybrain.org/kbs/vfb"  # Default
+        try:
+            if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
+                owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
+        except Exception:
+            pass
+        
+        from urllib.parse import quote
+        query_encoded = quote(owl_query_string, safe='')
+        owlery_url = f"{owlery_base}/subclasses?object={query_encoded}"
+        
+        print(f"ERROR: Owlery query failed: {e}")
+        print(f"       Test URL: {owlery_url}")
         import traceback
         traceback.print_exc()
         # Return error indication with count=-1

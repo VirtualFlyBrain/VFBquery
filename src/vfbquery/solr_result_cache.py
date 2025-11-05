@@ -585,16 +585,23 @@ def with_solr_cache(query_type: str):
                     logger.warning(f"No term_id found for caching {query_type}")
                     return func(*args, **kwargs)
             
+            # Include preview parameter in cache key for term_info queries
+            # This ensures preview=True and preview=False have separate cache entries
+            cache_term_id = term_id
+            if query_type == 'term_info':
+                preview = kwargs.get('preview', True)  # Default is True
+                cache_term_id = f"{term_id}_preview_{preview}"
+            
             cache = get_solr_cache()
             
             # Clear cache if force_refresh is True
             if force_refresh:
                 logger.info(f"Force refresh requested for {query_type}({term_id})")
-                cache.clear_cache_entry(query_type, term_id)
+                cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
             if not force_refresh:
-                cached_result = cache.get_cached_result(query_type, term_id, **kwargs)
+                cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
                 if cached_result is not None:
                     # Validate that cached result has essential fields for term_info
                     if query_type == 'term_info':
@@ -653,7 +660,7 @@ def with_solr_cache(query_type: str):
                     if (result and isinstance(result, dict) and 
                         result.get('Id') and result.get('Name')):
                         try:
-                            cache.cache_result(query_type, term_id, result, **kwargs)
+                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
                             logger.debug(f"Cached complete result for {term_id}")
                         except Exception as e:
                             logger.debug(f"Failed to cache result: {e}")
@@ -661,7 +668,7 @@ def with_solr_cache(query_type: str):
                         logger.warning(f"Not caching incomplete result for {term_id}")
                 else:
                     try:
-                        cache.cache_result(query_type, term_id, result, **kwargs)
+                        cache.cache_result(query_type, cache_term_id, result, **kwargs)
                     except Exception as e:
                         logger.debug(f"Failed to cache result: {e}")
             

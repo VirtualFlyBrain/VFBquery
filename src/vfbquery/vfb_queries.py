@@ -1072,13 +1072,13 @@ def serialize_solr_output(results):
     return json_string 
 
 @with_solr_cache('term_info')
-def get_term_info(short_form: str, preview: bool = False):
+def get_term_info(short_form: str, preview: bool = True):
     """
     Retrieves the term info for the given term short form.
     Results are cached in SOLR for 3 months to improve performance.
 
     :param short_form: short form of the term
-    :param preview: if False, skips executing query previews (much faster)
+    :param preview: if True, executes query previews to populate preview_results (default: True)
     :return: term info
     """
     parsed_object = None

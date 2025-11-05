@@ -1782,7 +1782,7 @@ def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int 
     
     This implements the NeuronsPartHere query from the VFB XMI specification.
     Query chain (from XMI): Owlery (Index 1) → Process → SOLR (Index 3)
-    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002131> some <$ID>
+    OWL query (from XMI): <FBbt_00005106> and <RO_0002131> some <$ID>
     Where: FBbt_00005106 = neuron, RO_0002131 = overlaps
     
     :param short_form: short form of the anatomical region (Class)
@@ -1790,9 +1790,9 @@ def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int 
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with parts in the specified region
     """
-    owl_query = f"<FBbt_00005106> and <RO_0002131> some <{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
-                                    solr_field='anat_query', include_source=True)
+                                    solr_field='anat_query', include_source=True, query_by_label=False)
 
 
 @with_solr_cache('neurons_synaptic')
@@ -1802,7 +1802,7 @@ def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: 
     
     This implements the NeuronsSynaptic query from the VFB XMI specification.
     Query chain (from XMI): Owlery → Process → SOLR
-    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002130> some <$ID>
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002130> some <http://purl.obolibrary.org/obo/$ID>
     Where: FBbt_00005106 = neuron, RO_0002130 = has synaptic terminals in
     Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
     
@@ -1811,8 +1811,8 @@ def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: 
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with synaptic terminals in the specified region
     """
-    owl_query = f"<FBbt_00005106> and <RO_0002130> some <{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002130> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
 @with_solr_cache('neurons_presynaptic')
@@ -1822,7 +1822,7 @@ def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=
     
     This implements the NeuronsPresynapticHere query from the VFB XMI specification.
     Query chain (from XMI): Owlery → Process → SOLR
-    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002113> some <$ID>
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002113> some <http://purl.obolibrary.org/obo/$ID>
     Where: FBbt_00005106 = neuron, RO_0002113 = has presynaptic terminal in
     Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
     
@@ -1831,8 +1831,8 @@ def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with presynaptic terminals in the specified region
     """
-    owl_query = f"<FBbt_00005106> and <RO_0002113> some <{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002113> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
 @with_solr_cache('neurons_postsynaptic')
@@ -1842,7 +1842,7 @@ def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe
     
     This implements the NeuronsPostsynapticHere query from the VFB XMI specification.
     Query chain (from XMI): Owlery → Process → SOLR
-    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002110> some <$ID>
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002110> some <http://purl.obolibrary.org/obo/$ID>
     Where: FBbt_00005106 = neuron, RO_0002110 = has postsynaptic terminal in
     Matching criteria: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
     
@@ -1851,8 +1851,8 @@ def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with postsynaptic terminals in the specified region
     """
-    owl_query = f"<FBbt_00005106> and <RO_0002110> some <{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002110> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
 @with_solr_cache('components_of')
@@ -1862,7 +1862,7 @@ def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
     
     This implements the ComponentsOf query from the VFB XMI specification.
     Query chain (from XMI): Owlery Part of → Process → SOLR
-    OWL query (from XMI): object=<BFO_0000050> some <$ID>
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/$ID>
     Where: BFO_0000050 = part of
     Matching criteria: Class + Clone
     
@@ -1871,8 +1871,8 @@ def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Components of the specified class
     """
-    owl_query = f"<BFO_0000050> some <{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
 @with_solr_cache('parts_of')
@@ -1882,7 +1882,7 @@ def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
     
     This implements the PartsOf query from the VFB XMI specification.
     Query chain (from XMI): Owlery Part of → Process → SOLR
-    OWL query (from XMI): object=<BFO_0000050> some <$ID>
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/$ID>
     Where: BFO_0000050 = part of
     Matching criteria: Class (any)
     
@@ -1891,8 +1891,8 @@ def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Parts of the specified class
     """
-    owl_query = f"<BFO_0000050> some <{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
 @with_solr_cache('subclasses_of')
@@ -1938,7 +1938,7 @@ def _get_standard_query_headers():
 
 def _owlery_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
                               limit: int = -1, solr_field: str = 'anat_query', 
-                              include_source: bool = False):
+                              include_source: bool = False, query_by_label: bool = True):
     """
     Shared helper function for Owlery-based queries.
     
@@ -1947,19 +1947,20 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     2. Fetch details from SOLR for each class
     3. Format results as DataFrame or dict
     
-    :param owl_query_string: OWL query in VFB label syntax (e.g., "'Neuron' that 'overlaps' some 'FBbt_00003748'")
+    :param owl_query_string: OWL query string (format depends on query_by_label parameter)
     :param short_form: The anatomical region or entity short form
     :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
     :param limit: Maximum number of results to return (default -1 for all)
     :param solr_field: SOLR field to query (default 'anat_query' for Class, 'anat_image_query' for Individuals)
     :param include_source: Whether to include source and source_id columns
+    :param query_by_label: If True, use label syntax with quotes. If False, use IRI syntax with angle brackets.
     :return: Query results
     """
     try:
         # Step 1: Query Owlery for classes matching the OWL pattern
         class_ids = vc.vfb.oc.get_subclasses(
             query=owl_query_string,
-            query_by_label=True,
+            query_by_label=query_by_label,
             verbose=False
         )
         
@@ -1973,100 +1974,107 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                 "count": 0
             }
         
+        total_count = len(class_ids)
+        
         # Apply limit if specified (before SOLR query to save processing)
         if limit != -1 and limit > 0:
             class_ids = class_ids[:limit]
         
-        total_count = len(class_ids)
-        
-        # Step 2: Query SOLR for each class to get detailed information
+        # Step 2: Query SOLR for ALL classes in a single batch query
+        # Use the {!terms f=id} syntax from XMI to fetch all results efficiently
         rows = []
-        for class_id in class_ids:
-            try:
-                # Query SOLR with specified field
-                results = vfb_solr.search(
-                    q=f'id:{class_id}',
-                    fl=solr_field,
-                    rows=1
-                )
+        try:
+            # Build filter query with all class IDs
+            id_list = ','.join(class_ids)
+            results = vfb_solr.search(
+                q='id:*',
+                fq=f'{{!terms f=id}}{id_list}',
+                fl=solr_field,
+                rows=len(class_ids)
+            )
+            
+            # Process all results
+            for doc in results.docs:
+                if solr_field not in doc:
+                    continue
+                    
+                # Parse the SOLR field JSON string
+                field_data_str = doc[solr_field][0]
+                field_data = json.loads(field_data_str)
                 
-                if results.hits > 0 and results.docs and solr_field in results.docs[0]:
-                    # Parse the SOLR field JSON string
-                    field_data_str = results.docs[0][solr_field][0]
-                    field_data = json.loads(field_data_str)
+                # Extract core term information
+                term_core = field_data.get('term', {}).get('core', {})
+                class_short_form = term_core.get('short_form', '')
+                
+                # Extract label (prefer symbol over label)
+                label_text = term_core.get('label', 'Unknown')
+                if term_core.get('symbol') and len(term_core.get('symbol', '')) > 0:
+                    label_text = term_core.get('symbol')
+                label_text = unquote(label_text)
+                
+                # Extract tags from unique_facets
+                tags = '|'.join(term_core.get('unique_facets', []))
+                
+                # Extract thumbnail from anatomy_channel_image if available
+                thumbnail = ''
+                anatomy_images = field_data.get('anatomy_channel_image', [])
+                if anatomy_images and len(anatomy_images) > 0:
+                    first_img = anatomy_images[0]
+                    channel_image = first_img.get('channel_image', {})
+                    image_info = channel_image.get('image', {})
+                    thumbnail_url = image_info.get('image_thumbnail', '')
                     
-                    # Extract core term information
-                    term_core = field_data.get('term', {}).get('core', {})
-                    class_short_form = term_core.get('short_form', class_id)
-                    
-                    # Extract label (prefer symbol over label)
-                    label_text = term_core.get('label', 'Unknown')
-                    if term_core.get('symbol') and len(term_core.get('symbol', '')) > 0:
-                        label_text = term_core.get('symbol')
-                    label_text = unquote(label_text)
-                    
-                    # Extract tags from unique_facets
-                    tags = '|'.join(term_core.get('unique_facets', []))
-                    
-                    # Extract thumbnail from anatomy_channel_image if available
-                    thumbnail = ''
-                    anatomy_images = field_data.get('anatomy_channel_image', [])
-                    if anatomy_images and len(anatomy_images) > 0:
-                        first_img = anatomy_images[0]
-                        channel_image = first_img.get('channel_image', {})
-                        image_info = channel_image.get('image', {})
-                        thumbnail_url = image_info.get('image_thumbnail', '')
+                    if thumbnail_url:
+                        # Convert to HTTPS and use non-transparent version
+                        thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
                         
-                        if thumbnail_url:
-                            # Convert to HTTPS and use non-transparent version
-                            thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
-                            
-                            # Format thumbnail markdown
-                            template_anatomy = image_info.get('template_anatomy', {})
-                            if template_anatomy:
-                                template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
-                                template_label = unquote(template_label)
-                                anatomy_info = first_img.get('anatomy', {})
-                                anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
-                                anatomy_label = unquote(anatomy_label)
-                                alt_text = f"{anatomy_label} aligned to {template_label}"
-                                thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
-                    
-                    # Build row
-                    row = {
-                        'id': class_short_form,
-                        'label': f"[{label_text}]({class_short_form})",
-                        'tags': tags,
-                        'thumbnail': thumbnail
-                    }
-                    
-                    # Optionally add source information
-                    if include_source:
-                        source = ''
-                        source_id = ''
-                        xrefs = field_data.get('xrefs', [])
-                        if xrefs and len(xrefs) > 0:
-                            for xref in xrefs:
-                                if xref.get('is_data_source', False):
-                                    site_info = xref.get('site', {})
-                                    site_label = site_info.get('symbol') or site_info.get('label', '')
-                                    site_short_form = site_info.get('short_form', '')
-                                    if site_label and site_short_form:
-                                        source = f"[{site_label}]({site_short_form})"
-                                    
-                                    accession = xref.get('accession', '')
-                                    link_base = xref.get('link_base', '')
-                                    if accession and link_base:
-                                        source_id = f"[{accession}]({link_base}{accession})"
-                                    break
-                        row['source'] = source
-                        row['source_id'] = source_id
-                    
-                    rows.append(row)
-                    
-            except Exception as e:
-                print(f"Error fetching SOLR data for {class_id}: {e}")
-                continue
+                        # Format thumbnail markdown
+                        template_anatomy = image_info.get('template_anatomy', {})
+                        if template_anatomy:
+                            template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
+                            template_label = unquote(template_label)
+                            anatomy_info = first_img.get('anatomy', {})
+                            anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
+                            anatomy_label = unquote(anatomy_label)
+                            alt_text = f"{anatomy_label} aligned to {template_label}"
+                            thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
+                
+                # Build row
+                row = {
+                    'id': class_short_form,
+                    'label': f"[{label_text}]({class_short_form})",
+                    'tags': tags,
+                    'thumbnail': thumbnail
+                }
+                
+                # Optionally add source information
+                if include_source:
+                    source = ''
+                    source_id = ''
+                    xrefs = field_data.get('xrefs', [])
+                    if xrefs and len(xrefs) > 0:
+                        for xref in xrefs:
+                            if xref.get('is_data_source', False):
+                                site_info = xref.get('site', {})
+                                site_label = site_info.get('symbol') or site_info.get('label', '')
+                                site_short_form = site_info.get('short_form', '')
+                                if site_label and site_short_form:
+                                    source = f"[{site_label}]({site_short_form})"
+                                
+                                accession = xref.get('accession', '')
+                                link_base = xref.get('link_base', '')
+                                if accession and link_base:
+                                    source_id = f"[{accession}]({link_base}{accession})"
+                                break
+                    row['source'] = source
+                    row['source_id'] = source_id
+                
+                rows.append(row)
+                
+        except Exception as e:
+            print(f"Error fetching SOLR data: {e}")
+            import traceback
+            traceback.print_exc()
         
         # Convert to DataFrame if requested
         if return_dataframe:

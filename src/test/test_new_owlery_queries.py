@@ -239,12 +239,12 @@ class TestSubclassesOf(unittest.TestCase):
     """Tests for SubclassesOf query"""
     
     def setUp(self):
-        self.medulla_id = 'FBbt_00003748'  # medulla - any Class
+        self.wedge_pn_id = 'FBbt_00048516'  # wedge projection neuron (>45 subclasses)
     
     def test_subclasses_of_returns_results(self):
-        """Test that SubclassesOf query returns results for medulla"""
+        """Test that SubclassesOf query returns results for wedge projection neuron"""
         result = get_subclasses_of(
-            self.medulla_id,
+            self.wedge_pn_id,
             return_dataframe=False
         )
         
@@ -256,7 +256,7 @@ class TestSubclassesOf(unittest.TestCase):
     def test_subclasses_of_has_expected_columns(self):
         """Test that result has expected column structure"""
         result = get_subclasses_of(
-            self.medulla_id,
+            self.wedge_pn_id,
             return_dataframe=False
         )
         
@@ -268,7 +268,7 @@ class TestSubclassesOf(unittest.TestCase):
     
     def test_subclasses_of_in_term_info(self):
         """Test that SubclassesOf appears in term_info queries"""
-        term_info = get_term_info(self.medulla_id, preview=True)
+        term_info = get_term_info(self.wedge_pn_id, preview=True)
         
         self.assertIn('Queries', term_info)  # Note: Capital 'Q'
         query_labels = [q['label'] for q in term_info['Queries']]

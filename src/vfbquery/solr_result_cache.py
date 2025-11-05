@@ -95,11 +95,12 @@ class SolrResultCache:
             Cached result or None if not found/expired
         """
         try:
-            # Query for cache document with prefixed ID
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Query for cache document with prefixed ID including query type
+            # This ensures different query types for the same term have separate cache entries
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "q": f"id:{cache_doc_id}",
                 "fl": "cache_data",
                 "wt": "json"
             }, timeout=5)  # Short timeout for cache lookups
@@ -194,8 +195,9 @@ class SolrResultCache:
             if not cached_data:
                 return False  # Result too large or other issue
                 
-            # Create cache document with prefixed ID
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Create cache document with prefixed ID including query type
+            # This ensures different query types for the same term have separate cache entries
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             cache_doc = {
                 "id": cache_doc_id,
@@ -252,7 +254,8 @@ class SolrResultCache:
             True if successfully cleared, False otherwise
         """
         try:
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Include query_type in cache document ID to match storage format
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             response = requests.post(
                 f"{self.cache_url}/update",
                 data=f'<delete><id>{cache_doc_id}</id></delete>',
@@ -299,10 +302,11 @@ class SolrResultCache:
             Dictionary with cache age info or None if not cached
         """
         try:
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Include query_type in cache document ID to match storage format
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "q": f"id:{cache_doc_id}",
                 "fl": "cache_data,hit_count,last_accessed",
                 "wt": "json"
             }, timeout=5)
@@ -658,8 +662,32 @@ def with_solr_cache(query_type: str):
             if result_is_valid:
                 # Validate result before caching for term_info
                 if query_type == 'term_info':
-                    if (result and isinstance(result, dict) and 
-                        result.get('Id') and result.get('Name')):
+                    # Basic validation: must have Id and Name
+                    is_complete = (result and isinstance(result, dict) and 
+                                  result.get('Id') and result.get('Name'))
+                    
+                    # Additional validation when preview=True: queries must have valid results
+                    if is_complete:
+                        preview = kwargs.get('preview', True)
+                        if preview and 'Queries' in result and result['Queries']:
+                            # Check that all queries have valid counts and preview_results
+                            for query in result['Queries']:
+                                count = query.get('count', -1)
+                                preview_results = query.get('preview_results')
+                                
+                                # Don't cache if query has invalid count (0 or -1)
+                                if count <= 0:
+                                    is_complete = False
+                                    logger.warning(f"Not caching result for {term_id}: query has invalid count {count}")
+                                    break
+                                
+                                # Don't cache if preview_results is missing or malformed
+                                if not isinstance(preview_results, dict) or not preview_results.get('headers'):
+                                    is_complete = False
+                                    logger.warning(f"Not caching result for {term_id}: query has invalid preview_results")
+                                    break
+                    
+                    if is_complete:
                         try:
                             cache.cache_result(query_type, cache_term_id, result, **kwargs)
                             logger.debug(f"Cached complete result for {term_id}")

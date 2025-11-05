@@ -1961,15 +1961,20 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     """
     try:
         # Step 1: Query Owlery for classes matching the OWL pattern
-        print(f"DEBUG: Executing Owlery query: {owl_query_string}")
-        print(f"DEBUG: Query parameters - short_form: {short_form}, query_by_label: {query_by_label}")
-        
+        # Construct the full Owlery URL for debugging
+        owlery_base = "https://owl.virtualflybrain.org/kbs/vfb"  # Default
         try:
-            # Try to get the Owlery endpoint for debugging
-            owlery_endpoint = getattr(vc.vfb.oc, 'owlery', 'unknown')
-            print(f"DEBUG: Owlery endpoint: {owlery_endpoint}")
+            if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
+                owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
         except Exception:
-            pass  # Ignore if we can't get the endpoint
+            pass
+        
+        # Construct the actual API call URL (what vfb_connect calls)
+        from urllib.parse import quote
+        query_encoded = quote(owl_query_string, safe='')
+        owlery_url = f"{owlery_base}/subclasses?object={query_encoded}"
+        
+        print(f"DEBUG Owlery: {owlery_url}")
         
         class_ids = vc.vfb.oc.get_subclasses(
             query=owl_query_string,
@@ -2105,18 +2110,16 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         }
         
     except Exception as e:
-        print(f"Error in Owlery query: {e}")
-        print(f"Failed query string: {owl_query_string}")
-        print(f"Failed query parameters - short_form: {short_form}, query_by_label: {query_by_label}, solr_field: {solr_field}")
+        print(f"ERROR Owlery query failed: {e}")
         import traceback
         traceback.print_exc()
-        # Return empty results
+        # Return error indication with count=-1
         if return_dataframe:
             return pd.DataFrame()
         return {
             "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
             "rows": [],
-            "count": 0
+            "count": -1  # -1 indicates query error/failure
         }
 
 

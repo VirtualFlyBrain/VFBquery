@@ -617,16 +617,17 @@ def with_solr_cache(query_type: str):
                         if is_valid and preview and 'Queries' in cached_result:
                             logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
                             for i, query in enumerate(cached_result['Queries']):
-                                count = query.get('count', 0)
+                                count = query.get('count', -1)  # Default to -1 if missing
                                 preview_results = query.get('preview_results')
                                 headers = preview_results.get('headers', []) if isinstance(preview_results, dict) else []
                                 
                                 logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
                                 
-                                # Check if query has unrealistic count (0 or -1) which indicates failed execution
-                                if count <= 0:
+                                # Check if query has error count (-1) which indicates failed execution
+                                # Note: count of 0 is valid - it means "no matches found"
+                                if count < 0:
                                     is_valid = False
-                                    logger.debug(f"Cached result has invalid query count {count} for {term_id}")
+                                    logger.debug(f"Cached result has error query count {count} for {term_id}")
                                     break
                                 # Check if preview_results is missing or has empty headers when it should have data
                                 if not isinstance(preview_results, dict) or not headers:
@@ -672,13 +673,14 @@ def with_solr_cache(query_type: str):
                         if preview and 'Queries' in result and result['Queries']:
                             # Check that all queries have valid counts and preview_results
                             for query in result['Queries']:
-                                count = query.get('count', -1)
+                                count = query.get('count', -1)  # Default to -1 if missing
                                 preview_results = query.get('preview_results')
                                 
-                                # Don't cache if query has invalid count (0 or -1)
-                                if count <= 0:
+                                # Don't cache if query has error count (-1 indicates failure)
+                                # Note: count of 0 is valid - it means "no matches found"
+                                if count < 0:
                                     is_complete = False
-                                    logger.warning(f"Not caching result for {term_id}: query has invalid count {count}")
+                                    logger.warning(f"Not caching result for {term_id}: query has error count {count}")
                                     break
                                 
                                 # Don't cache if preview_results is missing or malformed

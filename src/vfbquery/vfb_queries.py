@@ -2181,14 +2181,17 @@ def fill_query_results(term_info):
                 else:
                     print(f"Unsupported result format for filtering columns in {query['function']}")
                 
-                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
                 # Handle count extraction based on result type
                 if isinstance(result, dict) and 'count' in result:
-                    query['count'] = result['count']
+                    result_count = result['count']
                 elif isinstance(result, pd.DataFrame):
-                    query['count'] = len(result)
+                    result_count = len(result)
                 else:
-                    query['count'] = 0
+                    result_count = 0
+                
+                # Store preview results with count included
+                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result, 'count': result_count}
+                query['count'] = result_count
                 # print(f"Filtered result: {filtered_result}")
             else:
                 print(f"Function {query['function']} not found")

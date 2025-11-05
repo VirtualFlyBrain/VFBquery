@@ -1,7 +1,7 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-# Replace VfbConnect import with our new SolrTermInfoFetcher
-from .solr_fetcher import SolrTermInfoFetcher
+# Replace VfbConnect import with our new SimpleVFBConnect
+from .owlery_client import SimpleVFBConnect
 # Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
 from marshmallow import Schema, fields, post_load
 from typing import List, Tuple, Dict, Any, Union
@@ -59,8 +59,8 @@ def get_dict_cursor():
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
 
-# Replace VfbConnect with SolrTermInfoFetcher
-vc = SolrTermInfoFetcher()
+# Replace VfbConnect with SimpleVFBConnect
+vc = SimpleVFBConnect()
 
 def initialize_vfb_connect():
     """
@@ -2096,7 +2096,7 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         
     except Exception as e:
         # Construct the Owlery URL for debugging failed queries
-        owlery_base = "https://owl.virtualflybrain.org/kbs/vfb"  # Default
+        owlery_base = "http://owl.virtualflybrain.org/kbs/vfb"  # Default
         try:
             if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
                 owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
@@ -2107,8 +2107,10 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         query_encoded = quote(owl_query_string, safe='')
         owlery_url = f"{owlery_base}/subclasses?object={query_encoded}"
         
-        print(f"ERROR: Owlery query failed: {e}")
-        print(f"       Test URL: {owlery_url}")
+        # Always use stderr for error messages to ensure they are visible
+        import sys
+        print(f"ERROR: Owlery query failed: {e}", file=sys.stderr)
+        print(f"       Test URL: {owlery_url}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         # Return error indication with count=-1

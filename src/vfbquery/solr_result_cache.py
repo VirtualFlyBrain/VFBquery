@@ -596,6 +596,14 @@ def with_solr_cache(query_type: str):
                 preview = kwargs.get('preview', True)  # Default is True
                 cache_term_id = f"{term_id}_preview_{preview}"
             
+            # Include return_dataframe parameter in cache key for queries that support it
+            # This ensures DataFrame and dict formats are cached separately
+            if query_type in ['instances', 'neurons_part_here', 'neurons_synaptic', 
+                             'neurons_presynaptic', 'neurons_postsynaptic', 
+                             'components_of', 'parts_of', 'subclasses_of']:
+                return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
+                cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
+            
             cache = get_solr_cache()
             
             # Clear cache if force_refresh is True

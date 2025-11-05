@@ -1,0 +1,288 @@
+"""
+Simple Owlery REST API client to replace VFBConnect dependency.
+
+This module provides direct HTTP access to the Owlery OWL reasoning service,
+eliminating the need for vfb_connect which has problematic GUI dependencies.
+"""
+
+import requests
+import json
+import pandas as pd
+import re
+from urllib.parse import quote
+from typing import List, Optional, Dict, Any, Union
+
+
+def short_form_to_iri(short_form: str) -> str:
+    """
+    Convert a short form (e.g., 'FBbt_00003748') to full IRI.
+    
+    :param short_form: Short form like 'FBbt_00003748'
+    :return: Full IRI like 'http://purl.obolibrary.org/obo/FBbt_00003748'
+    """
+    # OBO library IRIs use underscores in the ID
+    return f"http://purl.obolibrary.org/obo/{short_form}"
+
+
+def gen_short_form(iri: str) -> str:
+    """
+    Generate short_form from an IRI string (VFBConnect compatible).
+    Splits by '/' or '#' and takes the last part.
+    
+    :param iri: An IRI string
+    :return: short_form
+    """
+    return re.split('/|#', iri)[-1]
+
+
+class OwleryClient:
+    """
+    Simple client for Owlery OWL reasoning service.
+    
+    Provides minimal interface matching VFBConnect's OWLeryConnect functionality
+    for subclass queries needed by VFBquery.
+    """
+    
+    def __init__(self, owlery_endpoint: str = "http://owl.virtualflybrain.org/kbs/vfb"):
+        """
+        Initialize Owlery client.
+        
+        :param owlery_endpoint: Base URL for Owlery service (default: VFB public instance)
+        """
+        self.owlery_endpoint = owlery_endpoint.rstrip('/')
+    
+    def get_subclasses(self, query: str, query_by_label: bool = True, 
+                      verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+        """
+        Query Owlery for subclasses matching an OWL class expression.
+        
+        This replicates the VFBConnect OWLeryConnect.get_subclasses() method.
+        Based on: https://github.com/VirtualFlyBrain/VFB_connect/blob/master/src/vfb_connect/owl/owlery_query_tools.py
+        
+        :param query: OWL class expression query string (with short forms like '<FBbt_00003748>')
+        :param query_by_label: If True, query uses label syntax (quotes). 
+                               If False, uses IRI syntax (angle brackets).
+        :param verbose: If True, print debug information
+        :param prefixes: If True, return full IRIs. If False, return short forms.
+        :param direct: Return direct subclasses only. Default False.
+        :return: List of class IDs (short forms like 'FBbt_00003748')
+        """
+        try:
+            # Convert short forms in query to full IRIs
+            # Pattern: <FBbt_00003748> -> <http://purl.obolibrary.org/obo/FBbt_00003748>
+            # Match angle brackets with content that looks like a short form (alphanumeric + underscore)
+            import re
+            def convert_short_form_to_iri(match):
+                short_form = match.group(1)  # Extract content between < >
+                # Only convert if it looks like a short form (contains underscore, no slashes)
+                if '_' in short_form and '/' not in short_form:
+                    return f"<{short_form_to_iri(short_form)}>"
+                else:
+                    # Already an IRI or other syntax, leave as-is
+                    return match.group(0)
+            
+            # Replace all <SHORT_FORM> patterns with <FULL_IRI>
+            iri_query = re.sub(r'<([^>]+)>', convert_short_form_to_iri, query)
+            
+            if verbose:
+                print(f"Original query: {query}")
+                print(f"IRI query: {iri_query}")
+            
+            # Build Owlery subclasses endpoint URL
+            # Based on VFBConnect's query() method
+            params = {
+                'object': iri_query,
+                'prefixes': json.dumps({
+                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
+                    "RO": "http://purl.obolibrary.org/obo/RO_",
+                    "BFO": "http://purl.obolibrary.org/obo/BFO_"
+                })
+            }
+            if direct:
+                params['direct'] = 'False'  # Note: Owlery expects string 'False', not boolean
+            
+            # Make HTTP GET request with longer timeout for complex queries
+            response = requests.get(
+                f"{self.owlery_endpoint}/subclasses",
+                params=params,
+                timeout=120
+            )
+            
+            if verbose:
+                print(f"Owlery query: {response.url}")
+            
+            response.raise_for_status()
+            
+            # Parse JSON response
+            # Owlery returns: {"superClassOf": ["IRI1", "IRI2", ...]}
+            # Based on VFBConnect: return_type='superClassOf' for subclasses
+            data = response.json()
+            
+            if verbose:
+                print(f"Response keys: {data.keys() if isinstance(data, dict) else 'not a dict'}")
+            
+            # Extract IRIs from response using VFBConnect's key
+            iris = []
+            if isinstance(data, dict) and 'superClassOf' in data:
+                iris = data['superClassOf']
+            elif isinstance(data, list):
+                # Fallback: simple list response
+                iris = data
+            else:
+                if verbose:
+                    print(f"Unexpected Owlery response format: {type(data)}")
+                    print(f"Response: {data}")
+                return []
+            
+            if not isinstance(iris, list):
+                if verbose:
+                    print(f"Warning: No results! This is likely due to a query error")
+                    print(f"Query: {query}")
+                return []
+            
+            # Convert IRIs to short forms using gen_short_form logic from VFBConnect
+            # gen_short_form splits by '/' or '#' and takes the last part
+            import re
+            def gen_short_form(iri):
+                """Generate short_form from an IRI string (VFBConnect compatible)"""
+                return re.split('/|#', iri)[-1]
+            
+            short_forms = list(map(gen_short_form, iris))
+            
+            if verbose:
+                print(f"Found {len(short_forms)} subclasses")
+            
+            return short_forms
+            
+        except requests.RequestException as e:
+            print(f"ERROR: Owlery request failed: {e}")
+            raise
+        except Exception as e:
+            print(f"ERROR: Unexpected error in Owlery query: {e}")
+            raise
+
+
+class MockNeo4jClient:
+    """
+    Mock Neo4j client that raises informative errors.
+    
+    Neo4j queries require full vfb_connect installation which has
+    GUI dependencies. This mock provides clear error messages.
+    """
+    
+    def commit_list(self, queries):
+        """
+        Mock Neo4j commit_list that raises NotImplementedError.
+        
+        :param queries: List of Cypher queries
+        :raises NotImplementedError: Always - Neo4j requires full vfb_connect
+        """
+        raise NotImplementedError(
+            "Neo4j queries require full vfb_connect installation. "
+            "In development environment without GUI libraries, only Owlery-based "
+            "queries are available (e.g., get_neurons_with_part_in, get_parts_of, etc.). "
+            "Neo4j-based queries (e.g., get_instances, get_similar_neurons) are not available."
+        )
+
+
+class SimpleVFBConnect:
+    """
+    Minimal replacement for VFBConnect that works in headless environments.
+    
+    Provides:
+    - Owlery client (vc.vfb.oc) for OWL reasoning queries
+    - Mock Neo4j client (vc.nc) that raises informative errors
+    - SOLR term info fetcher (vc.get_TermInfo) for term metadata
+    
+    This eliminates the need for vfb_connect which requires GUI libraries
+    (vispy, Quartz.framework on macOS) that aren't available in all dev environments.
+    """
+    
+    def __init__(self, solr_url: str = "https://solr.virtualflybrain.org/solr/vfb_json"):
+        """
+        Initialize simple VFB connection with Owlery and SOLR access.
+        
+        :param solr_url: Base URL for SOLR server (default: VFB public instance)
+        """
+        self._vfb = None
+        self._nc = None
+        self.solr_url = solr_url
+    
+    @property
+    def vfb(self):
+        """Get VFB object with Owlery client."""
+        if self._vfb is None:
+            # Create simple object with oc (Owlery client) property
+            class VFBObject:
+                def __init__(self):
+                    self.oc = OwleryClient()
+            self._vfb = VFBObject()
+        return self._vfb
+    
+    @property
+    def nc(self):
+        """Get Neo4j client (mock that raises errors)."""
+        if self._nc is None:
+            self._nc = MockNeo4jClient()
+        return self._nc
+    
+    def get_TermInfo(self, short_forms: List[str], 
+                    return_dataframe: bool = False, 
+                    summary: bool = False) -> Union[List[Dict[str, Any]], pd.DataFrame]:
+        """
+        Fetch term info from SOLR directly.
+        
+        This replicates VFBConnect's get_TermInfo method using direct SOLR queries.
+        
+        :param short_forms: List of term IDs to fetch (e.g., ['FBbt_00003748'])
+        :param return_dataframe: If True, return as pandas DataFrame
+        :param summary: If True, return summarized version (currently ignored)
+        :return: List of term info dictionaries or DataFrame
+        """
+        results = []
+        
+        for short_form in short_forms:
+            try:
+                url = f"{self.solr_url}/select"
+                params = {
+                    "indent": "true",
+                    "fl": "term_info",
+                    "q.op": "OR",
+                    "q": f"id:{short_form}"
+                }
+                
+                response = requests.get(url, params=params, timeout=30)
+                response.raise_for_status()
+                
+                data = response.json()
+                docs = data.get("response", {}).get("docs", [])
+                
+                if not docs:
+                    print(f"WARNING: No results found for {short_form}")
+                    continue
+                    
+                if "term_info" not in docs[0] or not docs[0]["term_info"]:
+                    print(f"WARNING: No term_info found for {short_form}")
+                    continue
+                
+                # Extract and parse the term_info string which is itself JSON
+                term_info_str = docs[0]["term_info"][0]
+                term_info_obj = json.loads(term_info_str)
+                results.append(term_info_obj)
+                
+            except requests.RequestException as e:
+                print(f"ERROR: Error fetching data from SOLR: {e}")
+            except json.JSONDecodeError as e:
+                print(f"ERROR: Error decoding JSON for {short_form}: {e}")
+            except Exception as e:
+                print(f"ERROR: Unexpected error for {short_form}: {e}")
+        
+        # Convert to DataFrame if requested
+        if return_dataframe and results:
+            try:
+                return pd.json_normalize(results)
+            except Exception as e:
+                print(f"ERROR: Error converting to DataFrame: {e}")
+                return results
+        
+        return results

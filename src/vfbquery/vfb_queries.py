@@ -1961,6 +1961,16 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     """
     try:
         # Step 1: Query Owlery for classes matching the OWL pattern
+        print(f"DEBUG: Executing Owlery query: {owl_query_string}")
+        print(f"DEBUG: Query parameters - short_form: {short_form}, query_by_label: {query_by_label}")
+        
+        try:
+            # Try to get the Owlery endpoint for debugging
+            owlery_endpoint = getattr(vc.vfb.oc, 'owlery', 'unknown')
+            print(f"DEBUG: Owlery endpoint: {owlery_endpoint}")
+        except Exception:
+            pass  # Ignore if we can't get the endpoint
+        
         class_ids = vc.vfb.oc.get_subclasses(
             query=owl_query_string,
             query_by_label=query_by_label,
@@ -2096,6 +2106,8 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         
     except Exception as e:
         print(f"Error in Owlery query: {e}")
+        print(f"Failed query string: {owl_query_string}")
+        print(f"Failed query parameters - short_form: {short_form}, query_by_label: {query_by_label}, solr_field: {solr_field}")
         import traceback
         traceback.print_exc()
         # Return empty results

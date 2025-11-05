@@ -662,7 +662,12 @@ def with_solr_cache(query_type: str):
                 if hasattr(result, 'empty'):  # DataFrame
                     result_is_valid = not result.empty
                 elif isinstance(result, dict):
-                    result_is_valid = bool(result)
+                    # For dict results, check if it's not an error result (count != -1)
+                    # Error results should not be cached
+                    if 'count' in result:
+                        result_is_valid = result.get('count', -1) >= 0  # Don't cache errors (count=-1)
+                    else:
+                        result_is_valid = bool(result)  # For dicts without count field
                 elif isinstance(result, (list, str)):
                     result_is_valid = len(result) > 0
                 else:
@@ -675,27 +680,32 @@ def with_solr_cache(query_type: str):
                     is_complete = (result and isinstance(result, dict) and 
                                   result.get('Id') and result.get('Name'))
                     
-                    # Additional validation when preview=True: queries must have valid results
+                    # Additional validation when preview=True: check if queries have results
+                    # We allow caching even if some queries failed (count=-1) as long as the core term_info is valid
+                    # This is because some query functions may not be implemented yet or may legitimately fail
                     if is_complete:
                         preview = kwargs.get('preview', True)
                         if preview and 'Queries' in result and result['Queries']:
-                            # Check that all queries have valid counts and preview_results
+                            # Count how many queries have valid results vs errors
+                            valid_queries = 0
+                            failed_queries = 0
+                            
                             for query in result['Queries']:
-                                count = query.get('count', -1)  # Default to -1 if missing
+                                count = query.get('count', -1)
                                 preview_results = query.get('preview_results')
                                 
-                                # Don't cache if query has error count (-1 indicates failure)
-                                # Note: count of 0 is valid - it means "no matches found"
-                                if count < 0:
-                                    is_complete = False
-                                    logger.warning(f"Not caching result for {term_id}: query has error count {count}")
-                                    break
-                                
-                                # Don't cache if preview_results is missing or malformed
-                                if not isinstance(preview_results, dict) or not preview_results.get('headers'):
-                                    is_complete = False
-                                    logger.warning(f"Not caching result for {term_id}: query has invalid preview_results")
-                                    break
+                                # Count queries with valid results (count >= 0)
+                                if count >= 0 and isinstance(preview_results, dict):
+                                    valid_queries += 1
+                                else:
+                                    failed_queries += 1
+                            
+                            # Only reject if ALL queries failed - at least one must succeed
+                            if valid_queries == 0 and failed_queries > 0:
+                                is_complete = False
+                                logger.warning(f"Not caching result for {term_id}: all {failed_queries} queries failed")
+                            elif failed_queries > 0:
+                                logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
                     
                     if is_complete:
                         try:

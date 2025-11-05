@@ -11,6 +11,8 @@ import json
 import numpy as np
 from urllib.parse import unquote
 from .solr_result_cache import with_solr_cache
+import time
+import requests
 
 # Custom JSON encoder to handle NumPy and pandas types
 class NumpyEncoder(json.JSONEncoder):
@@ -1076,6 +1078,7 @@ def get_term_info(short_form: str, preview: bool = False):
     Results are cached in SOLR for 3 months to improve performance.
 
     :param short_form: short form of the term
+    :param preview: if False, skips executing query previews (much faster)
     :return: term info
     """
     parsed_object = None
@@ -1085,8 +1088,8 @@ def get_term_info(short_form: str, preview: bool = False):
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         if parsed_object:
-            # Only try to fill query results if there are queries to fill
-            if parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
+            # Only try to fill query results if preview is enabled and there are queries to fill
+            if preview and parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
                 try:
                     term_info = fill_query_results(parsed_object)
                     if term_info:
@@ -1110,7 +1113,7 @@ def get_term_info(short_form: str, preview: bool = False):
                         query['count'] = 0
                     return parsed_object
             else:
-                # No queries to fill, return parsed object directly
+                # No queries to fill (preview=False) or no queries defined, return parsed object directly
                 return parsed_object
         else:
             print(f"No valid term info found for ID '{short_form}'")

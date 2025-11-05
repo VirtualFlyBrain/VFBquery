@@ -666,6 +666,8 @@ def with_solr_cache(query_type: str):
             # Cache the result asynchronously to avoid blocking
             # Handle DataFrame, dict, and other result types properly
             result_is_valid = False
+            result_is_error = False  # Track if result is an error that should clear cache
+            
             if result is not None:
                 if hasattr(result, 'empty'):  # DataFrame
                     result_is_valid = not result.empty
@@ -673,13 +675,24 @@ def with_solr_cache(query_type: str):
                     # For dict results, check if it's not an error result (count != -1)
                     # Error results should not be cached
                     if 'count' in result:
-                        result_is_valid = result.get('count', -1) >= 0  # Don't cache errors (count=-1)
+                        count_value = result.get('count', -1)
+                        result_is_valid = count_value >= 0  # Don't cache errors (count=-1)
+                        result_is_error = count_value < 0  # Mark as error if count is negative
                     else:
                         result_is_valid = bool(result)  # For dicts without count field
                 elif isinstance(result, (list, str)):
                     result_is_valid = len(result) > 0
                 else:
                     result_is_valid = True
+            
+            # If result is an error, actively clear any existing cache entry
+            # This ensures that transient failures don't get stuck in cache
+            if result_is_error:
+                logger.warning(f"Query returned error result for {query_type}({term_id}), clearing cache entry")
+                try:
+                    cache.clear_cache_entry(query_type, cache_term_id)
+                except Exception as e:
+                    logger.debug(f"Failed to clear cache entry: {e}")
             
             if result_is_valid:
                 # Validate result before caching for term_info

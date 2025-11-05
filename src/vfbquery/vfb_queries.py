@@ -1916,7 +1916,7 @@ def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
     # For subclasses, we query the class itself (Owlery subclasses endpoint handles this)
     # Use angle brackets for IRI conversion, not quotes
     owl_query = f"<{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query')
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 def _get_neurons_part_here_headers():
     """Return standard headers for get_neurons_with_part_in results"""

@@ -162,6 +162,14 @@ class SolrResultCache:
                     logger.warning(f"Failed to parse cached result for {term_id}")
                     return None
             
+            # IMPORTANT: Validate cached result - reject error results (count=-1)
+            # This ensures old cached errors get retried when the service is working again
+            if isinstance(result, dict) and 'count' in result:
+                if result.get('count', -1) < 0:
+                    logger.warning(f"Rejecting cached error result for {query_type}({term_id}): count={result.get('count')}")
+                    self._clear_expired_cache_document(cache_doc_id)
+                    return None
+            
             logger.info(f"Cache hit for {query_type}({term_id})")
             return result
             

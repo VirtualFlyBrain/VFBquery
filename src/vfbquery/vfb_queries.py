@@ -1439,17 +1439,18 @@ def _get_templates_minimal(limit: int = -1, return_dataframe: bool = False):
     Returns hardcoded list of core templates with basic information.
     """
     # Core templates with their basic information
+    # Include all columns to match full get_templates() structure
     templates_data = [
-        {"id": "VFB_00101567", "name": "JRC2018Unisex", "tags": "VFB|VFB_vol|has_image", "order": 1},
-        {"id": "VFB_00200000", "name": "JRC_FlyEM_Hemibrain", "tags": "VFB|VFB_vol|has_image", "order": 2},
-        {"id": "VFB_00017894", "name": "Adult Brain", "tags": "VFB|VFB_painted|has_image", "order": 3},
-        {"id": "VFB_00101384", "name": "JFRC2", "tags": "VFB|VFB_vol|has_image", "order": 4},
-        {"id": "VFB_00050000", "name": "JFRC2010", "tags": "VFB|VFB_vol|has_image", "order": 5},
-        {"id": "VFB_00049000", "name": "Ito2014", "tags": "VFB|VFB_painted|has_image", "order": 6},
-        {"id": "VFB_00100000", "name": "FCWB", "tags": "VFB|VFB_vol|has_image", "order": 7},
-        {"id": "VFB_00030786", "name": "Adult VNS", "tags": "VFB|VFB_painted|has_image", "order": 8},
-        {"id": "VFB_00110000", "name": "L3 CNS", "tags": "VFB|VFB_vol|has_image", "order": 9},
-        {"id": "VFB_00120000", "name": "L1 CNS", "tags": "VFB|VFB_vol|has_image", "order": 10},
+        {"id": "VFB_00101567", "name": "JRC2018Unisex", "tags": "VFB|VFB_vol|has_image", "order": 1, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00200000", "name": "JRC_FlyEM_Hemibrain", "tags": "VFB|VFB_vol|has_image", "order": 2, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00017894", "name": "Adult Brain", "tags": "VFB|VFB_painted|has_image", "order": 3, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00101384", "name": "JFRC2", "tags": "VFB|VFB_vol|has_image", "order": 4, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00050000", "name": "JFRC2010", "tags": "VFB|VFB_vol|has_image", "order": 5, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00049000", "name": "Ito2014", "tags": "VFB|VFB_painted|has_image", "order": 6, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00100000", "name": "FCWB", "tags": "VFB|VFB_vol|has_image", "order": 7, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00030786", "name": "Adult VNS", "tags": "VFB|VFB_painted|has_image", "order": 8, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00110000", "name": "L3 CNS", "tags": "VFB|VFB_vol|has_image", "order": 9, "thumbnail": "", "dataset": "", "license": ""},
+        {"id": "VFB_00120000", "name": "L1 CNS", "tags": "VFB|VFB_vol|has_image", "order": 10, "thumbnail": "", "dataset": "", "license": ""},
     ]
     
     # Apply limit if specified
@@ -1462,13 +1463,16 @@ def _get_templates_minimal(limit: int = -1, return_dataframe: bool = False):
         df = pd.DataFrame(templates_data)
         return df
     
-    # Format as dict with headers and rows
+    # Format as dict with headers and rows (match full get_templates structure)
     formatted_results = {
         "headers": {
             "id": {"title": "Add", "type": "selection_id", "order": -1},
             "order": {"title": "Order", "type": "numeric", "order": 1, "sort": {0: "Asc"}},
             "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
             "tags": {"title": "Tags", "type": "tags", "order": 2},
+            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
+            "dataset": {"title": "Dataset", "type": "metadata", "order": 3},
+            "license": {"title": "License", "type": "metadata", "order": 4}
         },
         "rows": templates_data,
         "count": count
@@ -1500,15 +1504,15 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
 
     # Define the main Cypher query
     query = f"""
-    MATCH (t:Template)-[:INSTANCEOF]->(p:Class),
-          (t)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template),
-          (t)-[:has_source]->(ds:DataSet)-[:has_license]->(lic:License)
+    MATCH (t:Template)-[:INSTANCEOF]->(p:Class)
+    OPTIONAL MATCH (t)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
+    OPTIONAL MATCH (t)-[:has_source]->(ds:DataSet)-[:has_license|license]->(lic:License)
     RETURN t.short_form as id,
            apoc.text.format("[%s](%s)",[COALESCE(t.symbol[0],t.label),t.short_form]) AS name,
            apoc.text.join(t.uniqueFacets, '|') AS tags,
-           apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]) AS dataset,
-           REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '') AS license,
-           REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(t.symbol[0],t.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(t.symbol[0],t.label), t.short_form]), "[![null]( 'null')](null)", "") as thumbnail,
+           COALESCE(apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]), '') AS dataset,
+           COALESCE(REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', ''), '') AS license,
+           COALESCE(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(t.symbol[0],t.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(t.symbol[0],t.label), t.short_form]), "[![null]( 'null')](null)", ""), "") as thumbnail,
            99 as order
            ORDER BY id Desc
     """

@@ -1783,8 +1783,13 @@ vfb.get_templates(return_dataframe=False)
       "license": {
          "title": "License",
          "type": "metadata",
+         "order": 7
+      }
+   },
+   "rows": [
+      {
          "id": "VFB_00100000",
-         "order": 7,
+         "order": 4,
          "name": "[COURT2018VNS](VFB_00100000)",
          "tags": "Nervous_system|Adult|Ganglion",
          "thumbnail": "[![COURT2018VNS](http://www.virtualflybrain.org/data/VFB/i/0010/0000/VFB_00100000/thumbnail.png 'COURT2018VNS')](VFB_00100000)",

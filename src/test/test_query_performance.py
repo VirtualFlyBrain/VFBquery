@@ -26,9 +26,9 @@ from vfbquery.vfb_queries import (
     get_neuron_classes_fasciculating_here,
     get_tracts_nerves_innervating_here,
     get_lineage_clones_in,
+    get_images_neurons,
     get_instances,
     get_similar_neurons,
-    get_individual_neuron_inputs
 )
 
 
@@ -232,6 +232,17 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         print(f"LineageClonesIn: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "LineageClonesIn exceeded threshold")
+        
+        # ImagesNeurons
+        result, duration, success = self._time_query(
+            "ImagesNeurons",
+            get_images_neurons,
+            self.test_terms['antennal_lobe'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"ImagesNeurons: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "ImagesNeurons exceeded threshold")
     
     def test_06_instance_queries(self):
         """Test instance retrieval queries"""

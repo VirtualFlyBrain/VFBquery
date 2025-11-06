@@ -160,6 +160,109 @@ class OwleryClient:
         except Exception as e:
             print(f"ERROR: Unexpected error in Owlery query: {e}")
             raise
+    
+    def get_instances(self, query: str, query_by_label: bool = True, 
+                     verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+        """
+        Query Owlery for instances matching an OWL class expression.
+        
+        Similar to get_subclasses but returns individuals/instances instead of classes.
+        Used for queries like ImagesNeurons that need individual images rather than classes.
+        
+        :param query: OWL class expression query string (with short forms like '<FBbt_00003748>')
+        :param query_by_label: If True, query uses label syntax (quotes). 
+                               If False, uses IRI syntax (angle brackets).
+        :param verbose: If True, print debug information
+        :param prefixes: If True, return full IRIs. If False, return short forms.
+        :param direct: Return direct instances only. Default False.
+        :return: List of instance IDs (short forms like 'VFB_00101567')
+        """
+        try:
+            # Convert short forms in query to full IRIs
+            import re
+            def convert_short_form_to_iri(match):
+                short_form = match.group(1)
+                if '_' in short_form and '/' not in short_form:
+                    return f"<{short_form_to_iri(short_form)}>"
+                else:
+                    return match.group(0)
+            
+            iri_query = re.sub(r'<([^>]+)>', convert_short_form_to_iri, query)
+            
+            if verbose:
+                print(f"Original query: {query}")
+                print(f"IRI query: {iri_query}")
+            
+            # Build Owlery instances endpoint URL
+            params = {
+                'object': iri_query,
+                'prefixes': json.dumps({
+                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
+                    "RO": "http://purl.obolibrary.org/obo/RO_",
+                    "BFO": "http://purl.obolibrary.org/obo/BFO_",
+                    "VFB": "http://virtualflybrain.org/reports/VFB_"
+                })
+            }
+            if direct:
+                params['direct'] = 'False'
+            
+            # Make HTTP GET request to instances endpoint
+            response = requests.get(
+                f"{self.owlery_endpoint}/instances",
+                params=params,
+                timeout=120
+            )
+            
+            if verbose:
+                print(f"Owlery instances query: {response.url}")
+            
+            response.raise_for_status()
+            
+            # Parse JSON response
+            # KEY DIFFERENCE: Owlery returns {"hasInstance": ["IRI1", "IRI2", ...]} for instances
+            # whereas subclasses returns {"superClassOf": [...]}
+            data = response.json()
+            
+            if verbose:
+                print(f"Response keys: {data.keys() if isinstance(data, dict) else 'not a dict'}")
+            
+            # Extract IRIs from response using correct key
+            iris = []
+            if isinstance(data, dict) and 'hasInstance' in data:
+                iris = data['hasInstance']
+            elif isinstance(data, list):
+                iris = data
+            else:
+                if verbose:
+                    print(f"Unexpected Owlery response format: {type(data)}")
+                    print(f"Response: {data}")
+                return []
+            
+            if not isinstance(iris, list):
+                if verbose:
+                    print(f"Warning: No results! This is likely due to a query error")
+                    print(f"Query: {query}")
+                return []
+            
+            # Convert IRIs to short forms
+            def gen_short_form(iri):
+                return re.split('/|#', iri)[-1]
+            
+            short_forms = list(map(gen_short_form, iris))
+            
+            if verbose:
+                print(f"Found {len(short_forms)} instances")
+                if short_forms:
+                    print(f"Sample instances: {short_forms[:5]}")
+            
+            return short_forms
+            
+        except requests.RequestException as e:
+            print(f"ERROR: Owlery instances request failed: {e}")
+            raise
+        except Exception as e:
+            print(f"ERROR: Unexpected error in Owlery instances query: {e}")
+            raise
 
 
 class MockNeo4jClient:

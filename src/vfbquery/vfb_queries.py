@@ -748,6 +748,16 @@ def term_info_parse_object(results, short_form):
             q = LineageClonesIn_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # ImagesNeurons query - for synaptic neuropils
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Synaptic_neuropil_domain)
+        # Returns individual neuron images (instances) rather than neuron classes
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = ImagesNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -1153,6 +1163,31 @@ def LineageClonesIn_to_schema(name, take_default):
     query = "LineageClonesIn"
     label = f"Lineage clones found in {name}"
     function = "get_lineage_clones_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def ImagesNeurons_to_schema(name, take_default):
+    """
+    Schema for ImagesNeurons query.
+    Finds individual neuron images with parts in a synaptic neuropil or domain.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery instances query → process → SOLR
+    OWL query: 'Neuron' that 'overlaps' some '{short_form}' (returns instances, not classes)
+    """
+    query = "ImagesNeurons"
+    label = f"Images of neurons with some part in {name}"
+    function = "get_images_neurons"
     takes = {
         "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
         "default": take_default,
@@ -2143,6 +2178,28 @@ def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
+@with_solr_cache('images_neurons')
+def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves individual neuron images with parts in the specified synaptic neuropil.
+    
+    This implements the ImagesNeurons query from the VFB XMI specification.
+    Query chain (from XMI): Owlery instances → Process → SOLR
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002131> some <$ID> (instances)
+    Where: FBbt_00005106 = neuron, RO_0002131 = overlaps
+    Matching criteria: Class + Synaptic_neuropil, Class + Synaptic_neuropil_domain
+    
+    Note: This query returns INSTANCES (individual neuron images) not classes.
+    
+    :param short_form: short form of the synaptic neuropil (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Individual neuron images with parts in the specified neuropil
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+
+
 def _get_neurons_part_here_headers():
     """Return standard headers for get_neurons_with_part_in results"""
     return {
@@ -2346,6 +2403,161 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
             "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
             "rows": [],
             "count": -1  # -1 indicates query error/failure
+        }
+
+
+def _owlery_instances_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
+                                       limit: int = -1, solr_field: str = 'anat_image_query'):
+    """
+    Shared helper function for Owlery-based instance queries (e.g., ImagesNeurons).
+    
+    Similar to _owlery_query_to_results but queries for instances (individuals) instead of classes.
+    This implements the common pattern:
+    1. Query Owlery for instance IDs matching an OWL pattern
+    2. Fetch details from SOLR for each instance
+    3. Format results as DataFrame or dict
+    
+    :param owl_query_string: OWL query string with IRI syntax (angle brackets)
+    :param short_form: The anatomical region or entity short form
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
+    :param limit: Maximum number of results to return (default -1 for all)
+    :param solr_field: SOLR field to query (default 'anat_image_query' for Individual images)
+    :return: Query results
+    """
+    try:
+        # Step 1: Query Owlery for instances matching the OWL pattern
+        instance_ids = vc.vfb.oc.get_instances(
+            query=owl_query_string,
+            query_by_label=False,  # Use IRI syntax
+            verbose=False
+        )
+        
+        if not instance_ids:
+            # No results found - return empty
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_standard_query_headers(),
+                "rows": [],
+                "count": 0
+            }
+        
+        total_count = len(instance_ids)
+        
+        # Apply limit if specified (before SOLR query to save processing)
+        if limit != -1 and limit > 0:
+            instance_ids = instance_ids[:limit]
+        
+        # Step 2: Query SOLR for ALL instances in a single batch query
+        rows = []
+        try:
+            # Build filter query with all instance IDs
+            id_list = ','.join(instance_ids)
+            results = vfb_solr.search(
+                q='id:*',
+                fq=f'{{!terms f=id}}{id_list}',
+                fl=solr_field,
+                rows=len(instance_ids)
+            )
+            
+            # Process all results
+            for doc in results.docs:
+                if solr_field not in doc:
+                    continue
+                    
+                # Parse the SOLR field JSON string
+                try:
+                    field_data = json.loads(doc[solr_field][0])
+                except (json.JSONDecodeError, IndexError) as e:
+                    print(f"Error parsing {solr_field} JSON: {e}")
+                    continue
+                
+                # Extract from term.core structure (VFBConnect pattern)
+                term_core = field_data.get('term', {}).get('core', {})
+                instance_short_form = term_core.get('short_form', '')
+                label_text = term_core.get('label', '')
+                
+                # Build tags list from unique_facets
+                tags = term_core.get('unique_facets', [])
+                
+                # Get thumbnail from channel_image array (VFBConnect pattern)
+                thumbnail = ''
+                channel_images = field_data.get('channel_image', [])
+                if channel_images and len(channel_images) > 0:
+                    first_channel = channel_images[0]
+                    image_info = first_channel.get('image', {})
+                    thumbnail_url = image_info.get('image_thumbnail', '')
+                    
+                    if thumbnail_url:
+                        # Convert to HTTPS (thumbnails are already non-transparent)
+                        thumbnail_url = thumbnail_url.replace('http://', 'https://')
+                        
+                        # Format thumbnail markdown with template info
+                        template_anatomy = image_info.get('template_anatomy', {})
+                        if template_anatomy:
+                            template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
+                            template_label = unquote(template_label)
+                            anatomy_label = term_core.get('symbol') or label_text
+                            anatomy_label = unquote(anatomy_label)
+                            alt_text = f"{anatomy_label} aligned to {template_label}"
+                            template_short_form = template_anatomy.get('short_form', '')
+                            thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({template_short_form},{instance_short_form})"
+                
+                # Build row
+                row = {
+                    'id': instance_short_form,
+                    'label': f"[{label_text}]({instance_short_form})",
+                    'tags': tags,
+                    'thumbnail': thumbnail
+                }
+                
+                rows.append(row)
+                
+        except Exception as e:
+            print(f"Error fetching SOLR data for instances: {e}")
+            import traceback
+            traceback.print_exc()
+        
+        # Convert to DataFrame if requested
+        if return_dataframe:
+            df = pd.DataFrame(rows)
+            # Apply markdown encoding
+            columns_to_encode = ['label', 'thumbnail']
+            df = encode_markdown_links(df, columns_to_encode)
+            return df
+        
+        # Return formatted dict
+        return {
+            "headers": _get_standard_query_headers(),
+            "rows": rows,
+            "count": total_count
+        }
+        
+    except Exception as e:
+        # Construct the Owlery URL for debugging failed queries
+        owlery_base = "http://owl.virtualflybrain.org/kbs/vfb"
+        try:
+            if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
+                owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
+        except Exception:
+            pass
+        
+        from urllib.parse import quote
+        query_encoded = quote(owl_query_string, safe='')
+        owlery_url = f"{owlery_base}/instances?object={query_encoded}"
+        
+        import sys
+        print(f"ERROR: Owlery instances query failed: {e}", file=sys.stderr)
+        print(f"       Test URL: {owlery_url}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        # Return error indication with count=-1
+        if return_dataframe:
+            return pd.DataFrame()
+        return {
+            "headers": _get_standard_query_headers(),
+            "rows": [],
+            "count": -1
         }
 
 

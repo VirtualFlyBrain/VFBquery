@@ -285,16 +285,22 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Query Chain**: Multi-step Owlery and Neo4j queries
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 9. **NeuronClassesFasciculatingHere** ❌
+#### 9. **NeuronClassesFasciculatingHere** ✅
 - **ID**: `NeuronClassesFasciculatingHere` / `AberNeuronClassesFasciculatingHere`
 - **Name**: "Neuron classes fasciculating here"
 - **Description**: "Neurons fasciculating in $NAME"
-- **Matching Criteria**: Class + Tract_or_nerve
+- **Matching Criteria**: Class + Neuron_projection_bundle (note: XMI specifies Tract_or_nerve, but VFB SOLR uses Neuron_projection_bundle)
 - **Query Chain**: Owlery → Process → SOLR
 - **OWL Query**: `object=<FBbt_00005106> and <RO_0002101> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+- **Implementation**:
+  - Schema: `NeuronClassesFasciculatingHere_to_schema()`
+  - Execution: `get_neuron_classes_fasciculating_here(term_id)`
+  - Tests: `src/test/test_neuron_classes_fasciculating.py`
+  - Preview: neuron_label, neuron_id
+  - Test term: FBbt_00003987 (broad root)
 
-#### 10. **ImagesNeurons** ❌
+#### 10. **ImagesNeurons** ✅
 - **ID**: `ImagesNeurons`
 - **Name**: "Images of neurons with some part here"
 - **Description**: "Images of neurons with some part in $NAME"
@@ -303,7 +309,16 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
   - Class + Synaptic_neuropil_domain
 - **Query Chain**: Owlery instances → Process → SOLR
 - **OWL Query**: `object=<FBbt_00005106> and <RO_0002131> some <$ID>` (instances, not classes)
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+- **Implementation**:
+  - Schema: `ImagesNeurons_to_schema()` ✅
+  - Execution: `get_images_neurons(term_id)` ✅
+  - Helper: `_owlery_instances_query_to_results()` ✅
+  - Tests: `src/test/test_images_neurons.py` ✅
+  - Preview: id, label, tags, thumbnail
+  - Test term: FBbt_00007401 (antennal lobe) → Returns 9,657 neuron images
+  - Note: Returns individual neuron images (instances) not neuron classes
+  - Query successfully retrieves VFB instance IDs from Owlery and enriches with SOLR anat_image_query data
 
 #### 12. **PaintedDomains** ❌
 - **ID**: `PaintedDomains` / `domainsForTempId`
@@ -321,18 +336,24 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Query Chain**: Neo4j → Process → SOLR
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 16. **TractsNervesInnervatingHere** ❌
+#### 16. **TractsNervesInnervatingHere** ✅
 - **ID**: `TractsNervesInnervatingHere` / `innervatesX`
 - **Name**: "Tracts/nerves innervating synaptic neuropil"
 - **Description**: "Tracts/nerves innervating $NAME"
-- **Matching Criteria**: 
+- **Matching Criteria**:
   - Class + Synaptic_neuropil
   - Class + Synaptic_neuropil_domain
 - **Query Chain**: Owlery → Process → SOLR
 - **OWL Query**: `object=<FBbt_00005099> and <RO_0002134> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+- **Implementation**:
+  - Schema: `TractsNervesInnervatingHere_to_schema()`
+  - Execution: `get_tracts_nerves_innervating_here(term_id)`
+  - Tests: `src/test/test_tracts_nerves_innervating.py`
+  - Preview: tract_label, tract_id
+  - Test term: FBbt_00007401 (antennal lobe)
 
-#### 17. **LineageClonesIn** ❌
+#### 17. **LineageClonesIn** ✅
 - **ID**: `LineageClonesIn` / `lineageClones`
 - **Name**: "Lineage clones found here"
 - **Description**: "Lineage clones found in $NAME"
@@ -341,7 +362,13 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
   - Class + Synaptic_neuropil_domain
 - **Query Chain**: Owlery → Process → SOLR
 - **OWL Query**: `object=<FBbt_00007683> and <RO_0002131> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+- **Implementation**:
+  - Schema: `LineageClonesIn_to_schema()`
+  - Execution: `get_lineage_clones_in(term_id)`
+  - Tests: `src/test/test_lineage_clones_in.py`
+  - Preview: clone_label, clone_id
+  - Test term: FBbt_00007401 (antennal lobe)
 
 #### 18. **AllAlignedImages** ❌
 - **ID**: `AllAlignedImages` / `imagesForTempQuery`

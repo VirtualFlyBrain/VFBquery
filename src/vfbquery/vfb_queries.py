@@ -943,7 +943,7 @@ def NeuronsPartHere_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 10  # Show 10 preview results with example images
+    preview = 5  # Show 5 preview results with example images
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -969,7 +969,7 @@ def NeuronsSynaptic_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -995,7 +995,7 @@ def NeuronsPresynapticHere_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1021,7 +1021,7 @@ def NeuronsPostsynapticHere_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1045,7 +1045,7 @@ def ComponentsOf_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1069,7 +1069,7 @@ def PartsOf_to_schema(name, take_default):
         "short_form": {"$and": ["Class"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1093,7 +1093,7 @@ def SubclassesOf_to_schema(name, take_default):
         "short_form": {"$and": ["Class"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1117,7 +1117,7 @@ def NeuronClassesFasciculatingHere_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Neuron_projection_bundle"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1142,7 +1142,7 @@ def TractsNervesInnervatingHere_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1167,7 +1167,7 @@ def LineageClonesIn_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
@@ -1192,7 +1192,7 @@ def ImagesNeurons_to_schema(name, take_default):
         "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
         "default": take_default,
     }
-    preview = 10
+    preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)

@@ -1547,31 +1547,32 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
     # Format the results
     formatted_results = {
         "headers": {
-                "id": {"title": "Add", "type": "selection_id", "order": -1},
-                "order": {"title": "Order", "type": "numeric", "order": 1, "sort": {0: "Asc"}},
-                "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
-                "tags": {"title": "Tags", "type": "tags", "order": 2},
-                "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
-                "dataset": {"title": "Dataset", "type": "metadata", "order": 3},
-                "license": {"title": "License", "type": "metadata", "order": 4}
-            },
-            "rows": [
-                {
-                    key: row[key]
-                    for key in [
-                        "id",
-                        "order",
-                        "name",
-                        "tags",
-                        "thumbnail",
-                        "dataset",
-                        "license"
-                    ]
-                }
-                for row in safe_to_dict(df)
-            ],
-            "count": total_count
-        }
+            "id": {"title": "Add", "type": "selection_id", "order": -1},
+            "order": {"title": "Order", "type": "numeric", "order": 1, "sort": {0: "Asc"}},
+            "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
+            "tags": {"title": "Tags", "type": "tags", "order": 2},
+            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
+            "dataset": {"title": "Dataset", "type": "metadata", "order": 3},
+            "license": {"title": "License", "type": "metadata", "order": 4}
+        },
+        "rows": [
+            {
+                key: row[key]
+                for key in [
+                    "id",
+                    "order",
+                    "name",
+                    "tags",
+                    "thumbnail",
+                    "dataset",
+                    "license"
+                ]
+            }
+            for row in safe_to_dict(df)
+        ],
+        "count": total_count
+    }
+    
     return formatted_results
 
 def get_related_anatomy(template_short_form: str, limit: int = -1, return_dataframe: bool = False):

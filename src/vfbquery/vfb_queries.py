@@ -1504,15 +1504,17 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
 
     # Define the main Cypher query
     # Match full pattern to exclude template channel nodes
+    # Use COLLECT to aggregate multiple datasets/licenses into single row per template
     query = f"""
     MATCH (p:Class)<-[:INSTANCEOF]-(t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc)
     OPTIONAL MATCH (t)-[:has_source]->(ds:DataSet)
     OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
-    RETURN t.short_form as id,
+    WITH t, r, COLLECT(DISTINCT ds) as datasets, COLLECT(DISTINCT lic) as licenses
+    RETURN DISTINCT t.short_form as id,
            apoc.text.format("[%s](%s)",[COALESCE(t.symbol[0],t.label),t.short_form]) AS name,
            apoc.text.join(t.uniqueFacets, '|') AS tags,
-           COALESCE(apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form]), '') AS dataset,
-           COALESCE(REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', ''), '') AS license,
+           apoc.text.join([ds IN datasets | apoc.text.format("[%s](%s)",[COALESCE(ds.symbol[0],ds.label),ds.short_form])], ', ') AS dataset,
+           apoc.text.join([lic IN licenses | REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', '')], ', ') AS license,
            COALESCE(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(t.symbol[0],t.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(t.symbol[0],t.label), t.short_form]), "[![null]( 'null')](null)", ""), "") as thumbnail,
            99 as order
            ORDER BY id DESC

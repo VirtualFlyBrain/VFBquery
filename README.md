@@ -1783,13 +1783,58 @@ vfb.get_templates(return_dataframe=False)
       "license": {
          "title": "License",
          "type": "metadata",
-         "order": 7
+         "order": 4
       }
    },
    "rows": [
       {
-         "id": "VFB_00100000",
+         "id": "VFB_00200000",
+         "order": 2,
+         "name": "[JRCVNC2018U](VFB_00200000)",
+         "tags": "Nervous_system|Adult|Ganglion",
+         "thumbnail": "[![JRCVNC2018U](http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnail.png 'JRCVNC2018U')](VFB_00200000)",
+         "dataset": "[JRC 2018 templates & ROIs](JRC2018)",
+         "license": "[CC-BY-NC-SA](VFBlicense_CC_BY_NC_SA_4_0)"
+      },
+      {
+         "id": "VFB_00120000",
+         "order": 10,
+         "name": "[Adult T1 Leg (Kuan2020)](VFB_00120000)",
+         "tags": "Adult|Anatomy",
+         "thumbnail": "[![Adult T1 Leg (Kuan2020)](http://www.virtualflybrain.org/data/VFB/i/0012/0000/VFB_00120000/thumbnail.png 'Adult T1 Leg (Kuan2020)')](VFB_00120000)",
+         "dataset": "[Millimeter-scale imaging of a Drosophila leg at single-neuron resolution](Kuan2020)",
+         "license": "[CC_BY](VFBlicense_CC_BY_4_0)"
+      },
+      {
+         "id": "VFB_00110000",
+         "order": 9,
+         "name": "[Adult Head (McKellar2020)](VFB_00110000)",
+         "tags": "Adult|Anatomy",
+         "thumbnail": "[![Adult Head (McKellar2020)](http://www.virtualflybrain.org/data/VFB/i/0011/0000/VFB_00110000/thumbnail.png 'Adult Head (McKellar2020)')](VFB_00110000)",
+         "dataset": "[GAL4 lines from McKellar et al., 2020](McKellar2020)",
+         "license": "[CC_BY_SA](VFBlicense_CC_BY_SA_4_0)"
+      },
+      {
+         "id": "VFB_00101567",
+         "order": 1,
+         "name": "[JRC2018U](VFB_00101567)",
+         "tags": "Nervous_system|Adult",
+         "thumbnail": "[![JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png 'JRC2018U')](VFB_00101567)",
+         "dataset": "[JRC 2018 templates & ROIs](JRC2018)",
+         "license": "[CC-BY-NC-SA](VFBlicense_CC_BY_NC_SA_4_0)"
+      },
+      {
+         "id": "VFB_00101384",
          "order": 4,
+         "name": "[JRCFIB2018Fum](VFB_00101384)",
+         "tags": "Nervous_system|Adult",
+         "thumbnail": "[![JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1384/VFB_00101384/thumbnail.png 'JRCFIB2018Fum')](VFB_00101384)",
+         "dataset": "[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)",
+         "license": "[CC_BY](VFBlicense_CC_BY_4_0)"
+      },
+      {
+         "id": "VFB_00100000",
+         "order": 7,
          "name": "[COURT2018VNS](VFB_00100000)",
          "tags": "Nervous_system|Adult|Ganglion",
          "thumbnail": "[![COURT2018VNS](http://www.virtualflybrain.org/data/VFB/i/0010/0000/VFB_00100000/thumbnail.png 'COURT2018VNS')](VFB_00100000)",

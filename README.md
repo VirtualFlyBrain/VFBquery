@@ -97,30 +97,627 @@ vfb.get_term_info('FBbt_00003748')
                   "id": "VFB_00102107",
                   "label": "[ME on JRC2018Unisex adult brain](VFB_00102107)",
                   "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
-                  "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018U')](VFB_00101567,VFB_00102107)"
+                  "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png 'ME on JRC2018Unisex adult brain aligned to JRC2018U')](VFB_00101567,VFB_00102107)"
                },
                {
                   "id": "VFB_00101385",
                   "label": "[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)",
                   "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
-                  "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
+                  "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png 'ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101384,VFB_00101385)"
                },
                {
                   "id": "VFB_00030810",
                   "label": "[medulla on adult brain template Ito2014](VFB_00030810)",
-                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
-                  "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](http://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+                  "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png 'medulla on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030810)"
                },
                {
                   "id": "VFB_00030624",
                   "label": "[medulla on adult brain template JFRC2](VFB_00030624)",
-                  "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
-                  "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030624)"
+                  "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+                  "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png 'medulla on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030624)"
                }
-            ]
+            ],
+            "count": 4
          },
          "output_format": "table",
          "count": 4
+      },
+      {
+         "query": "NeuronsPartHere",
+         "label": "Neurons with some part in medulla",
+         "function": "get_neurons_with_part_in",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00053385",
+                  "label": "[medulla intrinsic neuron](FBbt_00053385)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.8543 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/0696/VFB_00101567/thumbnail.png 'ME.8543 aligned to JRC2018U')](FBbt_00053385)"
+               },
+               {
+                  "id": "FBbt_00110033",
+                  "label": "[medulla intrinsic neuron vGlutMinew1a](FBbt_00110033)",
+                  "tags": "Adult|Glutamatergic|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00110142",
+                  "label": "[OA-AL2i2](FBbt_00110142)",
+                  "tags": "Adult|Nervous_system|Octopaminergic",
+                  "thumbnail": "[![SPS.ME.7 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw04/2336/VFB_00101567/thumbnail.png 'SPS.ME.7 aligned to JRC2018U')](FBbt_00110142)"
+               },
+               {
+                  "id": "FBbt_00110143",
+                  "label": "[OA-AL2i3](FBbt_00110143)",
+                  "tags": "Adult|Nervous_system|Octopaminergic|Visual_system",
+                  "thumbnail": "[![ME.970 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw03/6562/VFB_00101567/thumbnail.png 'ME.970 aligned to JRC2018U')](FBbt_00110143)"
+               },
+               {
+                  "id": "FBbt_00110144",
+                  "label": "[OA-AL2i4](FBbt_00110144)",
+                  "tags": "Adult|Nervous_system|Octopaminergic",
+                  "thumbnail": "[![OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/450b/VFB_00101567/thumbnail.png 'OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U')](FBbt_00110144)"
+               }
+            ],
+            "count": 472
+         },
+         "output_format": "table",
+         "count": 472
+      },
+      {
+         "query": "NeuronsSynaptic",
+         "label": "Neurons with synaptic terminals in medulla",
+         "function": "get_neurons_with_synapses_in",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00053287",
+                  "label": "[Cm](FBbt_00053287)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.8457 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw05/7997/VFB_00101567/thumbnail.png 'ME.8457 aligned to JRC2018U')](FBbt_00053287)"
+               },
+               {
+                  "id": "FBbt_00053385",
+                  "label": "[medulla intrinsic neuron](FBbt_00053385)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.8543 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/0696/VFB_00101567/thumbnail.png 'ME.8543 aligned to JRC2018U')](FBbt_00053385)"
+               },
+               {
+                  "id": "FBbt_00110033",
+                  "label": "[medulla intrinsic neuron vGlutMinew1a](FBbt_00110033)",
+                  "tags": "Adult|Glutamatergic|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00110142",
+                  "label": "[OA-AL2i2](FBbt_00110142)",
+                  "tags": "Adult|Nervous_system|Octopaminergic",
+                  "thumbnail": "[![SPS.ME.7 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw04/2336/VFB_00101567/thumbnail.png 'SPS.ME.7 aligned to JRC2018U')](FBbt_00110142)"
+               },
+               {
+                  "id": "FBbt_00110143",
+                  "label": "[OA-AL2i3](FBbt_00110143)",
+                  "tags": "Adult|Nervous_system|Octopaminergic|Visual_system",
+                  "thumbnail": "[![ME.970 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw03/6562/VFB_00101567/thumbnail.png 'ME.970 aligned to JRC2018U')](FBbt_00110143)"
+               },
+               {
+                  "id": "FBbt_00110144",
+                  "label": "[OA-AL2i4](FBbt_00110144)",
+                  "tags": "Adult|Nervous_system|Octopaminergic",
+                  "thumbnail": "[![OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/450b/VFB_00101567/thumbnail.png 'OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U')](FBbt_00110144)"
+               },
+               {
+                  "id": "FBbt_00110168",
+                  "label": "[OA-ASM1](FBbt_00110168)",
+                  "tags": "Adult|Nervous_system|Octopaminergic|Visual_system",
+                  "thumbnail": "[![OA-ASM1_R aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/k105/VFB_00101567/thumbnail.png 'OA-ASM1_R aligned to JRC2018U')](FBbt_00110168)"
+               },
+               {
+                  "id": "FBbt_20004313",
+                  "label": "[MeVPMe13](FBbt_20004313)",
+                  "tags": "Adult|Cholinergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.27 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw03/5802/VFB_00101567/thumbnail.png 'ME.27 aligned to JRC2018U')](FBbt_20004313)"
+               },
+               {
+                  "id": "FBbt_20005420",
+                  "label": "[MeVP3](FBbt_20005420)",
+                  "tags": "Adult|Cholinergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.4801 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw01/4271/VFB_00101567/thumbnail.png 'ME.4801 aligned to JRC2018U')](FBbt_20005420)"
+               },
+               {
+                  "id": "FBbt_20007601",
+                  "label": "[MeVPLp2](FBbt_20007601)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![MeVPLp2_L (JRC_OpticLobe:11641) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/40wo/VFB_00101567/thumbnail.png 'MeVPLp2_L (JRC_OpticLobe:11641) aligned to JRC2018U')](FBbt_20007601)"
+               }
+            ],
+            "count": 465
+         },
+         "output_format": "table",
+         "count": 465
+      },
+      {
+         "query": "NeuronsPresynapticHere",
+         "label": "Neurons with presynaptic terminals in medulla",
+         "function": "get_neurons_with_presynaptic_terminals_in",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00110144",
+                  "label": "[OA-AL2i4](FBbt_00110144)",
+                  "tags": "Adult|Nervous_system|Octopaminergic",
+                  "thumbnail": "[![OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/450b/VFB_00101567/thumbnail.png 'OA-AL2i4_R (JRC_OpticLobe:10677) aligned to JRC2018U')](FBbt_00110144)"
+               },
+               {
+                  "id": "FBbt_02000003",
+                  "label": "[yR8](FBbt_02000003)",
+                  "tags": "Adult|Cholinergic|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R8y_R (JRC_OpticLobe:203836) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/48b9/VFB_00101567/thumbnail.png 'R8y_R (JRC_OpticLobe:203836) aligned to JRC2018U')](FBbt_02000003)"
+               },
+               {
+                  "id": "FBbt_02000004",
+                  "label": "[pR8](FBbt_02000004)",
+                  "tags": "Adult|Cholinergic|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R8p_R (JRC_OpticLobe:238050) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/484j/VFB_00101567/thumbnail.png 'R8p_R (JRC_OpticLobe:238050) aligned to JRC2018U')](FBbt_02000004)"
+               },
+               {
+                  "id": "FBbt_02000005",
+                  "label": "[yR7](FBbt_02000005)",
+                  "tags": "Adult|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R7y_R (JRC_OpticLobe:168619) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/47sf/VFB_00101567/thumbnail.png 'R7y_R (JRC_OpticLobe:168619) aligned to JRC2018U')](FBbt_02000005)"
+               },
+               {
+                  "id": "FBbt_02000006",
+                  "label": "[pR7](FBbt_02000006)",
+                  "tags": "Adult|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R7p_R (JRC_OpticLobe:142122) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/47l7/VFB_00101567/thumbnail.png 'R7p_R (JRC_OpticLobe:142122) aligned to JRC2018U')](FBbt_02000006)"
+               },
+               {
+                  "id": "FBbt_20007253",
+                  "label": "[CB3838](FBbt_20007253)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.38 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2030/VFB_00101567/thumbnail.png 'ME.38 aligned to JRC2018U')](FBbt_20007253)"
+               },
+               {
+                  "id": "FBbt_20007256",
+                  "label": "[Cm31a](FBbt_20007256)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.5 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2043/VFB_00101567/thumbnail.png 'ME.5 aligned to JRC2018U')](FBbt_20007256)"
+               },
+               {
+                  "id": "FBbt_20007257",
+                  "label": "[Mi19](FBbt_20007257)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.5256 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1990/VFB_00101567/thumbnail.png 'ME.5256 aligned to JRC2018U')](FBbt_20007257)"
+               },
+               {
+                  "id": "FBbt_20007258",
+                  "label": "[Cm35](FBbt_20007258)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.18 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2034/VFB_00101567/thumbnail.png 'ME.18 aligned to JRC2018U')](FBbt_20007258)"
+               },
+               {
+                  "id": "FBbt_20007259",
+                  "label": "[Cm32](FBbt_20007259)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.278 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1913/VFB_00101567/thumbnail.png 'ME.278 aligned to JRC2018U')](FBbt_20007259)"
+               }
+            ],
+            "count": 253
+         },
+         "output_format": "table",
+         "count": 253
+      },
+      {
+         "query": "NeuronsPostsynapticHere",
+         "label": "Neurons with postsynaptic terminals in medulla",
+         "function": "get_neurons_with_postsynaptic_terminals_in",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_02000005",
+                  "label": "[yR7](FBbt_02000005)",
+                  "tags": "Adult|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R7y_R (JRC_OpticLobe:168619) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/47sf/VFB_00101567/thumbnail.png 'R7y_R (JRC_OpticLobe:168619) aligned to JRC2018U')](FBbt_02000005)"
+               },
+               {
+                  "id": "FBbt_02000006",
+                  "label": "[pR7](FBbt_02000006)",
+                  "tags": "Adult|Histaminergic|Nervous_system|Sensory_neuron|Visual_system",
+                  "thumbnail": "[![R7p_R (JRC_OpticLobe:142122) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/47l7/VFB_00101567/thumbnail.png 'R7p_R (JRC_OpticLobe:142122) aligned to JRC2018U')](FBbt_02000006)"
+               },
+               {
+                  "id": "FBbt_20007251",
+                  "label": "[MeLo2](FBbt_20007251)",
+                  "tags": "Adult|Cholinergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![MeLo2_R (JRC_OpticLobe:60182) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/3ztx/VFB_00101567/thumbnail.png 'MeLo2_R (JRC_OpticLobe:60182) aligned to JRC2018U')](FBbt_20007251)"
+               },
+               {
+                  "id": "FBbt_20007253",
+                  "label": "[CB3838](FBbt_20007253)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.38 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2030/VFB_00101567/thumbnail.png 'ME.38 aligned to JRC2018U')](FBbt_20007253)"
+               },
+               {
+                  "id": "FBbt_20007256",
+                  "label": "[Cm31a](FBbt_20007256)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.5 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2043/VFB_00101567/thumbnail.png 'ME.5 aligned to JRC2018U')](FBbt_20007256)"
+               },
+               {
+                  "id": "FBbt_20007257",
+                  "label": "[Mi19](FBbt_20007257)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.5256 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1990/VFB_00101567/thumbnail.png 'ME.5256 aligned to JRC2018U')](FBbt_20007257)"
+               },
+               {
+                  "id": "FBbt_20007258",
+                  "label": "[Cm35](FBbt_20007258)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.18 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2034/VFB_00101567/thumbnail.png 'ME.18 aligned to JRC2018U')](FBbt_20007258)"
+               },
+               {
+                  "id": "FBbt_20007259",
+                  "label": "[Cm32](FBbt_20007259)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.278 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1913/VFB_00101567/thumbnail.png 'ME.278 aligned to JRC2018U')](FBbt_20007259)"
+               },
+               {
+                  "id": "FBbt_20007264",
+                  "label": "[CB3849](FBbt_20007264)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![NO_CONS.90 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw09/5500/VFB_00101567/thumbnail.png 'NO_CONS.90 aligned to JRC2018U')](FBbt_20007264)"
+               },
+               {
+                  "id": "FBbt_20007265",
+                  "label": "[Pm7](FBbt_20007265)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.768 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1336/VFB_00101567/thumbnail.png 'ME.768 aligned to JRC2018U')](FBbt_20007265)"
+               }
+            ],
+            "count": 331
+         },
+         "output_format": "table",
+         "count": 331
+      },
+      {
+         "query": "PartsOf",
+         "label": "Parts of medulla",
+         "function": "get_parts_of",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00003760",
+                  "label": "[medulla layer M10](FBbt_00003760)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00045001",
+                  "label": "[plexiform medulla](FBbt_00045001)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00045002",
+                  "label": "[medulla dorsal rim area](FBbt_00045002)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00048343",
+                  "label": "[medulla layer](FBbt_00048343)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00100528",
+                  "label": "[distal medulla glial cell](FBbt_00100528)",
+                  "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00111270",
+                  "label": "[medulla sublayer M6B](FBbt_00111270)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00049496",
+                  "label": "[adult medulla astrocyte-like glial cell](FBbt_00049496)",
+                  "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00049497",
+                  "label": "[adult medulla ensheathing glial cell](FBbt_00049497)",
+                  "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00049500",
+                  "label": "[adult serpentine medulla ensheathing glial cell](FBbt_00049500)",
+                  "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00003749",
+                  "label": "[outer medulla](FBbt_00003749)",
+                  "tags": "Adult|Nervous_system|Synaptic_neuropil_subdomain|Visual_system",
+                  "thumbnail": ""
+               }
+            ],
+            "count": 28
+         },
+         "output_format": "table",
+         "count": 28
+      },
+      {
+         "query": "SubclassesOf",
+         "label": "Subclasses of medulla",
+         "function": "get_subclasses_of",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "count": 0
+         },
+         "output_format": "table",
+         "count": 0
       }
    ],
    "IsIndividual": False,

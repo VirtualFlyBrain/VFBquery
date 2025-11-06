@@ -51,10 +51,10 @@ def safe_to_dict(df, sort_by_id=True):
 def get_dict_cursor():
     """Lazy import dict_cursor to avoid import issues during testing"""
     try:
-        from vfb_connect.cross_server_tools import dict_cursor
+        from .neo4j_client import dict_cursor
         return dict_cursor
     except ImportError as e:
-        raise ImportError(f"vfb_connect is required but could not be imported: {e}")
+        raise ImportError(f"Could not import dict_cursor: {e}")
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
@@ -1476,6 +1476,7 @@ def _get_templates_minimal(limit: int = -1, return_dataframe: bool = False):
     
     return formatted_results
 
+@with_solr_cache('templates')
 def get_templates(limit: int = -1, return_dataframe: bool = False):
     """Get list of templates
 

@@ -164,24 +164,13 @@ class OwleryClient:
 
 class MockNeo4jClient:
     """
-    Mock Neo4j client that raises informative errors.
-    
-    Neo4j queries require full vfb_connect installation which has
-    GUI dependencies. This mock provides clear error messages.
+    Mock Neo4j client that raises NotImplementedError for all queries.
+    Used when Neo4j is not available or connection fails.
     """
-    
-    def commit_list(self, queries):
-        """
-        Mock Neo4j commit_list that raises NotImplementedError.
-        
-        :param queries: List of Cypher queries
-        :raises NotImplementedError: Always - Neo4j requires full vfb_connect
-        """
+    def commit_list(self, statements):
         raise NotImplementedError(
-            "Neo4j queries require full vfb_connect installation. "
-            "In development environment without GUI libraries, only Owlery-based "
-            "queries are available (e.g., get_neurons_with_part_in, get_parts_of, etc.). "
-            "Neo4j-based queries (e.g., get_instances, get_similar_neurons) are not available."
+            "Neo4j queries are not available. "
+            "Either Neo4j server is unavailable or connection failed."
         )
 
 
@@ -191,7 +180,7 @@ class SimpleVFBConnect:
     
     Provides:
     - Owlery client (vc.vfb.oc) for OWL reasoning queries
-    - Mock Neo4j client (vc.nc) that raises informative errors
+    - Neo4j client (vc.nc) - tries real Neo4j first, falls back to mock
     - SOLR term info fetcher (vc.get_TermInfo) for term metadata
     
     This eliminates the need for vfb_connect which requires GUI libraries
@@ -201,11 +190,13 @@ class SimpleVFBConnect:
     def __init__(self, solr_url: str = "https://solr.virtualflybrain.org/solr/vfb_json"):
         """
         Initialize simple VFB connection with Owlery and SOLR access.
+        Attempts to use real Neo4j if available, falls back to mock otherwise.
         
         :param solr_url: Base URL for SOLR server (default: VFB public instance)
         """
         self._vfb = None
         self._nc = None
+        self._nc_available = None  # Cache whether Neo4j is available
         self.solr_url = solr_url
     
     @property
@@ -221,9 +212,31 @@ class SimpleVFBConnect:
     
     @property
     def nc(self):
-        """Get Neo4j client (mock that raises errors)."""
+        """
+        Get Neo4j client - tries real Neo4j first, falls back to mock.
+        
+        Attempts to connect to Neo4j using our lightweight client.
+        If unavailable (server down, network issues), returns mock client.
+        """
         if self._nc is None:
-            self._nc = MockNeo4jClient()
+            # Try to connect to real Neo4j
+            if self._nc_available is None:
+                try:
+                    from .neo4j_client import Neo4jConnect
+                    # Try to initialize - this will fail if Neo4j server unreachable
+                    self._nc = Neo4jConnect()
+                    self._nc_available = True
+                    print("✅ Neo4j connection established")
+                except Exception as e:
+                    # Fall back to mock client
+                    self._nc = MockNeo4jClient()
+                    self._nc_available = False
+                    print(f"ℹ️  Neo4j unavailable ({type(e).__name__}), using Owlery-only mode")
+            elif self._nc_available:
+                from .neo4j_client import Neo4jConnect
+                self._nc = Neo4jConnect()
+            else:
+                self._nc = MockNeo4jClient()
         return self._nc
     
     def get_TermInfo(self, short_forms: List[str], 

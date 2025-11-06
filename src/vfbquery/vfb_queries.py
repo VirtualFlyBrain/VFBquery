@@ -1503,10 +1503,11 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
         return _get_templates_minimal(limit, return_dataframe)
 
     # Define the main Cypher query
+    # Match full pattern to exclude template channel nodes
     query = f"""
-    MATCH (t:Template)-[:INSTANCEOF]->(p:Class)
-    OPTIONAL MATCH (t)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
-    OPTIONAL MATCH (t)-[:has_source]->(ds:DataSet)-[:has_license|license]->(lic:License)
+    MATCH (p:Class)<-[:INSTANCEOF]-(t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc)
+    OPTIONAL MATCH (t)-[:has_source]->(ds:DataSet)
+    OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
     RETURN t.short_form as id,
            apoc.text.format("[%s](%s)",[COALESCE(t.symbol[0],t.label),t.short_form]) AS name,
            apoc.text.join(t.uniqueFacets, '|') AS tags,
@@ -1514,7 +1515,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
            COALESCE(REPLACE(apoc.text.format("[%s](%s)",[COALESCE(lic.symbol[0],lic.label),lic.short_form]), '[null](null)', ''), '') AS license,
            COALESCE(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(t.symbol[0],t.label), REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(t.symbol[0],t.label), t.short_form]), "[![null]( 'null')](null)", ""), "") as thumbnail,
            99 as order
-           ORDER BY id Desc
+           ORDER BY id DESC
     """
 
     if limit != -1:

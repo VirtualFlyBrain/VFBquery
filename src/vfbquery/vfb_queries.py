@@ -1162,9 +1162,10 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         total_count = count_df['total_count'][0] if not count_df.empty else 0
 
         # Define the main Cypher query
+        # Pattern: Individual ← depicts ← TemplateChannel → in_register_with → TemplateChannelTemplate → depicts → ActualTemplate
         query = f"""
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
-              (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)-[:depicts]->(templ:Template),
+              (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)

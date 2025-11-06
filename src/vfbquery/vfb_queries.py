@@ -1433,6 +1433,49 @@ def _get_instances_headers():
 
     return formatted_results
 
+def _get_templates_minimal(limit: int = -1, return_dataframe: bool = False):
+    """
+    Minimal fallback implementation for get_templates when Neo4j is unavailable.
+    Returns hardcoded list of core templates with basic information.
+    """
+    # Core templates with their basic information
+    templates_data = [
+        {"id": "VFB_00101567", "name": "JRC2018Unisex", "tags": "VFB|VFB_vol|has_image", "order": 1},
+        {"id": "VFB_00200000", "name": "JRC_FlyEM_Hemibrain", "tags": "VFB|VFB_vol|has_image", "order": 2},
+        {"id": "VFB_00017894", "name": "Adult Brain", "tags": "VFB|VFB_painted|has_image", "order": 3},
+        {"id": "VFB_00101384", "name": "JFRC2", "tags": "VFB|VFB_vol|has_image", "order": 4},
+        {"id": "VFB_00050000", "name": "JFRC2010", "tags": "VFB|VFB_vol|has_image", "order": 5},
+        {"id": "VFB_00049000", "name": "Ito2014", "tags": "VFB|VFB_painted|has_image", "order": 6},
+        {"id": "VFB_00100000", "name": "FCWB", "tags": "VFB|VFB_vol|has_image", "order": 7},
+        {"id": "VFB_00030786", "name": "Adult VNS", "tags": "VFB|VFB_painted|has_image", "order": 8},
+        {"id": "VFB_00110000", "name": "L3 CNS", "tags": "VFB|VFB_vol|has_image", "order": 9},
+        {"id": "VFB_00120000", "name": "L1 CNS", "tags": "VFB|VFB_vol|has_image", "order": 10},
+    ]
+    
+    # Apply limit if specified
+    if limit > 0:
+        templates_data = templates_data[:limit]
+    
+    count = len(templates_data)
+    
+    if return_dataframe:
+        df = pd.DataFrame(templates_data)
+        return df
+    
+    # Format as dict with headers and rows
+    formatted_results = {
+        "headers": {
+            "id": {"title": "Add", "type": "selection_id", "order": -1},
+            "order": {"title": "Order", "type": "numeric", "order": 1, "sort": {0: "Asc"}},
+            "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
+            "tags": {"title": "Tags", "type": "tags", "order": 2},
+        },
+        "rows": templates_data,
+        "count": count
+    }
+    
+    return formatted_results
+
 def get_templates(limit: int = -1, return_dataframe: bool = False):
     """Get list of templates
 
@@ -1442,12 +1485,17 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
     :rtype: pandas.DataFrame or list of dicts
 
     """
-    count_query = """MATCH (t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
-                RETURN COUNT(DISTINCT t) AS total_count"""
+    try:
+        count_query = """MATCH (t:Template)<-[:depicts]-(tc:Template)-[r:in_register_with]->(tc:Template)
+                    RETURN COUNT(DISTINCT t) AS total_count"""
 
-    count_results = vc.nc.commit_list([count_query])
-    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
-    total_count = count_df['total_count'][0] if not count_df.empty else 0
+        count_results = vc.nc.commit_list([count_query])
+        count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+        total_count = count_df['total_count'][0] if not count_df.empty else 0
+    except Exception as e:
+        # Fallback to minimal template list when Neo4j is unavailable
+        print(f"Neo4j unavailable ({e}), using minimal template list fallback")
+        return _get_templates_minimal(limit, return_dataframe)
 
     # Define the main Cypher query
     query = f"""

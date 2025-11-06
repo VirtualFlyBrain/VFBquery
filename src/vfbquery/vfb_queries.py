@@ -2247,8 +2247,8 @@ def fill_query_results(term_info):
                 else:
                     result_count = 0
                 
-                # Store preview results with count included
-                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result, 'count': result_count}
+                # Store preview results (count is stored at query level, not in preview_results)
+                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
                 query['count'] = result_count
                 # print(f"Filtered result: {filtered_result}")
             else:

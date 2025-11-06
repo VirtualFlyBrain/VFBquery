@@ -724,6 +724,30 @@ def term_info_parse_object(results, short_form):
             q = SubclassesOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # NeuronClassesFasciculatingHere query - for tracts/nerves
+        # Matches XMI criteria: Class + Tract_or_nerve (VFB uses Neuron_projection_bundle type)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron_projection_bundle" in termInfo["SuperTypes"]:
+            q = NeuronClassesFasciculatingHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # TractsNervesInnervatingHere query - for synaptic neuropils
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Synaptic_neuropil_domain)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = TractsNervesInnervatingHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # LineageClonesIn query - for synaptic neuropils
+        # Matches XMI criteria: Class + (Synaptic_neuropil OR Synaptic_neuropil_domain)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or
+            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+        ):
+            q = LineageClonesIn_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -1063,6 +1087,81 @@ def SubclassesOf_to_schema(name, take_default):
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronClassesFasciculatingHere_to_schema(name, take_default):
+    """
+    Schema for NeuronClassesFasciculatingHere query.
+    Finds neuron classes that fasciculate with (run along) a tract or nerve.
+    
+    Matching criteria from XMI:
+    - Class + Tract_or_nerve (VFB uses Neuron_projection_bundle type)
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: 'Neuron' that 'fasciculates with' some '{short_form}'
+    """
+    query = "NeuronClassesFasciculatingHere"
+    label = f"Neurons fasciculating in {name}"
+    function = "get_neuron_classes_fasciculating_here"
+    takes = {
+        "short_form": {"$and": ["Class", "Neuron_projection_bundle"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def TractsNervesInnervatingHere_to_schema(name, take_default):
+    """
+    Schema for TractsNervesInnervatingHere query.
+    Finds tracts and nerves that innervate a synaptic neuropil.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: 'Tract_or_nerve' that 'innervates' some '{short_form}'
+    """
+    query = "TractsNervesInnervatingHere"
+    label = f"Tracts/nerves innervating {name}"
+    function = "get_tracts_nerves_innervating_here"
+    takes = {
+        "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def LineageClonesIn_to_schema(name, take_default):
+    """
+    Schema for LineageClonesIn query.
+    Finds lineage clones that overlap with a synaptic neuropil or domain.
+    
+    Matching criteria from XMI:
+    - Class + Synaptic_neuropil
+    - Class + Synaptic_neuropil_domain
+    
+    Query chain: Owlery subclass query → process → SOLR
+    OWL query: 'Clone' that 'overlaps' some '{short_form}'
+    """
+    query = "LineageClonesIn"
+    label = f"Lineage clones found in {name}"
+    function = "get_lineage_clones_in"
+    takes = {
+        "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "default": take_default,
+    }
+    preview = 10
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
 
 def serialize_solr_output(results):
     # Create a copy of the document and remove Solr-specific fields
@@ -1982,6 +2081,67 @@ def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
     # Use angle brackets for IRI conversion, not quotes
     owl_query = f"<{short_form}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
+
+@with_solr_cache('neuron_classes_fasciculating_here')
+def get_neuron_classes_fasciculating_here(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves neuron classes that fasciculate with (run along) the specified tract or nerve.
+    
+    This implements the NeuronClassesFasciculatingHere query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002101> some <http://purl.obolibrary.org/obo/$ID>
+    Where: FBbt_00005106 = neuron, RO_0002101 = fasciculates with
+    Matching criteria: Class + Tract_or_nerve
+    
+    :param short_form: short form of the tract or nerve (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Neuron classes that fasciculate with the specified tract or nerve
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002101> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
+
+@with_solr_cache('tracts_nerves_innervating_here')
+def get_tracts_nerves_innervating_here(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves tracts and nerves that innervate the specified synaptic neuropil.
+    
+    This implements the TractsNervesInnervatingHere query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00005099> and <http://purl.obolibrary.org/obo/RO_0002134> some <http://purl.obolibrary.org/obo/$ID>
+    Where: FBbt_00005099 = tract or nerve, RO_0002134 = innervates
+    Matching criteria: Class + Synaptic_neuropil, Class + Synaptic_neuropil_domain
+    
+    :param short_form: short form of the synaptic neuropil (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Tracts and nerves that innervate the specified neuropil
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005099> and <http://purl.obolibrary.org/obo/RO_0002134> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
+
+@with_solr_cache('lineage_clones_in')
+def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves lineage clones that overlap with the specified synaptic neuropil.
+    
+    This implements the LineageClonesIn query from the VFB XMI specification.
+    Query chain (from XMI): Owlery → Process → SOLR
+    OWL query (from XMI): object=<http://purl.obolibrary.org/obo/FBbt_00007683> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/$ID>
+    Where: FBbt_00007683 = clone, RO_0002131 = overlaps
+    Matching criteria: Class + Synaptic_neuropil, Class + Synaptic_neuropil_domain
+    
+    :param short_form: short form of the synaptic neuropil (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Lineage clones that overlap with the specified neuropil
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00007683> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
 
 def _get_neurons_part_here_headers():
     """Return standard headers for get_neurons_with_part_in results"""

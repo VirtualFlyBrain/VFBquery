@@ -327,9 +327,12 @@ def encode_markdown_links(df, columns):
     """
     Encodes brackets in the labels within markdown links, leaving the link syntax intact.
     Does NOT encode alt text in linked images ([![...](...)(...)] format).
+    Handles multiple comma-separated markdown links in a single string.
     :param df: DataFrame containing the query results.
     :param columns: List of column names to apply encoding to.
     """
+    import re
+    
     def encode_label(label):
         if not isinstance(label, str):
             return label
@@ -340,17 +343,21 @@ def encode_markdown_links(df, columns):
             if label.startswith("[!["):
                 return label
             
-            # Process regular markdown links
-            elif label.startswith("[") and "](" in label:
-                parts = label.split("](")
-                if len(parts) < 2:
-                    return label
+            # Process regular markdown links - handle multiple links separated by commas
+            # Pattern matches [label](url) format
+            elif "[" in label and "](" in label:
+                # Use regex to find all markdown links and encode each one separately
+                # Pattern: \[([^\]]+)\]\(([^\)]+)\)
+                # Matches: [anything except ]](anything except ))
+                def encode_single_link(match):
+                    label_part = match.group(1)  # The label part (between [ and ])
+                    url_part = match.group(2)     # The URL part (between ( and ))
+                    # Encode brackets in the label part only
+                    label_part_encoded = encode_brackets(label_part)
+                    return f"[{label_part_encoded}]({url_part})"
                 
-                label_part = parts[0][1:]  # Remove the leading '['
-                # Encode brackets in the label part
-                label_part_encoded = encode_brackets(label_part)
-                # Reconstruct the markdown link with the encoded label
-                encoded_label = f"[{label_part_encoded}]({parts[1]}"
+                # Replace all markdown links with their encoded versions
+                encoded_label = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', encode_single_link, label)
                 return encoded_label
                 
         except Exception as e:

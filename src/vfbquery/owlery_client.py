@@ -15,12 +15,25 @@ from typing import List, Optional, Dict, Any, Union
 
 def short_form_to_iri(short_form: str) -> str:
     """
-    Convert a short form (e.g., 'FBbt_00003748') to full IRI.
+    Convert a short form (e.g., 'FBbt_00003748', 'VFBexp_FBtp0022557') to full IRI.
     
-    :param short_form: Short form like 'FBbt_00003748'
-    :return: Full IRI like 'http://purl.obolibrary.org/obo/FBbt_00003748'
+    Handles common ID prefixes:
+    - VFB* -> http://virtualflybrain.org/reports/
+    - FB* -> http://purl.obolibrary.org/obo/
+    - Other -> http://purl.obolibrary.org/obo/ (default)
+    
+    :param short_form: Short form like 'FBbt_00003748' or 'VFBexp_FBtp0022557'
+    :return: Full IRI
     """
-    # OBO library IRIs use underscores in the ID
+    # VFB IDs use virtualflybrain.org/reports
+    if short_form.startswith('VFB'):
+        return f"http://virtualflybrain.org/reports/{short_form}"
+    
+    # FB* IDs (FlyBase) use purl.obolibrary.org/obo
+    if short_form.startswith('FB'):
+        return f"http://purl.obolibrary.org/obo/{short_form}"
+    
+    # Default to OBO for other IDs
     return f"http://purl.obolibrary.org/obo/{short_form}"
 
 

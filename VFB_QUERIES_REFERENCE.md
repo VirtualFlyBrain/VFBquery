@@ -10,12 +10,17 @@
 | Metric | Count | Percentage |
 |--------|-------|------------|
 | **Total VFB Queries** | 35 | 100% |
-| **✅ Owlery Queries Implemented** | 12 | 34% |
-| **⚠️ Owlery Queries Need Fix** | 1 | 3% |
+| **✅ Owlery Queries Implemented** | 13 | 37% |
 | **🔶 Architecture Change Needed** | 4 | 11% |
 | **❌ Require Neo4j** | 18 | 51% |
 
-**Major Achievement**: All 13 Owlery → SOLR pattern queries are implemented! The only remaining work is debugging epFrag.
+**Major Achievement**: All 13 Owlery → SOLR pattern queries are fully implemented and working!
+
+**Recent Fixes** (November 7, 2025):
+
+- ✅ Fixed IRI construction bug affecting VFB\* and FB\* ID types
+- ✅ Fixed cache to prevent storing incomplete results when limit is used
+- ✅ All 13 Owlery queries now handle different ID prefixes correctly
 
 ---
 
@@ -43,8 +48,79 @@ VFB queries are defined in the XMI specification and expose various ways to quer
 - Returns structured results with preview capability
 
 **Current Implementation Status**:
-- ✅ **Owlery → SOLR pattern**: 13/13 implemented (12 working perfectly, 1 needs debugging)
+- ✅ **Owlery → SOLR pattern**: 13/13 implemented and fully working
 - ❌ **Neo4j-based queries**: 0/22 implemented (requires architecture enhancement)
+
+---
+
+## Recent Bug Fixes & Improvements
+
+### IRI Construction Fix (November 7, 2025)
+
+**Problem**: All Owlery queries were hardcoding IRI construction with `http://purl.obolibrary.org/obo/` namespace, which is incorrect for VFB\* ID types.
+
+**Example Bug**:
+```python
+# WRONG - hardcoded IRI construction
+owl_query = f"...some <http://purl.obolibrary.org/obo/{short_form}>"
+
+# For VFBexp_FBtp0022557, this incorrectly produced:
+# <http://purl.obolibrary.org/obo/VFBexp_FBtp0022557>
+# Should be: <http://virtualflybrain.org/reports/VFBexp_FBtp0022557>
+```
+
+**Solution**: Implemented intelligent IRI resolution in two places:
+
+1. **`owlery_client.py`** - `short_form_to_iri()` function (lines 16-37):
+   - Checks ID prefix (VFB\*, FB\*, etc.)
+   - Returns appropriate IRI namespace based on prefix
+   - VFB\* → `http://virtualflybrain.org/reports/`
+   - FB\* → `http://purl.obolibrary.org/obo/`
+
+2. **`vfb_queries.py`** - `_short_form_to_iri()` function (lines 2287-2325):
+   - Same logic as owlery_client version
+   - Adds SOLR fallback for unknown prefixes
+   - Queries SOLR to discover correct IRI for unknown ID types
+
+**Queries Fixed** (12 functions):
+- `get_neurons_with_part_in()`
+- `get_neurons_with_synapses_in()`
+- `get_neurons_with_presynaptic_terminals_in()`
+- `get_neurons_with_postsynaptic_terminals_in()`
+- `get_components_of()`
+- `get_parts_of()`
+- `get_neuron_classes_fasciculating_here()`
+- `get_tracts_nerves_innervating_here()`
+- `get_lineage_clones_in()`
+- `get_images_neurons()`
+- `get_images_that_develop_from()`
+- `get_expression_pattern_fragments()`
+
+**Impact**: All Owlery queries now work correctly with any ID type (VFB\*, VFBexp\*, FB\*, FBbt\*, GO\*, etc.)
+
+### Cache Limit Fix (November 7, 2025)
+
+**Problem**: When `limit` parameter was used, incomplete results were cached, leading to incorrect cached responses.
+
+**Example Bug**:
+```python
+# First call with limit
+result = get_expression_pattern_fragments('VFBexp_FBtp0022557', limit=10)
+# Returns 10 results, caches with count=10
+
+# Second call without limit
+result = get_expression_pattern_fragments('VFBexp_FBtp0022557', limit=-1)
+# Returns cached 10 results instead of full 5823 results!
+```
+
+**Solution**: Modified `@with_solr_cache` decorator in `solr_result_cache.py`:
+
+1. **Lines 583-590**: Check if limit parameter != -1
+2. **Lines 628-629**: Only use cached results when `should_cache=True`
+3. **Lines 737-755**: Skip caching when limit is applied
+4. **Lines 611-618**: Added query types to cache key list for `return_dataframe` parameter
+
+**Impact**: Cache now correctly stores only complete result sets, preventing incomplete cached responses.
 
 ---
 
@@ -926,7 +1002,7 @@ All remaining queries require direct Neo4j access:
 **Example**: NeuronsPartHere (✅ implemented)
 
 ```python
-def get_neurons_with_part_in(short_form: str, limit: int = None):
+def get_neurons_with_part_in(short_form: str, limit: int = -1):
     """
     Query neurons that have some part overlapping with anatomical region.
     
@@ -935,18 +1011,27 @@ def get_neurons_with_part_in(short_form: str, limit: int = None):
     2. Process IDs
     3. SOLR lookup for full details
     """
-    # 1. Owlery query
-    owlery_url = f"http://owl.virtualflybrain.org/kbs/vfb/subclasses"
-    owl_query = f"object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    # 1. Construct IRI using intelligent resolution
+    iri = _short_form_to_iri(short_form)  # Handles VFB*, FB*, etc.
     
-    # 2. Get class IDs from Owlery
+    # 2. Owlery query with correct IRI
+    owlery_url = f"http://owl.virtualflybrain.org/kbs/vfb/subclasses"
+    owl_query = f"object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{iri}>"
+    
+    # 3. Get class IDs from Owlery
     class_ids = owlery_request(owlery_url, owl_query)
     
-    # 3. Lookup in SOLR
+    # 4. Lookup in SOLR
     results = solr_lookup(class_ids, limit=limit)
     
     return results
 ```
+
+**Key Points**:
+- Use `_short_form_to_iri(short_form)` to construct IRIs correctly
+- VFB\* IDs → `http://virtualflybrain.org/reports/`
+- FB\* IDs → `http://purl.obolibrary.org/obo/`
+- Unknown prefixes → SOLR fallback lookup
 
 **Applies to**: NeuronsSynaptic, NeuronsPresynapticHere, NeuronsPostsynapticHere, ComponentsOf, PartsOf, SubclassesOf
 
@@ -983,22 +1068,30 @@ def get_expression_overlaps(short_form: str):
 
 ### Pattern 3: Owlery Instance Queries
 
-**Example**: ImagesNeurons (❌ not implemented)
+**Example**: ImagesNeurons (✅ implemented)
 
 ```python
-def get_neuron_images_in(short_form: str):
+def get_neuron_images_in(short_form: str, limit: int = -1):
     """
     Get individual neuron instances (not classes) with part in region.
     
     Uses Owlery instances endpoint instead of subclasses.
     """
-    # Owlery instances query
-    owlery_url = f"http://owl.virtualflybrain.org/kbs/vfb/instances"
-    owl_query = f"object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    # 1. Construct IRI using intelligent resolution
+    iri = _short_form_to_iri(short_form)  # Handles VFB*, FB*, etc.
     
-    # Rest is similar to Pattern 1
+    # 2. Owlery instances query with correct IRI
+    owlery_url = f"http://owl.virtualflybrain.org/kbs/vfb/instances"
+    owl_query = f"object=<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{iri}>"
+    
+    # 3. Rest is similar to Pattern 1
     ...
 ```
+
+**Key Points**:
+- Use `_short_form_to_iri(short_form)` for correct IRI construction
+- Use `/instances` endpoint instead of `/subclasses`
+- Results are individuals (VFB_*) not classes (FBbt_*)
 
 **Applies to**: ImagesNeurons, epFrag, ImagesThatDevelopFrom
 
@@ -1153,13 +1246,13 @@ if is_type(vfbTerm, ["Type1", "Type2"]):
 | Connectivity structures | NeuronClassesFasciculatingHere, TractsNervesInnervatingHere | ✅ 100% |
 | Lineage & development | LineageClonesIn, ImagesThatDevelopFrom | ✅ 100% |
 | Image retrieval | ImagesNeurons, ListAllAvailableImages | ✅ 100% |
-| Expression patterns | epFrag | ⚠️ Needs debugging |
+| Expression patterns | epFrag | ✅ 100% |
 
 ### Next Steps
 
-1. **Fix epFrag bug**: Debug why VFBexp_FBtp0022557 doesn't return VFB_00008416
-2. **Add Neo4j support**: Required for remaining 23 queries (expression, connectivity, transcriptomics)
-3. **Performance optimization**: Consider adding more aggressive caching for slow queries
+1. **Add Neo4j support**: Required for remaining 18 queries (expression, connectivity, transcriptomics)
+2. **Performance optimization**: Consider adding more aggressive caching for slow queries
+3. **Expand test coverage**: Add more edge cases and error condition tests
 
 ---
 
@@ -1174,6 +1267,7 @@ if is_type(vfbTerm, ["Type1", "Type2"]):
 ---
 
 **Last Updated**: November 7, 2025  
-**Owlery Pattern Status**: ✅ COMPLETE (13/13 implemented, 1 needs debugging)  
-**Overall Progress**: 12/35 fully working (34%), 23 require Neo4j support  
+**Owlery Pattern Status**: ✅ COMPLETE (13/13 fully implemented and working)  
+**Overall Progress**: 13/35 fully working (37%), 18 require Neo4j support  
+**Recent Fixes**: IRI construction bug fixed, cache limit handling fixed  
 **Maintainer**: VFBquery Development Team

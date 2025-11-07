@@ -585,6 +585,10 @@ def with_solr_cache(query_type: str):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
             
+            # Check if limit is applied - don't cache limited results as they're incomplete
+            limit = kwargs.get('limit', -1)
+            should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
+            
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
@@ -608,7 +612,10 @@ def with_solr_cache(query_type: str):
             # This ensures DataFrame and dict formats are cached separately
             if query_type in ['instances', 'neurons_part_here', 'neurons_synaptic', 
                              'neurons_presynaptic', 'neurons_postsynaptic', 
-                             'components_of', 'parts_of', 'subclasses_of']:
+                             'components_of', 'parts_of', 'subclasses_of',
+                             'neuron_classes_fasciculating_here', 'tracts_nerves_innervating_here',
+                             'lineage_clones_in', 'images_neurons', 'images_that_develop_from',
+                             'expression_pattern_fragments']:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
             
@@ -620,7 +627,8 @@ def with_solr_cache(query_type: str):
                 cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
-            if not force_refresh:
+            # Only use cache if we're getting complete results (no limit applied)
+            if not force_refresh and should_cache:
                 cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
                 if cached_result is not None:
                     # Validate that cached result has essential fields for term_info
@@ -728,19 +736,26 @@ def with_solr_cache(query_type: str):
                             elif failed_queries > 0:
                                 logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
                     
-                    if is_complete:
+                    # Only cache if result is complete AND no limit was applied
+                    if is_complete and should_cache:
                         try:
                             cache.cache_result(query_type, cache_term_id, result, **kwargs)
                             logger.debug(f"Cached complete result for {term_id}")
                         except Exception as e:
                             logger.debug(f"Failed to cache result: {e}")
+                    elif not should_cache:
+                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
                     else:
                         logger.warning(f"Not caching incomplete result for {term_id}")
                 else:
-                    try:
-                        cache.cache_result(query_type, cache_term_id, result, **kwargs)
-                    except Exception as e:
-                        logger.debug(f"Failed to cache result: {e}")
+                    # Only cache if no limit was applied
+                    if should_cache:
+                        try:
+                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
+                        except Exception as e:
+                            logger.debug(f"Failed to cache result: {e}")
+                    else:
+                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
             
             return result
         

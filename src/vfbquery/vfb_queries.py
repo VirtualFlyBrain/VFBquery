@@ -2054,7 +2054,7 @@ def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int 
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with parts in the specified region
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
                                     solr_field='anat_query', include_source=True, query_by_label=False)
 
@@ -2075,7 +2075,7 @@ def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: 
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with synaptic terminals in the specified region
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002130> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002130> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2095,7 +2095,7 @@ def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with presynaptic terminals in the specified region
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002113> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002113> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2115,7 +2115,7 @@ def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes with postsynaptic terminals in the specified region
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002110> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002110> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2135,7 +2135,7 @@ def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Components of the specified class
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2155,7 +2155,7 @@ def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Parts of the specified class
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2196,7 +2196,7 @@ def get_neuron_classes_fasciculating_here(short_form: str, return_dataframe=True
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Neuron classes that fasciculate with the specified tract or nerve
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002101> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002101> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2216,7 +2216,7 @@ def get_tracts_nerves_innervating_here(short_form: str, return_dataframe=True, l
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Tracts and nerves that innervate the specified neuropil
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005099> and <http://purl.obolibrary.org/obo/RO_0002134> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005099> and <http://purl.obolibrary.org/obo/RO_0002134> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2236,7 +2236,7 @@ def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Lineage clones that overlap with the specified neuropil
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00007683> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00007683> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
@@ -2258,7 +2258,7 @@ def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Individual neuron images with parts in the specified neuropil
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
     return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
 
 
@@ -2280,8 +2280,49 @@ def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: 
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Individual neuron images that develop from the specified neuroblast
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <http://purl.obolibrary.org/obo/{short_form}>"
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <{_short_form_to_iri(short_form)}>"
     return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+
+
+def _short_form_to_iri(short_form: str) -> str:
+    """
+    Convert a short form ID to its full IRI.
+    
+    First tries simple prefix mappings for common cases (VFB*, FB*).
+    For other cases, queries SOLR to get the canonical IRI.
+    
+    :param short_form: Short form ID (e.g., 'VFBexp_FBtp0022557', 'FBbt_00003748')
+    :return: Full IRI
+    """
+    # VFB IDs use virtualflybrain.org/reports
+    if short_form.startswith('VFB'):
+        return f"http://virtualflybrain.org/reports/{short_form}"
+    
+    # FB* IDs (FlyBase) use purl.obolibrary.org/obo
+    # This includes FBbt_, FBtp_, FBdv_, etc.
+    if short_form.startswith('FB'):
+        return f"http://purl.obolibrary.org/obo/{short_form}"
+    
+    # For other cases, query SOLR to get the IRI from term_info
+    try:
+        results = vfb_solr.search(
+            q=f'id:{short_form}',
+            fl='term_info',
+            rows=1
+        )
+        
+        if results.docs and 'term_info' in results.docs[0]:
+            term_info_str = results.docs[0]['term_info'][0]
+            term_info = json.loads(term_info_str)
+            iri = term_info.get('term', {}).get('core', {}).get('iri')
+            if iri:
+                return iri
+    except Exception as e:
+        # If SOLR query fails, fall back to OBO default
+        print(f"Warning: Could not fetch IRI for {short_form} from SOLR: {e}")
+    
+    # Default to OBO for other IDs (FBbi_, etc.)
+    return f"http://purl.obolibrary.org/obo/{short_form}"
 
 
 @with_solr_cache('expression_pattern_fragments')
@@ -2302,7 +2343,8 @@ def get_expression_pattern_fragments(short_form: str, return_dataframe=True, lim
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Individual expression pattern fragment images
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
+    iri = _short_form_to_iri(short_form)
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{iri}>"
     return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
 
 

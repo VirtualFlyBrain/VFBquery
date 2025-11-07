@@ -795,12 +795,13 @@ When implementing a new query, ensure:
 - Execution: `get_neuron_neuron_connectivity(term_id, return_dataframe=True, limit=-1, min_weight=0, direction='both')`
 - Tests: `src/test/test_neuron_neuron_connectivity.py`
 - Preview: 5 results
-- Preview Columns: id, label, downstream_weight, upstream_weight, tags
+- Preview Columns: id, partner_neuron, outputs, inputs, tags
 - Test neuron: VFB_jrchk00s (LPC1)
 - **Relationship**: Uses `synapsed_to` relationships (NOT `CONNECTED_TO`)
 - **Weight Filter**: Configurable via `min_weight` parameter (XMI spec uses > 1, default is 0)
 - **Direction Filter**: Optional `direction` parameter ('both', 'upstream', or 'downstream')
 - **Caching**: Only caches when all parameters are defaults (complete results)
+- **Terminology**: Uses VFB site conventions - "Partner Neuron", "Inputs" (upstream), "Outputs" (downstream)
 
 **Parameters**:
 - `term_id`: Short form of the neuron (Individual)
@@ -820,9 +821,9 @@ WITH down, oi, primary
 OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
 RETURN 
     oi.short_form AS id,
-    oi.label AS label,
-    coalesce(down.weight[0], 0) AS downstream_weight,
-    coalesce(up.weight[0], 0) AS upstream_weight,
+    oi.label AS partner_neuron,
+    coalesce(down.weight[0], 0) AS outputs,
+    coalesce(up.weight[0], 0) AS inputs,
     oi.uniqueFacets AS tags
 ```
 
@@ -831,9 +832,9 @@ RETURN
 {
   'headers': {
     'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
-    'label': {'title': 'Neuron Name', 'type': 'markdown', 'order': 0},
-    'downstream_weight': {'title': 'Downstream Weight', 'type': 'number', 'order': 1},
-    'upstream_weight': {'title': 'Upstream Weight', 'type': 'number', 'order': 2},
+    'partner_neuron': {'title': 'Partner Neuron', 'type': 'markdown', 'order': 0},
+    'outputs': {'title': 'Outputs', 'type': 'number', 'order': 1},
+    'inputs': {'title': 'Inputs', 'type': 'number', 'order': 2},
     'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
   },
   'data': [...],

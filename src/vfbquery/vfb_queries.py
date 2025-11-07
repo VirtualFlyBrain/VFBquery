@@ -2225,15 +2225,15 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     Query chain (from XMI): Neo4j compound query → process
     Matching criteria: Individual + Connected_neuron
     
-    Uses synapsed_to relationships to find connected neurons.
-    Returns upstream and downstream connection information.
+    Uses synapsed_to relationships to find partner neurons.
+    Returns inputs (upstream) and outputs (downstream) connection information.
     
     :param short_form: short form of the neuron (Individual)
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
     :param limit: maximum number of results to return (default -1, returns all results)
     :param min_weight: minimum connection weight threshold (default 0, XMI spec uses 1)
     :param direction: filter by connection direction - 'both' (default), 'upstream', or 'downstream'
-    :return: Neurons connected to the specified neuron with connection weights
+    :return: Partner neurons with their input/output connection weights
     
     Note: Caching only applies when all parameters are at default values (complete results).
     """
@@ -2249,9 +2249,9 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
     RETURN 
         oi.short_form AS id,
-        oi.label AS label,
-        coalesce(down.weight[0], 0) AS downstream_weight,
-        coalesce(up.weight[0], 0) AS upstream_weight,
+        oi.label AS partner_neuron,
+        coalesce(down.weight[0], 0) AS outputs,
+        coalesce(up.weight[0], 0) AS inputs,
         oi.uniqueFacets AS tags
     """
     if limit != -1:
@@ -2264,9 +2264,9 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     # Filter by direction if specified
     if direction != 'both':
         if direction == 'upstream':
-            rows = [row for row in rows if row.get('upstream_weight', 0) > 0]
+            rows = [row for row in rows if row.get('inputs', 0) > 0]
         elif direction == 'downstream':
-            rows = [row for row in rows if row.get('downstream_weight', 0) > 0]
+            rows = [row for row in rows if row.get('outputs', 0) > 0]
 
     # Format output
     if return_dataframe:
@@ -2275,9 +2275,9 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     
     headers = {
         'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
-        'label': {'title': 'Neuron Name', 'type': 'markdown', 'order': 0},
-        'downstream_weight': {'title': 'Downstream Weight', 'type': 'number', 'order': 1},
-        'upstream_weight': {'title': 'Upstream Weight', 'type': 'number', 'order': 2},
+        'partner_neuron': {'title': 'Partner Neuron', 'type': 'markdown', 'order': 0},
+        'outputs': {'title': 'Outputs', 'type': 'number', 'order': 1},
+        'inputs': {'title': 'Inputs', 'type': 'number', 'order': 2},
         'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
     }
     return {
@@ -2306,7 +2306,8 @@ def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     :return: Individual neuron images with parts in the specified neuropil
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
 
 
 @with_solr_cache('images_that_develop_from')
@@ -2328,7 +2329,8 @@ def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: 
     :return: Individual neuron images that develop from the specified neuroblast
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
 
 
 def _short_form_to_iri(short_form: str) -> str:
@@ -2392,7 +2394,8 @@ def get_expression_pattern_fragments(short_form: str, return_dataframe=True, lim
     """
     iri = _short_form_to_iri(short_form)
     owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{iri}>"
-    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
 
 
 def _get_neurons_part_here_headers():
@@ -2419,13 +2422,14 @@ def _get_standard_query_headers():
 
 def _owlery_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
                               limit: int = -1, solr_field: str = 'anat_query', 
-                              include_source: bool = False, query_by_label: bool = True):
+                              include_source: bool = False, query_by_label: bool = True,
+                              query_instances: bool = False):
     """
-    Shared helper function for Owlery-based queries.
+    Unified helper function for Owlery-based queries.
     
     This implements the common pattern:
-    1. Query Owlery for class IDs matching an OWL pattern
-    2. Fetch details from SOLR for each class
+    1. Query Owlery for class/instance IDs matching an OWL pattern
+    2. Fetch details from SOLR for each result
     3. Format results as DataFrame or dict
     
     :param owl_query_string: OWL query string (format depends on query_by_label parameter)
@@ -2435,15 +2439,25 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     :param solr_field: SOLR field to query (default 'anat_query' for Class, 'anat_image_query' for Individuals)
     :param include_source: Whether to include source and source_id columns
     :param query_by_label: If True, use label syntax with quotes. If False, use IRI syntax with angle brackets.
+    :param query_instances: If True, query for instances instead of subclasses
     :return: Query results
     """
     try:
-        # Step 1: Query Owlery for classes matching the OWL pattern
-        class_ids = vc.vfb.oc.get_subclasses(
-            query=owl_query_string,
-            query_by_label=query_by_label,
-            verbose=False
-        )
+        # Step 1: Query Owlery for classes or instances matching the OWL pattern
+        if query_instances:
+            result_ids = vc.vfb.oc.get_instances(
+                query=owl_query_string,
+                query_by_label=query_by_label,
+                verbose=False
+            )
+        else:
+            result_ids = vc.vfb.oc.get_subclasses(
+                query=owl_query_string,
+                query_by_label=query_by_label,
+                verbose=False
+            )
+        
+        class_ids = result_ids  # Keep variable name for compatibility
         
         if not class_ids:
             # No results found - return empty

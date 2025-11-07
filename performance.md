@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2025-11-07 08:35:30 UTC
-**Git Commit:** 1999824c525ff1df02e5c0fb0033f075bec68bf3
+**Test Date:** 2025-11-07 09:46:48 UTC
+**Git Commit:** 5962caaae3ec5d56a351fe18fca17d8155e87c95
 **Branch:** dev
-**Workflow Run:** [19162755884](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19162755884)
+**Workflow Run:** [19164503614](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19164503614)
 
 ## Test Overview
 
@@ -48,12 +48,12 @@ FAIL: test_01_term_info_queries (src.test.test_query_performance.QueryPerformanc
 Test term info query performance
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 94, in test_01_term_info_queries
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 96, in test_01_term_info_queries
     self.assertLess(duration, self.THRESHOLD_MEDIUM, "term_info query exceeded threshold")
-AssertionError: 8.69031310081482 not less than 3.0 : term_info query exceeded threshold
+AssertionError: 8.709737539291382 not less than 3.0 : term_info query exceeded threshold
 
 ----------------------------------------------------------------------
-Ran 6 tests in 16.697s
+Ran 6 tests in 17.799s
 
 FAILED (failures=1)
 VFBquery caching enabled: TTL=2160h (90 days), Memory=2048MB
@@ -65,39 +65,41 @@ VFBquery: Caching enabled by default (3-month TTL, 2GB memory)
 TERM INFO QUERIES
 ================================================================================
 DEBUG: Cache lookup for FBbt_00003748: MISS
-get_term_info (mushroom body): 8.6903s ✅
+get_term_info (mushroom body): 8.7097s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 0.5806s ✅
+NeuronsPartHere: 0.5988s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 0.7537s ✅
-NeuronsPresynapticHere: 0.6858s ✅
-NeuronsPostsynapticHere: 0.5925s ✅
+NeuronsSynaptic: 0.5873s ✅
+NeuronsPresynapticHere: 0.5898s ✅
+NeuronsPostsynapticHere: 0.9412s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 0.5791s ✅
-PartsOf: 0.5664s ✅
-SubclassesOf: 0.5932s ✅
+ComponentsOf: 0.6226s ✅
+PartsOf: 0.5803s ✅
+SubclassesOf: 0.5887s ✅
 
 ================================================================================
 NEW QUERIES (2025)
 ================================================================================
-NeuronClassesFasciculatingHere: 0.7516s ✅
-TractsNervesInnervatingHere: 0.7432s ✅
-LineageClonesIn: 0.7920s ✅
-ImagesNeurons: 0.5852s ✅
+NeuronClassesFasciculatingHere: 0.6685s ✅
+TractsNervesInnervatingHere: 0.7880s ✅
+LineageClonesIn: 0.5784s ✅
+ImagesNeurons: 0.5974s ✅
+ImagesThatDevelopFrom: 0.7531s ✅
+epFrag: 0.6081s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 0.7825s ✅
+ListAllAvailableImages: 0.5853s ✅
 
 ================================================================================
 PERFORMANCE TEST SUMMARY
@@ -108,7 +110,7 @@ test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
 Performance test for specific term info queries. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.207s
+Ran 1 test in 1.385s
 
 OK
 VFBquery caching enabled: TTL=2160h (90 days), Memory=2048MB
@@ -123,9 +125,9 @@ VFBquery: Caching enabled by default (3-month TTL, 2GB memory)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 0.6085 seconds
-VFB_00101567 query took: 0.5978 seconds
-Total time for both queries: 1.2063 seconds
+FBbt_00003748 query took: 0.6206 seconds
+VFB_00101567 query took: 0.7637 seconds
+Total time for both queries: 1.3844 seconds
 Performance Level: 🟢 Excellent (< 1.5 seconds)
 ==================================================
 Performance test completed successfully!
@@ -144,4 +146,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2025-11-07 08:35:30 UTC*
+*Last updated: 2025-11-07 09:46:48 UTC*

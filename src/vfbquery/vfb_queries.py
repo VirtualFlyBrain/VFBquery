@@ -758,6 +758,20 @@ def term_info_parse_object(results, short_form):
             q = ImagesNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # ImagesThatDevelopFrom query - for neuroblasts
+        # Matches XMI criteria: Class + Neuroblast
+        # Returns individual neuron images that develop from the neuroblast
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Neuroblast"]):
+            q = ImagesThatDevelopFrom_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # epFrag query - for expression patterns
+        # Matches XMI criteria: Class + Expression_pattern
+        # Returns individual expression pattern fragment images
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern"]):
+            q = epFrag_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -1190,6 +1204,54 @@ def ImagesNeurons_to_schema(name, take_default):
     function = "get_images_neurons"
     takes = {
         "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def ImagesThatDevelopFrom_to_schema(name, take_default):
+    """
+    Schema for ImagesThatDevelopFrom query.
+    Finds individual neuron images that develop from a neuroblast.
+    
+    Matching criteria from XMI:
+    - Class + Neuroblast
+    
+    Query chain: Owlery instances query → process → SOLR
+    OWL query: 'Neuron' that 'develops_from' some '{short_form}' (returns instances, not classes)
+    """
+    query = "ImagesThatDevelopFrom"
+    label = f"Images of neurons that develop from {name}"
+    function = "get_images_that_develop_from"
+    takes = {
+        "short_form": {"$and": ["Class", "Neuroblast"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def epFrag_to_schema(name, take_default):
+    """
+    Schema for epFrag query.
+    Finds individual expression pattern fragment images that are part of an expression pattern.
+    
+    Matching criteria from XMI:
+    - Class + Expression_pattern
+    
+    Query chain: Owlery instances query → process → SOLR
+    OWL query: instances that are 'part_of' some '{short_form}' (returns instances, not classes)
+    """
+    query = "epFrag"
+    label = f"Images of fragments of {name}"
+    function = "get_expression_pattern_fragments"
+    takes = {
+        "short_form": {"$and": ["Class", "Expression_pattern"]},
         "default": take_default,
     }
     preview = 5
@@ -2197,6 +2259,50 @@ def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     :return: Individual neuron images with parts in the specified neuropil
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+
+
+@with_solr_cache('images_that_develop_from')
+def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves individual neuron images that develop from the specified neuroblast.
+    
+    This implements the ImagesThatDevelopFrom query from the VFB XMI specification.
+    Query chain (from XMI): Owlery instances → Owlery Pass → SOLR
+    OWL query (from XMI): object=<FBbt_00005106> and <RO_0002202> some <$ID> (instances)
+    Where: FBbt_00005106 = neuron, RO_0002202 = develops_from
+    Matching criteria: Class + Neuroblast
+    
+    Note: This query returns INSTANCES (individual neuron images) not classes.
+    
+    :param short_form: short form of the neuroblast (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Individual neuron images that develop from the specified neuroblast
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <http://purl.obolibrary.org/obo/{short_form}>"
+    return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
+
+
+@with_solr_cache('expression_pattern_fragments')
+def get_expression_pattern_fragments(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves individual expression pattern fragment images that are part of an expression pattern.
+    
+    This implements the epFrag query from the VFB XMI specification.
+    Query chain (from XMI): Owlery individual parts → Process → SOLR
+    OWL query (from XMI): object=<BFO_0000050> some <$ID> (instances)
+    Where: BFO_0000050 = part_of
+    Matching criteria: Class + Expression_pattern
+    
+    Note: This query returns INSTANCES (individual expression pattern fragments) not classes.
+    
+    :param short_form: short form of the expression pattern (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Individual expression pattern fragment images
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/{short_form}>"
     return _owlery_instances_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_image_query')
 
 

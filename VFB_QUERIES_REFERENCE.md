@@ -10,10 +10,11 @@
 1. [Overview](#overview)
 2. [Query Information Sources](#query-information-sources)
 3. [Query Matching Criteria System](#query-matching-criteria-system)
-4. [All VFB Queries - Complete List](#all-vfb-queries---complete-list)
-5. [Conversion Status Summary](#conversion-status-summary)
-6. [Implementation Patterns](#implementation-patterns)
-7. [Next Steps](#next-steps)
+4. [Testing & Running Queries](#testing--running-queries)
+5. [All VFB Queries - Complete List](#all-vfb-queries---complete-list)
+6. [Conversion Status Summary](#conversion-status-summary)
+7. [Implementation Patterns](#implementation-patterns)
+8. [Next Steps](#next-steps)
 
 ---
 
@@ -114,6 +115,285 @@ Queries are conditionally applied based on entity type. The XMI uses a library r
 <matchingCriteria type="//@libraries.3/@types.1 //@libraries.3/@types.23"/>
 ```
 Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_neuropil_domain
+
+---
+
+## Data Structures & Return Types
+
+Understanding the different data structures returned by VFB servers is crucial for implementing queries correctly.
+
+### Server Return Types
+
+#### 1. Owlery API Returns
+**Endpoint**: `http://owl.virtualflybrain.org/kbs/vfb/`
+
+- **Subclasses endpoint** (`/subclasses`): Returns `{"superClassOf": ["FBbt_...", ...]}`
+  - Key: `superClassOf` (array of class IDs)
+  - Used for: Class-based queries (e.g., NeuronsPartHere, ComponentsOf)
+  
+- **Instances endpoint** (`/instances`): Returns `{"hasInstance": ["VFB_...", ...]}`
+  - Key: `hasInstance` (array of instance/individual IDs)
+  - Used for: Instance-based queries (e.g., ImagesNeurons, ImagesThatDevelopFrom, epFrag)
+  - ⚠️ **Common mistake**: Using `superClassOf` instead of `hasInstance`
+
+#### 2. SOLR Document Structure
+**Endpoint**: `https://solr.virtualflybrain.org/solr/vfb_json/select`
+
+- **For Classes** (anat_query field):
+  ```json
+  {
+    "short_form": "FBbt_00001234",
+    "label": "anatomical term name",
+    "tags": ["Class", "Neuron", ...],
+    "...": "other fields"
+  }
+  ```
+
+- **For Individuals/Instances** (anat_image_query field):
+  ```json
+  {
+    "term": {
+      "core": {
+        "short_form": "VFB_00001234",
+        "label": "individual name",
+        "unique_facets": ["tag1", "tag2"]
+      }
+    },
+    "channel_image": [{
+      "image": {
+        "template_anatomy": {...},
+        "image_thumbnail": "url"
+      }
+    }]
+  }
+  ```
+  - ⚠️ **Common mistake**: Using flat structure instead of nested `term.core` and `channel_image` paths
+
+#### 3. VFBquery Function Return Types
+
+**When `return_dataframe=True`** (default):
+- Returns pandas DataFrame if results exist
+- Returns empty dict `{'headers': {...}, 'rows': [], 'count': 0}` if no results
+
+**When `return_dataframe=False`**:
+- Always returns dict with structure:
+  ```python
+  {
+    'headers': {
+      'id': {'title': 'Add', 'type': 'selection_id', 'order': -1},
+      'label': {'title': 'Name', 'type': 'markdown', 'order': 0},
+      # ... other column headers
+    },
+    'rows': [
+      {'id': 'VFB_...', 'label': 'name', 'tags': [...], ...},
+      # ... more rows
+    ],
+    'count': 123
+  }
+  ```
+  - ⚠️ **Common mistake**: Expecting 'data' key instead of 'rows' key
+
+### Query Implementation Patterns
+
+#### Pattern A: Owlery Subclasses → SOLR Classes
+Used by: NeuronsPartHere, NeuronsSynaptic, ComponentsOf, PartsOf, etc.
+
+```python
+# 1. Query Owlery for class IDs
+owlery_response = {'superClassOf': ['FBbt_001', 'FBbt_002']}
+
+# 2. Lookup classes in SOLR (anat_query field)
+# 3. Return DataFrame or dict with rows
+```
+
+#### Pattern B: Owlery Instances → SOLR Individuals
+Used by: ImagesNeurons, ImagesThatDevelopFrom, epFrag
+
+```python
+# 1. Query Owlery for instance IDs
+owlery_response = {'hasInstance': ['VFB_001', 'VFB_002']}
+
+# 2. Lookup individuals in SOLR (anat_image_query field)
+# 3. Parse nested structure: term.core.*, channel_image[].image.*
+# 4. Return DataFrame or dict with rows
+```
+
+#### Pattern C: Neo4j Direct Query
+Used by: Connectivity queries, NBLAST queries
+
+```python
+# 1. Execute Cypher query on Neo4j
+# 2. Process complex result structure
+# 3. Return formatted data
+```
+
+### Common Testing Mistakes
+
+1. **Wrong SOLR field**: Using `anat_query` for instances (should be `anat_image_query`)
+2. **Wrong dict key**: Checking for `result['data']` instead of `result['rows']`
+3. **Wrong Owlery key**: Using `superClassOf` for instances (should be `hasInstance`)
+4. **Missing nested access**: Not accessing `term.core.short_form` for individuals
+5. **Empty results confusion**: Empty dict with 'rows': [] is valid, not an error
+
+### Quick Reference Table
+
+| Query Type | Owlery Endpoint | Owlery Key | SOLR Field | Returns IDs Starting With |
+|------------|----------------|------------|------------|---------------------------|
+| Class queries | `/subclasses` | `superClassOf` | `anat_query` | `FBbt_`, `FBal_`, etc. |
+| Instance queries | `/instances` | `hasInstance` | `anat_image_query` | `VFB_`, `VFBexp_` |
+| Neo4j queries | N/A | N/A | N/A | Various |
+
+---
+
+## Testing & Running Queries
+
+### Test Structure
+
+Each implemented query should have:
+
+1. **Comprehensive test file** in `src/test/test_<query_name>.py`
+2. **Performance test** entry in `src/test/test_query_performance.py`
+3. **Documentation** in this reference file
+
+### Running Tests
+
+#### Run All Tests
+```bash
+# From repository root
+cd /Users/rcourt/GIT/VFBquery
+
+# Run all tests with verbose output
+PYTHONPATH=src python3 -m unittest discover -s src/test -p '*test*.py' -v
+```
+
+#### Run Specific Test File
+```bash
+# Run a specific query test
+PYTHONPATH=src python3 -m unittest src.test.test_images_neurons -v
+
+# Run a specific test method
+PYTHONPATH=src python3 -m unittest src.test.test_images_neurons.TestImagesNeurons.test_get_images_neurons_execution -v
+```
+
+#### Run Performance Tests
+```bash
+# Run performance suite
+PYTHONPATH=src python3 src/test/test_query_performance.py
+
+# Performance thresholds:
+# - FAST: < 1.0 seconds (simple SOLR lookups)
+# - MEDIUM: < 3.0 seconds (Owlery + SOLR)
+# - SLOW: < 10.0 seconds (Neo4j + complex processing)
+```
+
+#### Run Via VS Code Tasks
+```bash
+# Use the configured task (mocked dependencies for CI)
+# Command Palette -> Tasks: Run Task -> "Run Test (Mocked)"
+# Or: "Run All Tests"
+```
+
+### Test File Template
+
+Each query test should follow this structure:
+
+```python
+"""
+Test suite for <QueryName> query.
+Brief description of what the query does.
+"""
+
+import unittest
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from vfbquery.vfb_queries import (
+    get_query_function,
+    get_term_info,
+    QueryName_to_schema
+)
+
+class Test<QueryName>(unittest.TestCase):
+    """Test cases for <QueryName> query functionality."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.test_term = "FBbt_00000000"  # Appropriate test term
+        
+    def test_schema_generation(self):
+        """Test that the schema function generates correct Query object."""
+        schema = QueryName_to_schema("test name", {"short_form": self.test_term})
+        
+        self.assertEqual(schema.query, "QueryName")
+        self.assertEqual(schema.function, "get_query_function")
+        self.assertIn("test name", schema.label)
+        self.assertEqual(schema.preview, 5)
+        self.assertIn("id", schema.preview_columns)
+        
+    def test_query_execution(self):
+        """Test that the query executes without errors."""
+        result = get_query_function(self.test_term, return_dataframe=True, limit=10)
+        self.assertIsNotNone(result)
+        
+    def test_return_dataframe_parameter(self):
+        """Test that return_dataframe parameter works correctly."""
+        df_result = get_query_function(self.test_term, return_dataframe=True, limit=5)
+        dict_result = get_query_function(self.test_term, return_dataframe=False, limit=5)
+        
+        self.assertIsNotNone(df_result)
+        self.assertIsNotNone(dict_result)
+        
+    def test_limit_parameter(self):
+        """Test that limit parameter restricts results."""
+        limited_result = get_query_function(self.test_term, return_dataframe=True, limit=3)
+        self.assertIsNotNone(limited_result)
+    
+    def test_term_info_integration(self):
+        """Test that query appears in term_info for appropriate terms."""
+        term_info = get_term_info(self.test_term, preview=False)
+        queries = term_info.get('Queries', [])
+        query_names = [q.get('query') for q in queries if isinstance(q, dict)]
+        
+        # Should appear for terms with correct supertypes
+        if 'ExpectedType' in term_info.get('SuperTypes', []):
+            self.assertIn('QueryName', query_names)
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+```
+
+### Quick Test Commands
+
+```bash
+# Test a single query function directly
+PYTHONPATH=src python3 -c "
+from vfbquery.vfb_queries import get_images_neurons
+result = get_images_neurons('FBbt_00007401', limit=5)
+print(f'Results: {len(result)} rows')
+"
+
+# Test term_info to see all queries for a term
+PYTHONPATH=src python3 -c "
+from vfbquery.vfb_queries import get_term_info
+info = get_term_info('FBbt_00007401', preview=False)
+print(f\"Queries: {[q['query'] for q in info['Queries']]}\")"
+```
+
+### Testing Checklist for New Queries
+
+When implementing a new query, ensure:
+
+- [ ] Schema function created (`<QueryName>_to_schema()`)
+- [ ] Execution function created (`get_<query_name>()`)
+- [ ] Cache decorator applied (`@with_solr_cache('cache_key')`)
+- [ ] term_info integration added (matching criteria check)
+- [ ] Comprehensive test file created (`src/test/test_<query_name>.py`)
+- [ ] Performance test added to `test_query_performance.py`
+- [ ] Documentation updated in `VFB_QUERIES_REFERENCE.md`
+- [ ] All tests pass locally
+- [ ] Performance meets threshold (<10s)
 
 ---
 
@@ -492,23 +772,38 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 - **Query Chain**: SOLR cached user NBLAST query → Process
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 34. **ImagesThatDevelopFrom** ❌
+#### 34. **ImagesThatDevelopFrom** ✅
 - **ID**: `ImagesThatDevelopFrom` / `imagesDevelopsFromNeuroblast`
 - **Name**: "Show all images that develops_from X"
 - **Description**: "List images of neurons that develop from $NAME"
 - **Matching Criteria**: Class + Neuroblast
 - **Query Chain**: Owlery instances → Owlery Pass → SOLR
 - **OWL Query**: `object=<FBbt_00005106> and <RO_0002202> some <$ID>`
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+- **Implementation**:
+  - Schema: `ImagesThatDevelopFrom_to_schema()`
+  - Execution: `get_images_that_develop_from(term_id)`
+  - Tests: `src/test/test_images_that_develop_from.py`
+  - Preview: id, label, tags, thumbnail
+  - Test term: FBbt_00001419 (neuroblast MNB) → Returns 336 neuron images
+  - Note: Returns individual neuron images (instances) that develop from neuroblast
 
-#### 35. **epFrag** ❌
+#### 35. **epFrag** ⚠️
 - **ID**: `epFrag`
 - **Name**: "Images of expression pattern fragments"
 - **Description**: "Images of fragments of $NAME"
 - **Matching Criteria**: Class + Expression_pattern
 - **Query Chain**: Owlery individual parts → Process → SOLR
 - **OWL Query**: `object=<BFO_0000050> some <$ID>` (instances)
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ⚠️ **NEEDS FIXING** - Query doesn't return expected results
+- **Issue**: Known test case VFBexp_FBtp0022557 has image VFB_00008416 but query returns 0 results
+- **Implementation**:
+  - Schema: `epFrag_to_schema()`
+  - Execution: `get_expression_pattern_fragments(term_id)`
+  - Tests: `src/test/test_expression_pattern_fragments.py` (marked with TODO)
+  - Preview: id, label, tags, thumbnail
+  - Test term: VFBexp_FBtp0022557 (P{VGlut-GAL4.D} expression pattern)
+  - Note: Should return individual expression pattern fragment images (instances) that are part_of the expression pattern class
 
 ---
 
@@ -516,13 +811,24 @@ Applies to: Class + Synaptic_neuropil, Class + Visual_system, Class + Synaptic_n
 
 ### Statistics
 - **Total VFB Queries**: 35
-- **✅ Fully Implemented**: 10 (29%)
+- **✅ Fully Implemented**: 11 (31%)
+- **⚠️ Needs Fixing**: 1 (3%)
 - **🔶 Partially Implemented**: 2 (6%)
-- **❌ Not Implemented**: 23 (66%)
+- **❌ Not Implemented**: 21 (60%)
 
-### Recently Implemented (This Session)
+### Recently Implemented (November 2025)
 - ✅ **NeuronsSynaptic** - neurons with synaptic terminals in region
 - ✅ **NeuronsPresynapticHere** - neurons with presynaptic terminals in region
+- ✅ **NeuronsPostsynapticHere** - neurons with postsynaptic terminals in region
+- ✅ **ComponentsOf** - components of anatomical structures
+- ✅ **PartsOf** - parts of anatomical structures
+- ✅ **SubclassesOf** - subclasses of a class
+- ✅ **NeuronClassesFasciculatingHere** - neuron classes fasciculating in tract/nerve
+- ✅ **TractsNervesInnervatingHere** - tracts/nerves innervating synaptic neuropil
+- ✅ **LineageClonesIn** - lineage clones found in region
+- ✅ **ImagesNeurons** - individual neuron images with parts in region
+- ✅ **ImagesThatDevelopFrom** - neuron images developing from neuroblast
+- ⚠️ **epFrag** - expression pattern fragment images (NEEDS FIXING)
 - ✅ **NeuronsPostsynapticHere** - neurons with postsynaptic terminals in region
 - ✅ **ComponentsOf** - components of anatomical structures
 - ✅ **PartsOf** - parts of anatomical structures

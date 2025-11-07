@@ -27,6 +27,8 @@ from vfbquery.vfb_queries import (
     get_tracts_nerves_innervating_here,
     get_lineage_clones_in,
     get_images_neurons,
+    get_images_that_develop_from,
+    get_expression_pattern_fragments,
     get_instances,
     get_similar_neurons,
 )
@@ -243,6 +245,28 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         print(f"ImagesNeurons: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ImagesNeurons exceeded threshold")
+        
+        # ImagesThatDevelopFrom test (neuroblast developmental lineages)
+        result, duration, success = self._time_query(
+            "ImagesThatDevelopFrom",
+            get_images_that_develop_from,
+            "FBbt_00001419",  # neuroblast MNB - has 336 neuron images
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"ImagesThatDevelopFrom: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "ImagesThatDevelopFrom exceeded threshold")
+        
+        # epFrag test (expression pattern fragments)
+        result, duration, success = self._time_query(
+            "epFrag",
+            get_expression_pattern_fragments,
+            "FBtp0000001",  # expression pattern example
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"epFrag: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "epFrag exceeded threshold")
     
     def test_06_instance_queries(self):
         """Test instance retrieval queries"""

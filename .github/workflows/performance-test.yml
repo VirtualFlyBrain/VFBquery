@@ -31,10 +31,11 @@ jobs:
           
       - name: Run Performance Test
         run: |
-          export PYTHONPATH=$PYTHONPATH:$PWD/
-          echo "Running performance test for term info queries..."
-          python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee performance_test_output.log
-        continue-on-error: true  # Continue even if performance thresholds are exceeded
+          python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
+        
+      - name: Run Legacy Performance Test  
+        run: |
+          python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee -a performance_test_output.log
         
       - name: Create Performance Report
         if: always()  # Always run this step, even if the test fails
@@ -46,63 +47,107 @@ jobs:
           **Test Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
           **Git Commit:** ${{ github.sha }}
           **Branch:** ${{ github.ref_name }}
-          **Workflow Run:** ${{ github.run_id }}
+          **Workflow Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           
           ## Test Overview
           
-          This performance test measures the execution time of VFB term info queries for specific terms:
+          This performance test measures the execution time of all implemented VFB queries including:
           
-          - **FBbt_00003748**: mushroom body (anatomical class)
-          - **VFB_00101567**: individual anatomy data
+          ### Core Queries
+          - **Term Info Queries**: Basic term information retrieval
+          - **Neuron Part Queries**: Neurons with parts overlapping regions
+          - **Synaptic Terminal Queries**: Pre/post synaptic terminals
+          - **Anatomical Hierarchy**: Components, parts, subclasses
+          - **Instance Queries**: Available images and instances
+          
+          ### New Queries (2025)
+          - **NeuronClassesFasciculatingHere**: Neurons fasciculating with tracts
+          - **TractsNervesInnervatingHere**: Tracts/nerves innervating neuropils
+          - **LineageClonesIn**: Lineage clones in neuropils
           
           ## Performance Thresholds
           
-          - Maximum single query time: 2 seconds
-          - Maximum total time for both queries: 4 seconds
+          - **Fast queries**: < 1 second (SOLR lookups)
+          - **Medium queries**: < 3 seconds (Owlery + SOLR)
+          - **Slow queries**: < 10 seconds (Neo4j + complex processing)
           
           ## Test Results
           
-          ```
+          \`\`\`
           $(cat performance_test_output.log)
-          ```
+          \`\`\`
           
           ## Summary
           
           EOF
           
-          # Extract timing information from the test output
-          if grep -q "Performance Test Results:" performance_test_output.log; then
-            echo "✅ **Test Status**: Performance test completed" >> performance.md
+          # Check overall test status
+          if grep -q "OK" performance_test_output.log || grep -q "Ran.*test" performance_test_output.log; then
+            echo "✅ **Test Status**: Performance tests completed" >> performance.md
             echo "" >> performance.md
             
-            # Extract timing data
-            if grep -q "FBbt_00003748 query took:" performance_test_output.log; then
-              TIMING1=$(grep "FBbt_00003748 query took:" performance_test_output.log | sed 's/.*took: \([0-9.]*\) seconds.*/\1/')
-              echo "- **FBbt_00003748 Query Time**: ${TIMING1} seconds" >> performance.md
+            # Count successes and failures
+            TOTAL_TESTS=$(grep -c "^test_" performance_test_output.log || echo "0")
+            FAILED_TESTS=$(grep -c "FAIL:" performance_test_output.log || echo "0")
+            ERROR_TESTS=$(grep -c "ERROR:" performance_test_output.log || echo "0")
+            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - ERROR_TESTS))
+            
+            echo "### Test Statistics" >> performance.md
+            echo "" >> performance.md
+            echo "- **Total Tests**: ${TOTAL_TESTS}" >> performance.md
+            echo "- **Passed**: ${PASSED_TESTS} ✅" >> performance.md
+            echo "- **Failed**: ${FAILED_TESTS} ❌" >> performance.md
+            echo "- **Errors**: ${ERROR_TESTS} ⚠️" >> performance.md
+            echo "" >> performance.md
+            
+            # Extract timing information for key queries
+            echo "### Query Performance Details" >> performance.md
+            echo "" >> performance.md
+            
+            # Extract all timing lines
+            if grep -q "seconds" performance_test_output.log; then
+              echo "| Query | Duration | Status |" >> performance.md
+              echo "|-------|----------|--------|" >> performance.md
+              
+              # Parse timing information
+              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages):" performance_test_output.log | while read line; do
+                QUERY=$(echo "$line" | sed 's/:.*//') 
+                DURATION=$(echo "$line" | sed 's/.*: \([0-9.]*\)s.*/\1/')
+                if echo "$line" | grep -q "✅"; then
+                  STATUS="✅ Pass"
+                else
+                  STATUS="❌ Fail"
+                fi
+                echo "| $QUERY | ${DURATION}s | $STATUS |" >> performance.md
+              done
             fi
             
-            if grep -q "VFB_00101567 query took:" performance_test_output.log; then
-              TIMING2=$(grep "VFB_00101567 query took:" performance_test_output.log | sed 's/.*took: \([0-9.]*\) seconds.*/\1/')
-              echo "- **VFB_00101567 Query Time**: ${TIMING2} seconds" >> performance.md
-            fi
+            echo "" >> performance.md
             
-            if grep -q "Total time for both queries:" performance_test_output.log; then
-              TOTAL_TIME=$(grep "Total time for both queries:" performance_test_output.log | sed 's/.*queries: \([0-9.]*\) seconds.*/\1/')
-              echo "- **Total Query Time**: ${TOTAL_TIME} seconds" >> performance.md
-            fi
-            
-            # Check if test passed or failed
-            if grep -q "OK" performance_test_output.log; then
-              echo "" >> performance.md
+            # Overall result
+            if [ "$FAILED_TESTS" -eq "0" ] && [ "$ERROR_TESTS" -eq "0" ]; then
               echo "🎉 **Result**: All performance thresholds met!" >> performance.md
-            elif grep -q "FAILED" performance_test_output.log; then
+            else
+              echo "⚠️ **Result**: Some performance thresholds exceeded or tests failed" >> performance.md
               echo "" >> performance.md
-              echo "⚠️ **Result**: Some performance thresholds exceeded or test failed" >> performance.md
+              echo "Please review the failed tests above. Common causes:" >> performance.md
+              echo "- Network latency to VFB services" >> performance.md
+              echo "- SOLR/Neo4j/Owlery server load" >> performance.md
+              echo "- First-time cache population (expected to be slower)" >> performance.md
             fi
           else
-            echo "❌ **Test Status**: Performance test failed to run properly" >> performance.md
+            echo "❌ **Test Status**: Performance tests failed to run properly" >> performance.md
+            echo "" >> performance.md
+            echo "Please check the test output above for errors." >> performance.md
           fi
           
+          echo "" >> performance.md
+          echo "---" >> performance.md
+          echo "" >> performance.md
+          echo "## Historical Performance" >> performance.md
+          echo "" >> performance.md
+          echo "Track performance trends across commits:" >> performance.md
+          echo "- [GitHub Actions History](https://github.com/${{ github.repository }}/actions/workflows/performance-test.yml)" >> performance.md
           echo "" >> performance.md
           echo "---" >> performance.md
           echo "*Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*" >> performance.md

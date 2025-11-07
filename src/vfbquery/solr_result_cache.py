@@ -95,11 +95,12 @@ class SolrResultCache:
             Cached result or None if not found/expired
         """
         try:
-            # Query for cache document with prefixed ID
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Query for cache document with prefixed ID including query type
+            # This ensures different query types for the same term have separate cache entries
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "q": f"id:{cache_doc_id}",
                 "fl": "cache_data",
                 "wt": "json"
             }, timeout=5)  # Short timeout for cache lookups
@@ -161,6 +162,14 @@ class SolrResultCache:
                     logger.warning(f"Failed to parse cached result for {term_id}")
                     return None
             
+            # IMPORTANT: Validate cached result - reject error results (count=-1)
+            # This ensures old cached errors get retried when the service is working again
+            if isinstance(result, dict) and 'count' in result:
+                if result.get('count', -1) < 0:
+                    logger.warning(f"Rejecting cached error result for {query_type}({term_id}): count={result.get('count')}")
+                    self._clear_expired_cache_document(cache_doc_id)
+                    return None
+            
             logger.info(f"Cache hit for {query_type}({term_id})")
             return result
             
@@ -194,8 +203,9 @@ class SolrResultCache:
             if not cached_data:
                 return False  # Result too large or other issue
                 
-            # Create cache document with prefixed ID
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Create cache document with prefixed ID including query type
+            # This ensures different query types for the same term have separate cache entries
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             cache_doc = {
                 "id": cache_doc_id,
@@ -252,7 +262,8 @@ class SolrResultCache:
             True if successfully cleared, False otherwise
         """
         try:
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Include query_type in cache document ID to match storage format
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             response = requests.post(
                 f"{self.cache_url}/update",
                 data=f'<delete><id>{cache_doc_id}</id></delete>',
@@ -299,10 +310,11 @@ class SolrResultCache:
             Dictionary with cache age info or None if not cached
         """
         try:
-            cache_doc_id = f"vfb_query_{term_id}"
+            # Include query_type in cache document ID to match storage format
+            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": f"id:{cache_doc_id} AND query_type:{query_type}",
+                "q": f"id:{cache_doc_id}",
                 "fl": "cache_data,hit_count,last_accessed",
                 "wt": "json"
             }, timeout=5)
@@ -585,36 +597,53 @@ def with_solr_cache(query_type: str):
                     logger.warning(f"No term_id found for caching {query_type}")
                     return func(*args, **kwargs)
             
+            # Include preview parameter in cache key for term_info queries
+            # This ensures preview=True and preview=False have separate cache entries
+            cache_term_id = term_id
+            if query_type == 'term_info':
+                preview = kwargs.get('preview', True)  # Default is True
+                cache_term_id = f"{term_id}_preview_{preview}"
+            
+            # Include return_dataframe parameter in cache key for queries that support it
+            # This ensures DataFrame and dict formats are cached separately
+            if query_type in ['instances', 'neurons_part_here', 'neurons_synaptic', 
+                             'neurons_presynaptic', 'neurons_postsynaptic', 
+                             'components_of', 'parts_of', 'subclasses_of']:
+                return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
+                cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
+            
             cache = get_solr_cache()
             
             # Clear cache if force_refresh is True
             if force_refresh:
                 logger.info(f"Force refresh requested for {query_type}({term_id})")
-                cache.clear_cache_entry(query_type, term_id)
+                cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
             if not force_refresh:
-                cached_result = cache.get_cached_result(query_type, term_id, **kwargs)
+                cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
                 if cached_result is not None:
                     # Validate that cached result has essential fields for term_info
                     if query_type == 'term_info':
                         is_valid = (cached_result and isinstance(cached_result, dict) and 
                                    cached_result.get('Id') and cached_result.get('Name'))
                         
-                        # Additional validation for query results
-                        if is_valid and 'Queries' in cached_result:
+                        # Additional validation for query results - only when preview=True
+                        preview = kwargs.get('preview', True)  # Default is True
+                        if is_valid and preview and 'Queries' in cached_result:
                             logger.debug(f"Validating {len(cached_result['Queries'])} queries for {term_id}")
                             for i, query in enumerate(cached_result['Queries']):
-                                count = query.get('count', 0)
+                                count = query.get('count', -1)  # Default to -1 if missing
                                 preview_results = query.get('preview_results')
                                 headers = preview_results.get('headers', []) if isinstance(preview_results, dict) else []
                                 
                                 logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
                                 
-                                # Check if query has unrealistic count (0 or -1) which indicates failed execution
-                                if count <= 0:
+                                # Check if query has error count (-1) which indicates failed execution
+                                # Note: count of 0 is valid - it means "no matches found"
+                                if count < 0:
                                     is_valid = False
-                                    logger.debug(f"Cached result has invalid query count {count} for {term_id}")
+                                    logger.debug(f"Cached result has error query count {count} for {term_id}")
                                     break
                                 # Check if preview_results is missing or has empty headers when it should have data
                                 if not isinstance(preview_results, dict) or not headers:
@@ -635,13 +664,73 @@ def with_solr_cache(query_type: str):
             result = func(*args, **kwargs)
             
             # Cache the result asynchronously to avoid blocking
-            if result:
+            # Handle DataFrame, dict, and other result types properly
+            result_is_valid = False
+            result_is_error = False  # Track if result is an error that should clear cache
+            
+            if result is not None:
+                if hasattr(result, 'empty'):  # DataFrame
+                    result_is_valid = not result.empty
+                elif isinstance(result, dict):
+                    # For dict results, check if it's not an error result (count != -1)
+                    # Error results should not be cached
+                    if 'count' in result:
+                        count_value = result.get('count', -1)
+                        result_is_valid = count_value >= 0  # Don't cache errors (count=-1)
+                        result_is_error = count_value < 0  # Mark as error if count is negative
+                    else:
+                        result_is_valid = bool(result)  # For dicts without count field
+                elif isinstance(result, (list, str)):
+                    result_is_valid = len(result) > 0
+                else:
+                    result_is_valid = True
+            
+            # If result is an error, actively clear any existing cache entry
+            # This ensures that transient failures don't get stuck in cache
+            if result_is_error:
+                logger.warning(f"Query returned error result for {query_type}({term_id}), clearing cache entry")
+                try:
+                    cache.clear_cache_entry(query_type, cache_term_id)
+                except Exception as e:
+                    logger.debug(f"Failed to clear cache entry: {e}")
+            
+            if result_is_valid:
                 # Validate result before caching for term_info
                 if query_type == 'term_info':
-                    if (result and isinstance(result, dict) and 
-                        result.get('Id') and result.get('Name')):
+                    # Basic validation: must have Id and Name
+                    is_complete = (result and isinstance(result, dict) and 
+                                  result.get('Id') and result.get('Name'))
+                    
+                    # Additional validation when preview=True: check if queries have results
+                    # We allow caching even if some queries failed (count=-1) as long as the core term_info is valid
+                    # This is because some query functions may not be implemented yet or may legitimately fail
+                    if is_complete:
+                        preview = kwargs.get('preview', True)
+                        if preview and 'Queries' in result and result['Queries']:
+                            # Count how many queries have valid results vs errors
+                            valid_queries = 0
+                            failed_queries = 0
+                            
+                            for query in result['Queries']:
+                                count = query.get('count', -1)
+                                preview_results = query.get('preview_results')
+                                
+                                # Count queries with valid results (count >= 0)
+                                if count >= 0 and isinstance(preview_results, dict):
+                                    valid_queries += 1
+                                else:
+                                    failed_queries += 1
+                            
+                            # Only reject if ALL queries failed - at least one must succeed
+                            if valid_queries == 0 and failed_queries > 0:
+                                is_complete = False
+                                logger.warning(f"Not caching result for {term_id}: all {failed_queries} queries failed")
+                            elif failed_queries > 0:
+                                logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
+                    
+                    if is_complete:
                         try:
-                            cache.cache_result(query_type, term_id, result, **kwargs)
+                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
                             logger.debug(f"Cached complete result for {term_id}")
                         except Exception as e:
                             logger.debug(f"Failed to cache result: {e}")
@@ -649,7 +738,7 @@ def with_solr_cache(query_type: str):
                         logger.warning(f"Not caching incomplete result for {term_id}")
                 else:
                     try:
-                        cache.cache_result(query_type, term_id, result, **kwargs)
+                        cache.cache_result(query_type, cache_term_id, result, **kwargs)
                     except Exception as e:
                         logger.debug(f"Failed to cache result: {e}")
             

@@ -779,12 +779,69 @@ When implementing a new query, ensure:
 - **Status**: ❌ **NOT IMPLEMENTED**
 
 #### 23. **neuron_neuron_connectivity_query** ❌
+
+---
+
+#### 23. **neuron_neuron_connectivity_query** ✅
 - **ID**: `ref_neuron_neuron_connectivity_query` / `compound_neuron_neuron_connectivity_query`
 - **Name**: "Show connectivity to neurons from Neuron X"
 - **Description**: "Show neurons connected to $NAME"
 - **Matching Criteria**: Connected_neuron
 - **Query Chain**: Neo4j compound query → Process
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
+
+**Implementation**:
+- Schema: `NeuronNeuronConnectivityQuery_to_schema()`
+- Execution: `get_neuron_neuron_connectivity(term_id, return_dataframe=True, limit=-1, min_weight=0, direction='both')`
+- Tests: `src/test/test_neuron_neuron_connectivity.py`
+- Preview: 5 results
+- Preview Columns: id, label, downstream_weight, upstream_weight, tags
+- Test neuron: VFB_jrchk00s (LPC1)
+- **Relationship**: Uses `synapsed_to` relationships (NOT `CONNECTED_TO`)
+- **Weight Filter**: Configurable via `min_weight` parameter (XMI spec uses > 1, default is 0)
+- **Direction Filter**: Optional `direction` parameter ('both', 'upstream', or 'downstream')
+- **Caching**: Only caches when all parameters are defaults (complete results)
+
+**Parameters**:
+- `term_id`: Short form of the neuron (Individual)
+- `return_dataframe`: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+- `limit`: Maximum number of results to return (default: -1 for all results)
+- `min_weight`: Minimum connection weight threshold (default: 0, XMI spec uses 1)
+- `direction`: Filter by connection direction - 'both' (default), 'upstream', or 'downstream'
+
+**Cypher Query** (from XMI spec):
+```cypher
+MATCH (primary:Individual {short_form: $NAME})
+MATCH (oi:Individual)-[r:synapsed_to]-(primary)
+WHERE exists(r.weight) AND r.weight[0] > $min_weight
+WITH primary, oi
+OPTIONAL MATCH (oi)<-[down:synapsed_to]-(primary)
+WITH down, oi, primary
+OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
+RETURN 
+    oi.short_form AS id,
+    oi.label AS label,
+    coalesce(down.weight[0], 0) AS downstream_weight,
+    coalesce(up.weight[0], 0) AS upstream_weight,
+    oi.uniqueFacets AS tags
+```
+
+**Expected Output Structure**:
+```python
+{
+  'headers': {
+    'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
+    'label': {'title': 'Neuron Name', 'type': 'markdown', 'order': 0},
+    'downstream_weight': {'title': 'Downstream Weight', 'type': 'number', 'order': 1},
+    'upstream_weight': {'title': 'Upstream Weight', 'type': 'number', 'order': 2},
+    'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
+  },
+  'data': [...],
+  'count': <number>
+}
+```
+
+---
 
 #### 24. **SimilarMorphologyToPartOf** ❌
 - **ID**: `SimilarMorphologyToPartOf` / `has_similar_morphology_to_part_of`

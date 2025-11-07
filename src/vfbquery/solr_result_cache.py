@@ -589,6 +589,12 @@ def with_solr_cache(query_type: str):
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
             
+            # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
+            if query_type == 'neuron_neuron_connectivity_query':
+                min_weight = kwargs.get('min_weight', 0)
+                direction = kwargs.get('direction', 'both')
+                should_cache = should_cache and (min_weight == 0) and (direction == 'both')
+            
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
@@ -615,7 +621,7 @@ def with_solr_cache(query_type: str):
                              'components_of', 'parts_of', 'subclasses_of',
                              'neuron_classes_fasciculating_here', 'tracts_nerves_innervating_here',
                              'lineage_clones_in', 'images_neurons', 'images_that_develop_from',
-                             'expression_pattern_fragments']:
+                             'expression_pattern_fragments', 'neuron_neuron_connectivity_query']:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
             

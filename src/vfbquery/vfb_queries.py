@@ -666,6 +666,9 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
             q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
             queries.append(q)
+            # NeuronNeuronConnectivity query - neurons connected to this neuron
+            q = NeuronNeuronConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
         
         # NeuronsPartHere query - for Class+Anatomy terms (synaptic neuropils, etc.)
         # Matches XMI criteria: Class + Synaptic_neuropil, or other anatomical regions
@@ -1116,7 +1119,7 @@ def SubclassesOf_to_schema(name, take_default):
 def NeuronClassesFasciculatingHere_to_schema(name, take_default):
     """
     Schema for NeuronClassesFasciculatingHere query.
-    Finds neuron classes that fasciculate with (run along) a tract or nerve.
+    Finds neuron classes that fascicululate with (run along) a tract or nerve.
     
     Matching criteria from XMI:
     - Class + Tract_or_nerve (VFB uses Neuron_projection_bundle type)
@@ -1134,6 +1137,25 @@ def NeuronClassesFasciculatingHere_to_schema(name, take_default):
     preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronNeuronConnectivityQuery_to_schema(name, take_default):
+    """
+    Schema for neuron_neuron_connectivity_query.
+    Finds neurons connected to the specified neuron.
+    Matching criteria from XMI: Connected_neuron
+    Query chain: Neo4j compound query → process
+    """
+    query = "NeuronNeuronConnectivityQuery"
+    label = f"Neurons connected to {name}"
+    function = "get_neuron_neuron_connectivity"
+    takes = {
+        "short_form": {"$and": ["Individual", "Connected_neuron"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "label", "weight", "tags"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -1486,7 +1508,7 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 # Replace http with https and thumbnailT.png with thumbnail.png
                 thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
             
-            # Format thumbnail with proper markdown link (matching Neo4j format)
+            # Format thumbnail with proper markdown link (matching Neo4j behavior)
             thumbnail = ''
             if thumbnail_url and template_anatomy:
                 # Prefer symbol over label for template (matching Neo4j behavior)
@@ -1540,7 +1562,7 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
                 'parent': f"[{term_info.get('term', {}).get('core', {}).get('label', 'Unknown')}]({short_form})",
                 'source': '',  # Not readily available in SOLR anatomy_channel_image
                 'source_id': '',
-                'template': template_formatted,
+ 'template': template_formatted,
                 'dataset': '',  # Not readily available in SOLR anatomy_channel_image
                 'license': '',
                 'thumbnail': thumbnail
@@ -1590,52 +1612,6 @@ def _get_instances_headers():
         "license": {"title": "License", "type": "markdown", "order": 8},
         "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
     }
-
-    # Convert the results to a DataFrame
-    df = pd.DataFrame.from_records(get_dict_cursor()(results))
-
-    columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
-    df = encode_markdown_links(df, columns_to_encode)
-    
-    if return_dataframe:
-        return df
-
-    # Format the results
-    formatted_results = {
-        "headers": {
-            "id": {"title": "Add", "type": "selection_id", "order": -1},
-            "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
-            "parent": {"title": "Parent Type", "type": "markdown", "order": 1},
-            "template": {"title": "Template", "type": "markdown", "order": 4},
-            "tags": {"title": "Gross Types", "type": "tags", "order": 3},
-            "source": {"title": "Data Source", "type": "markdown", "order": 5},
-            "source_id": {"title": "Data Source", "type": "markdown", "order": 6},
-            "dataset": {"title": "Dataset", "type": "markdown", "order": 7},
-            "license": {"title": "License", "type": "markdown", "order": 8},
-            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
-        },
-        "rows": [
-            {
-                key: row[key]
-                for key in [
-                    "id",
-                    "label",
-                    "tags",
-                    "parent",
-                    "source",
-                    "source_id",
-                    "template",
-                    "dataset",
-                    "license",
-                    "thumbnail"
-                ]
-            }
-            for row in safe_to_dict(df)
-        ],
-        "count": total_count
-    }
-
-    return formatted_results
 
 def _get_templates_minimal(limit: int = -1, return_dataframe: bool = False):
     """
@@ -2240,6 +2216,77 @@ def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
 
 
+@with_solr_cache('neuron_neuron_connectivity_query')
+def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit: int = -1, min_weight: float = 0, direction: str = 'both'):
+    """
+    Retrieves neurons connected to the specified neuron.
+    
+    This implements the neuron_neuron_connectivity_query from the VFB XMI specification.
+    Query chain (from XMI): Neo4j compound query → process
+    Matching criteria: Individual + Connected_neuron
+    
+    Uses synapsed_to relationships to find connected neurons.
+    Returns upstream and downstream connection information.
+    
+    :param short_form: short form of the neuron (Individual)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :param min_weight: minimum connection weight threshold (default 0, XMI spec uses 1)
+    :param direction: filter by connection direction - 'both' (default), 'upstream', or 'downstream'
+    :return: Neurons connected to the specified neuron with connection weights
+    
+    Note: Caching only applies when all parameters are at default values (complete results).
+    """
+    # Build Cypher query to get connected neurons using synapsed_to relationships
+    # XMI spec uses min_weight > 1, but we default to 0 to return all valid connections
+    cypher = f"""
+    MATCH (primary:Individual {{short_form: '{short_form}'}})
+    MATCH (oi:Individual)-[r:synapsed_to]-(primary)
+    WHERE exists(r.weight) AND r.weight[0] > {min_weight}
+    WITH primary, oi
+    OPTIONAL MATCH (oi)<-[down:synapsed_to]-(primary)
+    WITH down, oi, primary
+    OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
+    RETURN 
+        oi.short_form AS id,
+        oi.label AS label,
+        coalesce(down.weight[0], 0) AS downstream_weight,
+        coalesce(up.weight[0], 0) AS upstream_weight,
+        oi.uniqueFacets AS tags
+    """
+    if limit != -1:
+        cypher += f" LIMIT {limit}"
+
+    # Run query using Neo4j client
+    results = vc.nc.commit_list([cypher])
+    rows = get_dict_cursor()(results)
+    
+    # Filter by direction if specified
+    if direction != 'both':
+        if direction == 'upstream':
+            rows = [row for row in rows if row.get('upstream_weight', 0) > 0]
+        elif direction == 'downstream':
+            rows = [row for row in rows if row.get('downstream_weight', 0) > 0]
+
+    # Format output
+    if return_dataframe:
+        df = pd.DataFrame(rows)
+        return df
+    
+    headers = {
+        'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
+        'label': {'title': 'Neuron Name', 'type': 'markdown', 'order': 0},
+        'downstream_weight': {'title': 'Downstream Weight', 'type': 'number', 'order': 1},
+        'upstream_weight': {'title': 'Upstream Weight', 'type': 'number', 'order': 2},
+        'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
+    }
+    return {
+        'headers': headers,
+        'data': rows,
+        'count': len(rows)
+    }
+
+
 @with_solr_cache('images_neurons')
 def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     """
@@ -2462,13 +2509,12 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                         # Convert to HTTPS and use non-transparent version
                         thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
                         
-                        # Format thumbnail markdown
+                        # Format thumbnail with proper markdown link (matching Neo4j behavior)
                         template_anatomy = image_info.get('template_anatomy', {})
                         if template_anatomy:
                             template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
                             template_label = unquote(template_label)
-                            anatomy_info = first_img.get('anatomy', {})
-                            anatomy_label = anatomy_info.get('symbol') or anatomy_info.get('label', label_text)
+                            anatomy_label = first_img.get('anatomy', {}).get('label', label_text)
                             anatomy_label = unquote(anatomy_label)
                             alt_text = f"{anatomy_label} aligned to {template_label}"
                             thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
@@ -2507,162 +2553,6 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                 
         except Exception as e:
             print(f"Error fetching SOLR data: {e}")
-            import traceback
-            traceback.print_exc()
-        
-        # Convert to DataFrame if requested
-        if return_dataframe:
-            df = pd.DataFrame(rows)
-            # Apply markdown encoding
-            columns_to_encode = ['label', 'thumbnail']
-            df = encode_markdown_links(df, columns_to_encode)
-            return df
-        
-        # Return formatted dict
-        return {
-            "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
-            "rows": rows,
-            "count": total_count
-        }
-        
-    except Exception as e:
-        # Construct the Owlery URL for debugging failed queries
-        owlery_base = "http://owl.virtualflybrain.org/kbs/vfb"  # Default
-        try:
-            if hasattr(vc.vfb, 'oc') and hasattr(vc.vfb.oc, 'owlery_endpoint'):
-                owlery_base = vc.vfb.oc.owlery_endpoint.rstrip('/')
-        except Exception:
-            pass
-        
-        from urllib.parse import quote
-        query_encoded = quote(owl_query_string, safe='')
-        owlery_url = f"{owlery_base}/subclasses?object={query_encoded}"
-        
-        # Always use stderr for error messages to ensure they are visible
-        import sys
-        print(f"ERROR: Owlery query failed: {e}", file=sys.stderr)
-        print(f"       Test URL: {owlery_url}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        # Return error indication with count=-1
-        if return_dataframe:
-            return pd.DataFrame()
-        return {
-            "headers": _get_standard_query_headers() if not include_source else _get_neurons_part_here_headers(),
-            "rows": [],
-            "count": -1  # -1 indicates query error/failure
-        }
-
-
-def _owlery_instances_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
-                                       limit: int = -1, solr_field: str = 'anat_image_query'):
-    """
-    Shared helper function for Owlery-based instance queries (e.g., ImagesNeurons).
-    
-    Similar to _owlery_query_to_results but queries for instances (individuals) instead of classes.
-    This implements the common pattern:
-    1. Query Owlery for instance IDs matching an OWL pattern
-    2. Fetch details from SOLR for each instance
-    3. Format results as DataFrame or dict
-    
-    :param owl_query_string: OWL query string with IRI syntax (angle brackets)
-    :param short_form: The anatomical region or entity short form
-    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
-    :param limit: Maximum number of results to return (default -1 for all)
-    :param solr_field: SOLR field to query (default 'anat_image_query' for Individual images)
-    :return: Query results
-    """
-    try:
-        # Step 1: Query Owlery for instances matching the OWL pattern
-        instance_ids = vc.vfb.oc.get_instances(
-            query=owl_query_string,
-            query_by_label=False,  # Use IRI syntax
-            verbose=False
-        )
-        
-        if not instance_ids:
-            # No results found - return empty
-            if return_dataframe:
-                return pd.DataFrame()
-            return {
-                "headers": _get_standard_query_headers(),
-                "rows": [],
-                "count": 0
-            }
-        
-        total_count = len(instance_ids)
-        
-        # Apply limit if specified (before SOLR query to save processing)
-        if limit != -1 and limit > 0:
-            instance_ids = instance_ids[:limit]
-        
-        # Step 2: Query SOLR for ALL instances in a single batch query
-        rows = []
-        try:
-            # Build filter query with all instance IDs
-            id_list = ','.join(instance_ids)
-            results = vfb_solr.search(
-                q='id:*',
-                fq=f'{{!terms f=id}}{id_list}',
-                fl=solr_field,
-                rows=len(instance_ids)
-            )
-            
-            # Process all results
-            for doc in results.docs:
-                if solr_field not in doc:
-                    continue
-                    
-                # Parse the SOLR field JSON string
-                try:
-                    field_data = json.loads(doc[solr_field][0])
-                except (json.JSONDecodeError, IndexError) as e:
-                    print(f"Error parsing {solr_field} JSON: {e}")
-                    continue
-                
-                # Extract from term.core structure (VFBConnect pattern)
-                term_core = field_data.get('term', {}).get('core', {})
-                instance_short_form = term_core.get('short_form', '')
-                label_text = term_core.get('label', '')
-                
-                # Build tags list from unique_facets
-                tags = term_core.get('unique_facets', [])
-                
-                # Get thumbnail from channel_image array (VFBConnect pattern)
-                thumbnail = ''
-                channel_images = field_data.get('channel_image', [])
-                if channel_images and len(channel_images) > 0:
-                    first_channel = channel_images[0]
-                    image_info = first_channel.get('image', {})
-                    thumbnail_url = image_info.get('image_thumbnail', '')
-                    
-                    if thumbnail_url:
-                        # Convert to HTTPS (thumbnails are already non-transparent)
-                        thumbnail_url = thumbnail_url.replace('http://', 'https://')
-                        
-                        # Format thumbnail markdown with template info
-                        template_anatomy = image_info.get('template_anatomy', {})
-                        if template_anatomy:
-                            template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
-                            template_label = unquote(template_label)
-                            anatomy_label = term_core.get('symbol') or label_text
-                            anatomy_label = unquote(anatomy_label)
-                            alt_text = f"{anatomy_label} aligned to {template_label}"
-                            template_short_form = template_anatomy.get('short_form', '')
-                            thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({template_short_form},{instance_short_form})"
-                
-                # Build row
-                row = {
-                    'id': instance_short_form,
-                    'label': f"[{label_text}]({instance_short_form})",
-                    'tags': tags,
-                    'thumbnail': thumbnail
-                }
-                
-                rows.append(row)
-                
-        except Exception as e:
-            print(f"Error fetching SOLR data for instances: {e}")
             import traceback
             traceback.print_exc()
         

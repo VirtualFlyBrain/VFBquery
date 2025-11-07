@@ -31,6 +31,7 @@ from vfbquery.vfb_queries import (
     get_expression_pattern_fragments,
     get_instances,
     get_similar_neurons,
+    get_neuron_neuron_connectivity,
 )
 
 
@@ -52,6 +53,7 @@ class QueryPerformanceTest(unittest.TestCase):
             'individual_neuron': 'VFB_00101567',    # Individual anatomy
             'neuron_with_nblast': 'VFB_00017894',   # Neuron with NBLAST data
             'clone': 'FBbt_00050024',               # Clone
+            'connected_neuron': 'VFB_jrchk00s',     # LPC1 neuron with connectivity data
         }
         
         self.results = []
@@ -157,6 +159,17 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         print(f"NeuronsPostsynapticHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronsPostsynapticHere exceeded threshold")
+        
+        # Test neuron-neuron connectivity query
+        result, duration, success = self._time_query(
+            "NeuronNeuronConnectivity",
+            get_neuron_neuron_connectivity,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"NeuronNeuronConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronNeuronConnectivity exceeded threshold")
     
     def test_04_anatomy_hierarchy_queries(self):
         """Test anatomical hierarchy queries"""

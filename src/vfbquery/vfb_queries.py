@@ -2287,6 +2287,64 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     }
 
 
+@with_solr_cache('neuron_region_connectivity_query')
+def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves brain regions where the specified neuron has synaptic terminals.
+    
+    This implements the neuron_region_connectivity_query from the VFB XMI specification.
+    Query chain (from XMI): Neo4j compound query → process
+    Matching criteria: Individual + has_region_connectivity
+    
+    Uses has_presynaptic_terminals_in and has_postsynaptic_terminal_in relationships
+    to find brain regions where the neuron makes connections.
+    
+    :param short_form: short form of the neuron (Individual)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Brain regions with presynaptic and postsynaptic terminal counts
+    """
+    # Build Cypher query based on XMI spec pattern
+    cypher = f"""
+    MATCH (primary:Individual {{short_form: '{short_form}'}})
+    MATCH (target:Individual)<-[r:has_presynaptic_terminals_in|has_postsynaptic_terminal_in]-(primary)
+    WITH DISTINCT collect(properties(r)) + {{}} as props, target, primary
+    WITH apoc.map.removeKeys(apoc.map.merge(props[0], props[1]), ['iri', 'short_form', 'Related', 'label', 'type']) as synapse_counts,
+         target,
+         primary
+    RETURN 
+        target.short_form AS id,
+        target.label AS region,
+        synapse_counts.`pre` AS presynaptic_terminals,
+        synapse_counts.`post` AS postsynaptic_terminals,
+        target.uniqueFacets AS tags
+    """
+    if limit != -1:
+        cypher += f" LIMIT {limit}"
+
+    # Run query using Neo4j client
+    results = vc.nc.commit_list([cypher])
+    rows = get_dict_cursor()(results)
+    
+    # Format output
+    if return_dataframe:
+        df = pd.DataFrame(rows)
+        return df
+    
+    headers = {
+        'id': {'title': 'Region ID', 'type': 'selection_id', 'order': -1},
+        'region': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
+        'presynaptic_terminals': {'title': 'Presynaptic Terminals', 'type': 'number', 'order': 1},
+        'postsynaptic_terminals': {'title': 'Postsynaptic Terminals', 'type': 'number', 'order': 2},
+        'tags': {'title': 'Region Types', 'type': 'list', 'order': 3},
+    }
+    return {
+        'headers': headers,
+        'data': rows,
+        'count': len(rows)
+    }
+
+
 @with_solr_cache('images_neurons')
 def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     """

@@ -770,15 +770,61 @@ When implementing a new query, ensure:
 - **Query Chain**: Neo4j → Neo4j Pass → SOLR → Process
 - **Status**: ❌ **NOT IMPLEMENTED**
 
-#### 22. **neuron_region_connectivity_query** ❌
+#### 22. **neuron_region_connectivity_query** ✅
 - **ID**: `ref_neuron_region_connectivity_query` / `compound_neuron_region_connectivity_query`
 - **Name**: "Show connectivity to regions from Neuron X"
 - **Description**: "Show connectivity per region for $NAME"
 - **Matching Criteria**: Region_connectivity
 - **Query Chain**: Neo4j compound query → Process
-- **Status**: ❌ **NOT IMPLEMENTED**
+- **Status**: ✅ **FULLY IMPLEMENTED** (November 2025)
 
-#### 23. **neuron_neuron_connectivity_query** ❌
+**Implementation**:
+- Schema: `NeuronRegionConnectivityQuery_to_schema()`
+- Execution: `get_neuron_region_connectivity(term_id, return_dataframe=True, limit=-1)`
+- Preview: 5 results
+- Preview Columns: id, region, presynaptic_terminals, postsynaptic_terminals, tags
+- **Relationships**: Uses `has_presynaptic_terminals_in` and `has_postsynaptic_terminal_in`
+- **Terminology**: Uses VFB site conventions - "Brain Region", "Presynaptic Terminals", "Postsynaptic Terminals"
+
+**Parameters**:
+- `term_id`: Short form of the neuron (Individual)
+- `return_dataframe`: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+- `limit`: Maximum number of results to return (default: -1 for all results)
+
+**Cypher Query** (from XMI spec):
+```cypher
+MATCH (primary:Individual {short_form: $NAME})
+MATCH (target:Individual)<-[r:has_presynaptic_terminals_in|has_postsynaptic_terminal_in]-(primary)
+WITH DISTINCT collect(properties(r)) + {} as props, target, primary
+WITH apoc.map.removeKeys(apoc.map.merge(props[0], props[1]), 
+     ['iri', 'short_form', 'Related', 'label', 'type']) as synapse_counts,
+     target, primary
+RETURN 
+    target.short_form AS id,
+    target.label AS region,
+    synapse_counts.`pre` AS presynaptic_terminals,
+    synapse_counts.`post` AS postsynaptic_terminals,
+    target.uniqueFacets AS tags
+```
+
+**Expected Output Structure**:
+```python
+{
+  'headers': {
+    'id': {'title': 'Region ID', 'type': 'selection_id', 'order': -1},
+    'region': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
+    'presynaptic_terminals': {'title': 'Presynaptic Terminals', 'type': 'number', 'order': 1},
+    'postsynaptic_terminals': {'title': 'Postsynaptic Terminals', 'type': 'number', 'order': 2},
+    'tags': {'title': 'Region Types', 'type': 'list', 'order': 3},
+  },
+  'data': [...],
+  'count': <number>
+}
+```
+
+---
+
+#### 23. **neuron_neuron_connectivity_query** ✅
 
 ---
 

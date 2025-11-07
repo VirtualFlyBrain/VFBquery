@@ -4,8 +4,8 @@ Test suite for epFrag (Expression Pattern Fragments) query.
 This query uses Owlery instances endpoint to find individual expression pattern
 fragment images that are part of a specified expression pattern.
 
-TODO: Query needs fixing - returns 0 results for known test cases.
-Example: VFBexp_FBtp0022557 should have image VFB_00008416 but query returns 0 results.
+FIXED: Query now works correctly with proper IRI resolution for VFBexp_* IDs.
+Example: VFBexp_FBtp0022557 returns image VFB_00008416 as expected.
 """
 
 import unittest
@@ -28,9 +28,9 @@ class TestExpressionPatternFragments(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        # TODO: Query needs fixing - VFBexp_FBtp0022557 has image VFB_00008416 but returns 0 results
-        # epFrag should find individual fragments (Expression_pattern_fragment) that are part_of a Class Expression_pattern
-        self.test_expression_pattern = "VFBexp_FBtp0022557"  # P{VGlut-GAL4.D} expression pattern (should have VFB_00008416)
+        # Expression pattern that has known fragments
+        # epFrag finds individual fragments (Expression_pattern_fragment) that are part_of a Class Expression_pattern
+        self.test_expression_pattern = "VFBexp_FBtp0022557"  # P{VGlut-GAL4.D} expression pattern (has VFB_00008416)
         
     def test_schema_generation(self):
         """Test that the schema function generates correct Query object."""
@@ -44,19 +44,23 @@ class TestExpressionPatternFragments(unittest.TestCase):
         self.assertIn("thumbnail", schema.preview_columns)
         
     def test_expression_pattern_fragments_execution(self):
-        """Test that expression pattern fragments query executes without errors."""
+        """Test that expression pattern fragments query executes and returns results."""
         result = get_expression_pattern_fragments(self.test_expression_pattern)
         
         self.assertIsNotNone(result)
         # Result can be dict or DataFrame
         if isinstance(result, dict):
             self.assertIn('count', result)
-            # TODO: Should return at least 1 result (VFB_00008416) but currently returns 0
-            # Query implementation needs debugging
-            self.assertGreaterEqual(result['count'], 0)
+            # Should return at least 1 result (VFB_00008416)
+            self.assertGreater(result['count'], 0, 
+                             f"Expected at least 1 result for {self.test_expression_pattern}")
+            print(f"\n✓ Query returned {result['count']} expression pattern fragments")
         else:
             # DataFrame
             self.assertIsInstance(result, pd.DataFrame)
+            self.assertGreater(len(result), 0, 
+                             f"Expected at least 1 result for {self.test_expression_pattern}")
+            print(f"\n✓ Query returned {len(result)} expression pattern fragments")
     
     def test_return_dataframe_parameter(self):
         """Test that return_dataframe parameter works correctly."""

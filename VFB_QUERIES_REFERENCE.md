@@ -884,22 +884,22 @@ When implementing a new query, ensure:
   - Test term: FBbt_00001419 (neuroblast MNB) → Returns 336 neuron images
   - Note: Returns individual neuron images (instances) that develop from neuroblast
 
-#### 35. **epFrag** ⚠️
+#### 35. **epFrag** ✅
 - **ID**: `epFrag`
 - **Name**: "Images of expression pattern fragments"
 - **Description**: "Images of fragments of $NAME"
 - **Matching Criteria**: Class + Expression_pattern
 - **Query Chain**: Owlery individual parts → Process → SOLR
 - **OWL Query**: `object=<BFO_0000050> some <$ID>` (instances)
-- **Status**: ⚠️ **NEEDS FIXING** - Query doesn't return expected results
-- **Issue**: Known test case VFBexp_FBtp0022557 has image VFB_00008416 but query returns 0 results
+- **Status**: ✅ **FULLY IMPLEMENTED AND WORKING** (November 7, 2025)
 - **Implementation**:
-  - Schema: `epFrag_to_schema()`
-  - Execution: `get_expression_pattern_fragments(term_id)`
-  - Tests: `src/test/test_expression_pattern_fragments.py` (marked with TODO)
+  - Schema: `epFrag_to_schema()` ✅
+  - Execution: `get_expression_pattern_fragments(term_id)` ✅
+  - Tests: `src/test/test_expression_pattern_fragments.py` ✅
   - Preview: id, label, tags, thumbnail
-  - Test term: VFBexp_FBtp0022557 (P{VGlut-GAL4.D} expression pattern)
-  - Note: Should return individual expression pattern fragment images (instances) that are part_of the expression pattern class
+  - Test term: VFBexp_FBtp0022557 (P{VGlut-GAL4.D} expression pattern) → Returns 5,823 fragments
+  - Note: Returns individual expression pattern fragment images (instances) that are part_of the expression pattern class
+  - **Recent Fix**: IRI construction bug fixed - now correctly handles VFBexp_* IDs using http://virtualflybrain.org/reports/ namespace
 
 ---
 
@@ -931,7 +931,7 @@ When implementing a new query, ensure:
 | LineageClonesIn | ✅ | Subclasses | FBbt_00007401 |
 | ImagesNeurons | ✅ | Instances | FBbt_00007401 (9,657 results) |
 | ImagesThatDevelopFrom | ✅ | Instances | FBbt_00001419 (336 results) |
-| epFrag | ⚠️ | Instances | VFBexp_FBtp0022557 (needs fix) |
+| epFrag | ✅ | Instances | VFBexp_FBtp0022557 (5,823 results) |
 
 **Pattern A (Subclasses)**: `Owlery /subclasses` → SOLR `anat_query` → Returns classes  
 **Pattern B (Instances)**: `Owlery /instances` → SOLR `anat_image_query` → Returns individuals  
@@ -950,7 +950,7 @@ When implementing a new query, ensure:
 - ✅ **LineageClonesIn** - lineage clones found in region
 - ✅ **ImagesNeurons** - individual neuron images with parts in region
 - ✅ **ImagesThatDevelopFrom** - neuron images developing from neuroblast
-- ⚠️ **epFrag** - expression pattern fragment images (implemented but needs debugging)
+- ✅ **epFrag** - expression pattern fragment images (fully working)
 
 ### What's Left?
 

@@ -369,7 +369,9 @@ def encode_markdown_links(df, columns):
         return label
 
     for column in columns:
-        df[column] = df[column].apply(lambda x: encode_label(x) if pd.notnull(x) else x)
+        # Only encode if the column exists in the DataFrame
+        if column in df.columns:
+            df[column] = df[column].apply(lambda x: encode_label(x) if pd.notnull(x) else x)
 
     return df
     
@@ -775,6 +777,41 @@ def term_info_parse_object(results, short_form):
             q = epFrag_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # ExpressionOverlapsHere query - for anatomical regions
+        # Matches XMI criteria: Class + Anatomy
+        # Returns expression patterns that overlap with the anatomical region
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]):
+            q = ExpressionOverlapsHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # anatScRNAseqQuery query - for anatomical regions with scRNAseq data
+        # Matches XMI criteria: Class + Anatomy + hasScRNAseq
+        # Returns scRNAseq clusters and datasets for the anatomical region
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy", "hasScRNAseq"]):
+            q = anatScRNAseqQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # clusterExpression query - for clusters
+        # Matches XMI criteria: Individual + Cluster
+        # Returns genes expressed in the cluster
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Cluster"]):
+            q = clusterExpression_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # expressionCluster query - for genes with scRNAseq data
+        # Matches XMI criteria: Class + Gene + hasScRNAseq
+        # Returns clusters expressing the gene
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Gene", "hasScRNAseq"]):
+            q = expressionCluster_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # scRNAdatasetData query - for scRNAseq datasets
+        # Matches XMI criteria: DataSet + hasScRNAseq
+        # Returns all clusters in the dataset
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["DataSet", "hasScRNAseq"]):
+            q = scRNAdatasetData_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -1159,6 +1196,25 @@ def NeuronNeuronConnectivityQuery_to_schema(name, take_default):
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
+def NeuronRegionConnectivityQuery_to_schema(name, take_default):
+    """
+    Schema for neuron_region_connectivity_query.
+    Shows connectivity to regions from a specified neuron.
+    Matching criteria from XMI: Region_connectivity
+    Query chain: Neo4j compound query → process
+    """
+    query = "NeuronRegionConnectivityQuery"
+    label = f"Connectivity per region for {name}"
+    function = "get_neuron_region_connectivity"
+    takes = {
+        "short_form": {"$and": ["Individual", "Region_connectivity"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
 def TractsNervesInnervatingHere_to_schema(name, take_default):
     """
     Schema for TractsNervesInnervatingHere query.
@@ -1280,6 +1336,141 @@ def epFrag_to_schema(name, take_default):
     }
     preview = 5
     preview_columns = ["id", "label", "tags", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def ExpressionOverlapsHere_to_schema(name, take_default):
+    """
+    Schema for ExpressionOverlapsHere query.
+    Finds expression patterns that overlap with a specified anatomical region.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
+    Matching criteria from XMI:
+    - Class + Anatomy
+    
+    Query chain: Neo4j anat_2_ep_query → process
+    Cypher query: MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
+                  WHERE anat.short_form = $id
+    """
+    query = "ExpressionOverlapsHere"
+    label = f"Expression patterns overlapping {name}"
+    function = "get_expression_overlaps_here"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "name", "tags", "pubs"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def anatScRNAseqQuery_to_schema(name, take_default):
+    """
+    Schema for anatScRNAseqQuery query.
+    Returns single cell transcriptomics data (clusters and datasets) for an anatomical region.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
+    Matching criteria from XMI:
+    - Class + Anatomy + hasScRNAseq (has Single Cell RNA Seq Results)
+    
+    Query chain: Owlery Subclasses → Owlery Pass → Neo4j anat_scRNAseq_query
+    Cypher query: MATCH (primary:Class:Anatomy)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+                  WHERE primary.short_form = $id
+    """
+    query = "anatScRNAseqQuery"
+    label = f"scRNAseq data for {name}"
+    function = "get_anatomy_scrnaseq"
+    takes = {
+        "short_form": {"$and": ["Class", "Anatomy", "hasScRNAseq"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "name", "tags", "dataset", "pubs"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def clusterExpression_to_schema(name, take_default):
+    """
+    Schema for clusterExpression query.
+    Returns genes expressed in a specified cluster with expression levels.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
+    Matching criteria from XMI:
+    - Individual + Cluster
+    
+    Query chain: Neo4j cluster_expression_query → process
+    Cypher query: MATCH (primary:Individual:Cluster)-[e:expresses]->(g:Gene:Class)
+                  WHERE primary.short_form = $id
+    """
+    query = "clusterExpression"
+    label = f"Genes expressed in {name}"
+    function = "get_cluster_expression"
+    takes = {
+        "short_form": {"$and": ["Individual", "Cluster"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "name", "tags", "expression_level", "expression_extent"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def expressionCluster_to_schema(name, take_default):
+    """
+    Schema for expressionCluster query.
+    Returns scRNAseq clusters expressing a specified gene.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
+    Matching criteria from XMI:
+    - Class + Gene + hasScRNAseq (has Single Cell RNA Seq Results)
+    
+    Query chain: Neo4j expression_cluster_query → process
+    Cypher query: MATCH (primary:Individual:Cluster)-[e:expresses]->(g:Gene:Class)
+                  WHERE g.short_form = $id
+    """
+    query = "expressionCluster"
+    label = f"Clusters expressing {name}"
+    function = "get_expression_cluster"
+    takes = {
+        "short_form": {"$and": ["Class", "Gene", "hasScRNAseq"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "name", "tags", "expression_level", "expression_extent"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def scRNAdatasetData_to_schema(name, take_default):
+    """
+    Schema for scRNAdatasetData query.
+    Returns all clusters in a scRNAseq dataset.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
+    Matching criteria from XMI:
+    - DataSet + hasScRNAseq (scRNAseq dataset type)
+    
+    Query chain: Neo4j dataset_scRNAseq_query → process
+    Cypher query: MATCH (c:Individual:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+                  WHERE ds.short_form = $id
+    """
+    query = "scRNAdatasetData"
+    label = f"Clusters in dataset {name}"
+    function = "get_scrnaseq_dataset_data"
+    takes = {
+        "short_form": {"$and": ["DataSet", "hasScRNAseq"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "name", "tags", "anatomy", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -1869,7 +2060,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                         "thumbnail"
                     ]
                 }
-                for row in safe_to_dict(df)
+                for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
         }
@@ -1979,7 +2170,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                         "Images"
                     ]
                 }
-                for row in safe_to_dict(df)
+                for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
         }
@@ -1999,12 +2190,94 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
                         "Weight",
                     ]
                 }
-                for row in safe_to_dict(df)
+                for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
         }
     
     return results
+
+
+def get_expression_overlaps_here(anatomy_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve expression patterns that overlap with the specified anatomical region.
+    
+    This implements the ExpressionOverlapsHere query from the VFB XMI specification.
+    Finds expression patterns where individual instances overlap with or are part of the anatomy.
+    
+    :param anatomy_short_form: Short form identifier of the anatomical region (e.g., 'FBbt_00003982')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: Expression patterns with overlap relationships, publications, and images
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query: count distinct expression patterns
+    count_query = f"""
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
+        WHERE anat.short_form = '{anatomy_short_form}'
+        RETURN COUNT(DISTINCT ep) AS total_count
+    """
+    
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+    
+    # Main query: get expression patterns with details
+    main_query = f"""
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
+        WHERE anat.short_form = '{anatomy_short_form}'
+        WITH DISTINCT collect(DISTINCT ar.pub[0]) as pubs, anat, ep
+        UNWIND pubs as p
+        OPTIONAL MATCH (pub:pub {{ short_form: p}})
+        WITH anat, ep, collect({{ 
+            core: {{ short_form: pub.short_form, label: coalesce(pub.label,''), iri: pub.iri, types: labels(pub), symbol: coalesce(pub.symbol[0], '') }}, 
+            PubMed: coalesce(pub.PMID[0], ''), 
+            FlyBase: coalesce(([]+pub.FlyBase)[0], ''), 
+            DOI: coalesce(pub.DOI[0], '') 
+        }}) as pubs
+        RETURN 
+            ep.short_form AS id,
+            apoc.text.format("[%s](%s)", [ep.label, ep.short_form]) AS name,
+            apoc.text.join(ep.uniqueFacets, '|') AS tags,
+            pubs
+        ORDER BY ep.label
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    
+    # Convert to DataFrame
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Expression Pattern", "type": "markdown", "order": 0},
+                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "pubs": {"title": "Publications", "type": "metadata", "order": 2}
+            },
+            "rows": [
+                {
+                    key: row[key]
+                    for key in ["id", "name", "tags", "pubs"]
+                }
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
 
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
@@ -2692,6 +2965,404 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
             "rows": [],
             "count": -1
         }
+
+
+def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve single cell RNA-seq data (clusters and datasets) for the specified anatomical region.
+    
+    This implements the anatScRNAseqQuery from the VFB XMI specification.
+    Returns clusters that are composed primarily of the anatomy, along with their parent datasets and publications.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    Query: anat_scRNAseq_query
+    
+    :param anatomy_short_form: Short form identifier of the anatomical region (e.g., 'FBbt_00003982')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: scRNAseq clusters and datasets for this anatomy
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query
+    count_query = f"""
+        MATCH (primary:Class:Anatomy)
+        WHERE primary.short_form = '{anatomy_short_form}'
+        WITH primary
+        MATCH (primary)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        RETURN COUNT(c) AS total_count
+    """
+    
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+    
+    # Main query: get clusters with dataset and publication info
+    main_query = f"""
+        MATCH (primary:Class:Anatomy)
+        WHERE primary.short_form = '{anatomy_short_form}'
+        WITH primary
+        MATCH (primary)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
+        WITH {{
+            short_form: c.short_form,
+            label: coalesce(c.label,''),
+            iri: c.iri,
+            types: labels(c),
+            unique_facets: apoc.coll.sort(coalesce(c.uniqueFacets, [])),
+            symbol: coalesce(([]+c.symbol)[0], '')
+        }} AS cluster,
+        {{
+            short_form: ds.short_form,
+            label: coalesce(ds.label,''),
+            iri: ds.iri,
+            types: labels(ds),
+            unique_facets: apoc.coll.sort(coalesce(ds.uniqueFacets, [])),
+            symbol: coalesce(([]+ds.symbol)[0], '')
+        }} AS dataset,
+        COLLECT({{
+            core: {{
+                short_form: p.short_form,
+                label: coalesce(p.label,''),
+                iri: p.iri,
+                types: labels(p),
+                unique_facets: apoc.coll.sort(coalesce(p.uniqueFacets, [])),
+                symbol: coalesce(([]+p.symbol)[0], '')
+            }},
+            PubMed: coalesce(([]+p.PMID)[0], ''),
+            FlyBase: coalesce(([]+p.FlyBase)[0], ''),
+            DOI: coalesce(([]+p.DOI)[0], '')
+        }}) AS pubs,
+        primary
+        RETURN
+            cluster.short_form AS id,
+            apoc.text.format("[%s](%s)", [cluster.label, cluster.short_form]) AS name,
+            apoc.text.join(cluster.unique_facets, '|') AS tags,
+            dataset,
+            pubs
+        ORDER BY cluster.label
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Cluster", "type": "markdown", "order": 0},
+                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "dataset": {"title": "Dataset", "type": "metadata", "order": 2},
+                "pubs": {"title": "Publications", "type": "metadata", "order": 3}
+            },
+            "rows": [
+                {key: row[key] for key in ["id", "name", "tags", "dataset", "pubs"]}
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
+
+
+def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve genes expressed in the specified cluster.
+    
+    This implements the clusterExpression query from the VFB XMI specification.
+    Returns genes with expression levels and extents for a given cluster.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    Query: cluster_expression_query
+    
+    :param cluster_short_form: Short form identifier of the cluster (e.g., 'VFB_00101234')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: Genes expressed in this cluster with expression data
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query
+    count_query = f"""
+        MATCH (primary:Individual:Cluster)
+        WHERE primary.short_form = '{cluster_short_form}'
+        WITH primary
+        MATCH (primary)-[e:expresses]->(g:Gene:Class)
+        RETURN COUNT(g) AS total_count
+    """
+    
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+    
+    # Main query: get genes with expression levels
+    main_query = f"""
+        MATCH (primary:Individual:Cluster)
+        WHERE primary.short_form = '{cluster_short_form}'
+        WITH primary
+        MATCH (primary)-[e:expresses]->(g:Gene:Class)
+        WITH coalesce(e.expression_level_padded[0], e.expression_level[0]) as expression_level,
+             e.expression_extent[0] as expression_extent,
+             {{
+                 short_form: g.short_form,
+                 label: coalesce(g.label,''),
+                 iri: g.iri,
+                 types: labels(g),
+                 unique_facets: apoc.coll.sort(coalesce(g.uniqueFacets, [])),
+                 symbol: coalesce(([]+g.symbol)[0], '')
+             }} AS gene,
+             primary
+        MATCH (a:Anatomy)<-[:composed_primarily_of]-(primary)
+        WITH {{
+            short_form: a.short_form,
+            label: coalesce(a.label,''),
+            iri: a.iri,
+            types: labels(a),
+            unique_facets: apoc.coll.sort(coalesce(a.uniqueFacets, [])),
+            symbol: coalesce(([]+a.symbol)[0], '')
+        }} AS anatomy, primary, expression_level, expression_extent, gene
+        RETURN
+            gene.short_form AS id,
+            apoc.text.format("[%s](%s)", [gene.symbol, gene.short_form]) AS name,
+            apoc.text.join(gene.unique_facets, '|') AS tags,
+            expression_level,
+            expression_extent,
+            anatomy
+        ORDER BY expression_level DESC, gene.symbol
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Gene", "type": "markdown", "order": 0},
+                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
+                "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
+                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 4}
+            },
+            "rows": [
+                {key: row[key] for key in ["id", "name", "tags", "expression_level", "expression_extent", "anatomy"]}
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
+
+
+def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve scRNAseq clusters expressing the specified gene.
+    
+    This implements the expressionCluster query from the VFB XMI specification.
+    Returns clusters that express a given gene with expression levels and anatomy info.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    Query: expression_cluster_query
+    
+    :param gene_short_form: Short form identifier of the gene (e.g., 'FBgn_00001234')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: Clusters expressing this gene with expression data
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query
+    count_query = f"""
+        MATCH (primary:Individual:Cluster)-[e:expresses]->(g:Gene:Class)
+        WHERE g.short_form = '{gene_short_form}'
+        RETURN COUNT(primary) AS total_count
+    """
+    
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+    
+    # Main query: get clusters with expression levels
+    main_query = f"""
+        MATCH (primary:Individual:Cluster)-[e:expresses]->(g:Gene:Class)
+        WHERE g.short_form = '{gene_short_form}'
+        WITH e.expression_level[0] as expression_level,
+             e.expression_extent[0] as expression_extent,
+             {{
+                 short_form: g.short_form,
+                 label: coalesce(g.label,''),
+                 iri: g.iri,
+                 types: labels(g),
+                 unique_facets: apoc.coll.sort(coalesce(g.uniqueFacets, [])),
+                 symbol: coalesce(([]+g.symbol)[0], '')
+             }} AS gene,
+             primary
+        MATCH (a:Anatomy)<-[:composed_primarily_of]-(primary)
+        WITH {{
+            short_form: a.short_form,
+            label: coalesce(a.label,''),
+            iri: a.iri,
+            types: labels(a),
+            unique_facets: apoc.coll.sort(coalesce(a.uniqueFacets, [])),
+            symbol: coalesce(([]+a.symbol)[0], '')
+        }} AS anatomy, primary, expression_level, expression_extent, gene
+        RETURN
+            primary.short_form AS id,
+            apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
+            apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+            expression_level,
+            expression_extent,
+            anatomy
+        ORDER BY expression_level DESC, primary.label
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Cluster", "type": "markdown", "order": 0},
+                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
+                "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
+                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 4}
+            },
+            "rows": [
+                {key: row[key] for key in ["id", "name", "tags", "expression_level", "expression_extent", "anatomy"]}
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
+
+
+def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve all clusters for a scRNAseq dataset.
+    
+    This implements the scRNAdatasetData query from the VFB XMI specification.
+    Returns all clusters in a dataset with anatomy info and publications.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    Query: dataset_scRNAseq_query
+    
+    :param dataset_short_form: Short form identifier of the dataset (e.g., 'VFB_00101234')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: Clusters in this dataset with anatomy and publication data
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query
+    count_query = f"""
+        MATCH (c:Individual)-[:has_source]->(ds:scRNAseq_DataSet)
+        WHERE ds.short_form = '{dataset_short_form}'
+        RETURN COUNT(c) AS total_count
+    """
+    
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+    
+    # Main query: get clusters with anatomy and publications
+    main_query = f"""
+        MATCH (c:Individual:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        WHERE ds.short_form = '{dataset_short_form}'
+        MATCH (a:Class:Anatomy)<-[:composed_primarily_of]-(c)
+        WITH *, {{
+            short_form: a.short_form,
+            label: coalesce(a.label,''),
+            iri: a.iri,
+            types: labels(a),
+            unique_facets: apoc.coll.sort(coalesce(a.uniqueFacets, [])),
+            symbol: coalesce(([]+a.symbol)[0], '')
+        }} AS anatomy
+        OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
+        WITH COLLECT({{
+            core: {{
+                short_form: p.short_form,
+                label: coalesce(p.label,''),
+                iri: p.iri,
+                types: labels(p),
+                unique_facets: apoc.coll.sort(coalesce(p.uniqueFacets, [])),
+                symbol: coalesce(([]+p.symbol)[0], '')
+            }},
+            PubMed: coalesce(([]+p.PMID)[0], ''),
+            FlyBase: coalesce(([]+p.FlyBase)[0], ''),
+            DOI: coalesce(([]+p.DOI)[0], '')
+        }}) AS pubs, c, anatomy
+        RETURN
+            c.short_form AS id,
+            apoc.text.format("[%s](%s)", [c.label, c.short_form]) AS name,
+            apoc.text.join(coalesce(c.uniqueFacets, []), '|') AS tags,
+            anatomy,
+            pubs
+        ORDER BY c.label
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Cluster", "type": "markdown", "order": 0},
+                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 2},
+                "pubs": {"title": "Publications", "type": "metadata", "order": 3}
+            },
+            "rows": [
+                {key: row[key] for key in ["id", "name", "tags", "anatomy", "pubs"]}
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
 
 
 def fill_query_results(term_info):

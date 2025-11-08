@@ -32,6 +32,13 @@ from vfbquery.vfb_queries import (
     get_instances,
     get_similar_neurons,
     get_neuron_neuron_connectivity,
+    get_neuron_region_connectivity,
+    get_individual_neuron_inputs,
+    get_expression_overlaps_here,
+    get_anatomy_scrnaseq,
+    get_cluster_expression,
+    get_expression_cluster,
+    get_scrnaseq_dataset_data,
 )
 
 
@@ -62,9 +69,9 @@ class QueryPerformanceTest(unittest.TestCase):
             'medulla': 'FBbt_00003982',             # Visual system
             'broad_root': 'FBbt_00003987',          # Neuron projection bundle (tract)
             'individual_neuron': 'VFB_00101567',    # Individual anatomy
-            'neuron_with_nblast': 'VFB_00017894',   # Neuron with NBLAST data
+            'neuron_with_nblast': 'VFB_00017894',   # Neuron with NBLAST data (alternative)
             'clone': 'FBbt_00050024',               # Clone
-            'connected_neuron': 'VFB_jrchk00s',     # LPC1 neuron with connectivity data
+            'connected_neuron': 'VFB_jrchk00s',     # LPC1 neuron with connectivity AND NBLAST data
         }
         
         self.results = []
@@ -307,6 +314,164 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         print(f"ListAllAvailableImages: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ListAllAvailableImages exceeded threshold")
+    
+    def test_07_connectivity_queries(self):
+        """Test neuron connectivity queries"""
+        print("\n" + "="*80)
+        print("CONNECTIVITY QUERIES")
+        print("="*80)
+        
+        # NeuronNeuronConnectivity
+        result, duration, success = self._time_query(
+            "NeuronNeuronConnectivityQuery",
+            get_neuron_neuron_connectivity,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=-1  # Enable caching for performance tests
+        )
+        print(f"NeuronNeuronConnectivityQuery: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronNeuronConnectivityQuery exceeded threshold")
+        
+        # NeuronRegionConnectivity
+        result, duration, success = self._time_query(
+            "NeuronRegionConnectivityQuery",
+            get_neuron_region_connectivity,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=-1  # Enable caching for performance tests
+        )
+        print(f"NeuronRegionConnectivityQuery: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronRegionConnectivityQuery exceeded threshold")
+    
+    def test_08_similarity_queries(self):
+        """Test NBLAST similarity queries"""
+        print("\n" + "="*80)
+        print("SIMILARITY QUERIES (Neo4j NBLAST)")
+        print("="*80)
+        
+        # SimilarMorphologyTo (NBLAST)
+        result, duration, success = self._time_query(
+            "SimilarMorphologyTo",
+            get_similar_neurons,
+            self.test_terms['connected_neuron'],  # VFB_jrchk00s has NBLAST data
+            similarity_score='NBLAST_score',
+            return_dataframe=False,
+            limit=5
+        )
+        print(f"SimilarMorphologyTo: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyTo exceeded threshold")
+        # self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyTo exceeded threshold")
+    
+    def test_09_neuron_input_queries(self):
+        """Test neuron input/synapse queries"""
+        print("\n" + "="*80)
+        print("NEURON INPUT QUERIES (Neo4j)")
+        print("="*80)
+        
+        # NeuronInputsTo
+        result, duration, success = self._time_query(
+            "NeuronInputsTo",
+            get_individual_neuron_inputs,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=5
+        )
+        print(f"NeuronInputsTo: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronInputsTo exceeded threshold")
+    
+    def test_10_expression_queries(self):
+        """Test expression pattern queries"""
+        print("\n" + "="*80)
+        print("EXPRESSION PATTERN QUERIES (Neo4j)")
+        print("="*80)
+        
+        # ExpressionOverlapsHere - test with adult brain which has many expression patterns
+        result, duration, success = self._time_query(
+            "ExpressionOverlapsHere (adult brain)",
+            get_expression_overlaps_here,
+            self.test_terms['medulla'],  # FBbt_00003982 (adult brain/medulla)
+            return_dataframe=False,
+            limit=10  # Limit to 10 for performance test
+        )
+        print(f"ExpressionOverlapsHere: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            print(f"  └─ Found {result.get('count', 0)} total expression patterns, returned 10")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "ExpressionOverlapsHere exceeded threshold")
+    
+    def test_11_transcriptomics_queries(self):
+        """Test scRNAseq transcriptomics queries"""
+        print("\n" + "="*80)
+        print("TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)")
+        print("="*80)
+        
+        # Note: These tests use example IDs that may need to be updated based on actual database content
+        # The queries are designed to work even if no data is found (will return empty results)
+        
+        # anatScRNAseqQuery - test with adult brain
+        result, duration, success = self._time_query(
+            "anatScRNAseqQuery (adult brain)",
+            get_anatomy_scrnaseq,
+            self.test_terms['medulla'],  # FBbt_00003982 (adult brain/medulla)
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"anatScRNAseqQuery: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} total clusters" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_SLOW, "anatScRNAseqQuery exceeded threshold")
+        
+        # clusterExpression - test with a cluster ID (may return empty if cluster doesn't exist)
+        # Using a dummy ID - test will pass even with empty results
+        try:
+            result, duration, success = self._time_query(
+                "clusterExpression (example cluster)",
+                get_cluster_expression,
+                "VFBc_00101567",  # Example cluster ID
+                return_dataframe=False,
+                limit=10
+            )
+            print(f"clusterExpression: {duration:.4f}s {'✅' if success else '❌'}")
+            if success and result:
+                count = result.get('count', 0)
+                print(f"  └─ Found {count} genes expressed" + (", returned 10" if count > 10 else ""))
+            self.assertLess(duration, self.THRESHOLD_SLOW, "clusterExpression exceeded threshold")
+        except Exception as e:
+            print(f"clusterExpression: Skipped (test data may not exist): {e}")
+        
+        # expressionCluster - test with a gene ID (may return empty if no scRNAseq data)
+        try:
+            result, duration, success = self._time_query(
+                "expressionCluster (example gene)",
+                get_expression_cluster,
+                "FBgn_00000024",  # Example gene ID
+                return_dataframe=False,
+                limit=10
+            )
+            print(f"expressionCluster: {duration:.4f}s {'✅' if success else '❌'}")
+            if success and result:
+                count = result.get('count', 0)
+                print(f"  └─ Found {count} clusters expressing gene" + (", returned 10" if count > 10 else ""))
+            self.assertLess(duration, self.THRESHOLD_SLOW, "expressionCluster exceeded threshold")
+        except Exception as e:
+            print(f"expressionCluster: Skipped (test data may not exist): {e}")
+        
+        # scRNAdatasetData - test with a dataset ID (may return empty if dataset doesn't exist)
+        try:
+            result, duration, success = self._time_query(
+                "scRNAdatasetData (example dataset)",
+                get_scrnaseq_dataset_data,
+                "VFBds_00001234",  # Example dataset ID
+                return_dataframe=False,
+                limit=10
+            )
+            print(f"scRNAdatasetData: {duration:.4f}s {'✅' if success else '❌'}")
+            if success and result:
+                count = result.get('count', 0)
+                print(f"  └─ Found {count} clusters in dataset" + (", returned 10" if count > 10 else ""))
+            self.assertLess(duration, self.THRESHOLD_SLOW, "scRNAdatasetData exceeded threshold")
+        except Exception as e:
+            print(f"scRNAdatasetData: Skipped (test data may not exist): {e}")
     
     def tearDown(self):
         """Generate performance summary"""

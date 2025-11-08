@@ -473,6 +473,230 @@ class QueryPerformanceTest(unittest.TestCase):
         except Exception as e:
             print(f"scRNAdatasetData: Skipped (test data may not exist): {e}")
     
+    def test_12_nblast_queries(self):
+        """Test NBLAST similarity queries"""
+        print("\n" + "="*80)
+        print("NBLAST SIMILARITY QUERIES (2025)")
+        print("="*80)
+        
+        # Import the new query functions
+        from vfbquery.vfb_queries import (
+            get_similar_morphology,
+            get_similar_morphology_part_of,
+            get_similar_morphology_part_of_exp,
+            get_similar_morphology_nb,
+            get_similar_morphology_nb_exp,
+            get_similar_morphology_userdata
+        )
+        
+        # SimilarMorphologyTo - NBLAST matches
+        result, duration, success = self._time_query(
+            "SimilarMorphologyTo",
+            get_similar_morphology,
+            self.test_terms['connected_neuron'],  # LPC1 neuron with NBLAST data
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"SimilarMorphologyTo: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} NBLAST matches" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyTo exceeded threshold")
+        
+        # SimilarMorphologyToPartOf - NBLASTexp to expression patterns
+        result, duration, success = self._time_query(
+            "SimilarMorphologyToPartOf",
+            get_similar_morphology_part_of,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"SimilarMorphologyToPartOf: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} NBLASTexp matches" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToPartOf exceeded threshold")
+        
+        # SimilarMorphologyToPartOfexp - Reverse NBLASTexp
+        result, duration, success = self._time_query(
+            "SimilarMorphologyToPartOfexp",
+            get_similar_morphology_part_of_exp,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"SimilarMorphologyToPartOfexp: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} reverse NBLASTexp matches" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToPartOfexp exceeded threshold")
+        
+        # SimilarMorphologyToNB - NeuronBridge matches
+        result, duration, success = self._time_query(
+            "SimilarMorphologyToNB",
+            get_similar_morphology_nb,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"SimilarMorphologyToNB: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} NeuronBridge matches" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToNB exceeded threshold")
+        
+        # SimilarMorphologyToNBexp - NeuronBridge for expression patterns
+        result, duration, success = self._time_query(
+            "SimilarMorphologyToNBexp",
+            get_similar_morphology_nb_exp,
+            self.test_terms['connected_neuron'],
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"SimilarMorphologyToNBexp: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} NeuronBridge expression matches" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToNBexp exceeded threshold")
+        
+        print(f"✅ All NBLAST similarity queries completed")
+    
+    def test_13_dataset_template_queries(self):
+        """Test dataset and template queries"""
+        print("\n" + "="*80)
+        print("DATASET/TEMPLATE QUERIES (2025)")
+        print("="*80)
+        
+        # Import the new query functions
+        from vfbquery.vfb_queries import (
+            get_painted_domains,
+            get_dataset_images,
+            get_all_aligned_images,
+            get_aligned_datasets,
+            get_all_datasets
+        )
+        
+        # Test terms for templates and datasets
+        template_term = 'VFBc_00050000'  # Adult Brain template
+        dataset_term = 'VFBc_00101384'   # Example dataset
+        
+        # PaintedDomains - Template painted anatomy domains
+        result, duration, success = self._time_query(
+            "PaintedDomains",
+            get_painted_domains,
+            template_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"PaintedDomains: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} painted domains" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "PaintedDomains exceeded threshold")
+        
+        # DatasetImages - Images in a dataset
+        result, duration, success = self._time_query(
+            "DatasetImages",
+            get_dataset_images,
+            dataset_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"DatasetImages: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} images in dataset" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "DatasetImages exceeded threshold")
+        
+        # AllAlignedImages - All images aligned to template
+        result, duration, success = self._time_query(
+            "AllAlignedImages",
+            get_all_aligned_images,
+            template_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"AllAlignedImages: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} aligned images" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllAlignedImages exceeded threshold")
+        
+        # AlignedDatasets - All datasets aligned to template
+        result, duration, success = self._time_query(
+            "AlignedDatasets",
+            get_aligned_datasets,
+            template_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"AlignedDatasets: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} aligned datasets" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "AlignedDatasets exceeded threshold")
+        
+        # AllDatasets - All available datasets
+        result, duration, success = self._time_query(
+            "AllDatasets",
+            get_all_datasets,
+            return_dataframe=False,
+            limit=20
+        )
+        print(f"AllDatasets: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} total datasets" + (", returned 20" if count > 20 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllDatasets exceeded threshold")
+        
+        print(f"✅ All dataset/template queries completed")
+    
+    def test_14_publication_transgene_queries(self):
+        """Test publication and transgene queries"""
+        print("\n" + "="*80)
+        print("PUBLICATION/TRANSGENE QUERIES (2025)")
+        print("="*80)
+        
+        # Import the new query functions
+        from vfbquery.vfb_queries import (
+            get_terms_for_pub,
+            get_transgene_expression_here
+        )
+        
+        # Test terms
+        pub_term = 'DOI_10_7554_eLife_04577'  # Example publication
+        anatomy_term = self.test_terms['mushroom_body']  # mushroom body
+        
+        # TermsForPub - Terms referencing a publication
+        result, duration, success = self._time_query(
+            "TermsForPub",
+            get_terms_for_pub,
+            pub_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"TermsForPub: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} terms for publication" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "TermsForPub exceeded threshold")
+        
+        # TransgeneExpressionHere - Complex transgene expression query
+        result, duration, success = self._time_query(
+            "TransgeneExpressionHere",
+            get_transgene_expression_here,
+            anatomy_term,
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"TransgeneExpressionHere: {duration:.4f}s {'✅' if success else '❌'}")
+        if success and result:
+            count = result.get('count', 0)
+            print(f"  └─ Found {count} transgene expressions" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_SLOW, "TransgeneExpressionHere exceeded threshold")
+        
+        print(f"✅ All publication/transgene queries completed")
+    
     def tearDown(self):
         """Generate performance summary"""
         pass

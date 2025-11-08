@@ -812,6 +812,54 @@ def term_info_parse_object(results, short_form):
             q = scRNAdatasetData_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # NBLAST similarity queries
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLASTexp"]):
+            q = SimilarMorphologyToPartOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Expression_pattern", "NBLASTexp"]):
+            q = SimilarMorphologyToPartOfexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "neuronbridge"]):
+            q = SimilarMorphologyToNB_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Expression_pattern", "neuronbridge"]):
+            q = SimilarMorphologyToNBexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "UNBLAST"]):
+            q = SimilarMorphologyToUserData_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # Dataset/Template queries
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Template", "Individual"]):
+            q = PaintedDomains_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+            q2 = AllAlignedImages_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q2)
+            q3 = AlignedDatasets_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q3)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["DataSet", "has_image"]):
+            q = DatasetImages_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Template"]):
+            q = AllDatasets_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # Publication query
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "pub"]):
+            q = TermsForPub_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
+        # Transgene expression query
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]):
+            q = TransgeneExpressionHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []
@@ -1473,6 +1521,66 @@ def scRNAdatasetData_to_schema(name, take_default):
     preview_columns = ["id", "name", "tags", "anatomy", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def SimilarMorphologyToPartOf_to_schema(name, take_default):
+    """Schema for SimilarMorphologyToPartOf (NBLASTexp) query."""
+    return Query(query="SimilarMorphologyToPartOf", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of", takes={"short_form": {"$and": ["Individual", "Neuron", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+
+
+def SimilarMorphologyToPartOfexp_to_schema(name, take_default):
+    """Schema for SimilarMorphologyToPartOfexp (reverse NBLASTexp) query."""
+    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+
+
+def SimilarMorphologyToNB_to_schema(name, take_default):
+    """Schema for SimilarMorphologyToNB (NeuronBridge) query."""
+    return Query(query="SimilarMorphologyToNB", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb", takes={"short_form": {"$and": ["Individual", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+
+
+def SimilarMorphologyToNBexp_to_schema(name, take_default):
+    """Schema for SimilarMorphologyToNBexp (NeuronBridge expression) query."""
+    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+
+
+def SimilarMorphologyToUserData_to_schema(name, take_default):
+    """Schema for SimilarMorphologyToUserData (user upload NBLAST) query."""
+    return Query(query="SimilarMorphologyToUserData", label=f"NBLAST results for {name}", function="get_similar_morphology_userdata", takes={"short_form": {"$and": ["Individual", "UNBLAST"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score"])
+
+
+def PaintedDomains_to_schema(name, take_default):
+    """Schema for PaintedDomains query."""
+    return Query(query="PaintedDomains", label=f"Painted domains for {name}", function="get_painted_domains", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "type", "thumbnail"])
+
+
+def DatasetImages_to_schema(name, take_default):
+    """Schema for DatasetImages query."""
+    return Query(query="DatasetImages", label=f"Images in dataset {name}", function="get_dataset_images", takes={"short_form": {"$and": ["DataSet", "has_image"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+
+
+def AllAlignedImages_to_schema(name, take_default):
+    """Schema for AllAlignedImages query."""
+    return Query(query="AllAlignedImages", label=f"All images aligned to {name}", function="get_all_aligned_images", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+
+
+def AlignedDatasets_to_schema(name, take_default):
+    """Schema for AlignedDatasets query."""
+    return Query(query="AlignedDatasets", label=f"Datasets aligned to {name}", function="get_aligned_datasets", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags"])
+
+
+def AllDatasets_to_schema(name, take_default):
+    """Schema for AllDatasets query."""
+    return Query(query="AllDatasets", label="All available datasets", function="get_all_datasets", takes={"short_form": {"$and": ["Template"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags"])
+
+
+def TermsForPub_to_schema(name, take_default):
+    """Schema for TermsForPub query."""
+    return Query(query="TermsForPub", label=f"Terms referencing {name}", function="get_terms_for_pub", takes={"short_form": {"$and": ["Individual", "pub"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+
+
+def TransgeneExpressionHere_to_schema(name, take_default):
+    """Schema for TransgeneExpressionHere query."""
+    return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
 
 
 def serialize_solr_output(results):
@@ -3363,6 +3471,355 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
             "count": total_count
         }
         return formatted_results
+
+
+# ===== NBLAST Similarity Queries =====
+
+def get_similar_morphology(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve neurons with similar morphology to the specified neuron using NBLAST.
+    
+    This implements the SimilarMorphologyTo query from the VFB XMI specification.
+    Returns neurons with NBLAST similarity scores.
+    
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    Query: has_similar_morphology_to (NBLAST_anat_image_query)
+    
+    :param neuron_short_form: Short form identifier of the neuron (e.g., 'VFB_00101234')
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
+    :param limit: Maximum number of results to return (default: -1 for all results)
+    :return: Neurons with similar morphology and NBLAST scores
+    :rtype: pandas.DataFrame or dict
+    """
+    
+    # Count query
+    count_query = f"""
+        MATCH (n:Individual)-[nblast:has_similar_morphology_to]-(primary:Individual)
+        WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score)
+        RETURN count(primary) AS count
+    """
+    
+    # Get total count
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    # Main query
+    main_query = f"""
+        MATCH (n:Individual)-[nblast:has_similar_morphology_to]-(primary:Individual)
+        WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score)
+        WITH primary, nblast
+        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+        WITH template, channel, template_anat, irw, primary, nblast
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        WITH CASE WHEN channel IS NULL THEN [] ELSE collect({{
+            channel: {{
+                short_form: channel.short_form,
+                label: coalesce(channel.label, ''),
+                iri: channel.iri,
+                types: labels(channel),
+                unique_facets: apoc.coll.sort(coalesce(channel.uniqueFacets, [])),
+                symbol: coalesce(channel.symbol[0], '')
+            }},
+            imaging_technique: {{
+                short_form: technique.short_form,
+                label: coalesce(technique.label, ''),
+                iri: technique.iri,
+                types: labels(technique),
+                unique_facets: apoc.coll.sort(coalesce(technique.uniqueFacets, [])),
+                symbol: coalesce(technique.symbol[0], '')
+            }},
+            image: {{
+                template_channel: {{
+                    short_form: template.short_form,
+                    label: coalesce(template.label, ''),
+                    iri: template.iri,
+                    types: labels(template),
+                    unique_facets: apoc.coll.sort(coalesce(template.uniqueFacets, [])),
+                    symbol: coalesce(template.symbol[0], '')
+                }},
+                template_anatomy: {{
+                    short_form: template_anat.short_form,
+                    label: coalesce(template_anat.label, ''),
+                    iri: template_anat.iri,
+                    types: labels(template_anat),
+                    symbol: coalesce(template_anat.symbol[0], '')
+                }},
+                image_folder: COALESCE(irw.folder[0], ''),
+                index: coalesce(apoc.convert.toInteger(irw.index[0]), []) + []
+            }}
+        }}) END AS channel_image, primary, nblast
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
+        WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{
+            short_form: typ.short_form,
+            label: coalesce(typ.label, ''),
+            iri: typ.iri,
+            types: labels(typ),
+            symbol: coalesce(typ.symbol[0], '')
+        }}) END AS types, primary, channel_image, nblast
+        RETURN
+            primary.short_form AS id,
+            '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+            apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+            nblast.NBLAST_score[0] AS score,
+            types,
+            channel_image
+        ORDER BY score DESC
+    """
+    
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    
+    # Execute the query
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    
+    # Encode markdown links
+    if not df.empty:
+        columns_to_encode = ['name']
+        df = encode_markdown_links(df, columns_to_encode)
+    
+    if return_dataframe:
+        return df
+    else:
+        formatted_results = {
+            "headers": {
+                "id": {"title": "ID", "type": "selection_id", "order": -1},
+                "name": {"title": "Neuron", "type": "markdown", "order": 0},
+                "score": {"title": "NBLAST Score", "type": "text", "order": 1},
+                "tags": {"title": "Tags", "type": "tags", "order": 2},
+                "types": {"title": "Types", "type": "metadata", "order": 3},
+                "channel_image": {"title": "Images", "type": "metadata", "order": 4}
+            },
+            "rows": [
+                {key: row[key] for key in ["id", "name", "score", "tags", "types", "channel_image"]}
+                for row in safe_to_dict(df, sort_by_id=False)
+            ],
+            "count": total_count
+        }
+        return formatted_results
+
+
+def get_similar_morphology_part_of(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieve expression patterns with similar morphology to part of the specified neuron (NBLASTexp).
+    
+    XMI: has_similar_morphology_to_part_of
+    """
+    count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score) RETURN count(primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score) WITH primary, nblast
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
+        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.NBLAST_score[0] AS score, types ORDER BY score DESC"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Expression Pattern", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_similar_morphology_part_of_exp(expression_short_form: str, return_dataframe=True, limit: int = -1):
+    """Neurons with similar morphology to part of expression pattern (reverse NBLASTexp)."""
+    count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.NBLAST_score) RETURN count(primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.NBLAST_score) WITH primary, nblast
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
+        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.NBLAST_score[0] AS score, types ORDER BY score DESC"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Neuron", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_similar_morphology_nb(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """NeuronBridge similarity matches for neurons."""
+    count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.neuronbridge_score) RETURN count(primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.neuronbridge_score) WITH primary, nblast
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
+        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.neuronbridge_score[0] AS score, types ORDER BY score DESC"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=True, limit: int = -1):
+    """NeuronBridge similarity matches for expression patterns."""
+    count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score) RETURN count(primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score) WITH primary, nblast
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
+        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.neuronbridge_score[0] AS score, types ORDER BY score DESC"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_similar_morphology_userdata(upload_id: str, return_dataframe=True, limit: int = -1):
+    """NBLAST results for user-uploaded data (cached in SOLR)."""
+    try:
+        solr_query = f'{{"params":{{"defType":"edismax","fl":"upload_nblast_query","indent":"true","q.op":"OR","q":"id:{upload_id}","qf":"id","rows":"99"}}}}'
+        response = requests.post("https://solr.virtualflybrain.org/solr/vfb_json/select", data=solr_query, headers={"Content-Type": "application/json"})
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('response', {}).get('numFound', 0) > 0:
+                results = data['response']['docs'][0].get('upload_nblast_query', [])
+                if isinstance(results, str): results = json.loads(results)
+                df = pd.DataFrame(results if isinstance(results, list) else [])
+                if not df.empty and 'name' in df.columns: df = encode_markdown_links(df, ['name'])
+                if return_dataframe: return df
+                return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "Score", "type": "text", "order": 1}}, "rows": safe_to_dict(df, sort_by_id=False), "count": len(df)}
+    except Exception as e:
+        print(f"Error fetching user NBLAST data: {e}")
+    return pd.DataFrame() if return_dataframe else {"headers": {}, "rows": [], "count": 0}
+
+
+# ===== Dataset/Template Queries =====
+
+def get_painted_domains(template_short_form: str, return_dataframe=True, limit: int = -1):
+    """List all painted anatomy domains for a template."""
+    count_query = f"MATCH (n:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[r:in_register_with]-(dc:Individual)-[:depicts]->(di:Individual)-[:INSTANCEOF]->(d:Class) WHERE EXISTS(r.index) RETURN count(di) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (n:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[r:in_register_with]-(dc:Individual)-[:depicts]->(di:Individual)-[:INSTANCEOF]->(d:Class) WHERE EXISTS(r.index)
+        RETURN DISTINCT di.short_form AS id, '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name, coalesce(di.description[0], d.description[0]) AS description, COLLECT(DISTINCT d.label) AS type, replace(r.folder[0],'http:','https:') + '/thumbnailT.png' AS thumbnail"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name', 'thumbnail'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Domain", "type": "markdown", "order": 0}, "type": {"title": "Type", "type": "text", "order": 1}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "type", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: int = -1):
+    """List all images in a dataset."""
+    count_query = f"MATCH (c:DataSet {{short_form:'{dataset_short_form}'}})<-[:has_source]-(primary:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual) RETURN count(primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (c:DataSet {{short_form:'{dataset_short_form}'}})<-[:has_source]-(primary:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
+        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, typ.label AS type"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_all_aligned_images(template_short_form: str, return_dataframe=True, limit: int = -1):
+    """List all images aligned to a template."""
+    count_query = f"MATCH (:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[:in_register_with]-(:Individual)-[:depicts]->(di:Individual) RETURN count(di) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[:in_register_with]-(:Individual)-[:depicts]->(di:Individual)
+        OPTIONAL MATCH (di)-[:INSTANCEOF]->(typ:Class)
+        RETURN DISTINCT di.short_form AS id, '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name, apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags, typ.label AS type"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit: int = -1):
+    """List all datasets aligned to a template."""
+    count_query = f"MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) RETURN count(ds) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
+        RETURN DISTINCT ds.short_form AS id, '[' + ds.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + ds.short_form + ')' AS name, apoc.text.join(coalesce(ds.uniqueFacets, []), '|') AS tags"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Dataset", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}}, "rows": [{key: row[key] for key in ["id", "name", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+def get_all_datasets(return_dataframe=True, limit: int = -1):
+    """List all available datasets."""
+    count_query = "MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual)<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) WITH DISTINCT ds RETURN count(ds) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual)<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
+        RETURN DISTINCT ds.short_form AS id, '[' + ds.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + ds.short_form + ')' AS name, apoc.text.join(coalesce(ds.uniqueFacets, []), '|') AS tags"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Dataset", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}}, "rows": [{key: row[key] for key in ["id", "name", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+# ===== Publication Query =====
+
+def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -1):
+    """List all terms that reference a publication."""
+    count_query = f"MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual) RETURN count(DISTINCT primary) AS count"
+    count_results = vc.nc.commit_list([count_query])
+    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    
+    main_query = f"""MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual)
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
+        RETURN DISTINCT primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, typ.label AS type"""
+    if limit != -1: main_query += f" LIMIT {limit}"
+    
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty: df = encode_markdown_links(df, ['name'])
+    
+    if return_dataframe: return df
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Term", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+
+
+# ===== Complex Transgene Expression Query =====
+
+def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True, limit: int = -1):
+    """Multi-step query: Owlery subclasses + expression overlaps."""
+    # This uses a combination of Owlery and Neo4j similar to get_expression_overlaps_here
+    # but specifically for transgenes. For now, we'll use the existing expression pattern logic
+    return get_expression_overlaps_here(anatomy_short_form, return_dataframe, limit)
 
 
 def fill_query_results(term_info):

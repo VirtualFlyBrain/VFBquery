@@ -209,6 +209,8 @@ class OwleryClient:
             # Build Owlery instances endpoint URL
             params = {
                 'object': iri_query,
+                'direct': 'true' if direct else 'false',
+                'includeDeprecated': 'false',
                 'prefixes': json.dumps({
                     "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
                     "RO": "http://purl.obolibrary.org/obo/RO_",
@@ -216,18 +218,20 @@ class OwleryClient:
                     "VFB": "http://virtualflybrain.org/reports/VFB_"
                 })
             }
-            if direct:
-                params['direct'] = 'False'
+            
+            # Build full URL for debugging
+            full_url = f"{self.owlery_endpoint}/instances"
+            prepared_request = requests.Request('GET', full_url, params=params).prepare()
+            
+            if verbose:
+                print(f"Owlery instances URL: {prepared_request.url}")
             
             # Make HTTP GET request to instances endpoint
             response = requests.get(
                 f"{self.owlery_endpoint}/instances",
                 params=params,
-                timeout=120
+                timeout=240
             )
-            
-            if verbose:
-                print(f"Owlery instances query: {response.url}")
             
             response.raise_for_status()
             
@@ -271,7 +275,14 @@ class OwleryClient:
             return short_forms
             
         except requests.RequestException as e:
-            print(f"ERROR: Owlery instances request failed: {e}")
+            # Show the full URL that was attempted
+            try:
+                full_url = f"{self.owlery_endpoint}/instances"
+                prepared_request = requests.Request('GET', full_url, params=params).prepare()
+                print(f"ERROR: Owlery instances request failed: {e}")
+                print(f"       Test URL: {prepared_request.url}")
+            except:
+                print(f"ERROR: Owlery instances request failed: {e}")
             raise
         except Exception as e:
             print(f"ERROR: Unexpected error in Owlery instances query: {e}")

@@ -1263,6 +1263,8 @@ def epFrag_to_schema(name, take_default):
     Schema for epFrag query.
     Finds individual expression pattern fragment images that are part of an expression pattern.
     
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
     Matching criteria from XMI:
     - Class + Expression_pattern
     
@@ -2438,6 +2440,8 @@ def get_expression_pattern_fragments(short_form: str, return_dataframe=True, lim
     Retrieves individual expression pattern fragment images that are part of an expression pattern.
     
     This implements the epFrag query from the VFB XMI specification.
+    XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
+    
     Query chain (from XMI): Owlery individual parts → Process → SOLR
     OWL query (from XMI): object=<BFO_0000050> some <$ID> (instances)
     Where: BFO_0000050 = part_of
@@ -2652,13 +2656,26 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         except Exception:
             pass
         
-        from urllib.parse import quote
-        query_encoded = quote(owl_query_string, safe='')
-        owlery_url = f"{owlery_base}/instances?object={query_encoded}"
+        from urllib.parse import urlencode
+        
+        # Build the full URL with all parameters exactly as the request would be made
+        params = {
+            'object': owl_query_string,
+            'prefixes': json.dumps({
+                "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
+                "RO": "http://purl.obolibrary.org/obo/RO_",
+                "BFO": "http://purl.obolibrary.org/obo/BFO_",
+                "VFB": "http://virtualflybrain.org/reports/VFB_"
+            })
+        }
+        
+        endpoint = "/instances" if query_instances else "/subclasses"
+        owlery_url = f"{owlery_base}{endpoint}?{urlencode(params)}"
         
         import sys
-        print(f"ERROR: Owlery instances query failed: {e}", file=sys.stderr)
-        print(f"       Test URL: {owlery_url}", file=sys.stderr)
+        print(f"ERROR: Owlery {'instances' if query_instances else 'subclasses'} query failed: {e}", file=sys.stderr)
+        print(f"       Full URL: {owlery_url}", file=sys.stderr)
+        print(f"       Query string: {owl_query_string}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         # Return error indication with count=-1

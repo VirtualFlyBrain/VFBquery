@@ -2661,6 +2661,8 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         # Build the full URL with all parameters exactly as the request would be made
         params = {
             'object': owl_query_string,
+            'direct': 'true' if query_instances else 'false',  # instances use direct=true, subclasses use direct=false
+            'includeDeprecated': 'false',
             'prefixes': json.dumps({
                 "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
                 "RO": "http://purl.obolibrary.org/obo/RO_",
@@ -2668,6 +2670,10 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                 "VFB": "http://virtualflybrain.org/reports/VFB_"
             })
         }
+        
+        # For subclasses queries, add includeEquivalent parameter
+        if not query_instances:
+            params['includeEquivalent'] = 'true'
         
         endpoint = "/instances" if query_instances else "/subclasses"
         owlery_url = f"{owlery_base}{endpoint}?{urlencode(params)}"

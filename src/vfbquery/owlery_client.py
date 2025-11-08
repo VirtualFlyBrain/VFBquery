@@ -105,20 +105,21 @@ class OwleryClient:
             # Based on VFBConnect's query() method
             params = {
                 'object': iri_query,
+                'direct': 'false',  # Always use indirect (transitive) queries
+                'includeDeprecated': 'false',  # Exclude deprecated terms
+                'includeEquivalent': 'true',  # Include equivalent classes
                 'prefixes': json.dumps({
                     "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
                     "RO": "http://purl.obolibrary.org/obo/RO_",
                     "BFO": "http://purl.obolibrary.org/obo/BFO_"
                 })
             }
-            if direct:
-                params['direct'] = 'False'  # Note: Owlery expects string 'False', not boolean
             
-            # Make HTTP GET request with longer timeout for complex queries
+            # Make HTTP GET request with longer timeout for complex queries (20 minutes for OWL reasoning)
             response = requests.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
-                timeout=240
+                timeout=1200
             )
             
             if verbose:
@@ -226,11 +227,11 @@ class OwleryClient:
             if verbose:
                 print(f"Owlery instances URL: {prepared_request.url}")
             
-            # Make HTTP GET request to instances endpoint
+            # Make HTTP GET request to instances endpoint (20 minutes for OWL reasoning)
             response = requests.get(
                 f"{self.owlery_endpoint}/instances",
                 params=params,
-                timeout=240
+                timeout=1200
             )
             
             response.raise_for_status()

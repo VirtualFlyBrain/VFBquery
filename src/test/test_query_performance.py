@@ -128,7 +128,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neurons_with_part_in,
             self.test_terms['antennal_lobe'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Changed to -1 to enable caching
         )
         print(f"NeuronsPartHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "NeuronsPartHere exceeded threshold")
@@ -146,7 +146,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neurons_with_synapses_in,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"NeuronsSynaptic: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "NeuronsSynaptic exceeded threshold")
@@ -156,7 +156,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neurons_with_presynaptic_terminals_in,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"NeuronsPresynapticHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "NeuronsPresynapticHere exceeded threshold")
@@ -166,7 +166,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neurons_with_postsynaptic_terminals_in,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"NeuronsPostsynapticHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "NeuronsPostsynapticHere exceeded threshold")
@@ -177,7 +177,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neuron_neuron_connectivity,
             self.test_terms['connected_neuron'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"NeuronNeuronConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronNeuronConnectivity exceeded threshold")
@@ -195,7 +195,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_components_of,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"ComponentsOf: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ComponentsOf exceeded threshold")
@@ -205,7 +205,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_parts_of,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"PartsOf: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "PartsOf exceeded threshold")
@@ -215,7 +215,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_subclasses_of,
             test_term,
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"SubclassesOf: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "SubclassesOf exceeded threshold")
@@ -232,7 +232,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_neuron_classes_fasciculating_here,
             self.test_terms['broad_root'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"NeuronClassesFasciculatingHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronClassesFasciculatingHere exceeded threshold")
@@ -243,7 +243,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_tracts_nerves_innervating_here,
             self.test_terms['antennal_lobe'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"TractsNervesInnervatingHere: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "TractsNervesInnervatingHere exceeded threshold")
@@ -254,7 +254,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_lineage_clones_in,
             self.test_terms['antennal_lobe'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"LineageClonesIn: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "LineageClonesIn exceeded threshold")
@@ -265,7 +265,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_images_neurons,
             self.test_terms['antennal_lobe'],
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"ImagesNeurons: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ImagesNeurons exceeded threshold")
@@ -276,7 +276,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_images_that_develop_from,
             "FBbt_00001419",  # neuroblast MNB - has 336 neuron images
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"ImagesThatDevelopFrom: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ImagesThatDevelopFrom exceeded threshold")
@@ -287,7 +287,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_expression_pattern_fragments,
             "FBtp0000001",  # expression pattern example
             return_dataframe=False,
-            limit=10
+            limit=-1  # Enable caching for performance tests
         )
         print(f"epFrag: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "epFrag exceeded threshold")
@@ -303,7 +303,7 @@ class QueryPerformanceTest(unittest.TestCase):
             get_instances,
             self.test_terms['medulla'],
             return_dataframe=False,
-            limit=5
+            limit=-1  # Enable caching for performance tests
         )
         print(f"ListAllAvailableImages: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "ListAllAvailableImages exceeded threshold")

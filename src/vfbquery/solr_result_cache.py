@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import logging
 from dataclasses import dataclass, asdict
+import pandas as pd
 from vfbquery.term_info_queries import NumpyEncoder
 
 logger = logging.getLogger(__name__)
@@ -633,9 +634,37 @@ def with_solr_cache(query_type: str):
                 cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
-            # Only use cache if we're getting complete results (no limit applied)
-            if not force_refresh and should_cache:
-                cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
+            # OPTIMIZATION: If requesting limited results, check if full results are cached
+            # If yes, we can extract the limited rows from the cached full results
+            if not force_refresh:
+                # First try to get cached result matching the exact query (including limit)
+                if should_cache:
+                    cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
+                else:
+                    # For limited queries, try to get full cached results instead
+                    full_kwargs = kwargs.copy()
+                    full_kwargs['limit'] = -1  # Get full results
+                    cached_result = cache.get_cached_result(query_type, cache_term_id, **full_kwargs)
+                    
+                    # If we got full cached results, extract the limited portion
+                    if cached_result is not None and limit > 0:
+                        logger.debug(f"Extracting first {limit} rows from cached full results for {term_id}")
+                        
+                        # Extract limited rows based on result type
+                        if isinstance(cached_result, dict) and 'rows' in cached_result:
+                            cached_result = {
+                                'headers': cached_result.get('headers', {}),
+                                'rows': cached_result['rows'][:limit],
+                                'count': cached_result.get('count', len(cached_result.get('rows', [])))
+                            }
+                        elif isinstance(cached_result, pd.DataFrame):
+                            # Keep the full count but limit the rows
+                            original_count = len(cached_result)
+                            cached_result = cached_result.head(limit)
+                            # Add count attribute if possible
+                            if hasattr(cached_result, '_metadata'):
+                                cached_result._metadata['count'] = original_count
+                
                 if cached_result is not None:
                     # Validate that cached result has essential fields for term_info
                     if query_type == 'term_info':

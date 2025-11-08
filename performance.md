@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2025-11-08 14:46:14 UTC
-**Git Commit:** e6aa19645694371c57f6dca2b1effc6a9bf34e7f
+**Test Date:** 2025-11-08 18:07:52 UTC
+**Git Commit:** f01cac65534874e4bd5d8f789d2e12afa5053630
 **Branch:** dev
-**Workflow Run:** [19193969349](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19193969349)
+**Workflow Run:** [19196131065](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19196131065)
 
 ## Test Overview
 
@@ -51,7 +51,7 @@ Test term info query performance
 Traceback (most recent call last):
   File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 109, in test_01_term_info_queries
     self.assertLess(duration, self.THRESHOLD_MEDIUM, "term_info query exceeded threshold")
-AssertionError: 2038.6208319664001 not less than 3.0 : term_info query exceeded threshold
+AssertionError: 2043.7956709861755 not less than 3.0 : term_info query exceeded threshold
 
 ======================================================================
 FAIL: test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
@@ -60,7 +60,7 @@ Test anatomical hierarchy queries
 Traceback (most recent call last):
   File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 201, in test_04_anatomy_hierarchy_queries
     self.assertLess(duration, self.THRESHOLD_SLOW, "ComponentsOf exceeded threshold")
-AssertionError: 41.243125438690186 not less than 10.0 : ComponentsOf exceeded threshold
+AssertionError: 43.78040099143982 not less than 10.0 : ComponentsOf exceeded threshold
 
 ======================================================================
 FAIL: test_05_new_queries (src.test.test_query_performance.QueryPerformanceTest)
@@ -69,10 +69,10 @@ Test newly implemented queries
 Traceback (most recent call last):
   File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 238, in test_05_new_queries
     self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronClassesFasciculatingHere exceeded threshold")
-AssertionError: 40.51809573173523 not less than 10.0 : NeuronClassesFasciculatingHere exceeded threshold
+AssertionError: 280.2423713207245 not less than 10.0 : NeuronClassesFasciculatingHere exceeded threshold
 
 ----------------------------------------------------------------------
-Ran 6 tests in 2926.565s
+Ran 6 tests in 3022.579s
 
 FAILED (failures=3)
 VFBquery caching enabled: TTL=2160h (90 days), Memory=2048MB
@@ -87,36 +87,36 @@ VFBquery caching enabled: TTL=2160h (90 days), Memory=2048MB
 TERM INFO QUERIES
 ================================================================================
 DEBUG: Cache lookup for FBbt_00003748: MISS
-get_term_info (mushroom body): 2038.6208s ✅
+get_term_info (mushroom body): 2043.7957s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 577.2893s ✅
+NeuronsPartHere: 252.0488s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 130.4021s ✅
-NeuronsPresynapticHere: 43.2718s ✅
-NeuronsPostsynapticHere: 52.6534s ✅
+NeuronsSynaptic: 338.4342s ✅
+NeuronsPresynapticHere: 1.2961s ✅
+NeuronsPostsynapticHere: 59.8252s ✅
 ✅ Neo4j connection established
-NeuronNeuronConnectivity: 1.2619s ✅
+NeuronNeuronConnectivity: 1.7389s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 41.2431s ✅
+ComponentsOf: 43.7804s ✅
 
 ================================================================================
 NEW QUERIES (2025)
 ================================================================================
-NeuronClassesFasciculatingHere: 40.5181s ✅
+NeuronClassesFasciculatingHere: 280.2424s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 1.3032s ✅
+ListAllAvailableImages: 1.4162s ✅
 
 ================================================================================
 PERFORMANCE TEST SUMMARY
@@ -127,7 +127,7 @@ test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
 Performance test for specific term info queries. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 2.439s
+Ran 1 test in 2.338s
 
 OK
 VFBquery caching enabled: TTL=2160h (90 days), Memory=2048MB
@@ -142,9 +142,9 @@ VFBquery: Caching enabled by default (3-month TTL, 2GB memory)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 1.3037 seconds
-VFB_00101567 query took: 1.1347 seconds
-Total time for both queries: 2.4384 seconds
+FBbt_00003748 query took: 1.3053 seconds
+VFB_00101567 query took: 1.0319 seconds
+Total time for both queries: 2.3373 seconds
 Performance Level: 🟡 Good (1.5-3 seconds)
 ==================================================
 Performance test completed successfully!
@@ -163,4 +163,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2025-11-08 14:46:14 UTC*
+*Last updated: 2025-11-08 18:07:52 UTC*

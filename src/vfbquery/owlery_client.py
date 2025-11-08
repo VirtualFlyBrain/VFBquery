@@ -118,7 +118,7 @@ class OwleryClient:
             response = requests.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
-                timeout=120
+                timeout=240
             )
             
             if verbose:

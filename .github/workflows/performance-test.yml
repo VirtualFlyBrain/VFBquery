@@ -28,6 +28,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade -r requirements.txt
           python -m pip install -e .  # Editable install ensures we test the actual source code
+      
+      - name: Test Owlery Connectivity
+        run: |
+          echo "Testing basic connectivity to Owlery server..."
+          curl -v --max-time 30 "http://owl.virtualflybrain.org/kbs/vfb/subclasses?object=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FFBbt_00005106%3E&direct=false&includeDeprecated=false&includeEquivalent=true" | head -20 || echo "Simple query failed or timed out"
+          echo ""
+          echo "Testing if server responds at all..."
+          curl -v --max-time 10 "http://owl.virtualflybrain.org/" || echo "Server unreachable"
           
       - name: Run Performance Test
         run: |

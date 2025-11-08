@@ -107,16 +107,26 @@ class OwleryClient:
                 'object': iri_query,
                 'direct': 'false',  # Always use indirect (transitive) queries
                 'includeDeprecated': 'false',  # Exclude deprecated terms
-                'includeEquivalent': 'true',  # Include equivalent classes
-                'prefixes': json.dumps({
-                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
-                    "RO": "http://purl.obolibrary.org/obo/RO_",
-                    "BFO": "http://purl.obolibrary.org/obo/BFO_"
-                })
+                'includeEquivalent': 'true'  # Include equivalent classes
             }
             
             # Make HTTP GET request with longer timeout for complex queries (20 minutes for OWL reasoning)
-            response = requests.get(
+            # Add retry logic for connection resets (common with long-running queries)
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,  # Total number of retries
+                backoff_factor=2,  # Wait 2s, 4s, 8s between retries
+                status_forcelist=[500, 502, 503, 504],  # Retry on server errors
+                allowed_methods=["GET"]  # Only retry GET requests
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            response = session.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
                 timeout=1200
@@ -211,13 +221,7 @@ class OwleryClient:
             params = {
                 'object': iri_query,
                 'direct': 'true' if direct else 'false',
-                'includeDeprecated': 'false',
-                'prefixes': json.dumps({
-                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
-                    "RO": "http://purl.obolibrary.org/obo/RO_",
-                    "BFO": "http://purl.obolibrary.org/obo/BFO_",
-                    "VFB": "http://virtualflybrain.org/reports/VFB_"
-                })
+                'includeDeprecated': 'false'
             }
             
             # Build full URL for debugging
@@ -228,7 +232,22 @@ class OwleryClient:
                 print(f"Owlery instances URL: {prepared_request.url}")
             
             # Make HTTP GET request to instances endpoint (20 minutes for OWL reasoning)
-            response = requests.get(
+            # Add retry logic for connection resets (common with long-running queries)
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,  # Total number of retries
+                backoff_factor=2,  # Wait 2s, 4s, 8s between retries
+                status_forcelist=[500, 502, 503, 504],  # Retry on server errors
+                allowed_methods=["GET"]  # Only retry GET requests
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            response = session.get(
                 f"{self.owlery_endpoint}/instances",
                 params=params,
                 timeout=1200

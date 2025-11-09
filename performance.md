@@ -79,7 +79,7 @@ This performance test measures the execution time of all implemented VFB queries
 - **Fast queries**: < 1 second (SOLR lookups)
 - **Medium queries**: < 3 seconds (Owlery + SOLR)
 - **Slow queries**: < 10 seconds (Neo4j + complex processing)
-- **Very Slow queries**: < 1200 seconds (Complex OWL reasoning - 20 minutes)
+- **Very Slow queries**: < 31 seconds (Complex OWL reasoning - over 30 seconds)
 
 ## Test Results
 

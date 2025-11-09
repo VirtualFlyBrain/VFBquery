@@ -3044,13 +3044,7 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         params = {
             'object': owl_query_string,
             'direct': 'true' if query_instances else 'false',  # instances use direct=true, subclasses use direct=false
-            'includeDeprecated': 'false',
-            'prefixes': json.dumps({
-                "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
-                "RO": "http://purl.obolibrary.org/obo/RO_",
-                "BFO": "http://purl.obolibrary.org/obo/BFO_",
-                "VFB": "http://virtualflybrain.org/reports/VFB_"
-            })
+            'includeDeprecated': 'false'
         }
         
         # For subclasses queries, add includeEquivalent parameter

@@ -66,7 +66,7 @@ class OwleryClient:
         self.owlery_endpoint = owlery_endpoint.rstrip('/')
     
     def get_subclasses(self, query: str, query_by_label: bool = True, 
-                      verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+                      verbose: bool = False, direct: bool = False) -> List[str]:
         """
         Query Owlery for subclasses matching an OWL class expression.
         
@@ -77,7 +77,6 @@ class OwleryClient:
         :param query_by_label: If True, query uses label syntax (quotes). 
                                If False, uses IRI syntax (angle brackets).
         :param verbose: If True, print debug information
-        :param prefixes: If True, return full IRIs. If False, return short forms.
         :param direct: Return direct subclasses only. Default False.
         :return: List of class IDs (short forms like 'FBbt_00003748')
         """
@@ -187,7 +186,7 @@ class OwleryClient:
             raise
     
     def get_instances(self, query: str, query_by_label: bool = True, 
-                     verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+                     verbose: bool = False, direct: bool = False) -> List[str]:
         """
         Query Owlery for instances matching an OWL class expression.
         
@@ -198,7 +197,6 @@ class OwleryClient:
         :param query_by_label: If True, query uses label syntax (quotes). 
                                If False, uses IRI syntax (angle brackets).
         :param verbose: If True, print debug information
-        :param prefixes: If True, return full IRIs. If False, return short forms.
         :param direct: Return direct instances only. Default False.
         :return: List of instance IDs (short forms like 'VFB_00101567')
         """

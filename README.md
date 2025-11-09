@@ -718,6 +718,257 @@ vfb.get_term_info('FBbt_00003748')
          },
          "output_format": "table",
          "count": 0
+      },
+      {
+         "query": "TractsNervesInnervatingHere",
+         "label": "Tracts/nerves innervating medulla",
+         "function": "get_tracts_nerves_innervating_here",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Synaptic_neuropil"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00003922",
+                  "label": "[second optic chiasma](FBbt_00003922)",
+                  "tags": "Adult|Nervous_system|Neuron_projection_bundle|Visual_system",
+                  "thumbnail": ""
+               }
+            ],
+            "count": 3
+         },
+         "output_format": "table",
+         "count": 3
+      },
+      {
+         "query": "LineageClonesIn",
+         "label": "Lineage clones found in medulla",
+         "function": "get_lineage_clones_in",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Synaptic_neuropil"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00050013",
+                  "label": "[adult VPNl&d1 lineage clone](FBbt_00050013)",
+                  "tags": "Adult|Clone",
+                  "thumbnail": "[![VPNl&d1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0253/VFB_00101567/thumbnail.png 'VPNl&d1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050013)"
+               }
+            ],
+            "count": 7
+         },
+         "output_format": "table",
+         "count": 7
+      },
+      {
+         "query": "ImagesNeurons",
+         "label": "Images of neurons with some part in medulla",
+         "function": "get_images_neurons",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Synaptic_neuropil"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+               "id": {
+                  "title": "Add",
+                  "type": "selection_id",
+                  "order": -1
+               },
+               "label": {
+                  "title": "Name",
+                  "type": "markdown",
+                  "order": 0,
+                  "sort": {
+                     "0": "Asc"
+                  }
+               },
+               "tags": {
+                  "title": "Tags",
+                  "type": "tags",
+                  "order": 2
+               },
+               "thumbnail": {
+                  "title": "Thumbnail",
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "VFB_fw113167",
+                  "label": "[ME.11974](VFB_fw113167)",
+                  "tags": "Adult|Glutamatergic|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               }
+            ],
+            "count": 119989
+         },
+         "output_format": "table",
+         "count": 119989
+      },
+      {
+         "query": "ExpressionOverlapsHere",
+         "label": "Expression patterns overlapping medulla",
+         "function": "get_expression_overlaps_here",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "name",
+            "tags",
+            "pubs"
+         ],
+         "preview_results": {
+            "headers": [
+               "id",
+               "name",
+               "tags",
+               "pubs"
+            ],
+            "rows": [],
+            "count": 0
+         },
+         "output_format": "table",
+         "count": 0
+      },
+      {
+         "query": "TransgeneExpressionHere",
+         "label": "Transgene expression in medulla",
+         "function": "get_transgene_expression_here",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "name",
+            "tags"
+         ],
+         "preview_results": {
+            "headers": [
+               "id",
+               "name",
+               "tags"
+            ],
+            "rows": [],
+            "count": 0
+         },
+         "output_format": "table",
+         "count": 0
       }
    ],
    "IsIndividual": False,

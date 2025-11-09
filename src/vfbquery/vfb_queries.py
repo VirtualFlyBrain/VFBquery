@@ -13,6 +13,7 @@ from urllib.parse import unquote
 from .solr_result_cache import with_solr_cache
 import time
 import requests
+from concurrent.futures import ThreadPoolExecutor
 
 # Custom JSON encoder to handle NumPy and pandas types
 class NumpyEncoder(json.JSONEncoder):
@@ -3823,7 +3824,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
 
 
 def fill_query_results(term_info):
-    for query in term_info['Queries']:
+    def process_query(query):
         # print(f"Query Keys:{query.keys()}")
         
         if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
@@ -3840,15 +3841,24 @@ def fill_query_results(term_info):
 
                     # Modify this line to use the correct arguments and pass the default arguments
                     if summary_mode:
-                        result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode, **function_args)
+                        if function_args:
+                            # Pass the short_form as positional argument
+                            short_form_value = list(function_args.values())[0]
+                            result = function(short_form_value, return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
+                        else:
+                            result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
                     else:
-                        result = function(return_dataframe=False, limit=query['preview'], **function_args)
+                        if function_args:
+                            short_form_value = list(function_args.values())[0]
+                            result = function(short_form_value, return_dataframe=False, limit=query['preview'])
+                        else:
+                            result = function(return_dataframe=False, limit=query['preview'])
                 except Exception as e:
                     print(f"Error executing query function {query['function']}: {e}")
                     # Set default values for failed query
                     query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
                     query['count'] = 0
-                    continue
+                    return
                 # print(f"Function result: {result}")
                 
                 # Filter columns based on preview_columns
@@ -3896,4 +3906,8 @@ def fill_query_results(term_info):
                 print(f"Function {query['function']} not found")
         else:
             print("Preview key not found or preview is 0")
+
+    with ThreadPoolExecutor() as executor:
+        executor.map(process_query, term_info['Queries'])
+    
     return term_info

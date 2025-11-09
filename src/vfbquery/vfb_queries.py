@@ -819,7 +819,12 @@ def term_info_parse_object(results, short_form):
             q = SimilarMorphologyToPartOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Expression_pattern", "NBLASTexp"]):
+        # SimilarMorphologyToPartOfexp query - reverse NBLASTexp
+        # Matches XMI criteria: (Individual + Expression_pattern + NBLASTexp) OR (Individual + Expression_pattern_fragment + NBLASTexp)
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "NBLASTexp"]) and (
+            "Expression_pattern" in termInfo["SuperTypes"] or
+            "Expression_pattern_fragment" in termInfo["SuperTypes"]
+        ):
             q = SimilarMorphologyToPartOfexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -858,7 +863,10 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # Transgene expression query
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Nervous_system", "Anatomy"]):
+        # Matches XMI criteria: (Class + Nervous_system + Anatomy) OR (Class + Nervous_system + Neuron)
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Nervous_system"]) and (
+            "Anatomy" in termInfo["SuperTypes"] or "Neuron" in termInfo["SuperTypes"]
+        ):
             q = TransgeneExpressionHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1280,7 +1288,7 @@ def TractsNervesInnervatingHere_to_schema(name, take_default):
     label = f"Tracts/nerves innervating {name}"
     function = "get_tracts_nerves_innervating_here"
     takes = {
-        "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "short_form": {"$or": [{"$and": ["Class", "Synaptic_neuropil"]}, {"$and": ["Class", "Synaptic_neuropil_domain"]}]},
         "default": take_default,
     }
     preview = 5
@@ -1330,7 +1338,7 @@ def ImagesNeurons_to_schema(name, take_default):
     label = f"Images of neurons with some part in {name}"
     function = "get_images_neurons"
     takes = {
-        "short_form": {"$and": ["Class", "Synaptic_neuropil"]},
+        "short_form": {"$or": [{"$and": ["Class", "Synaptic_neuropil"]}, {"$and": ["Class", "Synaptic_neuropil_domain"]}]},
         "default": take_default,
     }
     preview = 5
@@ -1531,7 +1539,7 @@ def SimilarMorphologyToPartOf_to_schema(name, take_default):
 
 def SimilarMorphologyToPartOfexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToPartOfexp (reverse NBLASTexp) query."""
-    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, {"$and": ["Individual", "Expression_pattern_fragment", "NBLASTexp"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
 
 
 def SimilarMorphologyToNB_to_schema(name, take_default):
@@ -1580,7 +1588,14 @@ def TermsForPub_to_schema(name, take_default):
 
 
 def TransgeneExpressionHere_to_schema(name, take_default):
-    """Schema for TransgeneExpressionHere query."""
+    """Schema for TransgeneExpressionHere query.
+    
+    Matching criteria from XMI:
+    - Class + Nervous_system + Anatomy
+    - Class + Nervous_system + Neuron
+    
+    Query chain: Multi-step Owlery and Neo4j queries
+    """
     return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Nervous_system", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
 
 

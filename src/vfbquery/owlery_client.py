@@ -11,6 +11,7 @@ import pandas as pd
 import re
 from urllib.parse import quote
 from typing import List, Optional, Dict, Any, Union
+import concurrent.futures
 
 
 def short_form_to_iri(short_form: str) -> str:
@@ -399,9 +400,11 @@ class SimpleVFBConnect:
         :param summary: If True, return summarized version (currently ignored)
         :return: List of term info dictionaries or DataFrame
         """
-        results = []
-        
-        for short_form in short_forms:
+        # Fetch term info entries in parallel to speed up multiple short_form requests.
+        # We preserve input order in the returned list.
+        results_map = {}
+
+        def fetch(short_form: str):
             try:
                 url = f"{self.solr_url}/select"
                 params = {
@@ -410,32 +413,46 @@ class SimpleVFBConnect:
                     "q.op": "OR",
                     "q": f"id:{short_form}"
                 }
-                
+
                 response = requests.get(url, params=params, timeout=30)
                 response.raise_for_status()
-                
+
                 data = response.json()
                 docs = data.get("response", {}).get("docs", [])
-                
+
                 if not docs:
-                    print(f"WARNING: No results found for {short_form}")
-                    continue
-                    
+                    # no result for this id
+                    return None
+
                 if "term_info" not in docs[0] or not docs[0]["term_info"]:
-                    print(f"WARNING: No term_info found for {short_form}")
-                    continue
-                
-                # Extract and parse the term_info string which is itself JSON
+                    return None
+
                 term_info_str = docs[0]["term_info"][0]
                 term_info_obj = json.loads(term_info_str)
-                results.append(term_info_obj)
-                
+                return term_info_obj
+
             except requests.RequestException as e:
-                print(f"ERROR: Error fetching data from SOLR: {e}")
+                print(f"ERROR: Error fetching data from SOLR for {short_form}: {e}")
             except json.JSONDecodeError as e:
                 print(f"ERROR: Error decoding JSON for {short_form}: {e}")
             except Exception as e:
                 print(f"ERROR: Unexpected error for {short_form}: {e}")
+            return None
+
+        max_workers = min(10, max(1, len(short_forms)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as exc:
+            # map preserves order of input keys in Python 3.9+ when using as_completed we reassemble
+            future_to_sf = {exc.submit(fetch, sf): sf for sf in short_forms}
+            for fut in concurrent.futures.as_completed(future_to_sf):
+                sf = future_to_sf[fut]
+                try:
+                    res = fut.result()
+                    results_map[sf] = res
+                except Exception as e:
+                    print(f"ERROR: Exception while fetching {sf}: {e}")
+
+        # Build results list in the same order as short_forms input, skipping None results
+        results = [results_map[sf] for sf in short_forms if sf in results_map and results_map[sf] is not None]
         
         # Convert to DataFrame if requested
         if return_dataframe and results:

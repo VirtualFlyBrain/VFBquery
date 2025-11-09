@@ -14,6 +14,7 @@ from .solr_result_cache import with_solr_cache
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor
+import inspect
 
 # Custom JSON encoder to handle NumPy and pandas types
 class NumpyEncoder(json.JSONEncoder):
@@ -895,7 +896,6 @@ def term_info_parse_object(results, short_form):
                     synonym["scope"] = syn.synonym.scope if hasattr(syn.synonym, 'scope') else "exact"
                     synonym["type"] = syn.synonym.type if hasattr(syn.synonym, 'type') else "synonym"
                     
-                    # Enhanced publication handling - handle multiple publications
                     if hasattr(syn, 'pubs') and syn.pubs:
                         pub_refs = []
                         for pub in syn.pubs:
@@ -3833,16 +3833,23 @@ def fill_query_results(term_info):
                     function_args = query['takes'].get("default", {})
                     # print(f"Function args: {function_args}")
 
+                    # Check function signature to see if it takes a positional argument for short_form
+                    sig = inspect.signature(function)
+                    params = list(sig.parameters.keys())
+                    # Skip 'self' if it's a method, and check if first param is not return_dataframe/limit/summary_mode
+                    first_param = params[1] if params and params[0] == 'self' else (params[0] if params else None)
+                    takes_short_form = first_param and first_param not in ['return_dataframe', 'limit', 'summary_mode']
+
                     # Modify this line to use the correct arguments and pass the default arguments
                     if summary_mode:
-                        if function_args:
+                        if function_args and takes_short_form:
                             # Pass the short_form as positional argument
                             short_form_value = list(function_args.values())[0]
                             result = function(short_form_value, return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
                         else:
                             result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
                     else:
-                        if function_args:
+                        if function_args and takes_short_form:
                             short_form_value = list(function_args.values())[0]
                             result = function(short_form_value, return_dataframe=False, limit=query['preview'])
                         else:

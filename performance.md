@@ -7,19 +7,73 @@
 
 ## Test Overview
 
-This performance test measures the execution time of all implemented VFB queries including:
+This performance test measures the execution time of all implemented VFB queries organized by functionality:
 
-### Core Queries
-- **Term Info Queries**: Basic term information retrieval
-- **Neuron Part Queries**: Neurons with parts overlapping regions
-- **Synaptic Terminal Queries**: Pre/post synaptic terminals
-- **Anatomical Hierarchy**: Components, parts, subclasses
-- **Instance Queries**: Available images and instances
+### 1. Term Information Queries
 
-### New Queries (2025)
+- **Term Info**: Comprehensive term information retrieval with preview data
+
+### 2. Neuron Part & Synaptic Queries
+
+- **NeuronsPartHere**: Neurons with parts overlapping anatomical regions
+- **NeuronsSynaptic**: Neurons with synapses in a region
+- **NeuronsPresynapticHere**: Neurons with presynaptic terminals in a region
+- **NeuronsPostsynapticHere**: Neurons with postsynaptic terminals in a region
+
+### 3. Anatomical Hierarchy Queries
+
+- **ComponentsOf**: Anatomical components of a structure
+- **PartsOf**: Parts of an anatomical structure
+- **SubclassesOf**: Subclasses of anatomical terms (can be very slow for complex terms)
+
+### 4. Tract/Nerve & Lineage Queries
+
 - **NeuronClassesFasciculatingHere**: Neurons fasciculating with tracts
 - **TractsNervesInnervatingHere**: Tracts/nerves innervating neuropils
-- **LineageClonesIn**: Lineage clones in neuropils
+- **LineageClonesIn**: Lineage clones in neuropils (complex OWL reasoning)
+
+### 5. Image & Developmental Queries
+
+- **ImagesNeurons**: Neuron images in anatomical regions
+- **ImagesThatDevelopFrom**: Developmental lineage images
+- **epFrag**: Expression pattern fragments
+- **ListAllAvailableImages**: All available images for a term
+
+### 6. Connectivity Queries
+
+- **NeuronNeuronConnectivity**: Neuron-to-neuron connectivity
+- **NeuronRegionConnectivity**: Neuron-to-region connectivity
+- **NeuronInputsTo**: Individual neuron inputs
+
+### 7. Similarity Queries (NBLAST & NeuronBridge)
+
+- **SimilarMorphologyTo**: NBLAST morphological similarity
+- **SimilarMorphologyToPartOf**: NBLAST to expression patterns (NBLASTexp)
+- **SimilarMorphologyToPartOfexp**: Reverse NBLASTexp
+- **SimilarMorphologyToNB**: NeuronBridge matches
+- **SimilarMorphologyToNBexp**: NeuronBridge for expression patterns
+
+### 8. Expression & Transcriptomics Queries
+
+- **ExpressionOverlapsHere**: Expression patterns overlapping regions
+- **anatScRNAseqQuery**: scRNAseq clusters in anatomy
+- **clusterExpression**: Genes expressed in clusters
+- **expressionCluster**: Clusters expressing genes
+- **scRNAdatasetData**: Cluster data from scRNAseq datasets
+
+### 9. Dataset & Template Queries
+
+- **PaintedDomains**: Template painted anatomy domains
+- **DatasetImages**: Images in datasets
+- **AllAlignedImages**: Images aligned to templates
+- **AlignedDatasets**: Datasets aligned to templates
+- **AllDatasets**: All available datasets
+
+### 10. Publication & Transgene Queries
+
+- **TermsForPub**: Terms referencing publications
+- **TransgeneExpressionHere**: Transgene expression patterns in regions
+
 
 ## Performance Thresholds
 

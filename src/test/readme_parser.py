@@ -38,21 +38,27 @@ def extract_code_blocks(readme_path):
                     continue
                 
                 # Check if this call uses performance test terms - skip force_refresh for those
-                if 'FBbt_00003748' in call or 'VFB_00101567' in call:
+                # NOTE: FBbt_00003748 (medulla) now needs force_refresh to get updated queries
+                if 'VFB_00101567' in call:
                     processed_python_blocks.append(call)
                     continue
                 
                 # Check if the call already has parameters
                 if '(' in call and ')' in call:
-                    # Insert force_refresh=True before the closing parenthesis
-                    # Handle both cases: with and without existing parameters
-                    if call.rstrip(')').endswith('('):
-                        # No parameters: vfb.function()
-                        modified_call = call[:-1] + 'force_refresh=True)'
+                    # Check if force_refresh is already present
+                    if 'force_refresh' in call:
+                        # Already has force_refresh, use as-is
+                        processed_python_blocks.append(call)
                     else:
-                        # Has parameters: vfb.function(param1, param2)
-                        modified_call = call[:-1] + ', force_refresh=True)'
-                    processed_python_blocks.append(modified_call)
+                        # Insert force_refresh=True before the closing parenthesis
+                        # Handle both cases: with and without existing parameters
+                        if call.rstrip(')').endswith('('):
+                            # No parameters: vfb.function()
+                            modified_call = call[:-1] + 'force_refresh=True)'
+                        else:
+                            # Has parameters: vfb.function(param1, param2)
+                            modified_call = call[:-1] + ', force_refresh=True)'
+                        processed_python_blocks.append(modified_call)
                 else:
                     # Shouldn't happen, but include original call if no parentheses
                     processed_python_blocks.append(call)

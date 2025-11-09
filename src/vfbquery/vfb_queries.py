@@ -858,7 +858,7 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # Transgene expression query
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]):
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Nervous_system", "Anatomy"]):
             q = TransgeneExpressionHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1581,7 +1581,7 @@ def TermsForPub_to_schema(name, take_default):
 
 def TransgeneExpressionHere_to_schema(name, take_default):
     """Schema for TransgeneExpressionHere query."""
-    return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
+    return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Nervous_system", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
 
 
 def serialize_solr_output(results):

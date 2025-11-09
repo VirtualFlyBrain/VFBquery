@@ -14,7 +14,7 @@ import vfbquery as vfb
 ```
 Class example:
 ```python
-vfb.get_term_info('FBbt_00003748')
+vfb.get_term_info('FBbt_00003748', force_refresh=True)
 ```
 ```json
 {
@@ -1005,6 +1005,7 @@ vfb.get_term_info('FBbt_00003748')
             "short_form": {
                "$and": [
                   "Class",
+                  "Nervous_system",
                   "Anatomy"
                ]
             },

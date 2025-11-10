@@ -25,7 +25,7 @@ jobs:
          python -m pip install .
       - name: Run term_info_queries_test
         env:
-          VFBQUERY_CACHE_ENABLED: 'true'
+          VFBQUERY_CACHE_ENABLED: 'false'
           MPLBACKEND: 'Agg'
           VISPY_GL_LIB: 'osmesa'
           VISPY_USE_EGL: '0'

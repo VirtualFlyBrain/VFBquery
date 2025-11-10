@@ -35,13 +35,18 @@ jobs:
           curl -v --max-time 30 "http://owl.virtualflybrain.org/kbs/vfb/subclasses?object=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FFBbt_00005106%3E&direct=false&includeDeprecated=false&includeEquivalent=true" | head -20 || echo "Simple query failed or timed out"
           echo ""
           echo "Testing if server responds at all..."
-          curl -v --max-time 10 "http://owl.virtualflybrain.org/" || echo "Server unreachable"
+          curl -v --max-time 10 "http://owl.virtualflybrain.org/kbs/vfb" || echo "Server unreachable"
           
       - name: Run Performance Test
         run: |
           python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
         
       - name: Run Legacy Performance Test  
+        env:
+          VFBQUERY_CACHE_ENABLED: 'true'
+          MPLBACKEND: 'Agg'
+          VISPY_GL_LIB: 'osmesa'
+          VISPY_USE_EGL: '0'
         run: |
           python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee -a performance_test_output.log
         

@@ -110,7 +110,7 @@ class OwleryClient:
                 'includeEquivalent': 'true'  # Include equivalent classes
             }
             
-            # Make HTTP GET request with longer timeout for complex queries (20 minutes for OWL reasoning)
+            # Make HTTP GET request with longer timeout for complex queries (40 minutes for OWL reasoning)
             # Add retry logic for connection resets (common with long-running queries)
             from requests.adapters import HTTPAdapter
             from urllib3.util.retry import Retry
@@ -129,7 +129,7 @@ class OwleryClient:
             response = session.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
-                timeout=1200
+                timeout=2400
             )
             
             if verbose:

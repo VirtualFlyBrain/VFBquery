@@ -230,7 +230,7 @@ class OwleryClient:
             if verbose:
                 print(f"Owlery instances URL: {prepared_request.url}")
             
-            # Make HTTP GET request to instances endpoint (20 minutes for OWL reasoning)
+            # Make HTTP GET request to instances endpoint (40 minutes for OWL reasoning)
             # Add retry logic for connection resets (common with long-running queries)
             from requests.adapters import HTTPAdapter
             from urllib3.util.retry import Retry
@@ -249,7 +249,7 @@ class OwleryClient:
             response = session.get(
                 f"{self.owlery_endpoint}/instances",
                 params=params,
-                timeout=1200
+                timeout=2400
             )
             
             response.raise_for_status()

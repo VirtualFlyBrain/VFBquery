@@ -45,6 +45,13 @@ def is_valid_term_info_result(result):
 from .vfb_queries import (
     get_term_info as _original_get_term_info,
     get_instances as _original_get_instances,
+    get_similar_neurons as _original_get_similar_neurons,
+    get_similar_morphology as _original_get_similar_morphology,
+    get_similar_morphology_part_of as _original_get_similar_morphology_part_of,
+    get_similar_morphology_part_of_exp as _original_get_similar_morphology_part_of_exp,
+    get_similar_morphology_nb as _original_get_similar_morphology_nb,
+    get_similar_morphology_nb_exp as _original_get_similar_morphology_nb_exp,
+    get_similar_morphology_userdata as _original_get_similar_morphology_userdata,
     vfb_solr
 )
 
@@ -86,6 +93,114 @@ def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1
     """
     return _original_get_instances(short_form, return_dataframe, limit)
 
+@with_solr_cache("similar_neurons")
+def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_neurons with SOLR caching.
+    
+    This cached version provides dramatic speedup for repeated NBLAST similarity queries.
+    
+    Args:
+        neuron: Neuron identifier
+        similarity_score: Similarity score type ('NBLAST_score', etc.)
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Similar neurons data (DataFrame or list of dicts)
+    """
+    return _original_get_similar_neurons(neuron, similarity_score, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology")
+def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology with SOLR caching.
+    
+    Args:
+        neuron_short_form: Neuron short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Similar morphology data
+    """
+    return _original_get_similar_morphology(neuron_short_form, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology_part_of")
+def get_similar_morphology_part_of_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology_part_of with SOLR caching.
+    
+    Args:
+        neuron_short_form: Neuron short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Similar morphology part-of data
+    """
+    return _original_get_similar_morphology_part_of(neuron_short_form, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology_part_of_exp")
+def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology_part_of_exp with SOLR caching.
+    
+    Args:
+        expression_short_form: Expression pattern short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Similar morphology expression data
+    """
+    return _original_get_similar_morphology_part_of_exp(expression_short_form, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology_nb")
+def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology_nb with SOLR caching.
+    
+    Args:
+        neuron_short_form: Neuron short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        NBLAST similar morphology data
+    """
+    return _original_get_similar_morphology_nb(neuron_short_form, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology_nb_exp")
+def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology_nb_exp with SOLR caching.
+    
+    Args:
+        expression_short_form: Expression pattern short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        NBLAST expression similarity data
+    """
+    return _original_get_similar_morphology_nb_exp(expression_short_form, return_dataframe, limit)
+
+@with_solr_cache("similar_morphology_userdata")
+def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_similar_morphology_userdata with SOLR caching.
+    
+    Args:
+        upload_id: User upload identifier
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        User data similarity results
+    """
+    return _original_get_similar_morphology_userdata(upload_id, return_dataframe, limit)
+
 # Convenience function to replace original functions
 def patch_vfbquery_with_caching():
     """
@@ -98,10 +213,24 @@ def patch_vfbquery_with_caching():
     # Store original functions for fallback
     setattr(vfb_queries, '_original_get_term_info', vfb_queries.get_term_info)
     setattr(vfb_queries, '_original_get_instances', vfb_queries.get_instances)
+    setattr(vfb_queries, '_original_get_similar_neurons', vfb_queries.get_similar_neurons)
+    setattr(vfb_queries, '_original_get_similar_morphology', vfb_queries.get_similar_morphology)
+    setattr(vfb_queries, '_original_get_similar_morphology_part_of', vfb_queries.get_similar_morphology_part_of)
+    setattr(vfb_queries, '_original_get_similar_morphology_part_of_exp', vfb_queries.get_similar_morphology_part_of_exp)
+    setattr(vfb_queries, '_original_get_similar_morphology_nb', vfb_queries.get_similar_morphology_nb)
+    setattr(vfb_queries, '_original_get_similar_morphology_nb_exp', vfb_queries.get_similar_morphology_nb_exp)
+    setattr(vfb_queries, '_original_get_similar_morphology_userdata', vfb_queries.get_similar_morphology_userdata)
     
     # Replace with cached versions
     vfb_queries.get_term_info = get_term_info_cached
     vfb_queries.get_instances = get_instances_cached
+    vfb_queries.get_similar_neurons = get_similar_neurons_cached
+    vfb_queries.get_similar_morphology = get_similar_morphology_cached
+    vfb_queries.get_similar_morphology_part_of = get_similar_morphology_part_of_cached
+    vfb_queries.get_similar_morphology_part_of_exp = get_similar_morphology_part_of_exp_cached
+    vfb_queries.get_similar_morphology_nb = get_similar_morphology_nb_cached
+    vfb_queries.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
+    vfb_queries.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
     
     print("VFBquery functions patched with caching support")
 
@@ -113,5 +242,19 @@ def unpatch_vfbquery_caching():
         vfb_queries.get_term_info = getattr(vfb_queries, '_original_get_term_info')
     if hasattr(vfb_queries, '_original_get_instances'):
         vfb_queries.get_instances = getattr(vfb_queries, '_original_get_instances')
+    if hasattr(vfb_queries, '_original_get_similar_neurons'):
+        vfb_queries.get_similar_neurons = getattr(vfb_queries, '_original_get_similar_neurons')
+    if hasattr(vfb_queries, '_original_get_similar_morphology'):
+        vfb_queries.get_similar_morphology = getattr(vfb_queries, '_original_get_similar_morphology')
+    if hasattr(vfb_queries, '_original_get_similar_morphology_part_of'):
+        vfb_queries.get_similar_morphology_part_of = getattr(vfb_queries, '_original_get_similar_morphology_part_of')
+    if hasattr(vfb_queries, '_original_get_similar_morphology_part_of_exp'):
+        vfb_queries.get_similar_morphology_part_of_exp = getattr(vfb_queries, '_original_get_similar_morphology_part_of_exp')
+    if hasattr(vfb_queries, '_original_get_similar_morphology_nb'):
+        vfb_queries.get_similar_morphology_nb = getattr(vfb_queries, '_original_get_similar_morphology_nb')
+    if hasattr(vfb_queries, '_original_get_similar_morphology_nb_exp'):
+        vfb_queries.get_similar_morphology_nb_exp = getattr(vfb_queries, '_original_get_similar_morphology_nb_exp')
+    if hasattr(vfb_queries, '_original_get_similar_morphology_userdata'):
+        vfb_queries.get_similar_morphology_userdata = getattr(vfb_queries, '_original_get_similar_morphology_userdata')
     
     print("VFBquery functions restored to original (non-cached) versions")

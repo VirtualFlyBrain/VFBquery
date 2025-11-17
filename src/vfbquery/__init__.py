@@ -5,25 +5,33 @@ from .solr_result_cache import get_solr_cache
 try:
     from .cached_functions import (
         get_term_info_cached,
-        get_instances_cached
+        get_instances_cached,
+        get_similar_neurons_cached,
+        get_similar_morphology_cached,
+        get_similar_morphology_part_of_cached,
+        get_similar_morphology_part_of_exp_cached,
+        get_similar_morphology_nb_cached,
+        get_similar_morphology_nb_exp_cached,
+        get_similar_morphology_userdata_cached,
     )
     __caching_available__ = True
 
     # Enable SOLR caching by default with 3-month TTL
     import os
-
+    
     # Check if caching should be disabled via environment variable
     cache_disabled = os.getenv('VFBQUERY_CACHE_ENABLED', 'true').lower() in ('false', '0', 'no', 'off')
-
+    
     if not cache_disabled:
+        # Import and patch functions with caching
+        from .cached_functions import patch_vfbquery_with_caching
+        patch_vfbquery_with_caching()
         print("VFBquery: SOLR caching enabled by default (3-month TTL)")
         print("         Disable with: export VFBQUERY_CACHE_ENABLED=false")
 
 except ImportError:
     __caching_available__ = False
-    print("VFBquery: Caching not available (dependencies missing)")
-
-# Convenience function for clearing SOLR cache entries
+    print("VFBquery: Caching not available (dependencies missing)")# Convenience function for clearing SOLR cache entries
 def clear_solr_cache(query_type: str, term_id: str) -> bool:
     """
     Clear a specific SOLR cache entry to force refresh

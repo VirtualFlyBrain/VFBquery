@@ -60,6 +60,9 @@ result1 = vfb.get_term_info('FBbt_00003748')
 
 # Subsequent queries: served from SOLR cache (<0.1 seconds)
 result2 = vfb.get_term_info('FBbt_00003748')  # 54,000x faster!
+
+# Similarity queries are also cached
+similar = vfb.get_similar_neurons('VFB_jrchk00s')  # Cached after first run
 ```
 
 **Typical Performance:**
@@ -67,6 +70,7 @@ result2 = vfb.get_term_info('FBbt_00003748')  # 54,000x faster!
 - First query: 1-2 seconds  
 - Cached queries: <0.1 seconds
 - Speedup: Up to 54,000x for complex queries
+- **NBLAST similarity queries**: 10+ seconds → <0.1 seconds (cached)
 
 ## Monitoring Cache Performance
 
@@ -113,6 +117,7 @@ instances = vfb.get_instances('FBbt_00003748')  # Cached automatically
 - **Zero Configuration**: Works out of the box with optimal settings
 - **Persistent Storage**: SOLR cache survives Python restarts and server reboots
 - **Server-side Caching**: Shared across multiple processes/instances
+- **Similarity Queries**: NBLAST and morphological similarity searches are cached
 - **Production Ready**: 3-month TTL matches VFB_connect behavior
 
 ## Best Practices

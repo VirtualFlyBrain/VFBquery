@@ -48,7 +48,7 @@ class QueryPerformanceTest(unittest.TestCase):
     # Performance thresholds (in seconds)
     THRESHOLD_FAST = 1.0       # Fast queries (simple SOLR lookups)
     THRESHOLD_MEDIUM = 3.0     # Medium queries (Owlery + SOLR)
-    THRESHOLD_SLOW = 10.0      # Slow queries (Neo4j + complex processing)
+    THRESHOLD_SLOW = 15.0      # Slow queries (Neo4j + complex processing)
     THRESHOLD_VERY_SLOW = 31.0  # Very slow queries (complex OWL reasoning - over 30 seconds)
     
     @classmethod

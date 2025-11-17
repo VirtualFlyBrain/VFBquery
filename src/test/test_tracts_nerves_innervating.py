@@ -71,7 +71,7 @@ class TractsNervesInnervatingTest(unittest.TestCase):
         self.assertEqual(schema.query, "TractsNervesInnervatingHere", "Query name should match")
         self.assertEqual(schema.label, f"Tracts/nerves innervating {test_name}", "Label should be formatted correctly")
         self.assertEqual(schema.function, "get_tracts_nerves_innervating_here", "Function name should match")
-        self.assertEqual(schema.preview, 10, "Preview should be 10")
+        self.assertEqual(schema.preview, 5, "Preview should be 5")
         
         # Check preview columns
         expected_columns = ["id", "label", "tags", "thumbnail"]

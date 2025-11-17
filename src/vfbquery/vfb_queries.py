@@ -1249,7 +1249,7 @@ def NeuronNeuronConnectivityQuery_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "label", "weight", "tags"]
+    preview_columns = ["id", "label", "outputs", "inputs", "tags"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -1268,7 +1268,7 @@ def NeuronRegionConnectivityQuery_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
+    preview_columns = ["id", "label", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -2648,7 +2648,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
     RETURN 
         oi.short_form AS id,
-        oi.label AS partner_neuron,
+        oi.label AS label,
         coalesce(down.weight[0], 0) AS outputs,
         coalesce(up.weight[0], 0) AS inputs,
         oi.uniqueFacets AS tags
@@ -2674,7 +2674,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     
     headers = {
         'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
-        'partner_neuron': {'title': 'Partner Neuron', 'type': 'markdown', 'order': 0},
+        'label': {'title': 'Partner Neuron', 'type': 'markdown', 'order': 0},
         'outputs': {'title': 'Outputs', 'type': 'number', 'order': 1},
         'inputs': {'title': 'Inputs', 'type': 'number', 'order': 2},
         'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
@@ -2713,7 +2713,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
          primary
     RETURN 
         target.short_form AS id,
-        target.label AS region,
+        target.label AS label,
         synapse_counts.`pre` AS presynaptic_terminals,
         synapse_counts.`post` AS postsynaptic_terminals,
         target.uniqueFacets AS tags
@@ -2732,7 +2732,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
     
     headers = {
         'id': {'title': 'Region ID', 'type': 'selection_id', 'order': -1},
-        'region': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
+        'label': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
         'presynaptic_terminals': {'title': 'Presynaptic Terminals', 'type': 'number', 'order': 1},
         'postsynaptic_terminals': {'title': 'Postsynaptic Terminals', 'type': 'number', 'order': 2},
         'tags': {'title': 'Region Types', 'type': 'list', 'order': 3},

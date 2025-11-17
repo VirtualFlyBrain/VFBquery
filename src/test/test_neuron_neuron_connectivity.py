@@ -59,7 +59,7 @@ class NeuronNeuronConnectivityTest(unittest.TestCase):
         self.assertEqual(schema.label, f"Neurons connected to {test_name}", "Label should be formatted correctly")
         self.assertEqual(schema.function, "get_neuron_neuron_connectivity", "Function name should match")
         self.assertEqual(schema.preview, 5, "Preview should be 5")
-        expected_columns = ["id", "label", "weight", "tags"]
+        expected_columns = ["id", "label", "outputs", "inputs", "tags"]
         self.assertEqual(schema.preview_columns, expected_columns, f"Preview columns should be {expected_columns}")
         print(f"Schema generated successfully: {schema.label}")
 

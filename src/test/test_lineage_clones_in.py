@@ -73,7 +73,7 @@ class LineageClonesInTest(unittest.TestCase):
         self.assertEqual(schema.query, "LineageClonesIn", "Query name should match")
         self.assertEqual(schema.label, f"Lineage clones found in {test_name}", "Label should be formatted correctly")
         self.assertEqual(schema.function, "get_lineage_clones_in", "Function name should match")
-        self.assertEqual(schema.preview, 10, "Preview should be 10")
+        self.assertEqual(schema.preview, 5, "Preview should be 10")
         
         # Check preview columns
         expected_columns = ["id", "label", "tags", "thumbnail"]

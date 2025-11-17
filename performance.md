@@ -157,12 +157,6 @@ ComponentsOf: 0.8437s ✅
 PartsOf: 0.8280s ✅
 SubclassesOf: 0.8250s ✅
 
-================================================================================
-TRACT/NERVE AND LINEAGE QUERIES
-================================================================================
-NeuronClassesFasciculatingHere: 0.8196s ✅
-TractsNervesInnervatingHere: 0.8322s ✅
-LineageClonesIn: 0.8089s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
@@ -176,78 +170,6 @@ INSTANCE QUERIES
 ================================================================================
 ListAllAvailableImages: 0.8244s ✅
 
-================================================================================
-CONNECTIVITY QUERIES
-================================================================================
-NeuronNeuronConnectivityQuery: 0.8346s ✅
-NeuronRegionConnectivityQuery: 0.8415s ✅
-
-================================================================================
-SIMILARITY QUERIES (Neo4j NBLAST)
-================================================================================
-SimilarMorphologyTo: 10.3082s ✅
-
-================================================================================
-NEURON INPUT QUERIES (Neo4j)
-================================================================================
-NeuronInputsTo: 2.7979s ✅
-
-================================================================================
-EXPRESSION PATTERN QUERIES (Neo4j)
-================================================================================
-ExpressionOverlapsHere: 0.7753s ✅
-  └─ Found 3922 total expression patterns, returned 10
-
-================================================================================
-TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
-================================================================================
-anatScRNAseqQuery: 0.7331s ✅
-  └─ Found 0 total clusters
-clusterExpression: 0.6986s ✅
-  └─ Found 0 genes expressed
-expressionCluster: 0.6664s ✅
-  └─ Found 0 clusters expressing gene
-scRNAdatasetData: 0.6774s ✅
-  └─ Found 0 clusters in dataset
-
-================================================================================
-NBLAST SIMILARITY QUERIES
-================================================================================
-SimilarMorphologyTo: 0.9129s ✅
-  └─ Found 227 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 0.6736s ✅
-  └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.6483s ✅
-  └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.6422s ✅
-  └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.6751s ✅
-  └─ Found 15 NeuronBridge expression matches, returned 10
-✅ All NBLAST similarity queries completed
-
-================================================================================
-DATASET/TEMPLATE QUERIES
-================================================================================
-PaintedDomains: 0.6959s ✅
-  └─ Found 0 painted domains
-DatasetImages: 0.6710s ✅
-  └─ Found 0 images in dataset
-AllAlignedImages: 0.6504s ✅
-  └─ Found 0 aligned images
-AlignedDatasets: 0.9015s ✅
-  └─ Found 0 aligned datasets
-AllDatasets: 0.9170s ✅
-  └─ Found 115 total datasets, returned 20
-✅ All dataset/template queries completed
-
-================================================================================
-PUBLICATION/TRANSGENE QUERIES
-================================================================================
-TermsForPub: 0.6267s ✅
-  └─ Found 0 terms for publication
-TransgeneExpressionHere: 0.7155s ✅
-  └─ Found 2339 transgene expressions, returned 10
-✅ All publication/transgene queries completed
 
 ================================================================================
 PERFORMANCE TEST SUMMARY

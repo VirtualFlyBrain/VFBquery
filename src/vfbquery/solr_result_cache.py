@@ -590,6 +590,13 @@ def with_solr_cache(query_type: str):
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
             
+            # Allow caching of limited results for expensive similarity queries
+            similarity_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
+                                    'similar_morphology_part_of_exp', 'similar_morphology_nb', 
+                                    'similar_morphology_nb_exp', 'similar_morphology_userdata']
+            if query_type in similarity_query_types:
+                should_cache = True  # Always cache similarity queries, even with limits
+            
             # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
             if query_type == 'neuron_neuron_connectivity_query':
                 min_weight = kwargs.get('min_weight', 0)
@@ -615,16 +622,11 @@ def with_solr_cache(query_type: str):
                 preview = kwargs.get('preview', True)  # Default is True
                 cache_term_id = f"{term_id}_preview_{preview}"
             
-            # Include return_dataframe parameter in cache key for queries that support it
-            # This ensures DataFrame and dict formats are cached separately
-            if query_type in ['instances', 'neurons_part_here', 'neurons_synaptic', 
-                             'neurons_presynaptic', 'neurons_postsynaptic', 
-                             'components_of', 'parts_of', 'subclasses_of',
-                             'neuron_classes_fasciculating_here', 'tracts_nerves_innervating_here',
-                             'lineage_clones_in', 'images_neurons', 'images_that_develop_from',
-                             'expression_pattern_fragments', 'neuron_neuron_connectivity_query']:
-                return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
-                cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
+            # Include similarity_score parameter in cache key for similarity queries
+            # This ensures different similarity scores are cached separately
+            if query_type in similarity_query_types:
+                similarity_score = kwargs.get('similarity_score', 'NBLAST_score')  # Default
+                cache_term_id = f"{cache_term_id}_score_{similarity_score}"
             
             cache = get_solr_cache()
             

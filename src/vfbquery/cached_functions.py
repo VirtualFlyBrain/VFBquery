@@ -209,6 +209,7 @@ def patch_vfbquery_with_caching():
     This allows existing code to benefit from caching without changes.
     """
     import vfbquery.vfb_queries as vfb_queries
+    import vfbquery
     
     # Store original functions for fallback
     setattr(vfb_queries, '_original_get_term_info', vfb_queries.get_term_info)
@@ -221,7 +222,7 @@ def patch_vfbquery_with_caching():
     setattr(vfb_queries, '_original_get_similar_morphology_nb_exp', vfb_queries.get_similar_morphology_nb_exp)
     setattr(vfb_queries, '_original_get_similar_morphology_userdata', vfb_queries.get_similar_morphology_userdata)
     
-    # Replace with cached versions
+    # Replace with cached versions in vfb_queries module
     vfb_queries.get_term_info = get_term_info_cached
     vfb_queries.get_instances = get_instances_cached
     vfb_queries.get_similar_neurons = get_similar_neurons_cached
@@ -231,6 +232,17 @@ def patch_vfbquery_with_caching():
     vfb_queries.get_similar_morphology_nb = get_similar_morphology_nb_cached
     vfb_queries.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
     vfb_queries.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
+    
+    # Also replace in the main vfbquery module namespace (since functions were imported with 'from .vfb_queries import *')
+    vfbquery.get_term_info = get_term_info_cached
+    vfbquery.get_instances = get_instances_cached
+    vfbquery.get_similar_neurons = get_similar_neurons_cached
+    vfbquery.get_similar_morphology = get_similar_morphology_cached
+    vfbquery.get_similar_morphology_part_of = get_similar_morphology_part_of_cached
+    vfbquery.get_similar_morphology_part_of_exp = get_similar_morphology_part_of_exp_cached
+    vfbquery.get_similar_morphology_nb = get_similar_morphology_nb_cached
+    vfbquery.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
+    vfbquery.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
     
     print("VFBquery functions patched with caching support")
 

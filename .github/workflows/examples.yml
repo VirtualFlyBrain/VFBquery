@@ -26,6 +26,7 @@ jobs:
         run: |
           cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' > test_examples.py
           cat test_examples.py
+          export VFBQUERY_CACHE_ENABLED=false
           python test_examples.py
       - name: Parse README.md and generate test files
         run: |

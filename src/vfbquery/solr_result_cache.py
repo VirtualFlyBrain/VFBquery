@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import logging
 from dataclasses import dataclass, asdict
+import pandas as pd
 from vfbquery.term_info_queries import NumpyEncoder
 
 logger = logging.getLogger(__name__)
@@ -585,6 +586,16 @@ def with_solr_cache(query_type: str):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
             
+            # Check if limit is applied - don't cache limited results as they're incomplete
+            limit = kwargs.get('limit', -1)
+            should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
+            
+            # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
+            if query_type == 'neuron_neuron_connectivity_query':
+                min_weight = kwargs.get('min_weight', 0)
+                direction = kwargs.get('direction', 'both')
+                should_cache = should_cache and (min_weight == 0) and (direction == 'both')
+            
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
@@ -608,7 +619,10 @@ def with_solr_cache(query_type: str):
             # This ensures DataFrame and dict formats are cached separately
             if query_type in ['instances', 'neurons_part_here', 'neurons_synaptic', 
                              'neurons_presynaptic', 'neurons_postsynaptic', 
-                             'components_of', 'parts_of', 'subclasses_of']:
+                             'components_of', 'parts_of', 'subclasses_of',
+                             'neuron_classes_fasciculating_here', 'tracts_nerves_innervating_here',
+                             'lineage_clones_in', 'images_neurons', 'images_that_develop_from',
+                             'expression_pattern_fragments', 'neuron_neuron_connectivity_query']:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_df_{return_dataframe}"
             
@@ -620,8 +634,37 @@ def with_solr_cache(query_type: str):
                 cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
+            # OPTIMIZATION: If requesting limited results, check if full results are cached
+            # If yes, we can extract the limited rows from the cached full results
             if not force_refresh:
-                cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
+                # First try to get cached result matching the exact query (including limit)
+                if should_cache:
+                    cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
+                else:
+                    # For limited queries, try to get full cached results instead
+                    full_kwargs = kwargs.copy()
+                    full_kwargs['limit'] = -1  # Get full results
+                    cached_result = cache.get_cached_result(query_type, cache_term_id, **full_kwargs)
+                    
+                    # If we got full cached results, extract the limited portion
+                    if cached_result is not None and limit > 0:
+                        logger.debug(f"Extracting first {limit} rows from cached full results for {term_id}")
+                        
+                        # Extract limited rows based on result type
+                        if isinstance(cached_result, dict) and 'rows' in cached_result:
+                            cached_result = {
+                                'headers': cached_result.get('headers', {}),
+                                'rows': cached_result['rows'][:limit],
+                                'count': cached_result.get('count', len(cached_result.get('rows', [])))
+                            }
+                        elif isinstance(cached_result, pd.DataFrame):
+                            # Keep the full count but limit the rows
+                            original_count = len(cached_result)
+                            cached_result = cached_result.head(limit)
+                            # Add count attribute if possible
+                            if hasattr(cached_result, '_metadata'):
+                                cached_result._metadata['count'] = original_count
+                
                 if cached_result is not None:
                     # Validate that cached result has essential fields for term_info
                     if query_type == 'term_info':
@@ -728,19 +771,26 @@ def with_solr_cache(query_type: str):
                             elif failed_queries > 0:
                                 logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
                     
-                    if is_complete:
+                    # Only cache if result is complete AND no limit was applied
+                    if is_complete and should_cache:
                         try:
                             cache.cache_result(query_type, cache_term_id, result, **kwargs)
                             logger.debug(f"Cached complete result for {term_id}")
                         except Exception as e:
                             logger.debug(f"Failed to cache result: {e}")
+                    elif not should_cache:
+                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
                     else:
                         logger.warning(f"Not caching incomplete result for {term_id}")
                 else:
-                    try:
-                        cache.cache_result(query_type, cache_term_id, result, **kwargs)
-                    except Exception as e:
-                        logger.debug(f"Failed to cache result: {e}")
+                    # Only cache if no limit was applied
+                    if should_cache:
+                        try:
+                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
+                        except Exception as e:
+                            logger.debug(f"Failed to cache result: {e}")
+                    else:
+                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
             
             return result
         

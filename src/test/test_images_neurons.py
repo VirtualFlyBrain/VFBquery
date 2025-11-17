@@ -75,7 +75,7 @@ class ImagesNeuronsTest(unittest.TestCase):
         self.assertEqual(schema.query, "ImagesNeurons")
         self.assertEqual(schema.label, f"Images of neurons with some part in {name}")
         self.assertEqual(schema.function, "get_images_neurons")
-        self.assertEqual(schema.preview, 10)
+        self.assertEqual(schema.preview, 5)
         self.assertIn("id", schema.preview_columns)
         self.assertIn("label", schema.preview_columns)
         

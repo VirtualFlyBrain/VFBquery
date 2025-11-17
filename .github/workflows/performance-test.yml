@@ -21,19 +21,32 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
           
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade -r requirements.txt
-          python -m pip install .
+          python -m pip install -e .  # Editable install ensures we test the actual source code
+      
+      - name: Test Owlery Connectivity
+        run: |
+          echo "Testing basic connectivity to Owlery server..."
+          curl -v --max-time 30 "http://owl.virtualflybrain.org/kbs/vfb/subclasses?object=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FFBbt_00005106%3E&direct=false&includeDeprecated=false&includeEquivalent=true" | head -20 || echo "Simple query failed or timed out"
+          echo ""
+          echo "Testing if server responds at all..."
+          curl -v --max-time 10 "http://owl.virtualflybrain.org/kbs/vfb" || echo "Server unreachable"
           
       - name: Run Performance Test
         run: |
           python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
         
       - name: Run Legacy Performance Test  
+        env:
+          VFBQUERY_CACHE_ENABLED: 'true'
+          MPLBACKEND: 'Agg'
+          VISPY_GL_LIB: 'osmesa'
+          VISPY_USE_EGL: '0'
         run: |
           python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee -a performance_test_output.log
         
@@ -51,25 +64,79 @@ jobs:
           
           ## Test Overview
           
-          This performance test measures the execution time of all implemented VFB queries including:
+          This performance test measures the execution time of all implemented VFB queries organized by functionality:
           
-          ### Core Queries
-          - **Term Info Queries**: Basic term information retrieval
-          - **Neuron Part Queries**: Neurons with parts overlapping regions
-          - **Synaptic Terminal Queries**: Pre/post synaptic terminals
-          - **Anatomical Hierarchy**: Components, parts, subclasses
-          - **Instance Queries**: Available images and instances
+          ### 1. Term Information Queries
           
-          ### New Queries (2025)
+          - **Term Info**: Comprehensive term information retrieval with preview data
+          
+          ### 2. Neuron Part & Synaptic Queries
+          
+          - **NeuronsPartHere**: Neurons with parts overlapping anatomical regions
+          - **NeuronsSynaptic**: Neurons with synapses in a region
+          - **NeuronsPresynapticHere**: Neurons with presynaptic terminals in a region
+          - **NeuronsPostsynapticHere**: Neurons with postsynaptic terminals in a region
+          
+          ### 3. Anatomical Hierarchy Queries
+          
+          - **ComponentsOf**: Anatomical components of a structure
+          - **PartsOf**: Parts of an anatomical structure
+          - **SubclassesOf**: Subclasses of anatomical terms (can be very slow for complex terms)
+          
+          ### 4. Tract/Nerve & Lineage Queries
+          
           - **NeuronClassesFasciculatingHere**: Neurons fasciculating with tracts
           - **TractsNervesInnervatingHere**: Tracts/nerves innervating neuropils
-          - **LineageClonesIn**: Lineage clones in neuropils
+          - **LineageClonesIn**: Lineage clones in neuropils (complex OWL reasoning)
+          
+          ### 5. Image & Developmental Queries
+          
+          - **ImagesNeurons**: Neuron images in anatomical regions
+          - **ImagesThatDevelopFrom**: Developmental lineage images
+          - **epFrag**: Expression pattern fragments
+          - **ListAllAvailableImages**: All available images for a term
+          
+          ### 6. Connectivity Queries
+          
+          - **NeuronNeuronConnectivity**: Neuron-to-neuron connectivity
+          - **NeuronRegionConnectivity**: Neuron-to-region connectivity
+          - **NeuronInputsTo**: Individual neuron inputs
+          
+          ### 7. Similarity Queries (NBLAST & NeuronBridge)
+          
+          - **SimilarMorphologyTo**: NBLAST morphological similarity
+          - **SimilarMorphologyToPartOf**: NBLAST to expression patterns (NBLASTexp)
+          - **SimilarMorphologyToPartOfexp**: Reverse NBLASTexp
+          - **SimilarMorphologyToNB**: NeuronBridge matches
+          - **SimilarMorphologyToNBexp**: NeuronBridge for expression patterns
+          
+          ### 8. Expression & Transcriptomics Queries
+          
+          - **ExpressionOverlapsHere**: Expression patterns overlapping regions
+          - **anatScRNAseqQuery**: scRNAseq clusters in anatomy
+          - **clusterExpression**: Genes expressed in clusters
+          - **expressionCluster**: Clusters expressing genes
+          - **scRNAdatasetData**: Cluster data from scRNAseq datasets
+          
+          ### 9. Dataset & Template Queries
+          
+          - **PaintedDomains**: Template painted anatomy domains
+          - **DatasetImages**: Images in datasets
+          - **AllAlignedImages**: Images aligned to templates
+          - **AlignedDatasets**: Datasets aligned to templates
+          - **AllDatasets**: All available datasets
+          
+          ### 10. Publication & Transgene Queries
+          
+          - **TermsForPub**: Terms referencing publications
+          - **TransgeneExpressionHere**: Transgene expression patterns in regions
           
           ## Performance Thresholds
           
           - **Fast queries**: < 1 second (SOLR lookups)
           - **Medium queries**: < 3 seconds (Owlery + SOLR)
           - **Slow queries**: < 10 seconds (Neo4j + complex processing)
+          - **Very Slow queries**: < 31 seconds (Complex OWL reasoning - over 30 seconds)
           
           ## Test Results
           

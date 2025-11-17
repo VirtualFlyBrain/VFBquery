@@ -11,16 +11,30 @@ import pandas as pd
 import re
 from urllib.parse import quote
 from typing import List, Optional, Dict, Any, Union
+import concurrent.futures
 
 
 def short_form_to_iri(short_form: str) -> str:
     """
-    Convert a short form (e.g., 'FBbt_00003748') to full IRI.
+    Convert a short form (e.g., 'FBbt_00003748', 'VFBexp_FBtp0022557') to full IRI.
     
-    :param short_form: Short form like 'FBbt_00003748'
-    :return: Full IRI like 'http://purl.obolibrary.org/obo/FBbt_00003748'
+    Handles common ID prefixes:
+    - VFB* -> http://virtualflybrain.org/reports/
+    - FB* -> http://purl.obolibrary.org/obo/
+    - Other -> http://purl.obolibrary.org/obo/ (default)
+    
+    :param short_form: Short form like 'FBbt_00003748' or 'VFBexp_FBtp0022557'
+    :return: Full IRI
     """
-    # OBO library IRIs use underscores in the ID
+    # VFB IDs use virtualflybrain.org/reports
+    if short_form.startswith('VFB'):
+        return f"http://virtualflybrain.org/reports/{short_form}"
+    
+    # FB* IDs (FlyBase) use purl.obolibrary.org/obo
+    if short_form.startswith('FB'):
+        return f"http://purl.obolibrary.org/obo/{short_form}"
+    
+    # Default to OBO for other IDs
     return f"http://purl.obolibrary.org/obo/{short_form}"
 
 
@@ -52,7 +66,7 @@ class OwleryClient:
         self.owlery_endpoint = owlery_endpoint.rstrip('/')
     
     def get_subclasses(self, query: str, query_by_label: bool = True, 
-                      verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+                      verbose: bool = False, direct: bool = False) -> List[str]:
         """
         Query Owlery for subclasses matching an OWL class expression.
         
@@ -63,7 +77,6 @@ class OwleryClient:
         :param query_by_label: If True, query uses label syntax (quotes). 
                                If False, uses IRI syntax (angle brackets).
         :param verbose: If True, print debug information
-        :param prefixes: If True, return full IRIs. If False, return short forms.
         :param direct: Return direct subclasses only. Default False.
         :return: List of class IDs (short forms like 'FBbt_00003748')
         """
@@ -92,20 +105,31 @@ class OwleryClient:
             # Based on VFBConnect's query() method
             params = {
                 'object': iri_query,
-                'prefixes': json.dumps({
-                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
-                    "RO": "http://purl.obolibrary.org/obo/RO_",
-                    "BFO": "http://purl.obolibrary.org/obo/BFO_"
-                })
+                'direct': 'false',  # Always use indirect (transitive) queries
+                'includeDeprecated': 'false',  # Exclude deprecated terms
+                'includeEquivalent': 'true'  # Include equivalent classes
             }
-            if direct:
-                params['direct'] = 'False'  # Note: Owlery expects string 'False', not boolean
             
-            # Make HTTP GET request with longer timeout for complex queries
-            response = requests.get(
+            # Make HTTP GET request with longer timeout for complex queries (40 minutes for OWL reasoning)
+            # Add retry logic for connection resets (common with long-running queries)
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,  # Total number of retries
+                backoff_factor=2,  # Wait 2s, 4s, 8s between retries
+                status_forcelist=[500, 502, 503, 504],  # Retry on server errors
+                allowed_methods=["GET"]  # Only retry GET requests
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            response = session.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
-                timeout=120
+                timeout=2400
             )
             
             if verbose:
@@ -162,7 +186,7 @@ class OwleryClient:
             raise
     
     def get_instances(self, query: str, query_by_label: bool = True, 
-                     verbose: bool = False, prefixes: bool = False, direct: bool = False) -> List[str]:
+                     verbose: bool = False, direct: bool = False) -> List[str]:
         """
         Query Owlery for instances matching an OWL class expression.
         
@@ -173,7 +197,6 @@ class OwleryClient:
         :param query_by_label: If True, query uses label syntax (quotes). 
                                If False, uses IRI syntax (angle brackets).
         :param verbose: If True, print debug information
-        :param prefixes: If True, return full IRIs. If False, return short forms.
         :param direct: Return direct instances only. Default False.
         :return: List of instance IDs (short forms like 'VFB_00101567')
         """
@@ -196,25 +219,38 @@ class OwleryClient:
             # Build Owlery instances endpoint URL
             params = {
                 'object': iri_query,
-                'prefixes': json.dumps({
-                    "FBbt": "http://purl.obolibrary.org/obo/FBbt_",
-                    "RO": "http://purl.obolibrary.org/obo/RO_",
-                    "BFO": "http://purl.obolibrary.org/obo/BFO_",
-                    "VFB": "http://virtualflybrain.org/reports/VFB_"
-                })
+                'direct': 'true' if direct else 'false',
+                'includeDeprecated': 'false'
             }
-            if direct:
-                params['direct'] = 'False'
             
-            # Make HTTP GET request to instances endpoint
-            response = requests.get(
-                f"{self.owlery_endpoint}/instances",
-                params=params,
-                timeout=120
-            )
+            # Build full URL for debugging
+            full_url = f"{self.owlery_endpoint}/instances"
+            prepared_request = requests.Request('GET', full_url, params=params).prepare()
             
             if verbose:
-                print(f"Owlery instances query: {response.url}")
+                print(f"Owlery instances URL: {prepared_request.url}")
+            
+            # Make HTTP GET request to instances endpoint (40 minutes for OWL reasoning)
+            # Add retry logic for connection resets (common with long-running queries)
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,  # Total number of retries
+                backoff_factor=2,  # Wait 2s, 4s, 8s between retries
+                status_forcelist=[500, 502, 503, 504],  # Retry on server errors
+                allowed_methods=["GET"]  # Only retry GET requests
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            response = session.get(
+                f"{self.owlery_endpoint}/instances",
+                params=params,
+                timeout=2400
+            )
             
             response.raise_for_status()
             
@@ -258,7 +294,14 @@ class OwleryClient:
             return short_forms
             
         except requests.RequestException as e:
-            print(f"ERROR: Owlery instances request failed: {e}")
+            # Show the full URL that was attempted
+            try:
+                full_url = f"{self.owlery_endpoint}/instances"
+                prepared_request = requests.Request('GET', full_url, params=params).prepare()
+                print(f"ERROR: Owlery instances request failed: {e}")
+                print(f"       Test URL: {prepared_request.url}")
+            except:
+                print(f"ERROR: Owlery instances request failed: {e}")
             raise
         except Exception as e:
             print(f"ERROR: Unexpected error in Owlery instances query: {e}")
@@ -355,9 +398,11 @@ class SimpleVFBConnect:
         :param summary: If True, return summarized version (currently ignored)
         :return: List of term info dictionaries or DataFrame
         """
-        results = []
-        
-        for short_form in short_forms:
+        # Fetch term info entries in parallel to speed up multiple short_form requests.
+        # We preserve input order in the returned list.
+        results_map = {}
+
+        def fetch(short_form: str):
             try:
                 url = f"{self.solr_url}/select"
                 params = {
@@ -366,32 +411,46 @@ class SimpleVFBConnect:
                     "q.op": "OR",
                     "q": f"id:{short_form}"
                 }
-                
+
                 response = requests.get(url, params=params, timeout=30)
                 response.raise_for_status()
-                
+
                 data = response.json()
                 docs = data.get("response", {}).get("docs", [])
-                
+
                 if not docs:
-                    print(f"WARNING: No results found for {short_form}")
-                    continue
-                    
+                    # no result for this id
+                    return None
+
                 if "term_info" not in docs[0] or not docs[0]["term_info"]:
-                    print(f"WARNING: No term_info found for {short_form}")
-                    continue
-                
-                # Extract and parse the term_info string which is itself JSON
+                    return None
+
                 term_info_str = docs[0]["term_info"][0]
                 term_info_obj = json.loads(term_info_str)
-                results.append(term_info_obj)
-                
+                return term_info_obj
+
             except requests.RequestException as e:
-                print(f"ERROR: Error fetching data from SOLR: {e}")
+                print(f"ERROR: Error fetching data from SOLR for {short_form}: {e}")
             except json.JSONDecodeError as e:
                 print(f"ERROR: Error decoding JSON for {short_form}: {e}")
             except Exception as e:
                 print(f"ERROR: Unexpected error for {short_form}: {e}")
+            return None
+
+        max_workers = min(10, max(1, len(short_forms)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as exc:
+            # map preserves order of input keys in Python 3.9+ when using as_completed we reassemble
+            future_to_sf = {exc.submit(fetch, sf): sf for sf in short_forms}
+            for fut in concurrent.futures.as_completed(future_to_sf):
+                sf = future_to_sf[fut]
+                try:
+                    res = fut.result()
+                    results_map[sf] = res
+                except Exception as e:
+                    print(f"ERROR: Exception while fetching {sf}: {e}")
+
+        # Build results list in the same order as short_forms input, skipping None results
+        results = [results_map[sf] for sf in short_forms if sf in results_map and results_map[sf] is not None]
         
         # Convert to DataFrame if requested
         if return_dataframe and results:

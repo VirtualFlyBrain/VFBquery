@@ -24,6 +24,11 @@ jobs:
          python -m pip install -U -r requirements.txt
          python -m pip install .
       - name: Run term_info_queries_test
+        env:
+          VFBQUERY_CACHE_ENABLED: 'false'
+          MPLBACKEND: 'Agg'
+          VISPY_GL_LIB: 'osmesa'
+          VISPY_USE_EGL: '0'
         run: |
           export PYTHONPATH=$PYTHONPATH:$PWD/
           python -m unittest -v src/test/term_info_queries_test.py

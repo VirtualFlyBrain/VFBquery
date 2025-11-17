@@ -44,8 +44,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         start_time = time.time()
         terminfo = deserialize_term_info_from_dict(vfbTerm)
         print("--- %s seconds ---" % (time.time() - start_time))
-        print("vfbTerm:", vfbTerm)
-        print("terminfo:", terminfo)
+        # print("vfbTerm:", vfbTerm)
+        # print("terminfo:", terminfo)
         # Add debug for unique_facets
         if hasattr(terminfo.term.core, 'unique_facets'):
             print("unique_facets:", terminfo.term.core.unique_facets)

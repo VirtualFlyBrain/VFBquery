@@ -91,7 +91,7 @@ class SolrTermInfoFetcher:
                 }
                 
                 self.logger.debug(f"Querying Solr for {short_form}")
-                response = requests.get(url, params=params)
+                response = requests.get(url, params=params, timeout=120)
                 response.raise_for_status()
                 
                 data = response.json()

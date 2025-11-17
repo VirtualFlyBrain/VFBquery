@@ -421,10 +421,42 @@ vfb.get_term_info('FBbt_00003748', force_refresh=True)
                   "type": "markdown",
                   "order": 9
                }
-            }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_20007253",
+                  "label": "[CB3838](FBbt_20007253)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.38 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2030/VFB_00101567/thumbnail.png 'ME.38 aligned to JRC2018U')](FBbt_20007253)"
+               },
+               {
+                  "id": "FBbt_20007256",
+                  "label": "[Cm31a](FBbt_20007256)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.5 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2043/VFB_00101567/thumbnail.png 'ME.5 aligned to JRC2018U')](FBbt_20007256)"
+               },
+               {
+                  "id": "FBbt_20007257",
+                  "label": "[Mi19](FBbt_20007257)",
+                  "tags": "Adult|Nervous_system|Neuron|Visual_system",
+                  "thumbnail": "[![ME.5256 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1990/VFB_00101567/thumbnail.png 'ME.5256 aligned to JRC2018U')](FBbt_20007257)"
+               },
+               {
+                  "id": "FBbt_20007258",
+                  "label": "[Cm35](FBbt_20007258)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.18 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/2034/VFB_00101567/thumbnail.png 'ME.18 aligned to JRC2018U')](FBbt_20007258)"
+               },
+               {
+                  "id": "FBbt_20007259",
+                  "label": "[Cm32](FBbt_20007259)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system",
+                  "thumbnail": "[![ME.278 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/1913/VFB_00101567/thumbnail.png 'ME.278 aligned to JRC2018U')](FBbt_20007259)"
+               }
+            ]
          },
          "output_format": "table",
-         "count": -1
+         "count": 331
       },
       {
          "query": "PartsOf",
@@ -617,10 +649,30 @@ vfb.get_term_info('FBbt_00003748', force_refresh=True)
                   "type": "markdown",
                   "order": 9
                }
-            }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00003922",
+                  "label": "[second optic chiasma](FBbt_00003922)",
+                  "tags": "Adult|Nervous_system|Neuron_projection_bundle|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00005810",
+                  "label": "[first optic chiasma](FBbt_00005810)",
+                  "tags": "Adult|Nervous_system|Neuron_projection_bundle|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "FBbt_00007427",
+                  "label": "[posterior optic commissure](FBbt_00007427)",
+                  "tags": "Adult|Nervous_system|Neuron_projection_bundle",
+                  "thumbnail": "[![posterior optic commissure on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0828/VFB_00030786/thumbnail.png 'posterior optic commissure on adult brain template Ito2014 aligned to adult brain template Ito2014')](FBbt_00007427)"
+               }
+            ]
          },
          "output_format": "table",
-         "count": -1
+         "count": 3
       },
       {
          "query": "LineageClonesIn",
@@ -669,10 +721,42 @@ vfb.get_term_info('FBbt_00003748', force_refresh=True)
                   "type": "markdown",
                   "order": 9
                }
-            }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00050013",
+                  "label": "[adult VPNl&d1 lineage clone](FBbt_00050013)",
+                  "tags": "Adult|Clone",
+                  "thumbnail": "[![VPNl&d1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0253/VFB_00101567/thumbnail.png 'VPNl&d1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050013)"
+               },
+               {
+                  "id": "FBbt_00050019",
+                  "label": "[adult DM1 lineage clone](FBbt_00050019)",
+                  "tags": "Adult|Clone|lineage_DPMm1",
+                  "thumbnail": "[![DM1 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0006/VFB_00017894/thumbnail.png 'DM1 clone of Yu 2013 aligned to JFRC2')](FBbt_00050019)"
+               },
+               {
+                  "id": "FBbt_00050051",
+                  "label": "[adult VESa2 lineage clone](FBbt_00050051)",
+                  "tags": "Adult|Clone|lineage_BAlp1",
+                  "thumbnail": "[![PSa1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnail.png 'PSa1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050051)"
+               },
+               {
+                  "id": "FBbt_00050167",
+                  "label": "[adult LALv1 lineage clone](FBbt_00050167)",
+                  "tags": "Adult|Clone|lineage_BAmv1",
+                  "thumbnail": "[![LALv1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0056/VFB_00101567/thumbnail.png 'LALv1 clone of Yu 2013 aligned to JRC2018U')](FBbt_00050167)"
+               },
+               {
+                  "id": "FBbt_00050229",
+                  "label": "[adult SLPpl1 lineage clone](FBbt_00050229)",
+                  "tags": "Adult|Clone|lineage_DPLl1",
+                  "thumbnail": "[![SLPpl1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0077/VFB_00101567/thumbnail.png 'SLPpl1 clone of Yu 2013 aligned to JRC2018U')](FBbt_00050229)"
+               }
+            ]
          },
          "output_format": "table",
-         "count": -1
+         "count": 7
       },
       {
          "query": "ImagesNeurons",
@@ -731,10 +815,42 @@ vfb.get_term_info('FBbt_00003748', force_refresh=True)
                   "type": "markdown",
                   "order": 9
                }
-            }
+            },
+            "rows": [
+               {
+                  "id": "VFB_fw113167",
+                  "label": "[ME.11974](VFB_fw113167)",
+                  "tags": "Adult|Glutamatergic|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "VFB_fw113165",
+                  "label": "[ME.17216](VFB_fw113165)",
+                  "tags": "Adult|GABAergic|Nervous_system|Visual_system|secondary_neuron",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "VFB_fw113168",
+                  "label": "[ME.31287](VFB_fw113168)",
+                  "tags": "Adult|Glutamatergic|Nervous_system|Visual_system",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "VFB_fw113166",
+                  "label": "[ME.4619](VFB_fw113166)",
+                  "tags": "Adult|Cholinergic|Nervous_system|Visual_system|secondary_neuron",
+                  "thumbnail": ""
+               },
+               {
+                  "id": "VFB_fw113169",
+                  "label": "[ME.26172](VFB_fw113169)",
+                  "tags": "Adult|Cholinergic|Nervous_system|Visual_system|secondary_neuron",
+                  "thumbnail": ""
+               }
+            ]
          },
          "output_format": "table",
-         "count": -1
+         "count": 119989
       },
       {
          "query": "ExpressionOverlapsHere",

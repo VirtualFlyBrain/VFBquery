@@ -756,10 +756,12 @@ def with_solr_cache(query_type: str):
             # Execute function - always get full results for caching
             full_result = None
             if should_cache:
-                # Execute with limit=-1 to get full results for caching
+                # Execute with limit=-1 to get full results for caching (only for functions that support limit)
                 full_kwargs = kwargs.copy()
-                full_kwargs['limit'] = -1
-                print(f"DEBUG: Executing {query_type} with limit=-1 for caching")
+                import inspect
+                if 'limit' in inspect.signature(func).parameters:
+                    full_kwargs['limit'] = -1
+                print(f"DEBUG: Executing {query_type} with full results for caching")
                 full_result = func(*args, **full_kwargs)
                 result = full_result
                 

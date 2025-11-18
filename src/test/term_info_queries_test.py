@@ -385,7 +385,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("source" in serialized)
         self.assertTrue("license" in serialized)
         self.assertEqual(1, len(serialized["license"]))
-        self.assertEqual({'icon': 'https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
+        self.assertEqual({'icon': 'http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
                           'label': '[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'}, serialized["license"][0])
         self.assertFalse("Classification" in serialized)
         self.assertFalse("relationships" in serialized)

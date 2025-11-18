@@ -117,7 +117,8 @@ def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1
     """
     return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
 
-def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1):
+@with_solr_cache('similar_neurons')
+def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_neurons with SOLR caching.
     
@@ -128,11 +129,12 @@ def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_d
         similarity_score: Similarity score type ('NBLAST_score', etc.)
         return_dataframe: Whether to return DataFrame or list of dicts
         limit: Maximum number of results (-1 for all)
+        force_refresh: Whether to bypass cache and fetch fresh data
         
     Returns:
         Similar neurons data (DataFrame or list of dicts)
     """
-    return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
     """

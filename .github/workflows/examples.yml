@@ -25,10 +25,12 @@ jobs:
               result = vfb.get_term_info('FBbt_00003748')
               with open(os.environ['GITHUB_ENV'], 'a') as f:
                   f.write('SOLR_AVAILABLE=true\n')
+              print('SOLR is available')
           except Exception as e:
               print('SOLR not available:', e)
               with open(os.environ['GITHUB_ENV'], 'a') as f:
                   f.write('SOLR_AVAILABLE=false\n')
+              exit(1)
           "
       - name: Install dependencies
         run: |
@@ -42,12 +44,12 @@ jobs:
           cat test_examples.py
           export VFBQUERY_CACHE_ENABLED=false
           python test_examples.py
-        if: env.SOLR_AVAILABLE == 'true'
       - name: Parse README.md and generate test files
         run: |
           python -m src.test.readme_parser
         env:
           PYTHONPATH: ${{ github.workspace }}
+        if: env.SOLR_AVAILABLE == 'true'
         if: env.SOLR_AVAILABLE == 'true'
       - name: Run examples from README.md and compare JSON outputs
         run: |

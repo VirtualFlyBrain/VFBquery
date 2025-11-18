@@ -688,6 +688,24 @@ def with_solr_cache(query_type: str):
                         elif isinstance(cached_result, pd.DataFrame):
                             cached_result = cached_result.head(limit)
                         print(f"DEBUG: Sliced cached result to {limit} items")
+                    elif isinstance(cached_result, dict):
+                        # Handle dict results with 'rows' (e.g., get_instances)
+                        if 'rows' in cached_result:
+                            cached_result = {
+                                'headers': cached_result.get('headers', {}),
+                                'rows': cached_result['rows'][:limit],
+                                'count': cached_result.get('count', len(cached_result.get('rows', [])))
+                            }
+                            print(f"DEBUG: Sliced cached dict result to {limit} rows")
+                        # Handle term_info dict with 'queries'
+                        elif 'queries' in cached_result:
+                            for query in cached_result.get('queries', []):
+                                if 'preview_results' in query and 'rows' in query['preview_results']:
+                                    query['preview_results']['rows'] = query['preview_results']['rows'][:limit]
+                                    # Keep original count - don't change it to limit
+                            print(f"DEBUG: Sliced cached term_info result to {limit} rows per query")
+                        else:
+                            print(f"DEBUG: Cannot slice cached dict result (no 'rows' or 'queries'), returning full result")
                     else:
                         print(f"DEBUG: Cannot slice cached result of type {type(cached_result)}, returning full result")
                 else:

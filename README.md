@@ -1197,235 +1197,112 @@ vfb.get_term_info('VFB_00000001')
 ```
 ```json
 {
-   "Name": "medulla",
-   "Id": "FBbt_00003748",
-   "SuperTypes": [
-      "Entity",
-      "Class",
-      "Adult",
-      "Anatomy",
-      "Nervous_system",
-      "Synaptic_neuropil",
-      "Synaptic_neuropil_domain",
-      "Visual_system"
-   ],
-   "Meta": {
-      "Name": "[medulla](FBbt_00003748)",
-      "Description": "The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).",
-      "Comment": "Nern et al. (2025) - doi:10.1038/s41586-025-08746-0 say distal is M1-5 and M6-7 is central medulla.",
-      "Types": "[anterior ectoderm derivative](FBbt_00025991); [synaptic neuropil domain](FBbt_00040007)",
-      "Relationships": "[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)"
+   "headers": {
+      "id": {
+         "title": "Add",
+         "type": "selection_id",
+         "order": -1
+      },
+      "label": {
+         "title": "Name",
+         "type": "markdown",
+         "order": 0,
+         "sort": {
+            "0": "Asc"
+         }
+      },
+      "parent": {
+         "title": "Parent Type",
+         "type": "markdown",
+         "order": 1
+      },
+      "template": {
+         "title": "Template",
+         "type": "markdown",
+         "order": 4
+      },
+      "tags": {
+         "title": "Gross Types",
+         "type": "tags",
+         "order": 3
+      },
+      "source": {
+         "title": "Data Source",
+         "type": "markdown",
+         "order": 5
+      },
+      "source_id": {
+         "title": "Data Source",
+         "type": "markdown",
+         "order": 6
+      },
+      "dataset": {
+         "title": "Dataset",
+         "type": "markdown",
+         "order": 7
+      },
+      "license": {
+         "title": "License",
+         "type": "markdown",
+         "order": 8
+      },
+      "thumbnail": {
+         "title": "Thumbnail",
+         "type": "markdown",
+         "order": 9
+      }
    },
-   "Tags": [
-      "Adult",
-      "Nervous_system",
-      "Synaptic_neuropil_domain",
-      "Visual_system"
-   ],
-   "Queries": [
+   "rows": [
       {
-         "query": "ListAllAvailableImages",
-         "label": "List all available images of medulla",
-         "function": "get_instances",
-         "takes": {
-            "short_form": {
-               "$and": [
-                  "Class",
-                  "Anatomy"
-               ]
-            },
-            "default": {
-               "short_form": "FBbt_00003748"
-            }
-         },
-         "preview": 5,
-         "preview_columns": [
-            "id",
-            "label",
-            "tags",
-            "thumbnail"
-         ],
-         "preview_results": {
-            "headers": {
-                  "type": "markdown",
-                  "order": 9
-               }
-            },
-            "rows": [
-               {
-                  "id": "FBbt_00050019",
-                  "label": "[adult DM1 lineage clone](FBbt_00050019)",
-                  "tags": "Adult|Clone|lineage_DPMm1",
-                  "thumbnail": "[![DM1 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0006/VFB_00017894/thumbnail.png 'DM1 clone of Yu 2013 aligned to JFRC2')](FBbt_00050019)"
-               },
-               {
-                  "id": "FBbt_00050143",
-                  "label": "[adult DM6 lineage clone](FBbt_00050143)",
-                  "tags": "Adult|Clone|lineage_CM3",
-                  "thumbnail": "[![DM6 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00101567/thumbnail.png 'DM6 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050143)"
-               },
-               {
-                  "id": "FBbt_00050167",
-                  "label": "[adult LALv1 lineage clone](FBbt_00050167)",
-                  "tags": "Adult|Clone|lineage_BAmv1",
-                  "thumbnail": "[![LALv1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0056/VFB_00101567/thumbnail.png 'LALv1 clone of Yu 2013 aligned to JRC2018U')](FBbt_00050167)"
-               },
-               {
-                  "id": "FBbt_00050051",
-                  "label": "[adult VESa2 lineage clone](FBbt_00050051)",
-                  "tags": "Adult|Clone|lineage_BAlp1",
-                  "thumbnail": "[![PSa1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnail.png 'PSa1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050051)"
-               },
-               {
-                  "id": "FBbt_00050013",
-                  "label": "[adult VPNl&d1 lineage clone](FBbt_00050013)",
-                  "tags": "Adult|Clone",
-                  "thumbnail": "[![VPNl&d1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0253/VFB_00101567/thumbnail.png 'VPNl&d1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050013)"
-               }
-            ]
-         },
-         "output_format": "table",
-         "count": 7
+         "id": "VFB_00102107",
+         "label": "[ME on JRC2018Unisex adult brain](VFB_00102107)",
+         "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+         "parent": "[medulla](FBbt_00003748)",
+         "source": "",
+         "source_id": "",
+         "template": "[JRC2018U](VFB_00101567)",
+         "dataset": "[JRC 2018 templates & ROIs](JRC2018)",
+         "license": "",
+         "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png \"ME on JRC2018Unisex adult brain aligned to JRC2018U\")](VFB_00101567,VFB_00102107)"
       },
       {
-         "query": "SimilarMorphologyTo",
-         "label": "Find similar neurons to fru-M-200266",
-         "function": "get_similar_neurons",
-         "takes": {
-            "short_form": {
-               "$and": [
-                  "Individual",
-                  "Neuron"
-               ]
-            },
-            "default": {
-               "neuron": "VFB_00000001",
-               "similarity_score": "NBLAST_score"
-            }
-         },
-         "preview": 5,
-         "preview_columns": [
-            "id",
-            "score",
-            "name",
-            "tags",
-            "thumbnail"
-         ],
-         "preview_results": {
-            "headers": {
-               "id": {
-                  "title": "Add",
-                  "type": "selection_id",
-                  "order": -1
-               },
-               "score": {
-                  "title": "Score",
-                  "type": "numeric",
-                  "order": 1,
-                  "sort": {
-                     "0": "Desc"
-                  }
-               },
-               "name": {
-                  "title": "Name",
-                  "type": "markdown",
-                  "order": 1,
-                  "sort": {
-                     "1": "Asc"
-                  }
-               },
-               "tags": {
-                  "title": "Tags",
-                  "type": "tags",
-                  "order": 2
-               },
-               "thumbnail": {
-                  "title": "Thumbnail",
-                  "type": "markdown",
-                  "order": 9
-               }
-            },
-            "rows": [
-               {
-                  "id": "VFB_00000333",
-                  "score": "0.61",
-                  "name": "[fru-M-000204](VFB_00000333)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
-                  "thumbnail": "[![fru-M-000204 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0333/VFB_00017894/thumbnail.png 'fru-M-000204 aligned to JFRC2')](VFB_00017894,VFB_00000333)"
-               },
-               {
-                  "id": "VFB_00000333",
-                  "score": "0.61",
-                  "name": "[fru-M-000204](VFB_00000333)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
-                  "thumbnail": "[![fru-M-000204 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0333/VFB_00101567/thumbnail.png 'fru-M-000204 aligned to JRC2018U')](VFB_00101567,VFB_00000333)"
-               },
-               {
-                  "id": "VFB_00002439",
-                  "score": "0.6",
-                  "name": "[fru-M-900020](VFB_00002439)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
-                  "thumbnail": "[![fru-M-900020 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/2439/VFB_00101567/thumbnail.png 'fru-M-900020 aligned to JRC2018U')](VFB_00101567,VFB_00002439)"
-               },
-               {
-                  "id": "VFB_00002439",
-                  "score": "0.6",
-                  "name": "[fru-M-900020](VFB_00002439)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
-                  "thumbnail": "[![fru-M-900020 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/2439/VFB_00017894/thumbnail.png 'fru-M-900020 aligned to JFRC2')](VFB_00017894,VFB_00002439)"
-               },
-               {
-                  "id": "VFB_00000845",
-                  "score": "0.59",
-                  "name": "[fru-M-100191](VFB_00000845)",
-                  "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_CM3",
-                  "thumbnail": "[![fru-M-100191 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0845/VFB_00101567/thumbnail.png 'fru-M-100191 aligned to JRC2018U')](VFB_00101567,VFB_00000845)"
-               }
-            ]
-         },
-         "output_format": "table",
-         "count": 60
+         "id": "VFB_00101385",
+         "label": "[ME(R) on JRC_FlyEM_Hemibrain](VFB_00101385)",
+         "tags": "Nervous_system|Adult|Visual_system|Synaptic_neuropil_domain",
+         "parent": "[medulla](FBbt_00003748)",
+         "source": "",
+         "source_id": "",
+         "template": "[JRCFIB2018Fum](VFB_00101384)",
+         "dataset": "[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)",
+         "license": "",
+         "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png \"ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum\")](VFB_00101384,VFB_00101385)"
+      },
+      {
+         "id": "VFB_00030810",
+         "label": "[medulla on adult brain template Ito2014](VFB_00030810)",
+         "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+         "parent": "[medulla](FBbt_00003748)",
+         "source": "",
+         "source_id": "",
+         "template": "[adult brain template Ito2014](VFB_00030786)",
+         "dataset": "[BrainName neuropils and tracts - Ito half-brain](BrainName_Ito_half_brain)",
+         "license": "",
+         "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png \"medulla on adult brain template Ito2014 aligned to adult brain template Ito2014\")](VFB_00030786,VFB_00030810)"
+      },
+      {
+         "id": "VFB_00030624",
+         "label": "[medulla on adult brain template JFRC2](VFB_00030624)",
+         "tags": "Nervous_system|Visual_system|Adult|Synaptic_neuropil_domain",
+         "parent": "[medulla](FBbt_00003748)",
+         "source": "",
+         "source_id": "",
+         "template": "[JFRC2](VFB_00017894)",
+         "dataset": "[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)",
+         "license": "",
+         "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png \"medulla on adult brain template JFRC2 aligned to JFRC2\")](VFB_00017894,VFB_00030624)"
       }
    ],
-   "IsIndividual": True,
-   "Images": {
-      "VFB_00017894": [
-         {
-            "id": "VFB_00000001",
-            "label": "fru-M-200266",
-            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/thumbnail.png",
-            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/thumbnailT.png",
-            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.nrrd",
-            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.wlz",
-            "obj": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.obj",
-            "swc": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/volume.swc"
-         }
-      ],
-      "VFB_00101567": [
-         {
-            "id": "VFB_00000001",
-            "label": "fru-M-200266",
-            "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/thumbnail.png",
-            "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/thumbnailT.png",
-            "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.nrrd",
-            "wlz": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.wlz",
-            "obj": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.obj",
-            "swc": "https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/volume.swc"
-         }
-      ]
-   },
-   "IsClass": False,
-   "IsTemplate": False,
-   "Licenses": {
-      "0": {
-         "iri": "http://virtualflybrain.org/reports/VFBlicense_FlyCircuit_License",
-         "short_form": "VFBlicense_FlyCircuit_License",
-         "label": "FlyCircuit License",
-         "icon": "",
-         "source": "FlyCircuit 1.0 - single neurons (Chiang2010)",
-         "source_iri": "http://virtualflybrain.org/reports/Chiang2010"
-      }
-   }
+   "count": 4
 }
 ```
 

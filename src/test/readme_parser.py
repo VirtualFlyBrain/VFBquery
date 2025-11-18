@@ -32,35 +32,17 @@ def extract_code_blocks(readme_path):
             # - get_templates() doesn't support force_refresh (no SOLR cache)
             # - Performance test terms (FBbt_00003748, VFB_00101567) should use cache
             for call in vfb_calls:
-                # Check if this is get_templates() - if so, don't add force_refresh
-                if 'get_templates' in call:
-                    processed_python_blocks.append(call)
-                    continue
-                
-                # Check if this call uses performance test terms - skip force_refresh for those
-                # NOTE: FBbt_00003748 (medulla) now needs force_refresh to get updated queries
-                if 'VFB_00101567' in call:
-                    processed_python_blocks.append(call)
-                    continue
-                
-                # Check if the call already has parameters
-                if '(' in call and ')' in call:
-                    # Check if force_refresh is already present
-                    if 'force_refresh' in call:
-                        # Already has force_refresh, use as-is
-                        processed_python_blocks.append(call)
-                    else:
-                        # Insert force_refresh=True before the closing parenthesis
-                        # Handle both cases: with and without existing parameters
-                        if call.rstrip(')').endswith('('):
-                            # No parameters: vfb.function()
-                            modified_call = call[:-1] + 'force_refresh=True)'
-                        else:
-                            # Has parameters: vfb.function(param1, param2)
+                if 'FBbt_00003748' in call:
+                    # Add force_refresh for medulla calls
+                    if '(' in call and ')' in call:
+                        if 'force_refresh' not in call:
                             modified_call = call[:-1] + ', force_refresh=True)'
-                        processed_python_blocks.append(modified_call)
+                            processed_python_blocks.append(modified_call)
+                        else:
+                            processed_python_blocks.append(call)
+                    else:
+                        processed_python_blocks.append(call)
                 else:
-                    # Shouldn't happen, but include original call if no parentheses
                     processed_python_blocks.append(call)
     
     # Process JSON blocks

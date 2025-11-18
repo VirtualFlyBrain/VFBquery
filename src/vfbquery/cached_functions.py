@@ -52,7 +52,10 @@ from .vfb_queries import (
     get_similar_morphology_nb as _original_get_similar_morphology_nb,
     get_similar_morphology_nb_exp as _original_get_similar_morphology_nb_exp,
     get_similar_morphology_userdata as _original_get_similar_morphology_userdata,
-    vfb_solr
+    get_neurons_with_part_in as _original_get_neurons_with_part_in,
+    get_neurons_with_synapses_in as _original_get_neurons_with_synapses_in,
+    get_neurons_with_presynaptic_terminals_in as _original_get_neurons_with_presynaptic_terminals_in,
+    get_neurons_with_postsynaptic_terminals_in as _original_get_neurons_with_postsynaptic_terminals_in,
 )
 
 @with_solr_cache("solr_search")
@@ -60,7 +63,6 @@ def cached_solr_search(query: str):
     """Cached version of SOLR search."""
     return vfb_solr.search(query)
 
-@with_solr_cache("term_info")
 def get_term_info_cached(short_form: str, preview: bool = False):
     """
     Enhanced get_term_info with SOLR caching.
@@ -74,9 +76,8 @@ def get_term_info_cached(short_form: str, preview: bool = False):
     Returns:
         Term info dictionary or None if not found
     """
-    return _original_get_term_info(short_form, preview)
+    return _original_get_term_info(short_form=short_form, preview=preview)
 
-@with_solr_cache("instances")
 def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_instances with SOLR caching.
@@ -91,9 +92,8 @@ def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1
     Returns:
         Instances data (DataFrame or formatted dict based on return_dataframe)
     """
-    return _original_get_instances(short_form, return_dataframe, limit)
+    return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_neurons")
 def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_neurons with SOLR caching.
@@ -109,9 +109,8 @@ def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_d
     Returns:
         Similar neurons data (DataFrame or list of dicts)
     """
-    return _original_get_similar_neurons(neuron, similarity_score, return_dataframe, limit)
+    return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology")
 def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology with SOLR caching.
@@ -124,9 +123,8 @@ def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True,
     Returns:
         Similar morphology data
     """
-    return _original_get_similar_morphology(neuron_short_form, return_dataframe, limit)
+    return _original_get_similar_morphology(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology_part_of")
 def get_similar_morphology_part_of_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology_part_of with SOLR caching.
@@ -139,9 +137,8 @@ def get_similar_morphology_part_of_cached(neuron_short_form: str, return_datafra
     Returns:
         Similar morphology part-of data
     """
-    return _original_get_similar_morphology_part_of(neuron_short_form, return_dataframe, limit)
+    return _original_get_similar_morphology_part_of(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology_part_of_exp")
 def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology_part_of_exp with SOLR caching.
@@ -154,9 +151,8 @@ def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return
     Returns:
         Similar morphology expression data
     """
-    return _original_get_similar_morphology_part_of_exp(expression_short_form, return_dataframe, limit)
+    return _original_get_similar_morphology_part_of_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology_nb")
 def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology_nb with SOLR caching.
@@ -169,9 +165,8 @@ def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=Tr
     Returns:
         NBLAST similar morphology data
     """
-    return _original_get_similar_morphology_nb(neuron_short_form, return_dataframe, limit)
+    return _original_get_similar_morphology_nb(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology_nb_exp")
 def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology_nb_exp with SOLR caching.
@@ -184,9 +179,8 @@ def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_data
     Returns:
         NBLAST expression similarity data
     """
-    return _original_get_similar_morphology_nb_exp(expression_short_form, return_dataframe, limit)
+    return _original_get_similar_morphology_nb_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache("similar_morphology_userdata")
 def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True, limit: int = -1):
     """
     Enhanced get_similar_morphology_userdata with SOLR caching.
@@ -199,7 +193,63 @@ def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True
     Returns:
         User data similarity results
     """
-    return _original_get_similar_morphology_userdata(upload_id, return_dataframe, limit)
+    return _original_get_similar_morphology_userdata(upload_id=upload_id, return_dataframe=return_dataframe, limit=limit)
+
+def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_neurons_with_part_in with SOLR caching.
+    
+    Args:
+        short_form: Anatomical structure short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Neurons with part in the specified anatomical structure
+    """
+    return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+
+def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_neurons_with_synapses_in with SOLR caching.
+    
+    Args:
+        short_form: Anatomical structure short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Neurons with synapses in the specified anatomical structure
+    """
+    return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+
+def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_neurons_with_presynaptic_terminals_in with SOLR caching.
+    
+    Args:
+        short_form: Anatomical structure short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Neurons with presynaptic terminals in the specified anatomical structure
+    """
+    return _original_get_neurons_with_presynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+
+def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Enhanced get_neurons_with_postsynaptic_terminals_in with SOLR caching.
+    
+    Args:
+        short_form: Anatomical structure short form
+        return_dataframe: Whether to return DataFrame or list of dicts
+        limit: Maximum number of results (-1 for all)
+        
+    Returns:
+        Neurons with postsynaptic terminals in the specified anatomical structure
+    """
+    return _original_get_neurons_with_postsynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
 
 # Convenience function to replace original functions
 def patch_vfbquery_with_caching():
@@ -221,6 +271,10 @@ def patch_vfbquery_with_caching():
     setattr(vfb_queries, '_original_get_similar_morphology_nb', vfb_queries.get_similar_morphology_nb)
     setattr(vfb_queries, '_original_get_similar_morphology_nb_exp', vfb_queries.get_similar_morphology_nb_exp)
     setattr(vfb_queries, '_original_get_similar_morphology_userdata', vfb_queries.get_similar_morphology_userdata)
+    setattr(vfb_queries, '_original_get_neurons_with_part_in', vfb_queries.get_neurons_with_part_in)
+    setattr(vfb_queries, '_original_get_neurons_with_synapses_in', vfb_queries.get_neurons_with_synapses_in)
+    setattr(vfb_queries, '_original_get_neurons_with_presynaptic_terminals_in', vfb_queries.get_neurons_with_presynaptic_terminals_in)
+    setattr(vfb_queries, '_original_get_neurons_with_postsynaptic_terminals_in', vfb_queries.get_neurons_with_postsynaptic_terminals_in)
     
     # Replace with cached versions in vfb_queries module
     vfb_queries.get_term_info = get_term_info_cached
@@ -232,6 +286,10 @@ def patch_vfbquery_with_caching():
     vfb_queries.get_similar_morphology_nb = get_similar_morphology_nb_cached
     vfb_queries.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
     vfb_queries.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
+    vfb_queries.get_neurons_with_part_in = get_neurons_with_part_in_cached
+    vfb_queries.get_neurons_with_synapses_in = get_neurons_with_synapses_in_cached
+    vfb_queries.get_neurons_with_presynaptic_terminals_in = get_neurons_with_presynaptic_terminals_in_cached
+    vfb_queries.get_neurons_with_postsynaptic_terminals_in = get_neurons_with_postsynaptic_terminals_in_cached
     
     # Also replace in the main vfbquery module namespace (since functions were imported with 'from .vfb_queries import *')
     vfbquery.get_term_info = get_term_info_cached
@@ -243,6 +301,10 @@ def patch_vfbquery_with_caching():
     vfbquery.get_similar_morphology_nb = get_similar_morphology_nb_cached
     vfbquery.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
     vfbquery.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
+    vfbquery.get_neurons_with_part_in = get_neurons_with_part_in_cached
+    vfbquery.get_neurons_with_synapses_in = get_neurons_with_synapses_in_cached
+    vfbquery.get_neurons_with_presynaptic_terminals_in = get_neurons_with_presynaptic_terminals_in_cached
+    vfbquery.get_neurons_with_postsynaptic_terminals_in = get_neurons_with_postsynaptic_terminals_in_cached
     
     print("VFBquery functions patched with caching support")
 

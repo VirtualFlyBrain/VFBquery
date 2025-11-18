@@ -13,6 +13,10 @@ try:
         get_similar_morphology_nb_cached,
         get_similar_morphology_nb_exp_cached,
         get_similar_morphology_userdata_cached,
+        get_neurons_with_part_in_cached,
+        get_neurons_with_synapses_in_cached,
+        get_neurons_with_presynaptic_terminals_in_cached,
+        get_neurons_with_postsynaptic_terminals_in_cached,
     )
     __caching_available__ = True
 

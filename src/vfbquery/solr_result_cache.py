@@ -60,7 +60,7 @@ class SolrResultCache:
         self.max_result_size_mb = max_result_size_mb
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
         
-    def _create_cache_metadata(self, result: Any) -> Optional[Dict[str, Any]]:
+    def _create_cache_metadata(self, result: Any, **params) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
         serialized_result = json.dumps(result, cls=NumpyEncoder)
         result_size = len(serialized_result.encode('utf-8'))
@@ -78,6 +78,7 @@ class SolrResultCache:
             "cached_at": now.isoformat(),
             "expires_at": expires_at.isoformat(),
             "result_size": result_size,
+            "params": params,  # Store the parameters used for this query
             "hit_count": 0,
             "cache_version": "1.0",  # For future compatibility
             "ttl_hours": self.ttl_hours  # Store TTL for debugging
@@ -150,6 +151,33 @@ class SolrResultCache:
                 self._clear_expired_cache_document(cache_doc_id)
                 return None
             
+            # Check if cached result parameters are compatible with requested parameters
+            cached_params = cached_data.get("params", {})
+            requested_limit = params.get("limit", -1)
+            cached_limit = cached_params.get("limit", -1)
+            
+            # Only cached full results (limit=-1) are stored
+            # If requesting limited results, we can slice from cached full results
+            if cached_limit != -1:
+                logger.debug(f"Cache miss: Unexpected cached result with limit={cached_limit}, expected -1")
+                return None
+                
+            # If requesting unlimited results, return the full cached result
+            if requested_limit == -1:
+                result = cached_data["result"]
+            else:
+                # If requesting limited results, slice from the cached full result
+                result = cached_data["result"]
+                if isinstance(result, (list, pd.DataFrame)):
+                    if isinstance(result, list):
+                        result = result[:requested_limit]
+                    elif isinstance(result, pd.DataFrame):
+                        result = result.head(requested_limit)
+                    logger.debug(f"Cache hit: Returning {requested_limit} items from cached full result")
+                else:
+                    # For other result types, return as-is (can't slice)
+                    logger.debug(f"Cache hit: Returning full cached result (cannot slice type {type(result)})")
+            
             # Increment hit count asynchronously
             self._increment_cache_hit_count(cache_doc_id, cached_data.get("hit_count", 0))
             
@@ -200,7 +228,7 @@ class SolrResultCache:
             
         try:
             # Create cached metadata and result
-            cached_data = self._create_cache_metadata(result)
+            cached_data = self._create_cache_metadata(result, **params)
             if not cached_data:
                 return False  # Result too large or other issue
                 
@@ -586,16 +614,18 @@ def with_solr_cache(query_type: str):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
             
-            # Check if limit is applied - don't cache limited results as they're incomplete
+            # Check if limit is applied - only cache full results (limit=-1)
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
             
-            # Allow caching of limited results for expensive similarity queries
-            similarity_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
-                                    'similar_morphology_part_of_exp', 'similar_morphology_nb', 
-                                    'similar_morphology_nb_exp', 'similar_morphology_userdata']
-            if query_type in similarity_query_types:
-                should_cache = True  # Always cache similarity queries, even with limits
+            # For expensive queries, we still only cache full results, but we handle limited requests
+            # by slicing from cached full results
+            expensive_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
+                                   'similar_morphology_part_of_exp', 'similar_morphology_nb', 
+                                   'similar_morphology_nb_exp', 'similar_morphology_userdata',
+                                   'neurons_part_here', 'neurons_synaptic', 
+                                   'neurons_presynaptic', 'neurons_postsynaptic']
+            # Note: expensive queries still only cache full results, but retrieval logic handles slicing
             
             # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
             if query_type == 'neuron_neuron_connectivity_query':
@@ -624,6 +654,9 @@ def with_solr_cache(query_type: str):
             
             # Include similarity_score parameter in cache key for similarity queries
             # This ensures different similarity scores are cached separately
+            similarity_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
+                                    'similar_morphology_part_of_exp', 'similar_morphology_nb', 
+                                    'similar_morphology_nb_exp', 'similar_morphology_userdata']
             if query_type in similarity_query_types:
                 similarity_score = kwargs.get('similarity_score', 'NBLAST_score')  # Default
                 cache_term_id = f"{cache_term_id}_score_{similarity_score}"
@@ -636,12 +669,27 @@ def with_solr_cache(query_type: str):
                 cache.clear_cache_entry(query_type, cache_term_id)
             
             # Try cache first (will be empty if force_refresh was True)
-            # OPTIMIZATION: If requesting limited results, check if full results are cached
-            # If yes, we can extract the limited rows from the cached full results
+            # OPTIMIZATION: Always try to get full cached results first, then slice if needed
+            cached_result = None
             if not force_refresh:
-                # First try to get cached result matching the exact query (including limit)
-                if should_cache:
-                    cached_result = cache.get_cached_result(query_type, cache_term_id, **kwargs)
+                print(f"DEBUG: Checking cache for {query_type}, term_id={term_id}, cache_term_id={cache_term_id}, should_cache={should_cache}")
+                # Try to get cached full result (limit=-1)
+                full_params = kwargs.copy()
+                full_params['limit'] = -1
+                print(f"DEBUG: Attempting cache lookup for {query_type}({cache_term_id}) with full results")
+                cached_result = cache.get_cached_result(query_type, cache_term_id, **full_params)
+                print(f"DEBUG: Cache lookup result: {cached_result is not None}")
+                
+                # If we got a cached full result but need limited results, slice it
+                if cached_result is not None and limit != -1:
+                    if isinstance(cached_result, (list, pd.DataFrame)):
+                        if isinstance(cached_result, list):
+                            cached_result = cached_result[:limit]
+                        elif isinstance(cached_result, pd.DataFrame):
+                            cached_result = cached_result.head(limit)
+                        print(f"DEBUG: Sliced cached result to {limit} items")
+                    else:
+                        print(f"DEBUG: Cannot slice cached result of type {type(cached_result)}, returning full result")
                 else:
                     # For limited queries, try to get full cached results instead
                     full_kwargs = kwargs.copy()
@@ -705,8 +753,28 @@ def with_solr_cache(query_type: str):
                     else:
                         return cached_result
             
-            # Execute function and cache result
-            result = func(*args, **kwargs)
+            # Execute function - always get full results for caching
+            full_result = None
+            if should_cache:
+                # Execute with limit=-1 to get full results for caching
+                full_kwargs = kwargs.copy()
+                full_kwargs['limit'] = -1
+                print(f"DEBUG: Executing {query_type} with limit=-1 for caching")
+                full_result = func(*args, **full_kwargs)
+                result = full_result
+                
+                # If the original request was limited, slice the result for return
+                if limit != -1 and result is not None:
+                    if isinstance(result, (list, pd.DataFrame)):
+                        if isinstance(result, list):
+                            result = result[:limit]
+                        elif isinstance(result, pd.DataFrame):
+                            result = result.head(limit)
+                        print(f"DEBUG: Sliced result to {limit} items for return")
+            else:
+                # Execute with original parameters (no caching)
+                result = func(*args, **kwargs)
+                full_result = result
             
             # Cache the result asynchronously to avoid blocking
             # Handle DataFrame, dict, and other result types properly
@@ -776,8 +844,11 @@ def with_solr_cache(query_type: str):
                     # Only cache if result is complete AND no limit was applied
                     if is_complete and should_cache:
                         try:
-                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
-                            logger.debug(f"Cached complete result for {term_id}")
+                            # Cache the full result with full parameters (limit=-1)
+                            full_kwargs_for_cache = kwargs.copy()
+                            full_kwargs_for_cache['limit'] = -1
+                            cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
+                            logger.debug(f"Cached complete full result for {term_id}")
                         except Exception as e:
                             logger.debug(f"Failed to cache result: {e}")
                     elif not should_cache:

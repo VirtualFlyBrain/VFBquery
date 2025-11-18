@@ -40,7 +40,7 @@ jobs:
           "
       - name: Run examples from README.md
         run: |
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb\.[^(]*([^)]*)\)/try:\n    result = \1\n    print(result)\nexcept Exception as e:\n    print(f"Skipped due to SOLR unavailability: {e}")/g' > test_examples.py
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb\.[^(]*([^)]*)\)/print(\1)/g' > test_examples.py
           cat test_examples.py
           export VFBQUERY_CACHE_ENABLED=false
           python test_examples.py

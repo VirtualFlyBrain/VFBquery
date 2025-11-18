@@ -144,10 +144,9 @@ def main():
     
     for i, (python_code, expected_json) in enumerate(zip(python_blocks, json_blocks)):
         
-        # Skip example #5 due to mismatched order between Python and JSON blocks
-        if i == 4:
-            print(f'\n{Fore.YELLOW}Example #{i+1}: Skipped (mismatched order){Style.RESET_ALL}')
-            continue
+        print(f'\n{Fore.CYAN}Example #{i+1}:{Style.RESET_ALL}')
+        print(f'  README query: {python_code}')
+        print(f'  Expected JSON name: {expected_json.get("Name", "N/A") if isinstance(expected_json, dict) else "List"}')
         
         python_code = stringify_numeric_keys(python_code)
         expected_json = stringify_numeric_keys(expected_json)

@@ -113,8 +113,8 @@ if __name__ == "__main__":
     readme_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'README.md')
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     
-    python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'test_examples.py')
-    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'test_results.py')
+    python_path = os.path.join(os.path.dirname(__file__), 'test_examples.py')
+    json_path = os.path.join(os.path.dirname(__file__), 'test_results.py')
     
     generate_python_file(python_blocks, python_path)
     generate_json_file(json_blocks, json_path)

@@ -60,28 +60,30 @@ class SolrCacheIntegration:
         original_func = self.original_functions['get_term_info']
         
         @functools.wraps(original_func)
-        def cached_get_term_info(short_form: str, preview: bool = False):
+        def cached_get_term_info(short_form: str, preview: bool = False, **kwargs):
+            force_refresh = kwargs.get('force_refresh', False)
             cache = get_solr_cache()
             cache_params = {"preview": preview}
             
-            try:
-                # Try SOLR cache first
-                cached_result = cache.get_cached_result(
-                    "term_info", short_form, **cache_params
-                )
-                if cached_result is not None:
-                    logger.debug(f"SOLR cache hit for term_info({short_form})")
-                    return cached_result
-                
-            except Exception as e:
-                logger.warning(f"SOLR cache lookup failed, falling back: {e}")
+            if not force_refresh:
+                try:
+                    # Try SOLR cache first
+                    cached_result = cache.get_cached_result(
+                        "term_info", short_form, **cache_params
+                    )
+                    if cached_result is not None:
+                        logger.debug(f"SOLR cache hit for term_info({short_form})")
+                        return cached_result
+                    
+                except Exception as e:
+                    logger.warning(f"SOLR cache lookup failed, falling back: {e}")
             
             # Execute original function
-            logger.debug(f"SOLR cache miss for term_info({short_form}), computing...")
+            logger.debug(f"SOLR cache miss or force_refresh for term_info({short_form}), computing...")
             result = original_func(short_form, preview)
             
-            # Cache result asynchronously
-            if result:
+            # Cache result asynchronously if not force_refresh
+            if result and not force_refresh:
                 try:
                     cache.cache_result("term_info", short_form, result, **cache_params)
                     logger.debug(f"Cached term_info result for {short_form}")
@@ -97,31 +99,33 @@ class SolrCacheIntegration:
         original_func = self.original_functions['get_instances']
         
         @functools.wraps(original_func) 
-        def cached_get_instances(short_form: str, return_dataframe=True, limit: int = -1):
+        def cached_get_instances(short_form: str, return_dataframe=True, limit: int = -1, **kwargs):
+            force_refresh = kwargs.get('force_refresh', False)
             cache = get_solr_cache()
             cache_params = {
                 "return_dataframe": return_dataframe,
                 "limit": limit
             }
             
-            try:
-                # Try SOLR cache first
-                cached_result = cache.get_cached_result(
-                    "instances", short_form, **cache_params
-                )
-                if cached_result is not None:
-                    logger.debug(f"SOLR cache hit for get_instances({short_form})")
-                    return cached_result
-                
-            except Exception as e:
-                logger.warning(f"SOLR cache lookup failed, falling back: {e}")
+            if not force_refresh:
+                try:
+                    # Try SOLR cache first
+                    cached_result = cache.get_cached_result(
+                        "instances", short_form, **cache_params
+                    )
+                    if cached_result is not None:
+                        logger.debug(f"SOLR cache hit for get_instances({short_form})")
+                        return cached_result
+                    
+                except Exception as e:
+                    logger.warning(f"SOLR cache lookup failed, falling back: {e}")
             
             # Execute original function
-            logger.debug(f"SOLR cache miss for get_instances({short_form}), computing...")
+            logger.debug(f"SOLR cache miss or force_refresh for get_instances({short_form}), computing...")
             result = original_func(short_form, return_dataframe, limit)
             
-            # Cache result asynchronously
-            if result is not None:
+            # Cache result asynchronously if not force_refresh
+            if result is not None and not force_refresh:
                 try:
                     cache.cache_result("instances", short_form, result, **cache_params)
                     logger.debug(f"Cached get_instances result for {short_form}")

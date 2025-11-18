@@ -126,10 +126,8 @@ def main():
     
     # Import the results from generated files
     try:
-        import os
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        from test_results import results as json_blocks
-        from test_examples import results as python_blocks
+        from .test_results import results as json_blocks
+        from .test_examples import results as python_blocks
     except ImportError as e:
         print(f"{Fore.RED}Error importing test files: {e}{Style.RESET_ALL}")
         sys.exit(1)

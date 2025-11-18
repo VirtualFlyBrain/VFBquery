@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2025-11-18 11:14:02 UTC
-**Git Commit:** 3754c2fc2d3f92c0ccd120e52d01610b2e37907a
+**Test Date:** 2025-11-18 12:06:58 UTC
+**Git Commit:** d1fed0c9b297e21f4a317623532058397231a412
 **Branch:** dev
-**Workflow Run:** [19464050731](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19464050731)
+**Workflow Run:** [19465512319](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/19465512319)
 
 ## Test Overview
 
@@ -119,11 +119,11 @@ TERM INFO QUERIES
 DEBUG: Checking cache for term_info, term_id=FBbt_00003748, cache_term_id=FBbt_00003748_preview_True, should_cache=True
 DEBUG: Attempting cache lookup for term_info(FBbt_00003748_preview_True) with full results
 DEBUG: Cache lookup result: True
-get_term_info (mushroom body): 2.2780s ✅
+get_term_info (mushroom body): 3.1945s ✅
 DEBUG: Checking cache for term_info, term_id=VFB_00101567, cache_term_id=VFB_00101567_preview_True, should_cache=True
 DEBUG: Attempting cache lookup for term_info(VFB_00101567_preview_True) with full results
 DEBUG: Cache lookup result: True
-get_term_info (individual): 2.7800s ✅
+get_term_info (individual): 2.8987s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
@@ -131,7 +131,7 @@ NEURON PART OVERLAP QUERIES
 DEBUG: Checking cache for neurons_part_here, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for neurons_part_here(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-NeuronsPartHere: 1.9912s ✅
+NeuronsPartHere: 2.2922s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
@@ -139,19 +139,19 @@ SYNAPTIC TERMINAL QUERIES
 DEBUG: Checking cache for neurons_synaptic, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for neurons_synaptic(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-NeuronsSynaptic: 2.4751s ✅
+NeuronsSynaptic: 2.5331s ✅
 DEBUG: Checking cache for neurons_presynaptic, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for neurons_presynaptic(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-NeuronsPresynapticHere: 2.0570s ✅
+NeuronsPresynapticHere: 2.1701s ✅
 DEBUG: Checking cache for neurons_postsynaptic, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for neurons_postsynaptic(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-NeuronsPostsynapticHere: 2.1133s ✅
+NeuronsPostsynapticHere: 2.0140s ✅
 DEBUG: Checking cache for neuron_neuron_connectivity_query, term_id=VFB_jrchk00s, cache_term_id=VFB_jrchk00s, should_cache=True
 DEBUG: Attempting cache lookup for neuron_neuron_connectivity_query(VFB_jrchk00s) with full results
 DEBUG: Cache lookup result: True
-NeuronNeuronConnectivity: 1.8609s ✅
+NeuronNeuronConnectivity: 2.2811s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
@@ -159,15 +159,15 @@ ANATOMICAL HIERARCHY QUERIES
 DEBUG: Checking cache for components_of, term_id=FBbt_00003748, cache_term_id=FBbt_00003748, should_cache=True
 DEBUG: Attempting cache lookup for components_of(FBbt_00003748) with full results
 DEBUG: Cache lookup result: True
-ComponentsOf: 1.8351s ✅
+ComponentsOf: 1.9983s ✅
 DEBUG: Checking cache for parts_of, term_id=FBbt_00003748, cache_term_id=FBbt_00003748, should_cache=True
 DEBUG: Attempting cache lookup for parts_of(FBbt_00003748) with full results
 DEBUG: Cache lookup result: True
-PartsOf: 1.7837s ✅
+PartsOf: 2.0159s ✅
 DEBUG: Checking cache for subclasses_of, term_id=FBbt_00003748, cache_term_id=FBbt_00003748, should_cache=True
 DEBUG: Attempting cache lookup for subclasses_of(FBbt_00003748) with full results
 DEBUG: Cache lookup result: True
-SubclassesOf: 1.8344s ✅
+SubclassesOf: 2.0609s ✅
 
 ================================================================================
 TRACT/NERVE AND LINEAGE QUERIES
@@ -175,15 +175,15 @@ TRACT/NERVE AND LINEAGE QUERIES
 DEBUG: Checking cache for neuron_classes_fasciculating_here, term_id=FBbt_00003987, cache_term_id=FBbt_00003987, should_cache=True
 DEBUG: Attempting cache lookup for neuron_classes_fasciculating_here(FBbt_00003987) with full results
 DEBUG: Cache lookup result: True
-NeuronClassesFasciculatingHere: 1.8374s ✅
+NeuronClassesFasciculatingHere: 1.9734s ✅
 DEBUG: Checking cache for tracts_nerves_innervating_here, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for tracts_nerves_innervating_here(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-TractsNervesInnervatingHere: 1.7875s ✅
+TractsNervesInnervatingHere: 1.9982s ✅
 DEBUG: Checking cache for lineage_clones_in, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for lineage_clones_in(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-LineageClonesIn: 1.8005s ✅
+LineageClonesIn: 2.0158s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
@@ -191,15 +191,15 @@ IMAGE AND DEVELOPMENTAL QUERIES
 DEBUG: Checking cache for images_neurons, term_id=FBbt_00007401, cache_term_id=FBbt_00007401, should_cache=True
 DEBUG: Attempting cache lookup for images_neurons(FBbt_00007401) with full results
 DEBUG: Cache lookup result: True
-ImagesNeurons: 1.8501s ✅
+ImagesNeurons: 1.9951s ✅
 DEBUG: Checking cache for images_that_develop_from, term_id=FBbt_00001419, cache_term_id=FBbt_00001419, should_cache=True
 DEBUG: Attempting cache lookup for images_that_develop_from(FBbt_00001419) with full results
 DEBUG: Cache lookup result: True
-ImagesThatDevelopFrom: 1.8253s ✅
+ImagesThatDevelopFrom: 1.9808s ✅
 DEBUG: Checking cache for expression_pattern_fragments, term_id=FBtp0000001, cache_term_id=FBtp0000001, should_cache=True
 DEBUG: Attempting cache lookup for expression_pattern_fragments(FBtp0000001) with full results
 DEBUG: Cache lookup result: True
-epFrag: 1.7937s ✅
+epFrag: 2.0032s ✅
 
 ================================================================================
 INSTANCE QUERIES
@@ -207,7 +207,7 @@ INSTANCE QUERIES
 DEBUG: Checking cache for instances, term_id=FBbt_00003982, cache_term_id=FBbt_00003982, should_cache=True
 DEBUG: Attempting cache lookup for instances(FBbt_00003982) with full results
 DEBUG: Cache lookup result: True
-ListAllAvailableImages: 1.8087s ✅
+ListAllAvailableImages: 2.0136s ✅
 
 ================================================================================
 CONNECTIVITY QUERIES
@@ -215,11 +215,11 @@ CONNECTIVITY QUERIES
 DEBUG: Checking cache for neuron_neuron_connectivity_query, term_id=VFB_jrchk00s, cache_term_id=VFB_jrchk00s, should_cache=True
 DEBUG: Attempting cache lookup for neuron_neuron_connectivity_query(VFB_jrchk00s) with full results
 DEBUG: Cache lookup result: True
-NeuronNeuronConnectivityQuery: 1.8355s ✅
+NeuronNeuronConnectivityQuery: 2.0237s ✅
 DEBUG: Checking cache for neuron_region_connectivity_query, term_id=VFB_jrchk00s, cache_term_id=VFB_jrchk00s, should_cache=True
 DEBUG: Attempting cache lookup for neuron_region_connectivity_query(VFB_jrchk00s) with full results
 DEBUG: Cache lookup result: True
-NeuronRegionConnectivityQuery: 1.8162s ✅
+NeuronRegionConnectivityQuery: 2.0103s ✅
 
 ================================================================================
 SIMILARITY QUERIES (Neo4j NBLAST)
@@ -228,17 +228,17 @@ DEBUG: Checking cache for similar_neurons, term_id=VFB_jrchk00s, cache_term_id=V
 DEBUG: Attempting cache lookup for similar_neurons(VFB_jrchk00s_score_NBLAST_score) with full results
 DEBUG: Cache lookup result: False
 ✅ Neo4j connection established
-SimilarMorphologyTo: 11.6274s ✅
+SimilarMorphologyTo: 11.9944s ✅
 
 ================================================================================
 NEURON INPUT QUERIES (Neo4j)
 ================================================================================
-NeuronInputsTo: 3.0836s ✅
+NeuronInputsTo: 2.9908s ✅
 
 ================================================================================
 EXPRESSION PATTERN QUERIES (Neo4j)
 ================================================================================
-ExpressionOverlapsHere: 1.2449s ✅
+ExpressionOverlapsHere: 1.1754s ✅
   └─ Found 3922 total expression patterns, returned 10
 
 ================================================================================
@@ -252,55 +252,55 @@ test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerf
 Test publication and transgene queries ... ok
 
 ----------------------------------------------------------------------
-Ran 15 tests in 66.260s
+Ran 15 tests in 71.887s
 
 OK
 ================================================================================
-anatScRNAseqQuery: 0.9525s ✅
+anatScRNAseqQuery: 1.0120s ✅
   └─ Found 0 total clusters
-clusterExpression: 0.9082s ✅
+clusterExpression: 0.8692s ✅
   └─ Found 0 genes expressed
-expressionCluster: 0.7112s ✅
+expressionCluster: 0.8079s ✅
   └─ Found 0 clusters expressing gene
-scRNAdatasetData: 0.9348s ✅
+scRNAdatasetData: 0.8069s ✅
   └─ Found 0 clusters in dataset
 
 ================================================================================
 NBLAST SIMILARITY QUERIES
 ================================================================================
-SimilarMorphologyTo: 0.9466s ✅
+SimilarMorphologyTo: 1.0434s ✅
   └─ Found 227 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 0.6861s ✅
+SimilarMorphologyToPartOf: 0.7650s ✅
   └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.7050s ✅
+SimilarMorphologyToPartOfexp: 0.9357s ✅
   └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.7368s ✅
+SimilarMorphologyToNB: 0.9180s ✅
   └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.7158s ✅
+SimilarMorphologyToNBexp: 0.7312s ✅
   └─ Found 15 NeuronBridge expression matches, returned 10
 ✅ All NBLAST similarity queries completed
 
 ================================================================================
 DATASET/TEMPLATE QUERIES
 ================================================================================
-PaintedDomains: 0.7504s ✅
+PaintedDomains: 0.7729s ✅
   └─ Found 0 painted domains
-DatasetImages: 0.7288s ✅
+DatasetImages: 0.7676s ✅
   └─ Found 0 images in dataset
-AllAlignedImages: 0.7182s ✅
+AllAlignedImages: 0.9346s ✅
   └─ Found 0 aligned images
-AlignedDatasets: 0.9578s ✅
+AlignedDatasets: 1.3190s ✅
   └─ Found 0 aligned datasets
-AllDatasets: 0.9616s ✅
+AllDatasets: 0.9663s ✅
   └─ Found 115 total datasets, returned 20
 ✅ All dataset/template queries completed
 
 ================================================================================
 PUBLICATION/TRANSGENE QUERIES
 ================================================================================
-TermsForPub: 0.6681s ✅
+TermsForPub: 0.7240s ✅
   └─ Found 0 terms for publication
-TransgeneExpressionHere: 0.8548s ✅
+TransgeneExpressionHere: 0.8762s ✅
   └─ Found 2339 transgene expressions, returned 10
 ✅ All publication/transgene queries completed
 
@@ -313,7 +313,7 @@ test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
 Performance test for specific term info queries. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 3.659s
+Ran 1 test in 4.038s
 
 OK
 VFBquery functions patched with caching support
@@ -332,9 +332,9 @@ DEBUG: Cache lookup result: True
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 1.8285 seconds
-VFB_00101567 query took: 1.8299 seconds
-Total time for both queries: 3.6584 seconds
+FBbt_00003748 query took: 2.0045 seconds
+VFB_00101567 query took: 2.0335 seconds
+Total time for both queries: 4.0380 seconds
 Performance Level: 🟠 Acceptable (3-6 seconds)
 ==================================================
 Performance test completed successfully!
@@ -353,4 +353,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2025-11-18 11:14:02 UTC*
+*Last updated: 2025-11-18 12:06:58 UTC*

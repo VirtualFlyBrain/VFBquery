@@ -1322,6 +1322,56 @@ vfb.get_term_info('VFB_00101567')
       "Anatomy",
       "Nervous_system",
       "Template",
+      "has_image"
+   ],
+   "Meta": {
+      "Name": "[JRC2018Unisex](VFB_00101567)",
+      "Symbol": "[JRC2018U](VFB_00101567)",
+      "Description": "Janelia 2018 unisex, averaged adult brain template",
+      "Comment": "",
+      "Types": "[adult brain](FBbt_00003624)"
+   },
+   "Tags": [
+      "Adult",
+      "Nervous_system"
+   ],
+   "Queries": [
+      {
+         "query": "PaintedDomains",
+         "label": "Painted domains for JRC2018U",
+         "function": "get_painted_domains",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Template",
+                  "Individual"
+               ]
+            },
+            "default": {
+               "short_form": "VFB_00101567"
+            }
+         },
+         "preview": 10,
+         "preview_columns": [
+            "id",
+            "name",
+      },
+      "48": {
+         "id": "VFB_00102275",
+         "label": "CAN on JRC2018Unisex adult brain",
+         "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnail.png",
+         "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnailT.png",
+         "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.nrrd",
+         "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.wlz",
+         "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume_man.obj",
+         "index": 48,
+         "type_label": "cantle",
+         "type_id": "FBbt_00045051"
+      },
+      "49": {
+         "id": "VFB_00102276",
+         "label": "PRW on JRC2018Unisex adult brain",
+         "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnail.png",
          "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnailT.png",
          "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.nrrd",
          "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.wlz",

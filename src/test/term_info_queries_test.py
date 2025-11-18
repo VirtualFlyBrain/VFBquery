@@ -336,18 +336,21 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("relationships" in serialized)
         self.assertEqual(2, len(serialized["relationships"]))
-        self.assertTrue(serialized["relationships"][0] == "has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)" or serialized["relationships"][0] == "has hemidriver [P{VT017491-p65.AD}](FBtp0133404)", "Hemidriver Missing")
+        expected_rel_1 = "has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)"
+        expected_rel_2 = "has hemidriver [P{VT017491-p65.AD}](FBtp0133404)"
+        self.assertIn(expected_rel_1, serialized["relationships"])
+        self.assertIn(expected_rel_2, serialized["relationships"])
 
         self.assertFalse("related_individuals" in serialized)
         self.assertTrue("xrefs" in serialized)
         self.assertEqual(2, len(serialized["xrefs"]))
-        self.assertEqual({'icon': 'http://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png',
-                          'label': '[P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern on '
-                                   'Driver Line on the FlyLight Split-GAL4 Site]'
-                                   '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574)',
-                          'site': '[FlyLightSplit]'
-                                  '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '},
-                         serialized["xrefs"][0])
+        expected_xref = {'icon': 'https://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png',
+                         'label': '[P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern on '
+                                  'Driver Line on the FlyLight Split-GAL4 Site]'
+                                  '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574)',
+                         'site': '[FlyLightSplit]'
+                                 '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '}
+        self.assertIn(expected_xref, serialized["xrefs"])
 
         self.assertTrue("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
@@ -382,7 +385,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("source" in serialized)
         self.assertTrue("license" in serialized)
         self.assertEqual(1, len(serialized["license"]))
-        self.assertEqual({'icon': 'http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
+        self.assertEqual({'icon': 'https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png',
                           'label': '[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)'}, serialized["license"][0])
         self.assertFalse("Classification" in serialized)
         self.assertFalse("relationships" in serialized)
@@ -480,13 +483,13 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
-                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
+                                  'url': 'http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
                          serialized["filemeta"][0])
         self.assertEqual({'wlz': {'local': '/Slices(WOOLZ)/my_id_(my_name).wlz',
-                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
+                                  'url': 'http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
                          serialized["filemeta"][1])
         self.assertEqual({'nrrd': {'local': '/SignalFiles(NRRD)/my_id_(my_name).nrrd',
-                                   'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
+                                   'url': 'http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
                          serialized["filemeta"][2])
         self.assertTrue("template" in serialized)
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])

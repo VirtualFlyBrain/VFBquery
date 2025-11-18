@@ -1197,38 +1197,96 @@ vfb.get_term_info('VFB_00000001')
 ```
 ```json
 {
-   "Name": "fru-M-200266",
-   "Id": "VFB_00000001",
+   "Name": "medulla",
+   "Id": "FBbt_00003748",
    "SuperTypes": [
       "Entity",
-      "Individual",
-      "VFB",
-      "Neuron",
+      "Class",
       "Adult",
       "Anatomy",
-      "Cell",
-      "Expression_pattern_fragment",
       "Nervous_system",
-      "has_image",
-      "lineage_CM3",
-      "lineage_DM6",
-      "FlyCircuit",
-      "NBLAST"
+      "Synaptic_neuropil",
+      "Synaptic_neuropil_domain",
+      "Visual_system"
    ],
    "Meta": {
-      "Name": "[fru-M-200266](VFB_00000001)",
-      "Description": "",
-      "Comment": "OutAge: Adult 5~15 days",
-      "Types": "[adult DM6 lineage neuron](FBbt_00050144); [expression pattern fragment](VFBext_0000004)",
-      "Relationships": "[expresses](RO_0002292): [Scer\\GAL4%5Bfru.P1.D%5D](FBal0276838); [is part of](BFO_0000050): [Scer\\GAL4%5Bfru.P1.D%5D expression pattern](VFBexp_FBal0276838), [adult brain](FBbt_00003624), [male organism](FBbt_00007004); [overlaps](RO_0002131): [adult antennal lobe](FBbt_00007401), [adult crepine](FBbt_00045037), [adult lateral accessory lobe](FBbt_00003681), [superior posterior slope](FBbt_00045040), [vest](FBbt_00040041)"
+      "Name": "[medulla](FBbt_00003748)",
+      "Description": "The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).",
+      "Comment": "Nern et al. (2025) - doi:10.1038/s41586-025-08746-0 say distal is M1-5 and M6-7 is central medulla.",
+      "Types": "[anterior ectoderm derivative](FBbt_00025991); [synaptic neuropil domain](FBbt_00040007)",
+      "Relationships": "[develops from](RO_0002202): [medulla anlage](FBbt_00001935); [is part of](BFO_0000050): [adult optic lobe](FBbt_00003701)"
    },
    "Tags": [
       "Adult",
-      "Expression_pattern_fragment",
-      "Neuron",
-      "lineage_CM3"
+      "Nervous_system",
+      "Synaptic_neuropil_domain",
+      "Visual_system"
    ],
    "Queries": [
+      {
+         "query": "ListAllAvailableImages",
+         "label": "List all available images of medulla",
+         "function": "get_instances",
+         "takes": {
+            "short_form": {
+               "$and": [
+                  "Class",
+                  "Anatomy"
+               ]
+            },
+            "default": {
+               "short_form": "FBbt_00003748"
+            }
+         },
+         "preview": 5,
+         "preview_columns": [
+            "id",
+            "label",
+            "tags",
+            "thumbnail"
+         ],
+         "preview_results": {
+            "headers": {
+                  "type": "markdown",
+                  "order": 9
+               }
+            },
+            "rows": [
+               {
+                  "id": "FBbt_00050019",
+                  "label": "[adult DM1 lineage clone](FBbt_00050019)",
+                  "tags": "Adult|Clone|lineage_DPMm1",
+                  "thumbnail": "[![DM1 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0006/VFB_00017894/thumbnail.png 'DM1 clone of Yu 2013 aligned to JFRC2')](FBbt_00050019)"
+               },
+               {
+                  "id": "FBbt_00050143",
+                  "label": "[adult DM6 lineage clone](FBbt_00050143)",
+                  "tags": "Adult|Clone|lineage_CM3",
+                  "thumbnail": "[![DM6 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00101567/thumbnail.png 'DM6 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050143)"
+               },
+               {
+                  "id": "FBbt_00050167",
+                  "label": "[adult LALv1 lineage clone](FBbt_00050167)",
+                  "tags": "Adult|Clone|lineage_BAmv1",
+                  "thumbnail": "[![LALv1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0056/VFB_00101567/thumbnail.png 'LALv1 clone of Yu 2013 aligned to JRC2018U')](FBbt_00050167)"
+               },
+               {
+                  "id": "FBbt_00050051",
+                  "label": "[adult VESa2 lineage clone](FBbt_00050051)",
+                  "tags": "Adult|Clone|lineage_BAlp1",
+                  "thumbnail": "[![PSa1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0206/VFB_00101567/thumbnail.png 'PSa1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050051)"
+               },
+               {
+                  "id": "FBbt_00050013",
+                  "label": "[adult VPNl&d1 lineage clone](FBbt_00050013)",
+                  "tags": "Adult|Clone",
+                  "thumbnail": "[![VPNl&d1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0253/VFB_00101567/thumbnail.png 'VPNl&d1 clone of Ito 2013 aligned to JRC2018U')](FBbt_00050013)"
+               }
+            ]
+         },
+         "output_format": "table",
+         "count": 7
+      },
       {
          "query": "SimilarMorphologyTo",
          "label": "Find similar neurons to fru-M-200266",

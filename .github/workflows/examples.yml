@@ -19,13 +19,16 @@ jobs:
       - name: Check SOLR availability
         run: |
           python -c "
+          import os
           try:
               import vfbquery as vfb
               result = vfb.get_term_info('FBbt_00003748')
-              print('SOLR_AVAILABLE=true' >> $GITHUB_ENV)
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                  f.write('SOLR_AVAILABLE=true\n')
           except Exception as e:
               print('SOLR not available:', e)
-              print('SOLR_AVAILABLE=false' >> $GITHUB_ENV)
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                  f.write('SOLR_AVAILABLE=false\n')
           "
       - name: Install dependencies
         run: |

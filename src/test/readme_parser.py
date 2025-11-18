@@ -24,6 +24,9 @@ def extract_code_blocks(readme_path):
     # Process Python blocks to extract vfb calls
     processed_python_blocks = []
     for block in python_blocks:
+        # Skip blocks that contain import statements
+        if 'import' in block:
+            continue
         # Look for vfb.* calls and extract them
         vfb_calls = re.findall(r'(vfb\.[^)]*\))', block)
         if vfb_calls:

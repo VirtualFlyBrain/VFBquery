@@ -50,7 +50,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         if: env.SOLR_AVAILABLE == 'true'
-        if: env.SOLR_AVAILABLE == 'true'
       - name: Run examples from README.md and compare JSON outputs
         run: |
           python -m src.test.test_examples_diff

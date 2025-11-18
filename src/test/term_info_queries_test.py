@@ -1,7 +1,7 @@
 import unittest
 import time
-from src.vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
-from src.vfbquery.solr_fetcher import SolrTermInfoFetcher
+from vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
+from vfbquery.solr_fetcher import SolrTermInfoFetcher
 
 
 class TermInfoQueriesTest(unittest.TestCase):

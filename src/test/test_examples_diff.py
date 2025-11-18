@@ -102,6 +102,26 @@ def format_for_readme(data):
     except Exception as e:
         return f"Error formatting JSON: {str(e)}"
 
+def sort_rows_in_data(data):
+    """Sort rows in data structures by id to ensure consistent ordering"""
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k == 'rows' and isinstance(v, list):
+                # Sort rows by id if they have id field
+                try:
+                    sorted_rows = sorted(v, key=lambda x: x.get('id', '') if isinstance(x, dict) else str(x))
+                    result[k] = sorted_rows
+                except (TypeError, AttributeError):
+                    result[k] = v
+            else:
+                result[k] = sort_rows_in_data(v)
+        return result
+    elif isinstance(data, list):
+        return [sort_rows_in_data(item) for item in data]
+    else:
+        return data
+
 def remove_nulls(data):
     if isinstance(data, dict):
         new_dict = {}
@@ -154,7 +174,12 @@ def main():
         # Apply remove_nulls to both dictionaries before diffing
         python_code_filtered = remove_nulls(python_code)
         expected_json_filtered = remove_nulls(expected_json)
-        diff = DeepDiff(expected_json_filtered, python_code_filtered, 
+        
+        # Sort rows in both data structures to ensure consistent ordering
+        python_code_sorted = sort_rows_in_data(python_code_filtered)
+        expected_json_sorted = sort_rows_in_data(expected_json_filtered)
+        
+        diff = DeepDiff(expected_json_sorted, python_code_sorted, 
                         ignore_order=True, 
                         ignore_numeric_type_changes=True,
                         report_repetition=True,
@@ -178,9 +203,9 @@ def main():
                             part = part.strip("'")
                         elif part.startswith('"') and part.endswith('"'):
                             part = part.strip('"')
+                        elif part.startswith('number:'):
+                            part = part.split(':')[1]  # Keep as string since keys are stringified
                         try:
-                            if part.startswith('number:'):
-                                part = float(part.split(':')[1])
                             current = current[part]
                         except (KeyError, TypeError):
                             current = '[Unable to access path]'
@@ -202,9 +227,9 @@ def main():
                             part = part.strip("'")
                         elif part.startswith('"') and part.endswith('"'):
                             part = part.strip('"')
+                        elif part.startswith('number:'):
+                            part = part.split(':')[1]  # Keep as string since keys are stringified
                         try:
-                            if part.startswith('number:'):
-                                part = float(part.split(':')[1])
                             current = current[part]
                         except (KeyError, TypeError):
                             current = '[Unable to access path]'

@@ -1263,7 +1263,7 @@ vfb.get_term_info('VFB_00000001')
          "template": "[JRC2018U](VFB_00101567)",
          "dataset": "[JRC 2018 templates & ROIs](JRC2018)",
          "license": "",
-         "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png \"ME on JRC2018Unisex adult brain aligned to JRC2018U\")](VFB_00101567,VFB_00102107)"
+         "thumbnail": "[![ME on JRC2018Unisex adult brain aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png \\"ME on JRC2018Unisex adult brain aligned to JRC2018U\\")](VFB_00101567,VFB_00102107)"
       },
       {
          "id": "VFB_00101385",
@@ -1275,7 +1275,7 @@ vfb.get_term_info('VFB_00000001')
          "template": "[JRCFIB2018Fum](VFB_00101384)",
          "dataset": "[JRC_FlyEM_Hemibrain painted domains](Xu2020roi)",
          "license": "",
-         "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png \"ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum\")](VFB_00101384,VFB_00101385)"
+         "thumbnail": "[![ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png \\"ME(R) on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum\\")](VFB_00101384,VFB_00101385)"
       },
       {
          "id": "VFB_00030810",
@@ -1287,7 +1287,7 @@ vfb.get_term_info('VFB_00000001')
          "template": "[adult brain template Ito2014](VFB_00030786)",
          "dataset": "[BrainName neuropils and tracts - Ito half-brain](BrainName_Ito_half_brain)",
          "license": "",
-         "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png \"medulla on adult brain template Ito2014 aligned to adult brain template Ito2014\")](VFB_00030786,VFB_00030810)"
+         "thumbnail": "[![medulla on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0810/VFB_00030786/thumbnail.png \\"medulla on adult brain template Ito2014 aligned to adult brain template Ito2014\\")](VFB_00030786,VFB_00030810)"
       },
       {
          "id": "VFB_00030624",
@@ -1299,7 +1299,7 @@ vfb.get_term_info('VFB_00000001')
          "template": "[JFRC2](VFB_00017894)",
          "dataset": "[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](JenettShinomya_BrainName)",
          "license": "",
-         "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png \"medulla on adult brain template JFRC2 aligned to JFRC2\")](VFB_00017894,VFB_00030624)"
+         "thumbnail": "[![medulla on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png \\"medulla on adult brain template JFRC2 aligned to JFRC2\\")](VFB_00017894,VFB_00030624)"
       }
    ],
    "count": 4

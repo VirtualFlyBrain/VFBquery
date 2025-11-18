@@ -84,7 +84,8 @@ from .vfb_queries import (
     get_transgene_expression_here as _original_get_transgene_expression_here,
 )
 
-def get_term_info_cached(short_form: str, preview: bool = False):
+@with_solr_cache('term_info')
+def get_term_info_cached(short_form: str, preview: bool = True, force_refresh: bool = False):
     """
     Enhanced get_term_info with SOLR caching.
     
@@ -93,6 +94,7 @@ def get_term_info_cached(short_form: str, preview: bool = False):
     Args:
         short_form: Term short form (e.g., 'FBbt_00003748')
         preview: Whether to include preview results
+        force_refresh: Whether to bypass cache and fetch fresh data
         
     Returns:
         Term info dictionary or None if not found

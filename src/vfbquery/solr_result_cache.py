@@ -14,6 +14,7 @@ import json
 import requests
 import hashlib
 import time
+import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import logging
@@ -771,119 +772,183 @@ def with_solr_cache(query_type: str):
                     else:
                         return cached_result
             
-            # Execute function - always get full results for caching
-            full_result = None
-            if should_cache:
-                # Execute with limit=-1 to get full results for caching (only for functions that support limit)
-                full_kwargs = kwargs.copy()
-                import inspect
-                if 'limit' in inspect.signature(func).parameters:
-                    full_kwargs['limit'] = -1
-                print(f"DEBUG: Executing {query_type} with full results for caching")
-                full_result = func(*args, **full_kwargs)
-                result = full_result
-                
-                # If the original request was limited, slice the result for return
-                if limit != -1 and result is not None:
-                    if isinstance(result, (list, pd.DataFrame)):
-                        if isinstance(result, list):
-                            result = result[:limit]
-                        elif isinstance(result, pd.DataFrame):
-                            result = result.head(limit)
-                        print(f"DEBUG: Sliced result to {limit} items for return")
-            else:
-                # Execute with original parameters (no caching)
+            # Execute function - for expensive queries, get quick results first, then cache full results in background
+            result = None
+            if query_type in expensive_query_types:
+                # For expensive queries: execute with original parameters for quick return, cache full results in background
+                print(f"DEBUG: Executing {query_type} with original parameters for quick return")
                 result = func(*args, **kwargs)
-                full_result = result
-            
-            # Cache the result asynchronously to avoid blocking
-            # Handle DataFrame, dict, and other result types properly
-            result_is_valid = False
-            result_is_error = False  # Track if result is an error that should clear cache
-            
-            if result is not None:
-                if hasattr(result, 'empty'):  # DataFrame
-                    result_is_valid = not result.empty
-                elif isinstance(result, dict):
-                    # For dict results, check if it's not an error result (count != -1)
-                    # Error results should not be cached
-                    if 'count' in result:
-                        count_value = result.get('count', -1)
-                        result_is_valid = count_value >= 0  # Don't cache errors (count=-1)
-                        result_is_error = count_value < 0  # Mark as error if count is negative
-                    else:
-                        result_is_valid = bool(result)  # For dicts without count field
-                elif isinstance(result, (list, str)):
-                    result_is_valid = len(result) > 0
-                else:
-                    result_is_valid = True
-            
-            # If result is an error, actively clear any existing cache entry
-            # This ensures that transient failures don't get stuck in cache
-            if result_is_error:
-                logger.warning(f"Query returned error result for {query_type}({term_id}), clearing cache entry")
-                try:
-                    cache.clear_cache_entry(query_type, cache_term_id)
-                except Exception as e:
-                    logger.debug(f"Failed to clear cache entry: {e}")
-            
-            if result_is_valid:
-                # Validate result before caching for term_info
-                if query_type == 'term_info':
-                    # Basic validation: must have Id and Name
-                    is_complete = (result and isinstance(result, dict) and 
-                                  result.get('Id') and result.get('Name'))
-                    
-                    # Additional validation when preview=True: check if queries have results
-                    # We allow caching even if some queries failed (count=-1) as long as the core term_info is valid
-                    # This is because some query functions may not be implemented yet or may legitimately fail
-                    if is_complete:
-                        preview = kwargs.get('preview', True)
-                        if preview and 'Queries' in result and result['Queries']:
-                            # Count how many queries have valid results vs errors
-                            valid_queries = 0
-                            failed_queries = 0
+                
+                # Start background thread to get full results and cache them
+                def cache_full_results_background():
+                    try:
+                        # Check if function supports limit parameter
+                        import inspect
+                        if 'limit' in inspect.signature(func).parameters:
+                            full_kwargs = kwargs.copy()
+                            full_kwargs['limit'] = -1
+                            print(f"DEBUG: Background: Executing {query_type} with full results for caching")
+                            full_result = func(*args, **full_kwargs)
                             
-                            for query in result['Queries']:
-                                count = query.get('count', -1)
-                                preview_results = query.get('preview_results')
-                                
-                                # Count queries with valid results (count >= 0)
-                                if count >= 0 and isinstance(preview_results, dict):
-                                    valid_queries += 1
+                            # Validate and cache the full result
+                            if full_result is not None:
+                                result_is_valid = False
+                                if hasattr(full_result, 'empty'):  # DataFrame
+                                    result_is_valid = not full_result.empty
+                                elif isinstance(full_result, dict):
+                                    if 'count' in full_result:
+                                        count_value = full_result.get('count', -1)
+                                        result_is_valid = count_value >= 0
+                                    else:
+                                        result_is_valid = bool(full_result)
+                                elif isinstance(full_result, (list, str)):
+                                    result_is_valid = len(full_result) > 0
                                 else:
-                                    failed_queries += 1
-                            
-                            # Only reject if ALL queries failed - at least one must succeed
-                            if valid_queries == 0 and failed_queries > 0:
-                                is_complete = False
-                                logger.warning(f"Not caching result for {term_id}: all {failed_queries} queries failed")
-                            elif failed_queries > 0:
-                                logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
+                                    result_is_valid = True
+                                
+                                if result_is_valid:
+                                    # Special validation for term_info
+                                    if query_type == 'term_info':
+                                        is_complete = (full_result and isinstance(full_result, dict) and 
+                                                      full_result.get('Id') and full_result.get('Name'))
+                                        if is_complete:
+                                            try:
+                                                full_kwargs_for_cache = kwargs.copy()
+                                                full_kwargs_for_cache['limit'] = -1
+                                                cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
+                                                logger.debug(f"Background cached complete full result for {term_id}")
+                                            except Exception as e:
+                                                logger.debug(f"Background caching failed: {e}")
+                                    else:
+                                        try:
+                                            full_kwargs_for_cache = kwargs.copy()
+                                            full_kwargs_for_cache['limit'] = -1
+                                            cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
+                                            logger.debug(f"Background cached full result for {term_id}")
+                                        except Exception as e:
+                                            logger.debug(f"Background caching failed: {e}")
+                    except Exception as e:
+                        logger.debug(f"Background caching thread failed: {e}")
+                
+                # Start background caching thread
+                background_thread = threading.Thread(target=cache_full_results_background, daemon=True)
+                background_thread.start()
+                print(f"DEBUG: Started background caching thread for {query_type}({term_id})")
+            else:
+                # For non-expensive queries: use original caching logic
+                full_result = None
+                if should_cache:
+                    # Execute with limit=-1 to get full results for caching (only for functions that support limit)
+                    full_kwargs = kwargs.copy()
+                    import inspect
+                    if 'limit' in inspect.signature(func).parameters:
+                        full_kwargs['limit'] = -1
+                    print(f"DEBUG: Executing {query_type} with full results for caching")
+                    full_result = func(*args, **full_kwargs)
+                    result = full_result
                     
-                    # Only cache if result is complete AND no limit was applied
-                    if is_complete and should_cache:
-                        try:
-                            # Cache the full result with full parameters (limit=-1)
-                            full_kwargs_for_cache = kwargs.copy()
-                            full_kwargs_for_cache['limit'] = -1
-                            cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
-                            logger.debug(f"Cached complete full result for {term_id}")
-                        except Exception as e:
-                            logger.debug(f"Failed to cache result: {e}")
-                    elif not should_cache:
-                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
-                    else:
-                        logger.warning(f"Not caching incomplete result for {term_id}")
+                    # If the original request was limited, slice the result for return
+                    if limit != -1 and result is not None:
+                        if isinstance(result, (list, pd.DataFrame)):
+                            if isinstance(result, list):
+                                result = result[:limit]
+                            elif isinstance(result, pd.DataFrame):
+                                result = result.head(limit)
+                            print(f"DEBUG: Sliced result to {limit} items for return")
                 else:
-                    # Only cache if no limit was applied
-                    if should_cache:
-                        try:
-                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
-                        except Exception as e:
-                            logger.debug(f"Failed to cache result: {e}")
+                    # Execute with original parameters (no caching)
+                    result = func(*args, **kwargs)
+                    full_result = result
+            
+            # Cache the result - skip for expensive queries as they use background caching
+            if query_type not in expensive_query_types:
+                # Handle DataFrame, dict, and other result types properly
+                result_is_valid = False
+                result_is_error = False  # Track if result is an error that should clear cache
+                
+                if result is not None:
+                    if hasattr(result, 'empty'):  # DataFrame
+                        result_is_valid = not result.empty
+                    elif isinstance(result, dict):
+                        # For dict results, check if it's not an error result (count != -1)
+                        # Error results should not be cached
+                        if 'count' in result:
+                            count_value = result.get('count', -1)
+                            result_is_valid = count_value >= 0  # Don't cache errors (count=-1)
+                            result_is_error = count_value < 0  # Mark as error if count is negative
+                        else:
+                            result_is_valid = bool(result)  # For dicts without count field
+                    elif isinstance(result, (list, str)):
+                        result_is_valid = len(result) > 0
                     else:
-                        logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
+                        result_is_valid = True
+                
+                # If result is an error, actively clear any existing cache entry
+                # This ensures that transient failures don't get stuck in cache
+                if result_is_error:
+                    logger.warning(f"Query returned error result for {query_type}({term_id}), clearing cache entry")
+                    try:
+                        cache.clear_cache_entry(query_type, cache_term_id)
+                    except Exception as e:
+                        logger.debug(f"Failed to clear cache entry: {e}")
+                
+                if result_is_valid:
+                    # Validate result before caching for term_info
+                    if query_type == 'term_info':
+                        # Basic validation: must have Id and Name
+                        is_complete = (result and isinstance(result, dict) and 
+                                      result.get('Id') and result.get('Name'))
+                        
+                        # Additional validation when preview=True: check if queries have results
+                        # We allow caching even if some queries failed (count=-1) as long as the core term_info is valid
+                        # This is because some query functions may not be implemented yet or may legitimately fail
+                        if is_complete:
+                            preview = kwargs.get('preview', True)
+                            if preview and 'Queries' in result and result['Queries']:
+                                # Count how many queries have valid results vs errors
+                                valid_queries = 0
+                                failed_queries = 0
+                                
+                                for query in result['Queries']:
+                                    count = query.get('count', -1)
+                                    preview_results = query.get('preview_results')
+                                    
+                                    # Count queries with valid results (count >= 0)
+                                    if count >= 0 and isinstance(preview_results, dict):
+                                        valid_queries += 1
+                                    else:
+                                        failed_queries += 1
+                                
+                                # Only reject if ALL queries failed - at least one must succeed
+                                if valid_queries == 0 and failed_queries > 0:
+                                    is_complete = False
+                                    logger.warning(f"Not caching result for {term_id}: all {failed_queries} queries failed")
+                                elif failed_queries > 0:
+                                    logger.debug(f"Caching result for {term_id} with {valid_queries} valid queries ({failed_queries} failed)")
+                        
+                        # Only cache if result is complete AND no limit was applied
+                        if is_complete and should_cache:
+                            try:
+                                # Cache the full result with full parameters (limit=-1)
+                                full_kwargs_for_cache = kwargs.copy()
+                                full_kwargs_for_cache['limit'] = -1
+                                cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
+                                logger.debug(f"Cached complete full result for {term_id}")
+                            except Exception as e:
+                                logger.debug(f"Failed to cache result: {e}")
+                        elif not should_cache:
+                            logger.debug(f"Not caching limited result for {term_id} (limit={limit})")
+                        else:
+                            logger.warning(f"Not caching incomplete result for {term_id}")
+                    else:
+                        # Only cache if no limit was applied
+                        if should_cache:
+                            try:
+                                cache.cache_result(query_type, cache_term_id, result, **kwargs)
+                            except Exception as e:
+                                logger.debug(f"Failed to cache result: {e}")
+                        else:
+                            logger.debug(f"Not caching limited result for {term_id} (limit={limit}))")
             
             return result
         

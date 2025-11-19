@@ -15,9 +15,9 @@ class NeuronsPartHereTest(unittest.TestCase):
         """Set up test fixtures"""
         self.medulla_id = 'FBbt_00003748'
         # Expected count based on VFB data (as of test creation)
-        # Allowing tolerance for data updates
-        self.expected_count = 471
-        self.count_tolerance = 5  # Allow ±5 for data updates
+        # Data can grow over time, so we test for minimum expected count
+        self.expected_count = 470  # Minimum expected count (actual was 472)
+        self.count_tolerance = 5    # Allow some tolerance for variations
 
     def test_neurons_part_here_returns_results(self):
         """Test that NeuronsPartHere query returns results for medulla"""
@@ -49,23 +49,22 @@ class NeuronsPartHereTest(unittest.TestCase):
         )
         
         actual_count = len(results_df)
-        count_diff = abs(actual_count - self.expected_count)
+        count_diff = actual_count - self.expected_count
         
-        print(f"Expected: {self.expected_count} results")
+        print(f"Expected: at least {self.expected_count} results")
         print(f"Actual: {actual_count} results")
-        print(f"Difference: {count_diff}")
         
-        # Allow some tolerance for data updates
-        self.assertLessEqual(
-            count_diff, 
-            self.count_tolerance,
-            f"Result count {actual_count} differs from expected {self.expected_count} by more than {self.count_tolerance}"
+        # Data can grow over time, so we require at least the expected minimum
+        self.assertGreaterEqual(
+            actual_count, 
+            self.expected_count,
+            f"Result count {actual_count} is less than expected minimum {self.expected_count}"
         )
         
         if count_diff > 0:
-            print(f"⚠ Count differs by {count_diff} (within tolerance of {self.count_tolerance})")
+            print(f"✓ Count increased by {count_diff} (data growth)")
         else:
-            print(f"✓ Exact count match: {actual_count}")
+            print(f"✓ Minimum count met: {actual_count}")
 
     def test_neurons_part_here_result_structure(self):
         """Test that results have the expected structure with required columns"""

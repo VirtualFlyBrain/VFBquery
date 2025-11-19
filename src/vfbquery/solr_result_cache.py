@@ -653,14 +653,17 @@ def with_solr_cache(query_type: str):
                 preview = kwargs.get('preview', True)  # Default is True
                 cache_term_id = f"{term_id}_preview_{preview}"
             
-            # Include similarity_score parameter in cache key for similarity queries
-            # This ensures different similarity scores are cached separately
-            similarity_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
-                                    'similar_morphology_part_of_exp', 'similar_morphology_nb', 
-                                    'similar_morphology_nb_exp', 'similar_morphology_userdata']
-            if query_type in similarity_query_types:
-                similarity_score = kwargs.get('similarity_score', 'NBLAST_score')  # Default
-                cache_term_id = f"{cache_term_id}_score_{similarity_score}"
+            # Include return_dataframe parameter in cache key for queries that support it
+            # This ensures DataFrame and dict results are cached separately
+            dataframe_query_types = ['neurons_part_here', 'neurons_synaptic', 'neurons_presynaptic', 
+                                   'neurons_postsynaptic', 'similar_neurons', 'similar_morphology', 
+                                   'similar_morphology_part_of', 'similar_morphology_part_of_exp', 
+                                   'similar_morphology_nb', 'similar_morphology_nb_exp', 
+                                   'similar_morphology_userdata', 'neurons_part_here', 'neurons_synaptic',
+                                   'neurons_presynaptic', 'neurons_postsynaptic']
+            if query_type in dataframe_query_types:
+                return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
+                cache_term_id = f"{cache_term_id}_dataframe_{return_dataframe}"
             
             cache = get_solr_cache()
             

@@ -51,7 +51,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         if: env.SOLR_AVAILABLE == 'true'
       - name: Update test results
-        run: python update_test_results_fixed.py
+        run: cd src/test && python ../../update_test_results_fixed.py
         env:
           PYTHONPATH: ${{ github.workspace }}
         if: env.SOLR_AVAILABLE == 'true'

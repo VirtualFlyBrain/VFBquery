@@ -1141,7 +1141,9 @@ old_results.append({
   "count": 10
 }
 
-new_content = 'from src.vfbquery.term_info_queries import *\nresults = ' + repr(old_results)
+import json
+
+new_content = 'from src.vfbquery.term_info_queries import *\nimport json\nresults = json.loads(''' + json.dumps(old_results) + ''')'
 
 with open('test_results.py', 'w') as f:
     f.write(new_content)

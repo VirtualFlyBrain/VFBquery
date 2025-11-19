@@ -1,5 +1,6 @@
 import re
 import json
+import ast
 import os.path
 
 def extract_code_blocks(readme_path):
@@ -54,9 +55,6 @@ def extract_code_blocks(readme_path):
         try:
             # Clean up the JSON text
             json_text = block.strip()
-            # Convert Python boolean literals to JSON booleans using regex
-            json_text = re.sub(r'\bTrue\b', 'true', json_text)
-            json_text = re.sub(r'\bFalse\b', 'false', json_text)
             # Parse the JSON and add to results
             json_obj = json.loads(json_text)
             processed_json_blocks.append(json_obj)

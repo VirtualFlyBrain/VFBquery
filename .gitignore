@@ -12,3 +12,5 @@ test_results.py
 .pytest_cache
 .venv
 .vscode/settings.json
+temp_examples_output.txt
+json_block_*.json

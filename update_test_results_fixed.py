@@ -1002,7 +1002,7 @@ old_results[3] = {
 }
 
 # Update templates
-old_results[4] = {
+old_results.append({
   "headers": {
     "id": {
       "title": "Add",

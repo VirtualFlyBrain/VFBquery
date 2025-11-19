@@ -50,12 +50,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         if: env.SOLR_AVAILABLE == 'true'
-      - name: Update test results
-        run: cd src/test && python ../../update_test_results_fixed.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        if: env.SOLR_AVAILABLE == 'true'
-      - name: Run examples from README.md and compare JSON outputs
+      - name: Run examples from README.md and validate structure
         run: |
           python -m src.test.test_examples_diff
         env:

@@ -78,6 +78,16 @@ def generate_python_file(python_blocks, output_path):
         for block in python_blocks:
             f.write(f'results.append({block})\n')
 
+def generate_code_strings_file(python_blocks, output_path):
+    """
+    Generates a Python file containing the extracted code blocks as strings in a results list.
+    """
+    with open(output_path, 'w') as f:
+        f.write('results = [\n')
+        for block in python_blocks:
+            f.write(f'    "{block}",\n')
+        f.write(']\n')
+
 def generate_json_file(json_blocks, output_path):
     """
     Generates a Python file containing the extracted JSON blocks as a Python list.
@@ -96,12 +106,13 @@ def generate_json_file(json_blocks, output_path):
         
         f.write(python_list)
 
-def process_readme(readme_path, python_output_path, json_output_path):
+def process_readme(readme_path, python_output_path, code_strings_output_path, json_output_path):
     """
     Process the README file and generate the test files.
     """
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     generate_python_file(python_blocks, python_output_path)
+    generate_code_strings_file(python_blocks, code_strings_output_path)
     generate_json_file(json_blocks, json_output_path)
     
     return len(python_blocks), len(json_blocks)
@@ -112,9 +123,11 @@ if __name__ == "__main__":
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     
     python_path = os.path.join(os.path.dirname(__file__), 'test_examples.py')
+    code_strings_path = os.path.join(os.path.dirname(__file__), 'test_examples_code.py')
     json_path = os.path.join(os.path.dirname(__file__), 'test_results.py')
     
     generate_python_file(python_blocks, python_path)
+    generate_code_strings_file(python_blocks, code_strings_path)
     generate_json_file(json_blocks, json_path)
     
     print(f"Extracted {len(python_blocks)} Python blocks and {len(json_blocks)} JSON blocks")

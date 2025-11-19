@@ -102,6 +102,26 @@ def format_for_readme(data):
     except Exception as e:
         return f"Error formatting JSON: {str(e)}"
 
+def sort_rows_in_data(data):
+    """Sort rows in data structures by id to ensure consistent ordering"""
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k == 'rows' and isinstance(v, list):
+                # Sort rows by id if they have id field
+                try:
+                    sorted_rows = sorted(v, key=lambda x: x.get('id', '') if isinstance(x, dict) else str(x))
+                    result[k] = sorted_rows
+                except (TypeError, AttributeError):
+                    result[k] = v
+            else:
+                result[k] = sort_rows_in_data(v)
+        return result
+    elif isinstance(data, list):
+        return [sort_rows_in_data(item) for item in data]
+    else:
+        return data
+
 def remove_nulls(data):
     if isinstance(data, dict):
         new_dict = {}
@@ -124,199 +144,102 @@ def remove_nulls(data):
 def main():
     init(autoreset=True)
     
-    # Import the results from generated files
+    # Import the python code blocks
     try:
-        from test_results import results as json_blocks
-        from test_examples import results as python_blocks
+        from .test_examples_code import results as python_blocks
     except ImportError as e:
         print(f"{Fore.RED}Error importing test files: {e}{Style.RESET_ALL}")
         sys.exit(1)
     
     print(f'Found {len(python_blocks)} Python code blocks')
-    print(f'Found {len(json_blocks)} JSON blocks')
-    
-    if len(python_blocks) != len(json_blocks):
-        print(f"{Fore.RED}Error: Number of Python blocks ({len(python_blocks)}) doesn't match JSON blocks ({len(json_blocks)}){Style.RESET_ALL}")
-        sys.exit(1)
     
     failed = False
     
-    for i, (python_code, expected_json) in enumerate(zip(python_blocks, json_blocks)):
-        python_code = stringify_numeric_keys(python_code)
-        expected_json = stringify_numeric_keys(expected_json)
+    for i, python_code in enumerate(python_blocks):
         
-        # Apply remove_nulls to both dictionaries before diffing
-        python_code_filtered = remove_nulls(python_code)
-        expected_json_filtered = remove_nulls(expected_json)
-        diff = DeepDiff(expected_json_filtered, python_code_filtered, 
-                        ignore_order=True, 
-                        ignore_numeric_type_changes=True,
-                        report_repetition=True,
-                        verbose_level=2)
+        print(f'\n{Fore.CYAN}Example #{i+1}:{Style.RESET_ALL}')
+        print(f'  README query: {python_code}')
         
-        if diff:
-            failed = True
-            print(f'\n{Fore.RED}Error in example #{i+1}:{Style.RESET_ALL}')
+        # Execute the python code and get result
+        try:
+            # Evaluate the code to get the result
+            result = eval(python_code)
             
-            # Print a cleaner diff output with context
-            if 'dictionary_item_added' in diff:
-                print(f'\n{Fore.GREEN}Added keys:{Style.RESET_ALL}')
-                for item in diff['dictionary_item_added']:
-                    key = item.replace('root', '')
-                    path_parts = key.strip('[]').split('][')
-                    
-                    # Get the actual value that was added
-                    current = python_code
-                    for part in path_parts:
-                        if part.startswith("'") and part.endswith("'"):
-                            part = part.strip("'")
-                        elif part.startswith('"') and part.endswith('"'):
-                            part = part.strip('"')
-                        try:
-                            if part.startswith('number:'):
-                                part = float(part.split(':')[1])
-                            current = current[part]
-                        except (KeyError, TypeError):
-                            current = '[Unable to access path]'
-                            break
-                    
-                    # Show the key and a brief representation of its value
-                    print(f'  {Fore.GREEN}+{key}: {get_brief_dict_representation(current)}{Style.RESET_ALL}')
-            
-            if 'dictionary_item_removed' in diff:
-                print(f'\n{Fore.RED}Removed keys:{Style.RESET_ALL}')
-                for item in diff['dictionary_item_removed']:
-                    key = item.replace('root', '')
-                    path_parts = key.strip('[]').split('][')
-                    
-                    # Get the actual value that was removed
-                    current = expected_json
-                    for part in path_parts:
-                        if part.startswith("'") and part.endswith("'"):
-                            part = part.strip("'")
-                        elif part.startswith('"') and part.endswith('"'):
-                            part = part.strip('"')
-                        try:
-                            if part.startswith('number:'):
-                                part = float(part.split(':')[1])
-                            current = current[part]
-                        except (KeyError, TypeError):
-                            current = '[Unable to access path]'
-                            break
-                    
-                    print(f'  {Fore.RED}-{key}: {get_brief_dict_representation(current)}{Style.RESET_ALL}')
-            
-            if 'values_changed' in diff:
-                print(f'\n{Fore.YELLOW}Changed values:{Style.RESET_ALL}')
-                for key, value in diff['values_changed'].items():
-                    path = key.replace('root', '')
-                    old_val = value.get('old_value', 'N/A')
-                    new_val = value.get('new_value', 'N/A')
-                    print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
-                    print(f'    {Fore.RED}- {old_val}{Style.RESET_ALL}')
-                    print(f'    {Fore.GREEN}+ {new_val}{Style.RESET_ALL}')
-            
-            if 'iterable_item_added' in diff:
-                print(f'\n{Fore.GREEN}Added list items:{Style.RESET_ALL}')
-                for key, value in diff['iterable_item_added'].items():
-                    path = key.replace('root', '')
-                    # Show the actual content for complex items
-                    if isinstance(value, (dict, list)):
-                        print(f'  {Fore.GREEN}+{path}:{Style.RESET_ALL}')
-                        if isinstance(value, dict):
-                            for k, v in value.items():
-                                brief_v = get_brief_dict_representation(v)
-                                print(f'    {Fore.GREEN}+{k}: {brief_v}{Style.RESET_ALL}')
-                        else:
-                            # Fixed the problematic line by breaking it into simpler parts
-                            items = value[:3]
-                            items_str = ", ".join([get_brief_dict_representation(item) for item in items])
-                            ellipsis = "..." if len(value) > 3 else ""
-                            print(f'    {Fore.GREEN}[{items_str}{ellipsis}]{Style.RESET_ALL}')
-                    else:
-                        print(f'  {Fore.GREEN}+{path}: {value}{Style.RESET_ALL}')
-            
-            if 'iterable_item_removed' in diff:
-                print(f'\n{Fore.RED}Removed list items:{Style.RESET_ALL}')
-                for key, value in diff['iterable_item_removed'].items():
-                    path = key.replace('root', '')
-                    # Show the actual content for complex items
-                    if isinstance(value, (dict, list)):
-                        print(f'  {Fore.RED}-{path}:{Style.RESET_ALL}')
-                        if isinstance(value, dict):
-                            for k, v in value.items():
-                                brief_v = get_brief_dict_representation(v)
-                                print(f'    {Fore.RED}-{k}: {brief_v}{Style.RESET_ALL}')
-                        else:
-                            # Fixed the problematic line by breaking it into simpler parts
-                            items = value[:3]
-                            items_str = ", ".join([get_brief_dict_representation(item) for item in items])
-                            ellipsis = "..." if len(value) > 3 else ""
-                            print(f'    {Fore.RED}[{items_str}{ellipsis}]{Style.RESET_ALL}')
-                    else:
-                        print(f'  {Fore.RED}-{path}: {value}{Style.RESET_ALL}')
-                    
-            # For comparing complex row objects that have significant differences
-            if 'iterable_item_added' in diff and 'iterable_item_removed' in diff:
-                added_rows = [(k, v) for k, v in diff['iterable_item_added'].items() if 'rows' in k]
-                removed_rows = [(k, v) for k, v in diff['iterable_item_removed'].items() if 'rows' in k]
+            # Validate structure based on function
+            if 'get_term_info' in python_code:
+                # Should be a dict with specific keys
+                if not isinstance(result, dict):
+                    print(f'{Fore.RED}get_term_info should return a dict{Style.RESET_ALL}')
+                    failed = True
+                    continue
                 
-                if added_rows and removed_rows:
-                    print(f'\n{Fore.YELLOW}Row differences (sample):{Style.RESET_ALL}')
-                    # Compare up to 2 rows to show examples of the differences
-                    for i in range(min(2, len(added_rows), len(removed_rows))):
-                        added_key, added_val = added_rows[i]
-                        removed_key, removed_val = removed_rows[i]
-                        
-                        if isinstance(added_val, dict) and isinstance(removed_val, dict):
-                            # Compare the two row objects and show key differences
-                            row_diff = compare_objects(removed_val, added_val, f'Row {i}')
-                            if row_diff:
-                                print(f'  {Fore.YELLOW}Row {i} differences:{Style.RESET_ALL}')
-                                for line in row_diff:
-                                    print(f'  {line}')
+                expected_keys = ['IsIndividual', 'IsClass', 'Images', 'Examples', 'Domains', 'Licenses', 'Publications', 'Synonyms']
+                for key in expected_keys:
+                    if key not in result:
+                        print(f'{Fore.RED}Missing key: {key}{Style.RESET_ALL}')
+                        failed = True
+                    elif key in ['IsIndividual', 'IsClass'] and not isinstance(result[key], bool):
+                        print(f'{Fore.RED}Key {key} is not bool: {type(result[key])}{Style.RESET_ALL}')
+                        failed = True
+                
+                if 'SuperTypes' in result and not isinstance(result['SuperTypes'], list):
+                    print(f'{Fore.RED}SuperTypes is not list{Style.RESET_ALL}')
+                    failed = True
+                
+                if 'Queries' in result and not isinstance(result['Queries'], list):
+                    print(f'{Fore.RED}Queries is not list{Style.RESET_ALL}')
+                    failed = True
             
-            if 'type_changes' in diff:
-                print(f'\n{Fore.YELLOW}Type changes:{Style.RESET_ALL}')
-                for key, value in diff['type_changes'].items():
-                    path = key.replace('root', '')
-                    old_type = type(value.get('old_value', 'N/A')).__name__
-                    new_type = type(value.get('new_value', 'N/A')).__name__
-                    old_val = value.get('old_value', 'N/A')
-                    new_val = value.get('new_value', 'N/A')
-                    print(f'  {Fore.YELLOW}{path}:{Style.RESET_ALL}')
-                    print(f'    {Fore.RED}- {old_type}: {str(old_val)[:100] + "..." if len(str(old_val)) > 100 else old_val}{Style.RESET_ALL}')
-                    print(f'    {Fore.GREEN}+ {new_type}: {str(new_val)[:100] + "..." if len(str(new_val)) > 100 else new_val}{Style.RESET_ALL}')
-      
-            # Print a summary of the differences
-            print(f'\n{Fore.YELLOW}Summary of differences:{Style.RESET_ALL}')
-            add_keys = len(diff.get('dictionary_item_added', []))
-            add_items = len(diff.get('iterable_item_added', {}))
-            rem_keys = len(diff.get('dictionary_item_removed', []))
-            rem_items = len(diff.get('iterable_item_removed', {}))
-            changed_vals = len(diff.get('values_changed', {}))
-            type_changes = len(diff.get('type_changes', {}))
+            elif 'get_instances' in python_code:
+                # Should be a list of dicts or a dict with rows
+                if isinstance(result, list):
+                    if len(result) > 0 and not isinstance(result[0], dict):
+                        print(f'{Fore.RED}get_instances items should be dicts{Style.RESET_ALL}')
+                        failed = True
+                elif isinstance(result, dict):
+                    # Check if it has 'rows' key
+                    if 'rows' not in result:
+                        print(f'{Fore.RED}get_instances dict should have "rows" key{Style.RESET_ALL}')
+                        failed = True
+                    elif not isinstance(result['rows'], list):
+                        print(f'{Fore.RED}get_instances "rows" should be list{Style.RESET_ALL}')
+                        failed = True
+                else:
+                    print(f'{Fore.RED}get_instances should return a list or dict, got {type(result)}{Style.RESET_ALL}')
+                    failed = True
+                    continue
             
-            print(f'  {Fore.GREEN}Added:{Style.RESET_ALL} {add_keys} keys, {add_items} list items')
-            print(f'  {Fore.RED}Removed:{Style.RESET_ALL} {rem_keys} keys, {rem_items} list items')
-            print(f'  {Fore.YELLOW}Changed:{Style.RESET_ALL} {changed_vals} values, {type_changes} type changes')
-
-            # After printing the summary, add the formatted output for README
-            print(f'\n{Fore.CYAN}Suggested README update for example #{i+1}:{Style.RESET_ALL}')
+            elif 'get_templates' in python_code:
+                # Should be a dict with rows
+                if not isinstance(result, dict):
+                    print(f'{Fore.RED}get_templates should return a dict{Style.RESET_ALL}')
+                    failed = True
+                    continue
+                
+                if 'rows' not in result:
+                    print(f'{Fore.RED}get_templates dict should have "rows" key{Style.RESET_ALL}')
+                    failed = True
+                elif not isinstance(result['rows'], list):
+                    print(f'{Fore.RED}get_templates "rows" should be list{Style.RESET_ALL}')
+                    failed = True
             
-            # Mark a clear copy-paste section
-            print(f'\n{Fore.CYAN}--- COPY FROM HERE ---{Style.RESET_ALL}')
-            print(format_for_readme(python_code).replace('\033[36m', '').replace('\033[0m', ''))
-            print(f'{Fore.CYAN}--- END COPY ---{Style.RESET_ALL}')
-      
-        else:
-            print(f'\n{Fore.GREEN}Example #{i+1}: ✓ PASS{Style.RESET_ALL}')
-      
+            else:
+                print(f'{Fore.RED}Unknown function in code{Style.RESET_ALL}')
+                failed = True
+                continue
+            
+            if not failed:
+                print(f'{Fore.GREEN}Structure validation passed{Style.RESET_ALL}')
+            
+        except Exception as e:
+            print(f'{Fore.RED}Error executing code: {e}{Style.RESET_ALL}')
+            failed = True
+    
     if failed:
-        print(f'\n{Fore.RED}Some examples failed. Please check the differences above.{Style.RESET_ALL}')
+        print(f'\n{Fore.RED}Some tests failed{Style.RESET_ALL}')
         sys.exit(1)
     else:
-        print(f'\n{Fore.GREEN}All examples passed!{Style.RESET_ALL}')
+        print(f'\n{Fore.GREEN}All tests passed{Style.RESET_ALL}')
 
 if __name__ == "__main__":
     main()

@@ -53,13 +53,9 @@ class QueryPerformanceTest(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        """Enable caching for performance tests"""
-        # Import caching module
-        from vfbquery import cache_enhancements
-        
-        # Enable caching to speed up repeated queries
-        cache_enhancements.enable_vfbquery_caching()
-        print("\n🔥 Caching enabled for performance tests")
+        """Set up for performance tests"""
+        # SOLR caching is enabled by default
+        print("\n🔥 SOLR caching enabled for performance tests")
     
     def setUp(self):
         """Set up test data"""

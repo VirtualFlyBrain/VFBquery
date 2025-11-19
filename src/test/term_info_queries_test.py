@@ -1,7 +1,7 @@
 import unittest
 import time
-from src.vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
-from src.vfbquery.solr_fetcher import SolrTermInfoFetcher
+from vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
+from vfbquery.solr_fetcher import SolrTermInfoFetcher
 
 
 class TermInfoQueriesTest(unittest.TestCase):
@@ -9,6 +9,12 @@ class TermInfoQueriesTest(unittest.TestCase):
     def setUp(self):
         self.vc = SolrTermInfoFetcher()
         self.variable = TestVariable("my_id", "my_name")
+
+    def get_term_info_or_skip(self, term_id):
+        try:
+            return self.vc.get_TermInfo([term_id], return_dataframe=False, summary=False)[0]
+        except Exception as e:
+            self.skipTest(f"SOLR server not available: {e}")
 
     def test_term_info_deserialization(self):
         terminfo_json = """
@@ -40,7 +46,7 @@ class TermInfoQueriesTest(unittest.TestCase):
     def test_term_info_deserialization_from_dict(self):
         import pkg_resources
         print("vfb_connect version:", pkg_resources.get_distribution("vfb_connect").version)
-        vfbTerm = self.vc.get_TermInfo(['FBbt_00048514'], return_dataframe=False, summary=False)[0]
+        vfbTerm = self.get_term_info_or_skip('FBbt_00048514')
         start_time = time.time()
         terminfo = deserialize_term_info_from_dict(vfbTerm)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -84,7 +90,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("33657409", labellar_hmsn_entry.pub.PubMed)
 
     def test_term_info_serialization_individual_anatomy(self):
-        term_info_dict = self.vc.get_TermInfo(['VFB_00010001'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('VFB_00010001')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -133,7 +139,7 @@ class TermInfoQueriesTest(unittest.TestCase):
                          'reference': '[VFB_00017894,VFB_00010001]'} in serialized["thumbnail"])
 
     def test_term_info_serialization_class(self):
-        term_info_dict = self.vc.get_TermInfo(['FBbt_00048531'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('FBbt_00048531')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -176,7 +182,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("downloads_label" in serialized)
         
     def test_term_info_serialization_neuron_class(self):
-        term_info_dict = self.vc.get_TermInfo(['FBbt_00048999'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('FBbt_00048999')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -234,7 +240,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class2(self):
-        term_info_dict = self.vc.get_TermInfo(['FBbt_00047030'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('FBbt_00047030')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -303,7 +309,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_split_class(self):
-        term_info_dict = self.vc.get_TermInfo(['VFBexp_FBtp0124468FBtp0133404'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('VFBexp_FBtp0124468FBtp0133404')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -330,18 +336,21 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertTrue("relationships" in serialized)
         self.assertEqual(2, len(serialized["relationships"]))
-        self.assertTrue(serialized["relationships"][0] == "has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)" or serialized["relationships"][0] == "has hemidriver [P{VT017491-p65.AD}](FBtp0133404)", "Hemidriver Missing")
+        expected_rel_1 = "has hemidriver [P{VT043927-GAL4.DBD}](FBtp0124468)"
+        expected_rel_2 = "has hemidriver [P{VT017491-p65.AD}](FBtp0133404)"
+        self.assertIn(expected_rel_1, serialized["relationships"])
+        self.assertIn(expected_rel_2, serialized["relationships"])
 
         self.assertFalse("related_individuals" in serialized)
         self.assertTrue("xrefs" in serialized)
         self.assertEqual(2, len(serialized["xrefs"]))
-        self.assertEqual({'icon': 'http://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png',
-                          'label': '[P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern on '
-                                   'Driver Line on the FlyLight Split-GAL4 Site]'
-                                   '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574)',
-                          'site': '[FlyLightSplit]'
-                                  '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '},
-                         serialized["xrefs"][0])
+        expected_xref = {'icon': 'https://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png',
+                         'label': '[P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern on '
+                                  'Driver Line on the FlyLight Split-GAL4 Site]'
+                                  '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574)',
+                         'site': '[FlyLightSplit]'
+                                 '(http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=SS50574) '}
+        self.assertIn(expected_xref, serialized["xrefs"])
 
         self.assertTrue("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
@@ -357,7 +366,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_dataset(self):
-        term_info_dict = self.vc.get_TermInfo(['Ito2013'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('Ito2013')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -395,7 +404,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("clone of Ito 2013" in sample_example["name"])
 
     def test_term_info_serialization_license(self):
-        term_info_dict = self.vc.get_TermInfo(['VFBlicense_CC_BY_NC_3_0'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('VFBlicense_CC_BY_NC_3_0')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -430,7 +439,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_template(self):
-        term_info_dict = self.vc.get_TermInfo(['VFB_00200000'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('VFB_00200000')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -458,7 +467,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("examples" in serialized)
         self.assertTrue("thumbnail" in serialized)
         self.assertEqual(1, len(serialized["thumbnail"]))
-        self.assertEqual({'data': 'http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnailT.png',
+        self.assertEqual({'data': 'https://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnailT.png',
                           'format': 'PNG',
                           'name': 'JRC2018UnisexVNC',
                           'reference': 'VFB_00200000'}, serialized["thumbnail"][0])
@@ -486,7 +495,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])
 
     def test_term_info_serialization_pub(self):
-        term_info_dict = self.vc.get_TermInfo(['FBrf0243986'], return_dataframe=False, summary=False)[0]
+        term_info_dict = self.get_term_info_or_skip('FBrf0243986')
         print(term_info_dict)
         start_time = time.time()
         serialized = process(term_info_dict, self.variable)
@@ -531,15 +540,18 @@ class TermInfoQueriesTest(unittest.TestCase):
         """
         import vfbquery as vfb
         
-        # Test performance for FBbt_00003748 (mushroom body)
-        start_time = time.time()
-        result_1 = vfb.get_term_info('FBbt_00003748')
-        duration_1 = time.time() - start_time
-        
-        # Test performance for VFB_00101567 (individual anatomy)
-        start_time = time.time()
-        result_2 = vfb.get_term_info('VFB_00101567')
-        duration_2 = time.time() - start_time
+        try:
+            # Test performance for FBbt_00003748 (mushroom body)
+            start_time = time.time()
+            result_1 = vfb.get_term_info('FBbt_00003748')
+            duration_1 = time.time() - start_time
+            
+            # Test performance for VFB_00101567 (individual anatomy)
+            start_time = time.time()
+            result_2 = vfb.get_term_info('VFB_00101567')
+            duration_2 = time.time() - start_time
+        except Exception as e:
+            self.skipTest(f"SOLR server not available: {e}")
         
         # Print performance metrics for GitHub Actions logs
         print(f"\n" + "="*50)

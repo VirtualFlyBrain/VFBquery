@@ -745,7 +745,7 @@ def get_link(text: str, link: str) -> str:
 
 
 def get_secure_url(url: str, allow_redirects: bool = True, timeout=15) -> str:
-    secure_url = url.replace("http://", "http://")
+    secure_url = url.replace("http://", "https://")
     if check_url_exist(secure_url, allow_redirects, timeout):
         return secure_url
     return url

@@ -22,9 +22,25 @@ jobs:
             pip install -r requirements.txt
             pip install deepdiff colorama
             pip install .
+      - name: Check SOLR availability
+        run: |
+          python -c "
+          import os
+          try:
+              import vfbquery as vfb
+              result = vfb.get_term_info('FBbt_00003748')
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                  f.write('SOLR_AVAILABLE=true\n')
+              print('SOLR is available')
+          except Exception as e:
+              print('SOLR not available:', e)
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                  f.write('SOLR_AVAILABLE=false\n')
+              exit(1)
+          "
       - name: Run examples from README.md
         run: |
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb.[^)]*)\)/print(\1)/g' > test_examples.py
+          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb\.[^(]*([^)]*)\)/print(\1)/g' > test_examples.py
           cat test_examples.py
           export VFBQUERY_CACHE_ENABLED=false
           python test_examples.py
@@ -33,8 +49,10 @@ jobs:
           python -m src.test.readme_parser
         env:
           PYTHONPATH: ${{ github.workspace }}
-      - name: Run examples from README.md and compare JSON outputs
+        if: env.SOLR_AVAILABLE == 'true'
+      - name: Run examples from README.md and validate structure
         run: |
           python -m src.test.test_examples_diff
         env:
           PYTHONPATH: ${{ github.workspace }}
+        if: env.SOLR_AVAILABLE == 'true'

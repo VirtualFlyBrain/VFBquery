@@ -1,5 +1,6 @@
 import re
 import json
+import ast
 import os.path
 
 def extract_code_blocks(readme_path):
@@ -24,6 +25,9 @@ def extract_code_blocks(readme_path):
     # Process Python blocks to extract vfb calls
     processed_python_blocks = []
     for block in python_blocks:
+        # Skip blocks that contain import statements
+        if 'import' in block:
+            continue
         # Look for vfb.* calls and extract them
         vfb_calls = re.findall(r'(vfb\.[^)]*\))', block)
         if vfb_calls:
@@ -32,35 +36,17 @@ def extract_code_blocks(readme_path):
             # - get_templates() doesn't support force_refresh (no SOLR cache)
             # - Performance test terms (FBbt_00003748, VFB_00101567) should use cache
             for call in vfb_calls:
-                # Check if this is get_templates() - if so, don't add force_refresh
-                if 'get_templates' in call:
-                    processed_python_blocks.append(call)
-                    continue
-                
-                # Check if this call uses performance test terms - skip force_refresh for those
-                # NOTE: FBbt_00003748 (medulla) now needs force_refresh to get updated queries
-                if 'VFB_00101567' in call:
-                    processed_python_blocks.append(call)
-                    continue
-                
-                # Check if the call already has parameters
-                if '(' in call and ')' in call:
-                    # Check if force_refresh is already present
-                    if 'force_refresh' in call:
-                        # Already has force_refresh, use as-is
-                        processed_python_blocks.append(call)
-                    else:
-                        # Insert force_refresh=True before the closing parenthesis
-                        # Handle both cases: with and without existing parameters
-                        if call.rstrip(')').endswith('('):
-                            # No parameters: vfb.function()
-                            modified_call = call[:-1] + 'force_refresh=True)'
-                        else:
-                            # Has parameters: vfb.function(param1, param2)
+                if 'FBbt_00003748' in call:
+                    # Add force_refresh for medulla calls
+                    if '(' in call and ')' in call:
+                        if 'force_refresh' not in call:
                             modified_call = call[:-1] + ', force_refresh=True)'
-                        processed_python_blocks.append(modified_call)
+                            processed_python_blocks.append(modified_call)
+                        else:
+                            processed_python_blocks.append(call)
+                    else:
+                        processed_python_blocks.append(call)
                 else:
-                    # Shouldn't happen, but include original call if no parentheses
                     processed_python_blocks.append(call)
     
     # Process JSON blocks
@@ -69,9 +55,6 @@ def extract_code_blocks(readme_path):
         try:
             # Clean up the JSON text
             json_text = block.strip()
-            # Convert Python boolean literals to JSON booleans using regex
-            json_text = re.sub(r'\bTrue\b', 'true', json_text)
-            json_text = re.sub(r'\bFalse\b', 'false', json_text)
             # Parse the JSON and add to results
             json_obj = json.loads(json_text)
             processed_json_blocks.append(json_obj)
@@ -95,6 +78,16 @@ def generate_python_file(python_blocks, output_path):
         for block in python_blocks:
             f.write(f'results.append({block})\n')
 
+def generate_code_strings_file(python_blocks, output_path):
+    """
+    Generates a Python file containing the extracted code blocks as strings in a results list.
+    """
+    with open(output_path, 'w') as f:
+        f.write('results = [\n')
+        for block in python_blocks:
+            f.write(f'    "{block}",\n')
+        f.write(']\n')
+
 def generate_json_file(json_blocks, output_path):
     """
     Generates a Python file containing the extracted JSON blocks as a Python list.
@@ -113,12 +106,13 @@ def generate_json_file(json_blocks, output_path):
         
         f.write(python_list)
 
-def process_readme(readme_path, python_output_path, json_output_path):
+def process_readme(readme_path, python_output_path, code_strings_output_path, json_output_path):
     """
     Process the README file and generate the test files.
     """
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     generate_python_file(python_blocks, python_output_path)
+    generate_code_strings_file(python_blocks, code_strings_output_path)
     generate_json_file(json_blocks, json_output_path)
     
     return len(python_blocks), len(json_blocks)
@@ -128,10 +122,12 @@ if __name__ == "__main__":
     readme_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'README.md')
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     
-    python_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'test_examples.py')
-    json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'test_results.py')
+    python_path = os.path.join(os.path.dirname(__file__), 'test_examples.py')
+    code_strings_path = os.path.join(os.path.dirname(__file__), 'test_examples_code.py')
+    json_path = os.path.join(os.path.dirname(__file__), 'test_results.py')
     
     generate_python_file(python_blocks, python_path)
+    generate_code_strings_file(python_blocks, code_strings_path)
     generate_json_file(json_blocks, json_path)
     
     print(f"Extracted {len(python_blocks)} Python blocks and {len(json_blocks)} JSON blocks")

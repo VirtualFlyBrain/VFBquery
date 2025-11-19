@@ -340,10 +340,25 @@ def encode_markdown_links(df, columns):
             return label
             
         try:
-            # Skip linked images (format: [![alt text](image_url "title")](link))
-            # These should NOT be encoded
+            # Handle linked images (format: [![alt text](image_url "title")](link))
             if label.startswith("[!["):
-                return label
+                # Replace http with https in the image URL
+                # Pattern: [![anything](http://... "title")](link)
+                def secure_image_url(match):
+                    alt_text = match.group(1)
+                    image_url = match.group(2)
+                    title = match.group(3) if match.group(3) else ""
+                    link = match.group(4)
+                    secure_url = image_url.replace("http://", "https://")
+                    if title:
+                        return f"[![{alt_text}]({secure_url} \"{title}\")]({link})"
+                    else:
+                        return f"[![{alt_text}]({secure_url})]({link})"
+                
+                # Regex to match the entire linked image
+                pattern = r'\[\!\[([^\]]+)\]\(([^\'"\s]+)(?:\s+[\'"]([^\'"]*)[\'"])?\)\]\(([^)]+)\)'
+                encoded_label = re.sub(pattern, secure_image_url, label)
+                return encoded_label
             
             # Process regular markdown links - handle multiple links separated by commas
             # Pattern matches [label](url) format
@@ -356,7 +371,9 @@ def encode_markdown_links(df, columns):
                     url_part = match.group(2)     # The URL part (between ( and ))
                     # Encode brackets in the label part only
                     label_part_encoded = encode_brackets(label_part)
-                    return f"[{label_part_encoded}]({url_part})"
+                    # Ensure URLs use https
+                    url_part_secure = url_part.replace("http://", "https://")
+                    return f"[{label_part_encoded}]({url_part_secure})"
                 
                 # Replace all markdown links with their encoded versions
                 encoded_label = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', encode_single_link, label)
@@ -1268,7 +1285,7 @@ def NeuronRegionConnectivityQuery_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "label", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
+    preview_columns = ["id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -2713,7 +2730,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
          primary
     RETURN 
         target.short_form AS id,
-        target.label AS label,
+        target.label AS region,
         synapse_counts.`pre` AS presynaptic_terminals,
         synapse_counts.`post` AS postsynaptic_terminals,
         target.uniqueFacets AS tags
@@ -2732,7 +2749,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
     
     headers = {
         'id': {'title': 'Region ID', 'type': 'selection_id', 'order': -1},
-        'label': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
+        'region': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
         'presynaptic_terminals': {'title': 'Presynaptic Terminals', 'type': 'number', 'order': 1},
         'postsynaptic_terminals': {'title': 'Postsynaptic Terminals', 'type': 'number', 'order': 2},
         'tags': {'title': 'Region Types', 'type': 'list', 'order': 3},
@@ -3915,6 +3932,20 @@ def fill_query_results(term_info):
                     result_count = 0
                 
                 # Store preview results (count is stored at query level, not in preview_results)
+                # Sort rows based on the sort field in headers, default to ID descending if none
+                sort_column = None
+                sort_direction = None
+                for col, info in filtered_headers.items():
+                    if 'sort' in info and isinstance(info['sort'], dict):
+                        sort_column = col
+                        sort_direction = list(info['sort'].values())[0]  # e.g., 'Asc' or 'Desc'
+                        break
+                if sort_column:
+                    reverse = sort_direction == 'Desc'
+                    filtered_result.sort(key=lambda x: x.get(sort_column, ''), reverse=reverse)
+                else:
+                    # Default to ID descending if no sort specified
+                    filtered_result.sort(key=lambda x: x.get('id', ''), reverse=True)
                 query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
                 query['count'] = result_count
                 # print(f"Filtered result: {filtered_result}")

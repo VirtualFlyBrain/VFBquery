@@ -372,7 +372,7 @@ class SimpleVFBConnect:
                     # Try to initialize - this will fail if Neo4j server unreachable
                     self._nc = Neo4jConnect()
                     self._nc_available = True
-                    print("✅ Neo4j connection established")
+                    # print("✅ Neo4j connection established")
                 except Exception as e:
                     # Fall back to mock client
                     self._nc = MockNeo4jClient()

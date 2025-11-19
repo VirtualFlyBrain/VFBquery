@@ -676,13 +676,13 @@ def with_solr_cache(query_type: str):
             # OPTIMIZATION: Always try to get full cached results first, then slice if needed
             cached_result = None
             if not force_refresh:
-                print(f"DEBUG: Checking cache for {query_type}, term_id={term_id}, cache_term_id={cache_term_id}, should_cache={should_cache}")
+                # print(f"DEBUG: Checking cache for {query_type}, term_id={term_id}, cache_term_id={cache_term_id}, should_cache={should_cache}")
                 # Try to get cached full result (limit=-1)
                 full_params = kwargs.copy()
                 full_params['limit'] = -1
-                print(f"DEBUG: Attempting cache lookup for {query_type}({cache_term_id}) with full results")
+                # print(f"DEBUG: Attempting cache lookup for {query_type}({cache_term_id}) with full results")
                 cached_result = cache.get_cached_result(query_type, cache_term_id, **full_params)
-                print(f"DEBUG: Cache lookup result: {cached_result is not None}")
+                # print(f"DEBUG: Cache lookup result: {cached_result is not None}")
                 
                 # If we got a cached full result but need limited results, slice it
                 if cached_result is not None and limit != -1:
@@ -691,7 +691,7 @@ def with_solr_cache(query_type: str):
                             cached_result = cached_result[:limit]
                         elif isinstance(cached_result, pd.DataFrame):
                             cached_result = cached_result.head(limit)
-                        print(f"DEBUG: Sliced cached result to {limit} items")
+                        # print(f"DEBUG: Sliced cached result to {limit} items")
                     elif isinstance(cached_result, dict):
                         # Handle dict results with 'rows' (e.g., get_instances)
                         if 'rows' in cached_result:
@@ -700,18 +700,20 @@ def with_solr_cache(query_type: str):
                                 'rows': cached_result['rows'][:limit],
                                 'count': cached_result.get('count', len(cached_result.get('rows', [])))
                             }
-                            print(f"DEBUG: Sliced cached dict result to {limit} rows")
+                            # print(f"DEBUG: Sliced cached dict result to {limit} rows")
                         # Handle term_info dict with 'queries'
                         elif 'queries' in cached_result:
                             for query in cached_result.get('queries', []):
                                 if 'preview_results' in query and 'rows' in query['preview_results']:
                                     query['preview_results']['rows'] = query['preview_results']['rows'][:limit]
                                     # Keep original count - don't change it to limit
-                            print(f"DEBUG: Sliced cached term_info result to {limit} rows per query")
+                            # print(f"DEBUG: Sliced cached term_info result to {limit} rows per query")
                         else:
-                            print(f"DEBUG: Cannot slice cached dict result (no 'rows' or 'queries'), returning full result")
+                            # print(f"DEBUG: Cannot slice cached dict result (no 'rows' or 'queries'), returning full result")
+                            pass
                     else:
-                        print(f"DEBUG: Cannot slice cached result of type {type(cached_result)}, returning full result")
+                        # print(f"DEBUG: Cannot slice cached result of type {type(cached_result)}, returning full result")
+                        pass
                 else:
                     # For limited queries, try to get full cached results instead
                     full_kwargs = kwargs.copy()
@@ -779,7 +781,7 @@ def with_solr_cache(query_type: str):
             result = None
             if query_type in expensive_query_types:
                 # For expensive queries: execute with original parameters for quick return, cache full results in background
-                print(f"DEBUG: Executing {query_type} with original parameters for quick return")
+                # print(f"DEBUG: Executing {query_type} with original parameters for quick return")
                 result = func(*args, **kwargs)
                 
                 # Start background thread to get full results and cache them
@@ -790,7 +792,7 @@ def with_solr_cache(query_type: str):
                         if 'limit' in inspect.signature(func).parameters:
                             full_kwargs = kwargs.copy()
                             full_kwargs['limit'] = -1
-                            print(f"DEBUG: Background: Executing {query_type} with full results for caching")
+                            # print(f"DEBUG: Background: Executing {query_type} with full results for caching")
                             full_result = func(*args, **full_kwargs)
                             
                             # Validate and cache the full result
@@ -836,7 +838,7 @@ def with_solr_cache(query_type: str):
                 # Start background caching thread
                 background_thread = threading.Thread(target=cache_full_results_background, daemon=True)
                 background_thread.start()
-                print(f"DEBUG: Started background caching thread for {query_type}({term_id})")
+                # print(f"DEBUG: Started background caching thread for {query_type}({term_id})")
             else:
                 # For non-expensive queries: use original caching logic
                 full_result = None
@@ -846,7 +848,7 @@ def with_solr_cache(query_type: str):
                     import inspect
                     if 'limit' in inspect.signature(func).parameters:
                         full_kwargs['limit'] = -1
-                    print(f"DEBUG: Executing {query_type} with full results for caching")
+                    # print(f"DEBUG: Executing {query_type} with full results for caching")
                     full_result = func(*args, **full_kwargs)
                     result = full_result
                     
@@ -857,7 +859,7 @@ def with_solr_cache(query_type: str):
                                 result = result[:limit]
                             elif isinstance(result, pd.DataFrame):
                                 result = result.head(limit)
-                            print(f"DEBUG: Sliced result to {limit} items for return")
+                            # print(f"DEBUG: Sliced result to {limit} items for return")
                 else:
                     # Execute with original parameters (no caching)
                     result = func(*args, **kwargs)

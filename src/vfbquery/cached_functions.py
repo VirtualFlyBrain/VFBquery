@@ -28,17 +28,17 @@ def is_valid_term_info_result(result):
             # Check if preview_results has the correct structure
             preview_results = query.get('preview_results')
             if not isinstance(preview_results, dict):
-                print(f"DEBUG: Invalid preview_results type {type(preview_results)} detected")
+                # print(f"DEBUG: Invalid preview_results type {type(preview_results)} detected")
                 return False
                 
             headers = preview_results.get('headers', [])
             if not headers:
-                print(f"DEBUG: Empty headers detected in preview_results")
+                # print(f"DEBUG: Empty headers detected in preview_results")
                 return False
             
             # Only reject if count is -1 (failed execution) or if count is 0 but preview_results is missing/empty
             if count < 0:
-                print(f"DEBUG: Invalid query count {count} detected")
+                # print(f"DEBUG: Invalid query count {count} detected")
                 return False
     
     return True

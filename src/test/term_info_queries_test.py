@@ -70,7 +70,7 @@ class TermInfoQueriesTest(unittest.TestCase):
 
         self.assertEqual(0, len(terminfo.xrefs))
 
-        self.assertEqual(7, len(terminfo.pub_syn))
+        self.assertEqual(8, len(terminfo.pub_syn))
         
         # Check that we have the expected synonym labels (order-independent)
         synonym_labels = [entry.synonym.label for entry in terminfo.pub_syn]

@@ -3087,19 +3087,37 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         owlery_url = f"{owlery_base}{endpoint}?{urlencode(params)}"
         
         import sys
-        print(f"ERROR: Owlery {'instances' if query_instances else 'subclasses'} query failed: {e}", file=sys.stderr)
-        print(f"       Full URL: {owlery_url}", file=sys.stderr)
-        print(f"       Query string: {owl_query_string}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        # Return error indication with count=-1
-        if return_dataframe:
-            return pd.DataFrame()
-        return {
-            "headers": _get_standard_query_headers(),
-            "rows": [],
-            "count": -1
-        }
+        import requests
+        
+        # Check if this is a 400 Bad Request (invalid query) vs other errors
+        is_bad_request = isinstance(e, requests.exceptions.HTTPError) and hasattr(e, 'response') and e.response.status_code == 400
+        
+        if is_bad_request:
+            # 400 Bad Request means the term isn't valid for this type of query (e.g., anatomical query on expression pattern)
+            # Return 0 results instead of error
+            print(f"INFO: Owlery query returned 400 Bad Request (invalid for this term type): {owl_query_string}", file=sys.stderr)
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_standard_query_headers(),
+                "rows": [],
+                "count": 0
+            }
+        else:
+            # Other errors (500, network issues, etc.) - return error indication
+            print(f"ERROR: Owlery {'instances' if query_instances else 'subclasses'} query failed: {e}", file=sys.stderr)
+            print(f"       Full URL: {owlery_url}", file=sys.stderr)
+            print(f"       Query string: {owl_query_string}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            # Return error indication with count=-1
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_standard_query_headers(),
+                "rows": [],
+                "count": -1
+            }
 
 
 def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: int = -1):

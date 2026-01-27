@@ -151,7 +151,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("link" in serialized)
         self.assertEqual(4, len(serialized["types"]))
         self.assertTrue("Anatomy" in serialized["types"])
-        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([King, 1970](FBrf0021038))", serialized["description"])
+        self.assertEqual("Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge.\n([Spradling, 1993](FBrf0064777), [King, 1970](FBrf0021038))", serialized["description"])
         self.assertTrue("synonyms" in serialized)
         self.assertEqual(1, len(serialized["synonyms"]))
         self.assertEqual("has_exact_synonym: germarial 2-cell cluster ([King, 1970](FBrf0021038))", serialized["synonyms"][0])
@@ -172,10 +172,13 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("examples" in serialized)
         self.assertFalse("thumbnail" in serialized)
         self.assertTrue("references" in serialized)
-        self.assertEqual(1, len(serialized["references"]))
+        self.assertEqual(2, len(serialized["references"]))
+        self.assertEqual({'link': '[Spradling, 1993, Bate, Martinez Arias, 1993: 1--70](FBrf0064777)',
+                          'refs': ['http://flybase.org/reports/FBrf0064777'],
+                          'types': ' pub'}, serialized["references"][0])
         self.assertEqual({'link': '[King, 1970, Ovarian Development in Drosophila melanogaster. ](FBrf0021038)',
                           'refs': ['http://flybase.org/reports/FBrf0021038'],
-                          'types': ' pub'}, serialized["references"][0])
+                          'types': ' pub'}, serialized["references"][1])
         self.assertFalse("targetingSplits" in serialized)
         self.assertFalse("targetingNeurons" in serialized)
 

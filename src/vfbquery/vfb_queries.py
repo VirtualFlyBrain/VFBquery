@@ -2698,7 +2698,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     }
     return {
         'headers': headers,
-        'data': rows,
+        'rows': rows,
         'count': len(rows)
     }
 
@@ -2756,7 +2756,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
     }
     return {
         'headers': headers,
-        'data': rows,
+        'rows': rows,
         'count': len(rows)
     }
 
@@ -3918,6 +3918,20 @@ def fill_query_results(term_info):
                 
                 if isinstance(result, dict) and 'rows' in result:
                     for item in result['rows']:
+                        if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
+                            filtered_item = {col: item[col] for col in query['preview_columns']}
+                        else:
+                            filtered_item = item
+                        filtered_result.append(filtered_item)
+                        
+                    if 'headers' in result:
+                        if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
+                            filtered_headers = {col: result['headers'][col] for col in query['preview_columns']}
+                        else:
+                            filtered_headers = result['headers']
+                elif isinstance(result, dict) and 'data' in result:
+                    # Handle legacy 'data' key as alias for 'rows'
+                    for item in result['data']:
                         if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
                             filtered_item = {col: item[col] for col in query['preview_columns']}
                         else:

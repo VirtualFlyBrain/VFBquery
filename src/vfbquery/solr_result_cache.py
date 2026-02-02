@@ -660,7 +660,9 @@ def with_solr_cache(query_type: str):
                                    'similar_morphology_part_of', 'similar_morphology_part_of_exp', 
                                    'similar_morphology_nb', 'similar_morphology_nb_exp', 
                                    'similar_morphology_userdata', 'neurons_part_here', 'neurons_synaptic',
-                                   'neurons_presynaptic', 'neurons_postsynaptic']
+                                   'neurons_presynaptic', 'neurons_postsynaptic', 'neuron_neuron_connectivity_query',
+                                   'neuron_region_connectivity_query', 'instances', 'templates', 'images_neurons',
+                                   'images_that_develop_from', 'expression_pattern_fragments']
             if query_type in dataframe_query_types:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_dataframe_{return_dataframe}"

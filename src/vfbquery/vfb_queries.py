@@ -2655,7 +2655,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     """
     # Build Cypher query to get connected neurons using synapsed_to relationships
     # XMI spec uses min_weight > 1, but we default to 0 to return all valid connections
-    cypher = f"""
+    base_cypher = f"""
     MATCH (primary:Individual {{short_form: '{short_form}'}})
     MATCH (oi:Individual)-[r:synapsed_to]-(primary)
     WHERE exists(r.weight) AND r.weight[0] > {min_weight}
@@ -2663,6 +2663,15 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     OPTIONAL MATCH (oi)<-[down:synapsed_to]-(primary)
     WITH down, oi, primary
     OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
+    """
+    
+    if direction == 'upstream':
+        base_cypher += " WHERE up IS NOT NULL AND up.weight[0] > 0"
+    elif direction == 'downstream':
+        base_cypher += " WHERE down IS NOT NULL AND down.weight[0] > 0"
+    # for 'both', no additional WHERE
+    
+    cypher = base_cypher + """
     RETURN 
         oi.short_form AS id,
         oi.label AS label,
@@ -2670,6 +2679,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
         coalesce(up.weight[0], 0) AS inputs,
         oi.uniqueFacets AS tags
     """
+    
     if limit != -1:
         cypher += f" LIMIT {limit}"
 
@@ -2677,12 +2687,20 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     results = vc.nc.commit_list([cypher])
     rows = get_dict_cursor()(results)
     
-    # Filter by direction if specified
-    if direction != 'both':
+    # Get total count if limit was applied
+    if limit != -1:
         if direction == 'upstream':
-            rows = [row for row in rows if row.get('inputs', 0) > 0]
+            count_query = base_cypher + " WHERE up IS NOT NULL AND up.weight[0] > 0 RETURN count(DISTINCT oi)"
         elif direction == 'downstream':
-            rows = [row for row in rows if row.get('outputs', 0) > 0]
+            count_query = base_cypher + " WHERE down IS NOT NULL AND down.weight[0] > 0 RETURN count(DISTINCT oi)"
+        else:  # both
+            count_query = base_cypher + " RETURN count(DISTINCT oi)"
+        count_results = vc.nc.commit_list([count_query])
+        total_count = count_results[0][0] if count_results and count_results[0] else 0
+    else:
+        total_count = len(rows)
+    
+    # No need to filter by direction, it's done in the query
 
     # Format output
     if return_dataframe:
@@ -2699,7 +2717,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     return {
         'headers': headers,
         'rows': rows,
-        'count': len(rows)
+        'count': total_count
     }
 
 
@@ -3871,7 +3889,7 @@ def fill_query_results(term_info):
     def process_query(query):
         # print(f"Query Keys:{query.keys()}")
         
-        if "preview" in query.keys() and (query['preview'] > 0 or query['count'] < 0) and query['count'] != 0:
+        if "preview" in query.keys() and query['preview'] > 0:
             function = globals().get(query['function'])
             summary_mode = query.get('output_format', 'table') == 'ribbon'
 
@@ -3916,6 +3934,11 @@ def fill_query_results(term_info):
                 filtered_result = []
                 filtered_headers = {}
                 
+                if result is None:
+                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
+                    query['count'] = 0
+                    return
+                
                 if isinstance(result, dict) and 'rows' in result:
                     for item in result['rows']:
                         if 'preview_columns' in query.keys() and len(query['preview_columns']) > 0:
@@ -3958,8 +3981,30 @@ def fill_query_results(term_info):
                 # Handle count extraction based on result type
                 if isinstance(result, dict) and 'count' in result:
                     result_count = result['count']
+                    # If limit was applied, the count in dict may be wrong, get correct count
+                    if query['preview'] > 0 and result_count == len(result['rows']):
+                        try:
+                            if function_args and takes_short_form:
+                                short_form_value = list(function_args.values())[0]
+                                full_dict = function(short_form_value, return_dataframe=False, limit=-1)
+                            else:
+                                full_dict = function(return_dataframe=False, limit=-1)
+                            result_count = full_dict['count']
+                        except Exception as e:
+                            print(f"Error getting full count for {query['function']}: {e}")
+                            result_count = result['count']  # Keep as is
                 elif isinstance(result, pd.DataFrame):
-                    result_count = len(result)
+                    # For DataFrame results, we need the full count even when preview is limited
+                    try:
+                        if function_args and takes_short_form:
+                            short_form_value = list(function_args.values())[0]
+                            full_result = function(short_form_value, return_dataframe=True, limit=-1)
+                        else:
+                            full_result = function(return_dataframe=True, limit=-1)
+                        result_count = len(full_result)
+                    except Exception as e:
+                        print(f"Error getting full count for {query['function']}: {e}")
+                        result_count = len(result)  # Fallback to limited count
                 else:
                     result_count = 0
                 

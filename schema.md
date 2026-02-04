@@ -38,6 +38,7 @@ The base schema returned by term info queries:
     "Synonyms": "String (alternative names)"
   },
   "Tags": ["String (tag names)"],
+  "Technique": ["String (imaging techniques, Individual only)"],
   "Queries": [
     {
       "query": "String (query identifier)",
@@ -93,6 +94,7 @@ VFB entities fall into three main types, each with specific fields beyond the co
 Individual instances (neurons, expression patterns, anatomical instances):
 
 ```json
+"Technique": ["String (imaging techniques used)"],
 "Images": {
   "template_id": [
     {

@@ -1255,6 +1255,9 @@ vfb.get_term_info('VFB_00000001')
     "Neuron",
     "lineage_CM3"
   ],
+  "Technique": [
+    "confocal microscopy"
+  ],
   "Queries": [
     {
       "query": "SimilarMorphologyTo",

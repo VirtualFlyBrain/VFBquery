@@ -538,7 +538,7 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "SimilarMorphologyToPartOf",
             get_similar_morphology_part_of,
-            self.test_terms['connected_neuron'],
+            "VFB_jrchjwmw",
             return_dataframe=False,
             limit=10
         )
@@ -552,7 +552,7 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "SimilarMorphologyToPartOfexp",
             get_similar_morphology_part_of_exp,
-            self.test_terms['connected_neuron'],
+            "VFB_jrchjwmw",
             return_dataframe=False,
             limit=10
         )

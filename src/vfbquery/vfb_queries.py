@@ -888,79 +888,101 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # For individuals that are painted domains of anatomical regions, add parent class queries
-        if termInfo["IsIndividual"] and vfbTerm.parents:
-            for parent in vfbTerm.parents:
-                if parent.types and "Class" in parent.types:
-                    parent_short_form = parent.short_form
-                    parent_label = parent.label if parent.label else parent_short_form
-                    
-                    # Add queries based on parent types
-                    if "Anatomy" in parent.types or "Synaptic_neuropil" in parent.types or "Synaptic_neuropil_domain" in parent.types:
-                        # NeuronsPartHere query
-                        q = NeuronsPartHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # NeuronsSynaptic query
-                        q = NeuronsSynaptic_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # NeuronsPresynapticHere query
-                        q = NeuronsPresynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # NeuronsPostsynapticHere query
-                        q = NeuronsPostsynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # TractsNervesInnervatingHere query
-                        q = TractsNervesInnervatingHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # LineageClonesIn query
-                        q = LineageClonesIn_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                        
-                        # ImagesNeurons query
-                        q = ImagesNeurons_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Anatomy" in parent.types:
-                        # ExpressionOverlapsHere query
-                        q = ExpressionOverlapsHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Anatomy" in parent.types and "hasScRNAseq" in parent.types:
-                        # anatScRNAseqQuery query
-                        q = anatScRNAseqQuery_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Neuron_projection_bundle" in parent.types:
-                        # NeuronClassesFasciculatingHere query
-                        q = NeuronClassesFasciculatingHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Neuroblast" in parent.types:
-                        # ImagesThatDevelopFrom query
-                        q = ImagesThatDevelopFrom_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Expression_pattern" in parent.types:
-                        # epFrag query
-                        q = epFrag_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    if "Nervous_system" in parent.types and ("Anatomy" in parent.types or "Neuron" in parent.types):
-                        # TransgeneExpressionHere query
-                        q = TransgeneExpressionHere_to_schema(parent_label, {"short_form": parent_short_form})
-                        queries.append(q)
-                    
-                    # PartsOf query - for any Class
-                    q = PartsOf_to_schema(parent_label, {"short_form": parent_short_form})
+        if termInfo["IsIndividual"]:
+            anatomical_classes = []
+            
+            # Check parents
+            if vfbTerm.parents:
+                for parent in vfbTerm.parents:
+                    if parent.types and "Class" in parent.types:
+                        anatomical_classes.append(parent)
+            
+            # Check relationships for anatomical classes
+            if vfbTerm.relationships:
+                for rel in vfbTerm.relationships:
+                    if hasattr(rel, 'object') and rel.object and hasattr(rel.object, 'types') and rel.object.types:
+                        if "Class" in rel.object.types:
+                            anatomical_classes.append(rel.object)
+            
+            # Remove duplicates based on short_form
+            seen = set()
+            unique_anatomical_classes = []
+            for cls in anatomical_classes:
+                if cls.short_form not in seen:
+                    seen.add(cls.short_form)
+                    unique_anatomical_classes.append(cls)
+            
+            for parent in unique_anatomical_classes:
+                parent_short_form = parent.short_form
+                parent_label = parent.label if parent.label else parent_short_form
+                
+                # Add queries based on parent types
+                if "Anatomy" in parent.types or "Synaptic_neuropil" in parent.types or "Synaptic_neuropil_domain" in parent.types:
+                    # NeuronsPartHere query
+                    q = NeuronsPartHere_to_schema(parent_label, {"short_form": parent_short_form})
                     queries.append(q)
                     
-                    # SubclassesOf query - for any Class
-                    q = SubclassesOf_to_schema(parent_label, {"short_form": parent_short_form})
+                    # NeuronsSynaptic query
+                    q = NeuronsSynaptic_to_schema(parent_label, {"short_form": parent_short_form})
                     queries.append(q)
+                    
+                    # NeuronsPresynapticHere query
+                    q = NeuronsPresynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                    
+                    # NeuronsPostsynapticHere query
+                    q = NeuronsPostsynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                    
+                    # TractsNervesInnervatingHere query
+                    q = TractsNervesInnervatingHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                    
+                    # LineageClonesIn query
+                    q = LineageClonesIn_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                    
+                    # ImagesNeurons query
+                    q = ImagesNeurons_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Anatomy" in parent.types:
+                    # ExpressionOverlapsHere query
+                    q = ExpressionOverlapsHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Anatomy" in parent.types and "hasScRNAseq" in parent.types:
+                    # anatScRNAseqQuery query
+                    q = anatScRNAseqQuery_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Neuron_projection_bundle" in parent.types:
+                    # NeuronClassesFasciculatingHere query
+                    q = NeuronClassesFasciculatingHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Neuroblast" in parent.types:
+                    # ImagesThatDevelopFrom query
+                    q = ImagesThatDevelopFrom_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Expression_pattern" in parent.types:
+                    # epFrag query
+                    q = epFrag_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                if "Nervous_system" in parent.types and ("Anatomy" in parent.types or "Neuron" in parent.types):
+                    # TransgeneExpressionHere query
+                    q = TransgeneExpressionHere_to_schema(parent_label, {"short_form": parent_short_form})
+                    queries.append(q)
+                
+                # PartsOf query - for any Class
+                q = PartsOf_to_schema(parent_label, {"short_form": parent_short_form})
+                queries.append(q)
+                
+                # SubclassesOf query - for any Class
+                q = SubclassesOf_to_schema(parent_label, {"short_form": parent_short_form})
+                queries.append(q)
         
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:

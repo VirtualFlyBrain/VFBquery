@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-02-03 04:09:44 UTC
-**Git Commit:** 8906834a5787f2d593938416041fcc3397ef18b2
+**Test Date:** 2026-02-04 04:26:45 UTC
+**Git Commit:** 6bc4d6ca382711555b357a9dff702dc182fffb6b
 **Branch:** main
-**Workflow Run:** [21616566648](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/21616566648)
+**Workflow Run:** [21658000888](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/21658000888)
 
 ## Test Overview
 
@@ -91,12 +91,11 @@ Test neuron part overlap queries ... ok
 test_03_synaptic_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test synaptic terminal queries ... ok
 test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test anatomical hierarchy queries ... ok
+Test anatomical hierarchy queries ... FAIL
 test_05_tract_lineage_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test tract/nerve and lineage clone queries ... ok
 test_05b_image_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test image and developmental lineage queries ... INFO: Owlery query returned 400 Bad Request (invalid for this term type): <http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/FBtp0000001>
-ok
+Test image and developmental lineage queries ... ok
 test_06_instance_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test instance retrieval queries ... ok
 test_07_connectivity_queries (src.test.test_query_performance.QueryPerformanceTest)
@@ -104,22 +103,85 @@ Test neuron connectivity queries ... ok
 test_08_similarity_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test NBLAST similarity queries ... ok
 test_09_neuron_input_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test neuron input/synapse queries ... ok
+Test neuron input/synapse queries ... FAIL
 test_10_expression_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test expression pattern queries ... ok
+Test expression pattern queries ... FAIL
 test_11_transcriptomics_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test scRNAseq transcriptomics queries ... ok
+Test scRNAseq transcriptomics queries ... FAIL
 test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test NBLAST similarity queries ... ok
+Test NBLAST similarity queries ... FAIL
 test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test dataset and template queries ... ok
+Test dataset and template queries ... FAIL
 test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test publication and transgene queries ... ok
+Test publication and transgene queries ... FAIL
+
+======================================================================
+FAIL: test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test anatomical hierarchy queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 206, in test_04_anatomy_hierarchy_queries
+    self.assertLess(duration, self.THRESHOLD_SLOW, "ComponentsOf exceeded threshold")
+AssertionError: 15.446540832519531 not less than 15.0 : ComponentsOf exceeded threshold
+
+======================================================================
+FAIL: test_09_neuron_input_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron input/synapse queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 386, in test_09_neuron_input_queries
+    self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronInputsTo exceeded threshold")
+AssertionError: 405.9274363517761 not less than 15.0 : NeuronInputsTo exceeded threshold
+
+======================================================================
+FAIL: test_10_expression_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test expression pattern queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 405, in test_10_expression_queries
+    self.assertLess(duration, self.THRESHOLD_SLOW, "ExpressionOverlapsHere exceeded threshold")
+AssertionError: 137.50752902030945 not less than 15.0 : ExpressionOverlapsHere exceeded threshold
+
+======================================================================
+FAIL: test_11_transcriptomics_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test scRNAseq transcriptomics queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 428, in test_11_transcriptomics_queries
+    self.assertLess(duration, self.THRESHOLD_SLOW, "anatScRNAseqQuery exceeded threshold")
+AssertionError: 134.93782830238342 not less than 15.0 : anatScRNAseqQuery exceeded threshold
+
+======================================================================
+FAIL: test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test NBLAST similarity queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 539, in test_12_nblast_queries
+    self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToPartOfexp exceeded threshold")
+AssertionError: 133.54691076278687 not less than 3.0 : SimilarMorphologyToPartOfexp exceeded threshold
+
+======================================================================
+FAIL: test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test dataset and template queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 602, in test_13_dataset_template_queries
+    self.assertLess(duration, self.THRESHOLD_MEDIUM, "PaintedDomains exceeded threshold")
+AssertionError: 135.85583353042603 not less than 3.0 : PaintedDomains exceeded threshold
+
+======================================================================
+FAIL: test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test publication and transgene queries
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 689, in test_14_publication_transgene_queries
+    self.assertLess(duration, self.THRESHOLD_MEDIUM, "TermsForPub exceeded threshold")
+AssertionError: 134.45622777938843 not less than 3.0 : TermsForPub exceeded threshold
 
 ----------------------------------------------------------------------
-Ran 15 tests in 76.376s
+Ran 15 tests in 1242.656s
 
-OK
+FAILED (failures=7)
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -129,122 +191,95 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ================================================================================
 TERM INFO QUERIES
 ================================================================================
-get_term_info (mushroom body): 2.5632s ✅
-get_term_info (individual): 2.8165s ✅
+get_term_info (mushroom body): 6.9956s ✅
+get_term_info (individual): 8.5556s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 2.4637s ✅
+NeuronsPartHere: 15.9128s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 2.4481s ✅
-NeuronsPresynapticHere: 2.2445s ✅
-NeuronsPostsynapticHere: 2.3797s ✅
-NeuronNeuronConnectivity: 2.0033s ✅
+NeuronsSynaptic: 8.7726s ✅
+NeuronsPresynapticHere: 15.6042s ✅
+NeuronsPostsynapticHere: 6.5888s ✅
+NeuronNeuronConnectivity: 1.8051s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 1.9015s ✅
-PartsOf: 1.8868s ✅
-SubclassesOf: 2.0236s ✅
+ComponentsOf: 15.4465s ✅
 
 ================================================================================
 TRACT/NERVE AND LINEAGE QUERIES
 ================================================================================
-NeuronClassesFasciculatingHere: 1.8911s ✅
-TractsNervesInnervatingHere: 1.8983s ✅
-LineageClonesIn: 1.8984s ✅
+NeuronClassesFasciculatingHere: 10.2345s ✅
+TractsNervesInnervatingHere: 6.3050s ✅
+LineageClonesIn: 8.3160s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
 ================================================================================
-ImagesNeurons: 3.2078s ✅
-ImagesThatDevelopFrom: 9.1684s ✅
-ERROR: Owlery instances request failed: 400 Client Error: Bad Request for url: http://owl.virtualflybrain.org/kbs/vfb/instances?object=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FFBtp0000001%3E&direct=false&includeDeprecated=false
-       Test URL: http://owl.virtualflybrain.org/kbs/vfb/instances?object=%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FBFO_0000050%3E+some+%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FFBtp0000001%3E&direct=false&includeDeprecated=false
-epFrag: 5.5367s ✅
+ImagesNeurons: 12.4778s ✅
+ImagesThatDevelopFrom: 11.0662s ✅
+epFrag: 10.2089s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 1.9267s ✅
+ListAllAvailableImages: 13.2370s ✅
 
 ================================================================================
 CONNECTIVITY QUERIES
 ================================================================================
-NeuronNeuronConnectivityQuery: 1.9060s ✅
-NeuronRegionConnectivityQuery: 1.8756s ✅
+NeuronNeuronConnectivityQuery: 3.2010s ✅
+NeuronRegionConnectivityQuery: 3.4581s ✅
 
 ================================================================================
 SIMILARITY QUERIES (Neo4j NBLAST)
 ================================================================================
-SimilarMorphologyTo: 1.1075s ✅
+SimilarMorphologyTo: 0.6568s ✅
 
 ================================================================================
 NEURON INPUT QUERIES (Neo4j)
 ================================================================================
-NeuronInputsTo: 4.5545s ✅
+NeuronInputsTo: 405.9274s ✅
 
 ================================================================================
 EXPRESSION PATTERN QUERIES (Neo4j)
 ================================================================================
-ExpressionOverlapsHere: 2.1688s ✅
+ExpressionOverlapsHere: 137.5075s ✅
   └─ Found 3922 total expression patterns, returned 10
 
 ================================================================================
 TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
 ================================================================================
-anatScRNAseqQuery: 1.0012s ✅
+anatScRNAseqQuery: 134.9378s ✅
   └─ Found 0 total clusters
-clusterExpression: 1.0503s ✅
-  └─ Found 0 genes expressed
-expressionCluster: 0.7539s ✅
-  └─ Found 0 clusters expressing gene
-scRNAdatasetData: 0.9218s ✅
-  └─ Found 0 clusters in dataset
 
 ================================================================================
 NBLAST SIMILARITY QUERIES
 ================================================================================
-SimilarMorphologyTo: 2.6130s ✅
+SimilarMorphologyTo: 0.9747s ✅
   └─ Found 215 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 0.8968s ✅
+SimilarMorphologyToPartOf: 0.6012s ✅
   └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.7322s ✅
+SimilarMorphologyToPartOfexp: 133.5469s ✅
   └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.8312s ✅
-  └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.7315s ✅
-  └─ Found 15 NeuronBridge expression matches, returned 10
-✅ All NBLAST similarity queries completed
 
 ================================================================================
 DATASET/TEMPLATE QUERIES
 ================================================================================
-PaintedDomains: 0.7476s ✅
+PaintedDomains: 135.8558s ✅
   └─ Found 0 painted domains
-DatasetImages: 0.9057s ✅
-  └─ Found 0 images in dataset
-AllAlignedImages: 0.7199s ✅
-  └─ Found 0 aligned images
-AlignedDatasets: 1.0457s ✅
-  └─ Found 0 aligned datasets
-AllDatasets: 0.9588s ✅
-  └─ Found 116 total datasets, returned 20
-✅ All dataset/template queries completed
 
 ================================================================================
 PUBLICATION/TRANSGENE QUERIES
 ================================================================================
-TermsForPub: 1.6021s ✅
+TermsForPub: 134.4562s ✅
   └─ Found 0 terms for publication
-TransgeneExpressionHere: 0.9890s ✅
-  └─ Found 2346 transgene expressions, returned 10
-✅ All publication/transgene queries completed
 
 ================================================================================
 PERFORMANCE TEST SUMMARY
@@ -252,12 +287,21 @@ PERFORMANCE TEST SUMMARY
 All performance tests completed!
 ================================================================================
 test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
-Performance test for specific term info queries. ... ok
+Performance test for specific term info queries. ... FAIL
+
+======================================================================
+FAIL: test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
+Performance test for specific term info queries.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/term_info_queries_test.py", line 590, in test_term_info_performance
+    self.assertLess(duration_1, max_single_query_time,
+AssertionError: 15.537221193313599 not less than 5.0 : FBbt_00003748 query took 15.5372s, exceeding 5.0s threshold
 
 ----------------------------------------------------------------------
-Ran 1 test in 4.165s
+Ran 1 test in 17.063s
 
-OK
+FAILED (failures=1)
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -265,12 +309,11 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 2.2582 seconds
-VFB_00101567 query took: 1.9065 seconds
-Total time for both queries: 4.1646 seconds
-Performance Level: 🟠 Acceptable (3-6 seconds)
+FBbt_00003748 query took: 15.5372 seconds
+VFB_00101567 query took: 1.5246 seconds
+Total time for both queries: 17.0618 seconds
+Performance Level: 🔴 Slow (> 6 seconds)
 ==================================================
-Performance test completed successfully!
 ```
 
 ## Summary
@@ -286,4 +329,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-02-03 04:09:44 UTC*
+*Last updated: 2026-02-04 04:26:45 UTC*

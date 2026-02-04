@@ -3935,6 +3935,7 @@ def fill_query_results(term_info):
                 filtered_headers = {}
                 
                 if result is None:
+                    print(f"ERROR: Query function {query['function']} returned None - this indicates a query failure that needs investigation")
                     query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
                     query['count'] = 0
                     return

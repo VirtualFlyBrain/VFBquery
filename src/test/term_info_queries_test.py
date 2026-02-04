@@ -597,6 +597,66 @@ class TermInfoQueriesTest(unittest.TestCase):
         # Log success
         print("Performance test completed successfully!")
 
+    def test_term_info_serialization_with_none_query_result(self):
+        """Test that term info serialization handles None results from query functions gracefully with error logging."""
+        from unittest.mock import patch
+        import vfbquery.vfb_queries as vq
+        
+        # Get a term info that has queries
+        term_info_dict = self.get_term_info_or_skip('VFB_00101567')  # This neuron has connectivity queries
+        
+        # Mock get_neuron_neuron_connectivity to return None - should be handled gracefully with error print
+        with patch.object(vq, 'get_neuron_neuron_connectivity', return_value=None):
+            try:
+                serialized = process(term_info_dict, self.variable)
+                # Should not crash, and should have some basic structure
+                self.assertIsInstance(serialized, dict)
+                self.assertIn("label", serialized)
+                # Check that queries with None results are handled
+                if "queries" in serialized:
+                    for query in serialized["queries"]:
+                        if "preview_results" in query:
+                            # Should have empty rows if query failed
+                            self.assertIsInstance(query["preview_results"], dict)
+                            self.assertIn("rows", query["preview_results"])
+                            self.assertIn("headers", query["preview_results"])
+                            # If the query was mocked to None, rows should be empty
+                            if query.get("function") == "get_neuron_neuron_connectivity":
+                                self.assertEqual(query["preview_results"]["rows"], [])
+                                self.assertEqual(query.get("count", 0), 0)
+            except Exception as e:
+                self.fail(f"Serialization should handle None results gracefully: {e}")
+
+    def test_term_info_serialization_with_query_exception(self):
+        """Test that term info serialization handles exceptions from query functions gracefully."""
+        from unittest.mock import patch
+        import vfbquery.vfb_queries as vq
+        
+        # Get a term info that has queries
+        term_info_dict = self.get_term_info_or_skip('VFB_jrchk00s')  # This neuron has connectivity queries
+        
+        # Mock get_neuron_neuron_connectivity to raise an exception
+        with patch.object(vq, 'get_neuron_neuron_connectivity', side_effect=Exception("Mock query error")):
+            try:
+                serialized = process(term_info_dict, self.variable)
+                # Should not crash, and should have some basic structure
+                self.assertIsInstance(serialized, dict)
+                self.assertIn("label", serialized)
+                # Check that queries with exceptions are handled
+                if "queries" in serialized:
+                    for query in serialized["queries"]:
+                        if "preview_results" in query:
+                            # Should have empty rows if query failed
+                            self.assertIsInstance(query["preview_results"], dict)
+                            self.assertIn("rows", query["preview_results"])
+                            self.assertIn("headers", query["preview_results"])
+                            # If the query raised exception, rows should be empty
+                            if query.get("function") == "get_neuron_neuron_connectivity":
+                                self.assertEqual(query["preview_results"]["rows"], [])
+                                self.assertEqual(query.get("count", 0), 0)
+            except Exception as e:
+                self.fail(f"Serialization failed when query raised exception: {e}")
+
 
 class TestVariable:
 

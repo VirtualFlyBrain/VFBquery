@@ -468,7 +468,7 @@ class QueryPerformanceTest(unittest.TestCase):
             result, duration, success = self._time_query(
                 "expressionCluster (example gene)",
                 get_expression_cluster,
-                "FBgn_00000024",  # Example gene ID
+                "FBgn0034223",  # Example gene ID
                 return_dataframe=False,
                 limit=10
             )
@@ -608,8 +608,8 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         
         # Test terms for templates and datasets
-        template_term = 'VFBc_00050000'  # Adult Brain template
-        dataset_term = 'VFBc_00101384'   # Example dataset
+        template_term = 'VFB_00101567'  # Adult Brain template
+        dataset_term = 'JRC2018'   # Example dataset
         
         # PaintedDomains - Template painted anatomy domains
         # Warm up cache with full results
@@ -707,7 +707,7 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         
         # Test terms
-        pub_term = 'DOI_10_7554_eLife_04577'  # Example publication
+        pub_term = 'FBrf0224194'  # Example publication with results
         anatomy_term = self.test_terms['mushroom_body']  # mushroom body
         
         # TermsForPub - Terms referencing a publication

@@ -302,6 +302,7 @@ class TermInfoOutputSchema(Schema):
     Licenses = fields.Dict(keys=fields.Integer(), values=fields.Nested(LicenseSchema()), required=False, allow_none=True)
     Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
     Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False, allow_none=True)
+    Technique = fields.List(fields.String(), required=False, allow_none=True)
 
     @post_load
     def make_term_info(self, data, **kwargs):
@@ -409,6 +410,7 @@ def term_info_parse_object(results, short_form):
     termInfo["Licenses"] = {}
     termInfo["Publications"] = []
     termInfo["IsPaintedDomain"] = False
+    termInfo["Technique"] = []
     
     if results.hits > 0 and results.docs and len(results.docs) > 0:
         termInfo["Meta"] = {}
@@ -467,6 +469,7 @@ def term_info_parse_object(results, short_form):
         if hasattr(vfbTerm, 'relationships') and vfbTerm.relationships and len(vfbTerm.relationships) > 0:
             relationships = []
             pubs_from_relationships = [] # New: Collect publication references from relationships
+            techniques = set() # Collect imaging techniques from relationships
 
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
@@ -486,6 +489,17 @@ def term_info_parse_object(results, short_form):
                     continue
                     
                 object_key = (relationship.object.label, getattr(relationship.object, 'short_form', ''))
+                
+                # Collect imaging techniques from relationships
+                relation_id = None
+                if hasattr(relationship.relation, 'short_form') and relationship.relation.short_form:
+                    relation_id = relationship.relation.short_form
+                elif hasattr(relationship.relation, 'iri') and relationship.relation.iri:
+                    relation_id = relationship.relation.iri.split('/')[-1]
+                
+                if relation_id == 'OBI_0000312':  # is_specified_output_of
+                    if hasattr(relationship.object, 'label') and relationship.object.label:
+                        techniques.add(relationship.object.label)
                 
                 # New: Extract publications from this relationship if they exist
                 if hasattr(relationship, 'pubs') and relationship.pubs:
@@ -537,15 +551,24 @@ def term_info_parse_object(results, short_form):
                             termInfo["Publications"].append(pub)
                             existing_pub_short_forms.add(pub.get("short_form", ""))
 
+            # Add techniques from relationships to termInfo for Individuals
+            if termInfo["IsIndividual"] and techniques:
+                termInfo["Technique"].extend(techniques)
+                termInfo["Technique"] = sorted(list(set(termInfo["Technique"])))
+
         # If the term has anatomy channel images, retrieve the images and associated information
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
             images = {}
+            techniques = set()
             for image in vfbTerm.anatomy_channel_image:
                 # Check if this is a computer graphic image (painted domain)
-                if hasattr(image, 'channel_image') and hasattr(image.channel_image, 'image') and hasattr(image.channel_image.image, 'imaging_technique'):
-                    technique = image.channel_image.image.imaging_technique
+                if hasattr(image, 'channel_image') and hasattr(image.channel_image, 'imaging_technique'):
+                    technique = image.channel_image.imaging_technique
                     if hasattr(technique, 'symbol') and technique.symbol and 'computer' in technique.symbol.lower():
                         termInfo["IsPaintedDomain"] = True
+                    # Collect technique for Individual terms
+                    if hasattr(technique, 'label') and technique.label:
+                        techniques.add(technique.label)
                 
                 record = {}
                 record["id"] = image.anatomy.short_form
@@ -567,6 +590,10 @@ def term_info_parse_object(results, short_form):
                 images[template_key] = sorted(images[template_key], key=lambda x: x["id"], reverse=True)
             
             termInfo["Examples"] = images
+            # Add techniques to termInfo for Individuals
+            if termInfo["IsIndividual"] and techniques:
+                termInfo["Technique"].extend(techniques)
+                termInfo["Technique"] = sorted(list(set(termInfo["Technique"])))
             # add a query to `queries` list for listing all available images
             q = ListAllAvailableImages_to_schema(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
             queries.append(q)
@@ -574,12 +601,16 @@ def term_info_parse_object(results, short_form):
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}
+            techniques = set()
             for image in vfbTerm.channel_image:
                 # Check if this is a computer graphic image (painted domain)
-                if hasattr(image, 'image') and hasattr(image.image, 'imaging_technique'):
-                    technique = image.image.imaging_technique
+                if hasattr(image, 'imaging_technique'):
+                    technique = image.imaging_technique
                     if hasattr(technique, 'symbol') and technique.symbol and 'computer' in technique.symbol.lower():
                         termInfo["IsPaintedDomain"] = True
+                    # Collect technique for Individual terms
+                    if hasattr(technique, 'label') and technique.label:
+                        techniques.add(technique.label)
                 
                 record = {}
                 record["id"] = vfbTerm.term.core.short_form
@@ -602,6 +633,10 @@ def term_info_parse_object(results, short_form):
             
             # Add the thumbnails to the term info
             termInfo["Images"] = images
+            # Add techniques to termInfo for Individuals
+            if termInfo["IsIndividual"] and techniques:
+                termInfo["Technique"].extend(techniques)
+                termInfo["Technique"] = sorted(list(set(termInfo["Technique"])))
 
         if vfbTerm.dataset_license and len(vfbTerm.dataset_license) > 0: 
             licenses = {}
@@ -901,20 +936,20 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # For individuals that are painted domains of anatomical regions, add parent class queries
-        if termInfo["IsIndividual"] and termInfo["IsPaintedDomain"]:
+        if termInfo["IsIndividual"] and termInfo["Technique"] and any('computer' in t.lower() for t in termInfo["Technique"]):
             anatomical_classes = []
             
             # Check parents
             if vfbTerm.parents:
                 for parent in vfbTerm.parents:
-                    if parent.types and "Class" in parent.types:
+                    if parent.types and "Class" in parent.types and "Anatomy" in parent.types:
                         anatomical_classes.append(parent)
             
             # Check relationships for anatomical classes
             if vfbTerm.relationships:
                 for rel in vfbTerm.relationships:
                     if hasattr(rel, 'object') and rel.object and hasattr(rel.object, 'types') and rel.object.types:
-                        if "Class" in rel.object.types:
+                        if "Class" in rel.object.types and "Anatomy" in rel.object.types:
                             anatomical_classes.append(rel.object)
             
             # Remove duplicates based on short_form

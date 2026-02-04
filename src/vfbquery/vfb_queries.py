@@ -297,6 +297,7 @@ class TermInfoOutputSchema(Schema):
     IsClass = fields.Bool(missing=False, required=False)
     Examples = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsTemplate = fields.Bool(missing=False, required=False)
+    IsPaintedDomain = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
     Licenses = fields.Dict(keys=fields.Integer(), values=fields.Nested(LicenseSchema()), required=False, allow_none=True)
     Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
@@ -407,7 +408,7 @@ def term_info_parse_object(results, short_form):
     termInfo["Domains"] = {}
     termInfo["Licenses"] = {}
     termInfo["Publications"] = []
-    termInfo["Synonyms"] = []
+    termInfo["IsPaintedDomain"] = False
     
     if results.hits > 0 and results.docs and len(results.docs) > 0:
         termInfo["Meta"] = {}
@@ -540,6 +541,12 @@ def term_info_parse_object(results, short_form):
         if vfbTerm.anatomy_channel_image and len(vfbTerm.anatomy_channel_image) > 0:
             images = {}
             for image in vfbTerm.anatomy_channel_image:
+                # Check if this is a computer graphic image (painted domain)
+                if hasattr(image, 'channel_image') and hasattr(image.channel_image, 'image') and hasattr(image.channel_image.image, 'imaging_technique'):
+                    technique = image.channel_image.image.imaging_technique
+                    if hasattr(technique, 'symbol') and technique.symbol and 'computer' in technique.symbol.lower():
+                        termInfo["IsPaintedDomain"] = True
+                
                 record = {}
                 record["id"] = image.anatomy.short_form
                 label = image.anatomy.label
@@ -568,6 +575,12 @@ def term_info_parse_object(results, short_form):
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:
             images = {}
             for image in vfbTerm.channel_image:
+                # Check if this is a computer graphic image (painted domain)
+                if hasattr(image, 'image') and hasattr(image.image, 'imaging_technique'):
+                    technique = image.image.imaging_technique
+                    if hasattr(technique, 'symbol') and technique.symbol and 'computer' in technique.symbol.lower():
+                        termInfo["IsPaintedDomain"] = True
+                
                 record = {}
                 record["id"] = vfbTerm.term.core.short_form
                 label = vfbTerm.term.core.label
@@ -888,7 +901,7 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # For individuals that are painted domains of anatomical regions, add parent class queries
-        if termInfo["IsIndividual"]:
+        if termInfo["IsIndividual"] and termInfo["IsPaintedDomain"]:
             anatomical_classes = []
             
             # Check parents

@@ -451,7 +451,7 @@ class QueryPerformanceTest(unittest.TestCase):
             result, duration, success = self._time_query(
                 "clusterExpression (example cluster)",
                 get_cluster_expression,
-                "VFBc_00101567",  # Example cluster ID
+                "FBlc0005370",  # Example cluster ID
                 return_dataframe=False,
                 limit=10
             )

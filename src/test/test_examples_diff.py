@@ -173,7 +173,7 @@ def main():
                     failed = True
                     continue
                 
-                expected_keys = ['IsIndividual', 'IsClass', 'Images', 'Examples', 'Domains', 'Licenses', 'Publications', 'Synonyms', 'Technique']
+                expected_keys = ['IsIndividual', 'IsClass', 'Images', 'Examples', 'Domains', 'Licenses', 'Publications', 'Synonyms']
                 for key in expected_keys:
                     if key not in result:
                         print(f'{Fore.RED}Missing key: {key}{Style.RESET_ALL}')

@@ -309,6 +309,7 @@ def get_related_anatomy_cached(template_short_form: str, limit: int = -1, return
     """
     return _original_get_related_anatomy(template_short_form=template_short_form, limit=limit, return_dataframe=return_dataframe)
 
+@with_solr_cache('painted_domains')
 def get_painted_domains_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_painted_domains with SOLR caching.

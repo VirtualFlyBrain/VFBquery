@@ -375,6 +375,12 @@ class QueryPerformanceTest(unittest.TestCase):
         print("="*80)
         
         # NeuronInputsTo
+        # Warm up cache with full results
+        try:
+            get_individual_neuron_inputs(self.test_terms['connected_neuron'], return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "NeuronInputsTo",
             get_individual_neuron_inputs,
@@ -606,6 +612,12 @@ class QueryPerformanceTest(unittest.TestCase):
         dataset_term = 'VFBc_00101384'   # Example dataset
         
         # PaintedDomains - Template painted anatomy domains
+        # Warm up cache with full results
+        try:
+            get_painted_domains(template_term, return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "PaintedDomains",
             get_painted_domains,

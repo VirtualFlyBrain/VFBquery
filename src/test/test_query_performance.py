@@ -485,7 +485,7 @@ class QueryPerformanceTest(unittest.TestCase):
             result, duration, success = self._time_query(
                 "scRNAdatasetData (example dataset)",
                 get_scrnaseq_dataset_data,
-                "VFBds_00001234",  # Example dataset ID
+                "FBlc0005362",  # Example dataset ID
                 return_dataframe=False,
                 limit=10
             )

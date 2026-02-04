@@ -625,8 +625,8 @@ def with_solr_cache(query_type: str):
                                    'similar_morphology_part_of_exp', 'similar_morphology_nb', 
                                    'similar_morphology_nb_exp', 'similar_morphology_userdata',
                                    'neurons_part_here', 'neurons_synaptic', 
-                                   'neurons_presynaptic', 'neurons_postsynaptic']
-            # Note: expensive queries still only cache full results, but retrieval logic handles slicing
+                                   'neurons_presynaptic', 'neurons_postsynaptic',
+                                   'expression_overlaps_here', 'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub']
             
             # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
             if query_type == 'neuron_neuron_connectivity_query':
@@ -662,7 +662,8 @@ def with_solr_cache(query_type: str):
                                    'similar_morphology_userdata', 'neurons_part_here', 'neurons_synaptic',
                                    'neurons_presynaptic', 'neurons_postsynaptic', 'neuron_neuron_connectivity_query',
                                    'neuron_region_connectivity_query', 'instances', 'templates', 'images_neurons',
-                                   'images_that_develop_from', 'expression_pattern_fragments']
+                                   'images_that_develop_from', 'expression_pattern_fragments', 'expression_overlaps_here',
+                                   'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub']
             if query_type in dataframe_query_types:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_dataframe_{return_dataframe}"

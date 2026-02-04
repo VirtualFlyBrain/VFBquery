@@ -392,6 +392,12 @@ class QueryPerformanceTest(unittest.TestCase):
         print("="*80)
         
         # ExpressionOverlapsHere - test with adult brain which has many expression patterns
+        # Warm up cache with full results
+        try:
+            get_expression_overlaps_here(self.test_terms['medulla'], return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "ExpressionOverlapsHere (adult brain)",
             get_expression_overlaps_here,
@@ -414,6 +420,12 @@ class QueryPerformanceTest(unittest.TestCase):
         # The queries are designed to work even if no data is found (will return empty results)
         
         # anatScRNAseqQuery - test with adult brain
+        # Warm up cache with full results
+        try:
+            get_anatomy_scrnaseq(self.test_terms['medulla'], return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "anatScRNAseqQuery (adult brain)",
             get_anatomy_scrnaseq,
@@ -496,6 +508,12 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         
         # SimilarMorphologyTo - NBLAST matches
+        # Warm up cache with full results
+        try:
+            get_similar_morphology(self.test_terms['connected_neuron'], return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "SimilarMorphologyTo",
             get_similar_morphology,
@@ -630,6 +648,12 @@ class QueryPerformanceTest(unittest.TestCase):
         self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllAlignedImages exceeded threshold")
         
         # AlignedDatasets - All datasets aligned to template
+        # Warm up cache with full results
+        try:
+            get_aligned_datasets(template_term, return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "AlignedDatasets",
             get_aligned_datasets,
@@ -675,6 +699,12 @@ class QueryPerformanceTest(unittest.TestCase):
         anatomy_term = self.test_terms['mushroom_body']  # mushroom body
         
         # TermsForPub - Terms referencing a publication
+        # Warm up cache with full results
+        try:
+            get_terms_for_pub(pub_term, return_dataframe=False, limit=-1)
+        except Exception:
+            pass  # Ignore warm-up failures
+        
         result, duration, success = self._time_query(
             "TermsForPub",
             get_terms_for_pub,

@@ -351,6 +351,7 @@ def get_all_aligned_images_cached(template_short_form: str, return_dataframe=Tru
     """
     return _original_get_all_aligned_images(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('aligned_datasets')
 def get_aligned_datasets_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_aligned_datasets with SOLR caching.
@@ -423,6 +424,7 @@ def get_neuron_region_connectivity_cached(short_form: str, return_dataframe=True
     """
     return _original_get_neuron_region_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('expression_overlaps_here')
 def get_expression_overlaps_here_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_expression_overlaps_here with SOLR caching.
@@ -437,6 +439,7 @@ def get_expression_overlaps_here_cached(anatomy_short_form: str, return_datafram
     """
     return _original_get_expression_overlaps_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('anatomy_scrnaseq')
 def get_anatomy_scrnaseq_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_anatomy_scrnaseq with SOLR caching.
@@ -633,6 +636,7 @@ def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=Tr
     """
     return _original_get_expression_pattern_fragments(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('terms_for_pub')
 def get_terms_for_pub_cached(pub_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_terms_for_pub with SOLR caching.

@@ -428,14 +428,14 @@ class QueryPerformanceTest(unittest.TestCase):
         # anatScRNAseqQuery - test with adult brain
         # Warm up cache with full results
         try:
-            get_anatomy_scrnaseq(self.test_terms['medulla'], return_dataframe=False, limit=-1)
+            get_anatomy_scrnaseq('FBbt_00058230', return_dataframe=False, limit=-1)
         except Exception:
             pass  # Ignore warm-up failures
         
         result, duration, success = self._time_query(
             "anatScRNAseqQuery (adult brain)",
             get_anatomy_scrnaseq,
-            self.test_terms['medulla'],  # FBbt_00003982 (adult brain/medulla)
+            'FBbt_00058230',  # FBbt_00058230 (adult brain/medulla)
             return_dataframe=False,
             limit=10
         )

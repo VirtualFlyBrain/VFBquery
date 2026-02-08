@@ -42,7 +42,15 @@ class CoordinatesFactory:
 
     @staticmethod
     def from_json_string(json_str: str) -> Coordinates:
-        return  Coordinates.from_json(json_str)
+        # Parse the JSON string first
+        parsed = json.loads(json_str)
+        if isinstance(parsed, list) and len(parsed) > 0:
+            # If it's a list, take the first element
+            return Coordinates.from_json(json.dumps(parsed[0]))
+        elif isinstance(parsed, dict):
+            return Coordinates.from_json(json_str)
+        else:
+            raise ValueError(f"Invalid voxel format: {json_str}")
 
     @staticmethod
     def from_json_string_list(json_str_list: List[str]) -> Coordinates:

@@ -95,4 +95,4 @@ except ImportError:
     __solr_caching_available__ = False
 
 # Version information
-__version__ = "0.1.0"
+__version__ = "0.5.8"

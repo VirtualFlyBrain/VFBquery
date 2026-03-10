@@ -935,6 +935,14 @@ def term_info_parse_object(results, short_form):
             q = TransgeneExpressionHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # Class connectivity queries — downstream and upstream partner neuron classes
+        # Matches criteria: Class + Neuron (neuron class with indexed connectivity data)
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Neuron"]):
+            q = DownstreamClassConnectivity_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+            q = UpstreamClassConnectivity_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        
         # For individuals that are painted domains of anatomical regions, add parent class queries
         if termInfo["IsIndividual"] and termInfo["Technique"] and any('computer' in t.lower() for t in termInfo["Technique"]):
             anatomical_classes = []
@@ -1431,6 +1439,44 @@ def NeuronRegionConnectivityQuery_to_schema(name, take_default):
     }
     preview = 5
     preview_columns = ["id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def DownstreamClassConnectivity_to_schema(name, take_default):
+    """
+    Schema for downstream class connectivity query.
+    Shows which neuron classes receive synapses from this neuron class.
+    Matching criteria: Class + Neuron
+    Query chain: Solr downstream_connectivity_query field
+    """
+    query = "DownstreamClassConnectivity"
+    label = f"Downstream connectivity classes for {name}"
+    function = "get_downstream_class_connectivity"
+    takes = {
+        "short_form": {"$and": ["Class", "Neuron"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["downstream_class", "total_n", "connected_n", "percent_connected", "pairwise_connections", "total_weight", "avg_weight"]
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def UpstreamClassConnectivity_to_schema(name, take_default):
+    """
+    Schema for upstream class connectivity query.
+    Shows which neuron classes send synapses to this neuron class.
+    Matching criteria: Class + Neuron
+    Query chain: Solr upstream_connectivity_query field
+    """
+    query = "UpstreamClassConnectivity"
+    label = f"Upstream connectivity classes for {name}"
+    function = "get_upstream_class_connectivity"
+    takes = {
+        "short_form": {"$and": ["Class", "Neuron"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["upstream_class", "total_n", "connected_n", "percent_connected", "pairwise_connections", "total_weight", "avg_weight"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -2922,6 +2968,172 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
         'rows': rows,
         'count': len(rows)
     }
+
+
+@with_solr_cache('downstream_class_connectivity_query')
+def get_downstream_class_connectivity(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves downstream connectivity classes for the specified neuron class.
+
+    Reads the downstream_connectivity_query Solr field, which contains a JSON array
+    of vfb_query-format objects populated by the neuron_downstream_connectivity_indexer.
+    Each element represents one (primary_class → downstream_class) connection summary.
+
+    Matching criteria: Class + Neuron
+
+    :param short_form: short form of the neuron class
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Downstream partner neuron classes with connectivity statistics
+    """
+    solr_field = 'downstream_connectivity_query'
+    try:
+        results = vfb_solr.search(f'id:{short_form}', fl=solr_field, rows=1)
+    except Exception as e:
+        print(f"Error querying Solr for downstream class connectivity: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    if not results.hits or not results.docs or solr_field not in results.docs[0]:
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    raw = results.docs[0][solr_field]
+    field_json = raw[0] if isinstance(raw, list) else raw
+    try:
+        entries = json.loads(field_json)
+    except (json.JSONDecodeError, TypeError) as e:
+        print(f"Error parsing downstream_connectivity_query JSON for {short_form}: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    if not isinstance(entries, list):
+        entries = [entries]
+
+    rows = []
+    for entry in entries:
+        cc = entry.get('class_connectivity', {})
+        obj = entry.get('object', {})
+        ds_id = obj.get('short_form', cc.get('downstream_class_id', ''))
+        ds_label = obj.get('label', cc.get('downstream_class', ''))
+        row = {
+            'id': ds_id,
+            'downstream_class': f"[{ds_label}]({ds_id})" if ds_id else ds_label,
+            'total_n': cc.get('total_upstream_count', ''),
+            'connected_n': cc.get('connected_upstream_count', ''),
+            'percent_connected': cc.get('percent_connected', ''),
+            'pairwise_connections': cc.get('pairwise_connections', ''),
+            'total_weight': cc.get('total_weight', ''),
+            'avg_weight': cc.get('average_weight', ''),
+        }
+        rows.append(row)
+
+    total_count = len(rows)
+    if limit != -1:
+        rows = rows[:limit]
+
+    if return_dataframe:
+        df = pd.DataFrame(rows)
+        df = encode_markdown_links(df, ['downstream_class'])
+        return df
+
+    headers = {
+        'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
+        'downstream_class': {'title': 'Downstream Class', 'type': 'markdown', 'order': 0},
+        'total_n': {'title': 'Total N', 'type': 'number', 'order': 1},
+        'connected_n': {'title': 'Connected N', 'type': 'number', 'order': 2},
+        'percent_connected': {'title': '% Connected', 'type': 'number', 'order': 3},
+        'pairwise_connections': {'title': 'Pairwise Connections', 'type': 'number', 'order': 4},
+        'total_weight': {'title': 'Total Weight', 'type': 'number', 'order': 5},
+        'avg_weight': {'title': 'Avg Weight', 'type': 'number', 'order': 6},
+    }
+    return {'headers': headers, 'rows': rows, 'count': total_count}
+
+
+@with_solr_cache('upstream_class_connectivity_query')
+def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves upstream connectivity classes for the specified neuron class.
+
+    Reads the upstream_connectivity_query Solr field, which contains a JSON array
+    of vfb_query-format objects populated by the neuron_upstream_connectivity_indexer.
+    Each element represents one (upstream_class → primary_class) connection summary.
+
+    Matching criteria: Class + Neuron
+
+    :param short_form: short form of the neuron class
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict
+    :param limit: maximum number of results to return (default -1, returns all results)
+    :return: Upstream partner neuron classes with connectivity statistics
+    """
+    solr_field = 'upstream_connectivity_query'
+    try:
+        results = vfb_solr.search(f'id:{short_form}', fl=solr_field, rows=1)
+    except Exception as e:
+        print(f"Error querying Solr for upstream class connectivity: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    if not results.hits or not results.docs or solr_field not in results.docs[0]:
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    raw = results.docs[0][solr_field]
+    field_json = raw[0] if isinstance(raw, list) else raw
+    try:
+        entries = json.loads(field_json)
+    except (json.JSONDecodeError, TypeError) as e:
+        print(f"Error parsing upstream_connectivity_query JSON for {short_form}: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    if not isinstance(entries, list):
+        entries = [entries]
+
+    rows = []
+    for entry in entries:
+        cc = entry.get('class_connectivity', {})
+        obj = entry.get('object', {})
+        us_id = obj.get('short_form', cc.get('upstream_class_id', ''))
+        us_label = obj.get('label', cc.get('upstream_class', ''))
+        row = {
+            'id': us_id,
+            'upstream_class': f"[{us_label}]({us_id})" if us_id else us_label,
+            'total_n': cc.get('total_upstream_count', ''),
+            'connected_n': cc.get('connected_upstream_count', ''),
+            'percent_connected': cc.get('percent_connected', ''),
+            'pairwise_connections': cc.get('pairwise_connections', ''),
+            'total_weight': cc.get('total_weight', ''),
+            'avg_weight': cc.get('average_weight', ''),
+        }
+        rows.append(row)
+
+    total_count = len(rows)
+    if limit != -1:
+        rows = rows[:limit]
+
+    if return_dataframe:
+        df = pd.DataFrame(rows)
+        df = encode_markdown_links(df, ['upstream_class'])
+        return df
+
+    headers = {
+        'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
+        'upstream_class': {'title': 'Upstream Class', 'type': 'markdown', 'order': 0},
+        'total_n': {'title': 'Total N', 'type': 'number', 'order': 1},
+        'connected_n': {'title': 'Connected N', 'type': 'number', 'order': 2},
+        'percent_connected': {'title': '% Connected', 'type': 'number', 'order': 3},
+        'pairwise_connections': {'title': 'Pairwise Connections', 'type': 'number', 'order': 4},
+        'total_weight': {'title': 'Total Weight', 'type': 'number', 'order': 5},
+        'avg_weight': {'title': 'Avg Weight', 'type': 'number', 'order': 6},
+    }
+    return {'headers': headers, 'rows': rows, 'count': total_count}
 
 
 @with_solr_cache('images_neurons')

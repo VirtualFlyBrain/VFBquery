@@ -628,7 +628,7 @@ def with_solr_cache(query_type: str):
                                    'neurons_presynaptic', 'neurons_postsynaptic',
                                    'expression_overlaps_here', 'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub',
                                    'individual_neuron_inputs', 'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data',
-                                   'painted_domains']
+                                   'painted_domains', 'downstream_class_connectivity_query', 'upstream_class_connectivity_query']
             
             # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
             if query_type == 'neuron_neuron_connectivity_query':
@@ -666,7 +666,8 @@ def with_solr_cache(query_type: str):
                                    'neuron_region_connectivity_query', 'instances', 'templates', 'images_neurons',
                                    'images_that_develop_from', 'expression_pattern_fragments', 'expression_overlaps_here',
                                    'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub', 'individual_neuron_inputs',
-                                   'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data', 'painted_domains']
+                                   'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data', 'painted_domains',
+                                   'downstream_class_connectivity_query', 'upstream_class_connectivity_query']
             if query_type in dataframe_query_types:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_dataframe_{return_dataframe}"

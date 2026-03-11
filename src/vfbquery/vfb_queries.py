@@ -3484,11 +3484,17 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
             }
         else:
             # Other errors (500, network issues, etc.) - return error indication
-            print(f"ERROR: Owlery {'instances' if query_instances else 'subclasses'} query failed: {e}", file=sys.stderr)
-            print(f"       Full URL: {owlery_url}", file=sys.stderr)
-            print(f"       Query string: {owl_query_string}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
+            import requests as _requests
+            is_connection_error = isinstance(e, (_requests.exceptions.RetryError,
+                                                 _requests.exceptions.ConnectionError))
+            if is_connection_error:
+                print(f"WARNING: Owlery unavailable for query '{owl_query_string}': {type(e).__name__}", file=sys.stderr)
+            else:
+                print(f"ERROR: Owlery {'instances' if query_instances else 'subclasses'} query failed: {e}", file=sys.stderr)
+                print(f"       Full URL: {owlery_url}", file=sys.stderr)
+                print(f"       Query string: {owl_query_string}", file=sys.stderr)
+                import traceback
+                traceback.print_exc()
             # Return error indication with count=-1
             if return_dataframe:
                 return pd.DataFrame()

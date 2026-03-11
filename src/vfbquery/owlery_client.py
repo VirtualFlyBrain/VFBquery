@@ -178,11 +178,9 @@ class OwleryClient:
             
             return short_forms
             
-        except requests.RequestException as e:
-            print(f"ERROR: Owlery request failed: {e}")
+        except requests.RequestException:
             raise
-        except Exception as e:
-            print(f"ERROR: Unexpected error in Owlery query: {e}")
+        except Exception:
             raise
     
     def get_instances(self, query: str, query_by_label: bool = True, 
@@ -293,18 +291,9 @@ class OwleryClient:
             
             return short_forms
             
-        except requests.RequestException as e:
-            # Show the full URL that was attempted
-            try:
-                full_url = f"{self.owlery_endpoint}/instances"
-                prepared_request = requests.Request('GET', full_url, params=params).prepare()
-                print(f"ERROR: Owlery instances request failed: {e}")
-                print(f"       Test URL: {prepared_request.url}")
-            except:
-                print(f"ERROR: Owlery instances request failed: {e}")
+        except requests.RequestException:
             raise
-        except Exception as e:
-            print(f"ERROR: Unexpected error in Owlery instances query: {e}")
+        except Exception:
             raise
 
 

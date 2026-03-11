@@ -13,7 +13,6 @@ from urllib.parse import unquote
 from .solr_result_cache import with_solr_cache
 import time
 import requests
-from concurrent.futures import ThreadPoolExecutor
 import inspect
 
 # Custom JSON encoder to handle NumPy and pandas types
@@ -2855,14 +2854,15 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     WITH down, oi, primary
     OPTIONAL MATCH (primary)<-[up:synapsed_to]-(oi)
     """
-    
+
+    direction_filter = ""
     if direction == 'upstream':
-        base_cypher += " WHERE up IS NOT NULL AND up.weight[0] > 0"
+        direction_filter = " WHERE up IS NOT NULL AND up.weight[0] > 0"
     elif direction == 'downstream':
-        base_cypher += " WHERE down IS NOT NULL AND down.weight[0] > 0"
+        direction_filter = " WHERE down IS NOT NULL AND down.weight[0] > 0"
     # for 'both', no additional WHERE
-    
-    cypher = base_cypher + """
+
+    cypher = base_cypher + direction_filter + """
     RETURN 
         oi.short_form AS id,
         oi.label AS label,
@@ -2880,14 +2880,10 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     
     # Get total count if limit was applied
     if limit != -1:
-        if direction == 'upstream':
-            count_query = base_cypher + " WHERE up IS NOT NULL AND up.weight[0] > 0 RETURN count(DISTINCT oi)"
-        elif direction == 'downstream':
-            count_query = base_cypher + " WHERE down IS NOT NULL AND down.weight[0] > 0 RETURN count(DISTINCT oi)"
-        else:  # both
-            count_query = base_cypher + " RETURN count(DISTINCT oi)"
+        count_query = base_cypher + direction_filter + " RETURN count(DISTINCT oi) AS total_count"
         count_results = vc.nc.commit_list([count_query])
-        total_count = count_results[0][0] if count_results and count_results[0] else 0
+        count_rows = get_dict_cursor()(count_results)
+        total_count = count_rows[0].get('total_count', 0) if count_rows else 0
     else:
         total_count = len(rows)
     
@@ -4389,7 +4385,7 @@ def fill_query_results(term_info):
         else:
             print("Preview key not found or preview is 0")
 
-    with ThreadPoolExecutor() as executor:
-        executor.map(process_query, term_info['Queries'])
-    
+    for query in term_info['Queries']:
+        process_query(query)
+
     return term_info

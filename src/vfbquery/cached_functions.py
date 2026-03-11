@@ -409,7 +409,7 @@ def get_neuron_neuron_connectivity_cached(short_form: str, return_dataframe=True
     Returns:
         Neuron-neuron connectivity data
     """
-    return _original_get_neuron_neuron_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit, min_weight=min_weight, direction=direction)
+    return _original_get_neuron_neuron_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit, min_weight=min_weight, direction=direction, force_refresh=force_refresh)
 
 def get_neuron_region_connectivity_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """

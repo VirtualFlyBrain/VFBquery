@@ -1821,7 +1821,7 @@ def serialize_solr_output(results):
     return json_string 
 
 @with_solr_cache('term_info')
-def get_term_info(short_form: str, preview: bool = True):
+def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = False):
     """
     Retrieves the term info for the given term short form.
     Results are cached in SOLR for 3 months to improve performance.
@@ -1840,7 +1840,7 @@ def get_term_info(short_form: str, preview: bool = True):
             # Only try to fill query results if preview is enabled and there are queries to fill
             if preview and parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
                 try:
-                    term_info = fill_query_results(parsed_object)
+                    term_info = fill_query_results(parsed_object, force_refresh=force_refresh)
                     if term_info:
                         return term_info
                     else:
@@ -4238,7 +4238,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     return get_expression_overlaps_here(anatomy_short_form, return_dataframe, limit)
 
 
-def fill_query_results(term_info):
+def fill_query_results(term_info, force_refresh: bool = False):
     def process_query(query):
         # print(f"Query Keys:{query.keys()}")
         
@@ -4260,21 +4260,21 @@ def fill_query_results(term_info):
                     # Skip 'self' if it's a method, and check if first param is not return_dataframe/limit/summary_mode
                     first_param = params[1] if params and params[0] == 'self' else (params[0] if params else None)
                     takes_short_form = first_param and first_param not in ['return_dataframe', 'limit', 'summary_mode']
+                    supports_force_refresh = ('force_refresh' in sig.parameters)
+
+                    base_kwargs = {'return_dataframe': False, 'limit': query['preview']}
+                    if summary_mode:
+                        base_kwargs['summary_mode'] = summary_mode
+                    if supports_force_refresh:
+                        base_kwargs['force_refresh'] = force_refresh
 
                     # Modify this line to use the correct arguments and pass the default arguments
-                    if summary_mode:
-                        if function_args and takes_short_form:
-                            # Pass the short_form as positional argument
-                            short_form_value = list(function_args.values())[0]
-                            result = function(short_form_value, return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
-                        else:
-                            result = function(return_dataframe=False, limit=query['preview'], summary_mode=summary_mode)
+                    if function_args and takes_short_form:
+                        # Pass the short_form as positional argument
+                        short_form_value = list(function_args.values())[0]
+                        result = function(short_form_value, **base_kwargs)
                     else:
-                        if function_args and takes_short_form:
-                            short_form_value = list(function_args.values())[0]
-                            result = function(short_form_value, return_dataframe=False, limit=query['preview'])
-                        else:
-                            result = function(return_dataframe=False, limit=query['preview'])
+                        result = function(**base_kwargs)
                 except Exception as e:
                     print(f"Error executing query function {query['function']}: {e}")
                     # Set default values for failed query
@@ -4338,11 +4338,14 @@ def fill_query_results(term_info):
                     # If limit was applied, the count in dict may be wrong, get correct count
                     if query['preview'] > 0 and result_count == len(result['rows']):
                         try:
+                            full_kwargs = {'return_dataframe': False, 'limit': -1}
+                            if supports_force_refresh:
+                                full_kwargs['force_refresh'] = force_refresh
                             if function_args and takes_short_form:
                                 short_form_value = list(function_args.values())[0]
-                                full_dict = function(short_form_value, return_dataframe=False, limit=-1)
+                                full_dict = function(short_form_value, **full_kwargs)
                             else:
-                                full_dict = function(return_dataframe=False, limit=-1)
+                                full_dict = function(**full_kwargs)
                             result_count = full_dict['count']
                         except Exception as e:
                             print(f"Error getting full count for {query['function']}: {e}")
@@ -4350,11 +4353,14 @@ def fill_query_results(term_info):
                 elif isinstance(result, pd.DataFrame):
                     # For DataFrame results, we need the full count even when preview is limited
                     try:
+                        full_kwargs = {'return_dataframe': True, 'limit': -1}
+                        if supports_force_refresh:
+                            full_kwargs['force_refresh'] = force_refresh
                         if function_args and takes_short_form:
                             short_form_value = list(function_args.values())[0]
-                            full_result = function(short_form_value, return_dataframe=True, limit=-1)
+                            full_result = function(short_form_value, **full_kwargs)
                         else:
-                            full_result = function(return_dataframe=True, limit=-1)
+                            full_result = function(**full_kwargs)
                         result_count = len(full_result)
                     except Exception as e:
                         print(f"Error getting full count for {query['function']}: {e}")

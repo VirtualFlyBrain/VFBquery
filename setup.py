@@ -3,7 +3,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-__version__ = "0.5.8"
+__version__ = "0.5.9"
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:

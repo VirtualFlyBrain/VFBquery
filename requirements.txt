@@ -4,3 +4,4 @@ dacite
 requests
 pysolr
 get_version
+aiohttp

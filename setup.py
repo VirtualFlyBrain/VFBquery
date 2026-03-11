@@ -3,7 +3,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-__version__ = "0.5.9"
+__version__ = "0.6.0"
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:
@@ -30,7 +30,8 @@ setup(
         "pysolr",
         "pandas",
         "marshmallow",
-        "vfb_connect"
+        "vfb_connect",
+        "aiohttp",
     ],
     python_requires=">=3.7",
     project_urls={  # Optional

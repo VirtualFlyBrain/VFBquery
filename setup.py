@@ -32,6 +32,9 @@ setup(
         "marshmallow",
         "vfb_connect",
         "aiohttp",
+        "dataclasses-json",
+        "dacite",
+        "requests",
     ],
     python_requires=">=3.7",
     project_urls={  # Optional

@@ -2863,7 +2863,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     # for 'both', no additional WHERE
 
     cypher = base_cypher + direction_filter + """
-    RETURN 
+    RETURN DISTINCT
         oi.short_form AS id,
         oi.label AS label,
         coalesce(down.weight[0], 0) AS outputs,
@@ -2880,7 +2880,15 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
     
     # Get total count if limit was applied
     if limit != -1:
-        count_query = base_cypher + direction_filter + " RETURN count(DISTINCT oi) AS total_count"
+        count_query = base_cypher + direction_filter + """
+        WITH DISTINCT
+            oi.short_form AS id,
+            oi.label AS label,
+            coalesce(down.weight[0], 0) AS outputs,
+            coalesce(up.weight[0], 0) AS inputs,
+            oi.uniqueFacets AS tags
+        RETURN count(*) AS total_count
+        """
         count_results = vc.nc.commit_list([count_query])
         count_rows = get_dict_cursor()(count_results)
         total_count = count_rows[0].get('total_count', 0) if count_rows else 0

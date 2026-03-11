@@ -27,6 +27,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 from aiohttp import web
+import numpy as np
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -132,8 +133,28 @@ def _run_query(short_form, func_name):
     fn = getattr(_vfb, func_name)
     # AllDatasets is the only query that takes no id argument
     if func_name == "get_all_datasets":
-        return fn(return_dataframe=False)
-    return fn(short_form, return_dataframe=False)
+        result = fn(return_dataframe=False)
+    else:
+        result = fn(short_form, return_dataframe=False)
+
+    # Convert numpy types to Python types for JSON serialization
+    return _convert_numpy_types(result)
+
+
+def _convert_numpy_types(obj):
+    """Recursively convert numpy types to Python types for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_numpy_types(item) for item in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj
 
 
 # ---------------------------------------------------------------------------

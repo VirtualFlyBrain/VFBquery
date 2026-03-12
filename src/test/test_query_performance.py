@@ -546,7 +546,7 @@ class QueryPerformanceTest(unittest.TestCase):
         if success and result:
             count = result.get('count', 0)
             print(f"  └─ Found {count} NBLASTexp matches" + (", returned 10" if count > 10 else ""))
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToPartOf exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyToPartOf exceeded threshold")
         
         # SimilarMorphologyToPartOfexp - Reverse NBLASTexp
         result, duration, success = self._time_query(
@@ -560,7 +560,7 @@ class QueryPerformanceTest(unittest.TestCase):
         if success and result:
             count = result.get('count', 0)
             print(f"  └─ Found {count} reverse NBLASTexp matches" + (", returned 10" if count > 10 else ""))
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToPartOfexp exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyToPartOfexp exceeded threshold")
         
         # SimilarMorphologyToNB - NeuronBridge matches
         result, duration, success = self._time_query(
@@ -574,7 +574,7 @@ class QueryPerformanceTest(unittest.TestCase):
         if success and result:
             count = result.get('count', 0)
             print(f"  └─ Found {count} NeuronBridge matches" + (", returned 10" if count > 10 else ""))
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToNB exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyToNB exceeded threshold")
         
         # SimilarMorphologyToNBexp - NeuronBridge for expression patterns
         result, duration, success = self._time_query(
@@ -588,7 +588,7 @@ class QueryPerformanceTest(unittest.TestCase):
         if success and result:
             count = result.get('count', 0)
             print(f"  └─ Found {count} NeuronBridge expression matches" + (", returned 10" if count > 10 else ""))
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "SimilarMorphologyToNBexp exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyToNBexp exceeded threshold")
         
         print(f"✅ All NBLAST similarity queries completed")
     

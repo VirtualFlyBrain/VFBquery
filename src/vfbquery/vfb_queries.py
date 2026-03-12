@@ -408,7 +408,6 @@ def term_info_parse_object(results, short_form):
     termInfo["Domains"] = {}
     termInfo["Licenses"] = {}
     termInfo["Publications"] = []
-    termInfo["Synonyms"] = []
     termInfo["IsPaintedDomain"] = False
     termInfo["Technique"] = []
     

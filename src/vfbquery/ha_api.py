@@ -532,6 +532,21 @@ async def handle_status(request):
     snap = tracker.snapshot
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
+    # Solr cache status (best-effort): this may hit Solr briefly in order to
+    # determine whether the cache is currently enabled.
+    solr_cache_status = {
+        "enabled": False,
+        "disabled_until": None,
+    }
+    try:
+        from vfbquery.solr_result_cache import get_solr_cache
+
+        solr_cache = get_solr_cache()
+        solr_cache_status["enabled"] = solr_cache.solr_cache_enabled
+        solr_cache_status["disabled_until"] = solr_cache.solr_cache_disabled_until
+    except Exception:
+        pass
+
     return web.json_response({
         "status": "ok",
         "workers": request.app["max_workers"],
@@ -545,6 +560,7 @@ async def handle_status(request):
         "coalesced_total": coalescer.coalesced_total,
         "coalesced_in_flight": coalescer.in_flight_count,
         "scanner_probes_blocked": request.app.get("_scanner_probes", {}).get("count", 0),
+        "solr_cache": solr_cache_status,
     })
 
 

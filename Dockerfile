@@ -16,9 +16,11 @@ RUN pip install --no-cache-dir aiohttp && \
 EXPOSE 8080
 
 # Tuning via env vars:
-#   VFBQUERY_PORT          (default 8080)
-#   VFBQUERY_HOST          (default 0.0.0.0)
-#   VFBQUERY_WORKERS       (default: 10)
-#   VFBQUERY_MAX_CONCURRENT (default: workers × 2)
+#   VFBQUERY_PORT            (default 8080)
+#   VFBQUERY_HOST            (default 0.0.0.0)
+#   VFBQUERY_WORKERS         (default: 10)
+#   VFBQUERY_MAX_CONCURRENT  (default: workers × 2)
+#   VFBQUERY_MAX_QUEUE_DEPTH (default: 200, 0 = unlimited)
+#   VFBQUERY_CACHE_TTL       (default: 300 seconds)
 
 ENTRYPOINT ["python", "-m", "vfbquery.ha_api"]

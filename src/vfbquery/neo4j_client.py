@@ -21,6 +21,8 @@ def dict_cursor(results):
     :return: list of dicts
     """
     dc = []
+    if not results or not hasattr(results, '__iter__'):
+        return dc
     for n in results:
         # Add conditional to skip any failures
         if n:

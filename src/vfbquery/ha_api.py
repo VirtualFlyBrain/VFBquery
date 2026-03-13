@@ -125,7 +125,8 @@ def _init_worker():
 
 def _run_term_info(short_form):
     """Execute get_term_info in a worker process. Returns JSON-serialisable dict."""
-    return _vfb.get_term_info(short_form)
+    result = _vfb.get_term_info(short_form)
+    return _convert_numpy_types(result)
 
 
 def _run_query(short_form, func_name):

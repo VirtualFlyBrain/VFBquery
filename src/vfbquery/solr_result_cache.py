@@ -73,6 +73,16 @@ class SolrResultCache:
         self._solr_disabled_until = 0.0  # epoch timestamp
         self._solr_backoff_seconds = int(os.getenv('VFBQUERY_SOLR_BACKOFF_SECONDS', '60'))
         self._solr_last_error = None
+
+    @property
+    def solr_cache_enabled(self) -> bool:
+        """True if Solr caching is currently enabled."""
+        return not self._solr_disabled
+
+    @property
+    def solr_cache_disabled_until(self) -> float:
+        """Epoch timestamp when Solr caching will be retried (or 0 if enabled)."""
+        return self._solr_disabled_until
         
     def _create_cache_metadata(self, result: Any, **params) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
@@ -313,7 +323,7 @@ class SolrResultCache:
                 data=json.dumps([cache_doc]),
                 headers={"Content-Type": "application/json"},
                 params={"commit": "true"},  # Immediate commit for availability
-                timeout=10
+                timeout=int(os.getenv('VFBQUERY_SOLR_WRITE_TIMEOUT', '30'))
             )
             
             if response.status_code == 200:

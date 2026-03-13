@@ -22,5 +22,6 @@ EXPOSE 8080
 #   VFBQUERY_MAX_CONCURRENT  (default: workers × 2)
 #   VFBQUERY_MAX_QUEUE_DEPTH (default: 200, 0 = unlimited)
 #   VFBQUERY_CACHE_TTL       (default: 300 seconds)
+#   VFBQUERY_SOLR_WRITE_TIMEOUT (default: 30 seconds)
 
 ENTRYPOINT ["python", "-m", "vfbquery.ha_api"]

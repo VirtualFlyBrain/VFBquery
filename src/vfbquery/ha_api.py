@@ -175,6 +175,31 @@ class QueueTracker:
         }
 
 # ---------------------------------------------------------------------------
+# Security — path allowlist
+# Only these paths are served; everything else gets an empty 404 so that
+# vulnerability scanners learn nothing about the stack.
+# ---------------------------------------------------------------------------
+
+ALLOWED_PATHS = frozenset({"/get_term_info", "/run_query", "/health", "/status"})
+
+
+@web.middleware
+async def security_middleware(request, handler):
+    """Reject requests to unknown paths with a minimal 404."""
+    if request.path not in ALLOWED_PATHS:
+        request.app["_scanner_probes"] = request.app.get("_scanner_probes", 0) + 1
+        # Log first occurrence per path, then every 100th to avoid flooding
+        count = request.app["_scanner_probes"]
+        if count <= 10 or count % 100 == 0:
+            log.warning(
+                "Blocked probe #%d: %s %s from %s",
+                count, request.method, request.path, request.remote,
+            )
+        return web.Response(status=404)
+    return await handler(request)
+
+
+# ---------------------------------------------------------------------------
 # Query-type → VFBquery function mapping
 #
 # Every key that the V3 caching layer can send as `query_type` is listed
@@ -515,6 +540,7 @@ async def handle_status(request):
         "cache_hits": rcache.hits,
         "coalesced_total": coalescer.coalesced_total,
         "coalesced_in_flight": coalescer.in_flight_count,
+        "scanner_probes_blocked": request.app.get("_scanner_probes", 0),
     })
 
 
@@ -543,7 +569,7 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     if cache_ttl is None:
         cache_ttl = int(os.getenv("VFBQUERY_CACHE_TTL", "300"))
 
-    app = web.Application()
+    app = web.Application(middlewares=[security_middleware])
 
     # Routes
     app.router.add_get("/get_term_info", handle_get_term_info)

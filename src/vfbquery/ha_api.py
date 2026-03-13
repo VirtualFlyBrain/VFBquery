@@ -2,18 +2,21 @@
 VFBquery High-Availability API Server
 
 Drop-in replacement for the V3 backend that serves VFBquery results
-over HTTP. Designed to handle hundreds of simultaneous long-running
-queries without timing out.
+over HTTP. Uses a bounded process pool (default: 10 workers) so that
+Neo4j is never hit by more than N simultaneous connections. Incoming
+requests that exceed the pool size are queued and held open until a
+worker becomes available.
 
 Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /get_term_info?id=<short_form>
     GET /run_query?id=<short_form>&query_type=<QueryType>
     GET /health
+    GET /status          — queue depth & worker utilisation
 
 Usage:
-    python -m vfbquery.ha_api                    # default: port 8080
+    python -m vfbquery.ha_api                    # default: port 8080, 10 workers
     python -m vfbquery.ha_api --port 8080 --workers 8
-    VFBQUERY_WORKERS=16 python -m vfbquery.ha_api
+    VFBQUERY_WORKERS=10 python -m vfbquery.ha_api
 """
 
 import argparse
@@ -38,6 +41,48 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 log = logging.getLogger("vfbquery.ha_api")
+
+# Default number of worker processes — deliberately low to limit the number
+# of concurrent Neo4j connections.  Override with VFBQUERY_WORKERS env var
+# or --workers CLI flag.
+DEFAULT_WORKERS = 10
+
+
+# ---------------------------------------------------------------------------
+# Queue tracker — keeps an atomic count of active + waiting requests so the
+# /status endpoint and log lines can report backpressure.
+# ---------------------------------------------------------------------------
+
+class QueueTracker:
+    """Lightweight counters for in-flight and waiting requests."""
+
+    def __init__(self):
+        self._active = 0
+        self._waiting = 0
+        self._total_served = 0
+        self._lock = asyncio.Lock()
+
+    async def enter_queue(self):
+        async with self._lock:
+            self._waiting += 1
+
+    async def leave_queue_start_work(self):
+        async with self._lock:
+            self._waiting -= 1
+            self._active += 1
+
+    async def finish_work(self):
+        async with self._lock:
+            self._active -= 1
+            self._total_served += 1
+
+    @property
+    def snapshot(self):
+        return {
+            "active": self._active,
+            "waiting": self._waiting,
+            "total_served": self._total_served,
+        }
 
 # ---------------------------------------------------------------------------
 # Query-type → VFBquery function mapping
@@ -172,10 +217,17 @@ async def handle_get_term_info(request):
 
     pool = request.app["pool"]
     sem = request.app["semaphore"]
+    tracker = request.app["tracker"]
 
-    log.info("get_term_info id=%s — queued", short_form)
+    await tracker.enter_queue()
+    snap = tracker.snapshot
+    log.info(
+        "get_term_info id=%s — queued  (active=%d waiting=%d)",
+        short_form, snap["active"], snap["waiting"],
+    )
     try:
         async with sem:
+            await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(pool, _run_term_info, short_form)
         log.info("get_term_info id=%s — done", short_form)
@@ -187,6 +239,8 @@ async def handle_get_term_info(request):
             {"error": f"Query failed for id={short_form}", "detail": tb},
             status=500,
         )
+    finally:
+        await tracker.finish_work()
 
 
 async def handle_run_query(request):
@@ -215,10 +269,17 @@ async def handle_run_query(request):
 
     pool = request.app["pool"]
     sem = request.app["semaphore"]
+    tracker = request.app["tracker"]
 
-    log.info("run_query id=%s query_type=%s — queued", short_form, query_type)
+    await tracker.enter_queue()
+    snap = tracker.snapshot
+    log.info(
+        "run_query id=%s query_type=%s — queued  (active=%d waiting=%d)",
+        short_form, query_type, snap["active"], snap["waiting"],
+    )
     try:
         async with sem:
+            await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 pool, _run_query, short_form, func_name
@@ -236,11 +297,29 @@ async def handle_run_query(request):
              "detail": tb},
             status=500,
         )
+    finally:
+        await tracker.finish_work()
 
 
 async def handle_health(request):
     """GET /health — lightweight liveness probe for upstream nginx."""
     return web.json_response({"status": "ok"})
+
+
+async def handle_status(request):
+    """GET /status — queue depth and worker utilisation."""
+    tracker = request.app["tracker"]
+    snap = tracker.snapshot
+    max_workers = request.app["max_workers"]
+    max_concurrent = request.app["max_concurrent"]
+    return web.json_response({
+        "status": "ok",
+        "workers": max_workers,
+        "max_concurrent": max_concurrent,
+        "active": snap["active"],
+        "waiting": snap["waiting"],
+        "total_served": snap["total_served"],
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -252,13 +331,17 @@ def create_app(max_workers=None, max_concurrent=None):
     Build the aiohttp Application.
 
     Args:
-        max_workers:   number of OS processes in the pool  (default: CPU count)
-        max_concurrent: max queries executing at once       (default: workers × 4)
+        max_workers:   number of OS processes in the pool  (default: 10)
+        max_concurrent: max queries executing at once       (default: workers × 2)
+
+    Requests beyond max_concurrent are queued in the async event loop
+    and held open until a worker becomes available — no request is
+    dropped or timed out by the queue itself.
     """
     if max_workers is None:
-        max_workers = int(os.getenv("VFBQUERY_WORKERS", os.cpu_count() or 4))
+        max_workers = int(os.getenv("VFBQUERY_WORKERS", DEFAULT_WORKERS))
     if max_concurrent is None:
-        max_concurrent = int(os.getenv("VFBQUERY_MAX_CONCURRENT", max_workers * 4))
+        max_concurrent = int(os.getenv("VFBQUERY_MAX_CONCURRENT", max_workers * 2))
 
     app = web.Application()
 
@@ -266,6 +349,11 @@ def create_app(max_workers=None, max_concurrent=None):
     app.router.add_get("/get_term_info", handle_get_term_info)
     app.router.add_get("/run_query", handle_run_query)
     app.router.add_get("/health", handle_health)
+    app.router.add_get("/status", handle_status)
+
+    # Store config for /status
+    app["max_workers"] = max_workers
+    app["max_concurrent"] = max_concurrent
 
     async def on_startup(app):
         log.info(
@@ -276,6 +364,7 @@ def create_app(max_workers=None, max_concurrent=None):
             max_workers=max_workers, initializer=_init_worker
         )
         app["semaphore"] = asyncio.Semaphore(max_concurrent)
+        app["tracker"] = QueueTracker()
 
     async def on_cleanup(app):
         app["pool"].shutdown(wait=False)
@@ -305,13 +394,13 @@ def main():
     )
     parser.add_argument(
         "--workers", type=int,
-        default=int(os.getenv("VFBQUERY_WORKERS", os.cpu_count() or 4)),
-        help="Number of worker processes (default: CPU count)",
+        default=int(os.getenv("VFBQUERY_WORKERS", DEFAULT_WORKERS)),
+        help=f"Number of worker processes (default: {DEFAULT_WORKERS})",
     )
     parser.add_argument(
         "--max-concurrent", type=int,
         default=None,
-        help="Max concurrent queries (default: workers × 4)",
+        help="Max concurrent queries (default: workers × 2)",
     )
     args = parser.parse_args()
 

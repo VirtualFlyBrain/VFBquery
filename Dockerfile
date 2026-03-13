@@ -18,7 +18,7 @@ EXPOSE 8080
 # Tuning via env vars:
 #   VFBQUERY_PORT          (default 8080)
 #   VFBQUERY_HOST          (default 0.0.0.0)
-#   VFBQUERY_WORKERS       (default: CPU count)
-#   VFBQUERY_MAX_CONCURRENT (default: workers × 4)
+#   VFBQUERY_WORKERS       (default: 10)
+#   VFBQUERY_MAX_CONCURRENT (default: workers × 2)
 
 ENTRYPOINT ["python", "-m", "vfbquery.ha_api"]

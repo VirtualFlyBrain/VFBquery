@@ -11,6 +11,7 @@ Neo4j queries and data processing.
 """
 
 import json
+import os
 import requests
 import hashlib
 import time
@@ -42,6 +43,10 @@ class SolrResultCache:
     
     Stores computed query results in a dedicated SOLR collection to enable
     instant retrieval without expensive computation on cold starts.
+
+    This cache layer is "best-effort"; if the Solr cache becomes unavailable,
+    it will temporarily disable itself and continue serving live results. It
+    will periodically probe Solr and re-enable itself when the service recovers.
     """
     
     def __init__(self, 
@@ -60,6 +65,14 @@ class SolrResultCache:
         self.ttl_hours = ttl_hours
         self.max_result_size_mb = max_result_size_mb
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
+
+        # When Solr is unreachable, disable caching for a period (backoff).
+        # This prevents the app from logging repeated timeout errors and
+        # allows the query path to continue working.
+        self._solr_disabled = False
+        self._solr_disabled_until = 0.0  # epoch timestamp
+        self._solr_backoff_seconds = int(os.getenv('VFBQUERY_SOLR_BACKOFF_SECONDS', '60'))
+        self._solr_last_error = None
         
     def _create_cache_metadata(self, result: Any, **params) -> Optional[Dict[str, Any]]:
         """Create metadata for cached result with 3-month expiration"""
@@ -85,6 +98,47 @@ class SolrResultCache:
             "ttl_hours": self.ttl_hours  # Store TTL for debugging
         }
     
+    def _solr_available(self) -> bool:
+        """Return True if Solr caching looks operational.
+
+        If Solr has recently failed, this method will delay further cache
+        operations until the backoff window elapses. When the backoff window
+        expires, it will probe Solr with a lightweight request and re-enable
+        caching if successful.
+        """
+        now = time.time()
+        if not self._solr_disabled:
+            return True
+        if now < self._solr_disabled_until:
+            return False
+
+        # Backoff period elapsed: try a small health check
+        try:
+            resp = requests.get(
+                f"{self.cache_url}/select",
+                params={"q": "*:*", "rows": 0, "wt": "json"},
+                timeout=2,
+            )
+            if resp.status_code == 200:
+                if self._solr_last_error is not None:
+                    logger.info("Solr cache re-enabled")
+                self._solr_disabled = False
+                self._solr_last_error = None
+                return True
+        except Exception as e:
+            err = str(e)
+            if err != self._solr_last_error:
+                logger.warning(
+                    "Solr cache unavailable, retrying in %ds: %s",
+                    self._solr_backoff_seconds,
+                    err,
+                )
+                self._solr_last_error = err
+
+        self._solr_disabled = True
+        self._solr_disabled_until = now + self._solr_backoff_seconds
+        return False
+
     def get_cached_result(self, query_type: str, term_id: str, **params) -> Optional[Any]:
         """
         Retrieve cached result from separate cache document
@@ -97,6 +151,9 @@ class SolrResultCache:
         Returns:
             Cached result or None if not found/expired
         """
+        if not self._solr_available():
+            return None
+
         try:
             # Query for cache document with prefixed ID including query type
             # This ensures different query types for the same term have separate cache entries
@@ -226,6 +283,10 @@ class SolrResultCache:
         if not result:
             logger.debug("Empty result, not caching")
             return False
+
+        if not self._solr_available():
+            # Solr is temporarily unavailable; skip caching and continue serving.
+            return False
             
         try:
             # Create cached metadata and result
@@ -263,12 +324,24 @@ class SolrResultCache:
                 return False
                 
         except Exception as e:
-            logger.error(f"Error caching result: {e}")
+            # Mark Solr as temporarily unavailable to avoid repeated errors
+            self._solr_disabled = True
+            self._solr_disabled_until = time.time() + self._solr_backoff_seconds
+            err = str(e)
+            if err != self._solr_last_error:
+                logger.warning(
+                    "Solr cache write failed; disabling cache for %ds: %s",
+                    self._solr_backoff_seconds,
+                    err,
+                )
+                self._solr_last_error = err
             return False
     
 
     def _clear_expired_cache_document(self, cache_doc_id: str):
         """Delete expired cache document from SOLR"""
+        if not self._solr_available():
+            return
         try:
             requests.post(
                 f"{self.cache_url}/update",
@@ -291,6 +364,8 @@ class SolrResultCache:
         Returns:
             True if successfully cleared, False otherwise
         """
+        if not self._solr_available():
+            return False
         try:
             # Include query_type in cache document ID to match storage format
             cache_doc_id = f"vfb_query_{query_type}_{term_id}"
@@ -313,6 +388,8 @@ class SolrResultCache:
     
     def _increment_cache_hit_count(self, cache_doc_id: str, current_count: int):
         """Increment hit count for cache document (background operation)"""
+        if not self._solr_available():
+            return
         try:
             # Update hit count in cache document
             new_count = current_count + 1
@@ -339,6 +416,9 @@ class SolrResultCache:
         Returns:
             Dictionary with cache age info or None if not cached
         """
+        if not self._solr_available():
+            return None
+
         try:
             # Include query_type in cache document ID to match storage format
             cache_doc_id = f"vfb_query_{query_type}_{term_id}"
@@ -396,6 +476,9 @@ class SolrResultCache:
         Returns:
             Number of expired cache documents cleaned up
         """
+        if not self._solr_available():
+            return 0
+
         try:
             now = datetime.now().astimezone()
             cleaned_count = 0

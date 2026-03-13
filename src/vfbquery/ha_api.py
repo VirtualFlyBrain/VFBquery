@@ -187,9 +187,13 @@ ALLOWED_PATHS = frozenset({"/get_term_info", "/run_query", "/health", "/status"}
 async def security_middleware(request, handler):
     """Reject requests to unknown paths with a minimal 404."""
     if request.path not in ALLOWED_PATHS:
-        request.app["_scanner_probes"] = request.app.get("_scanner_probes", 0) + 1
+        probes = request.app.get("_scanner_probes")
+        if probes is None:
+            probes = {"count": 0}
+            request.app["_scanner_probes"] = probes
+        probes["count"] += 1
+        count = probes["count"]
         # Log first occurrence per path, then every 100th to avoid flooding
-        count = request.app["_scanner_probes"]
         if count <= 10 or count % 100 == 0:
             log.warning(
                 "Blocked probe #%d: %s %s from %s",
@@ -540,7 +544,7 @@ async def handle_status(request):
         "cache_hits": rcache.hits,
         "coalesced_total": coalescer.coalesced_total,
         "coalesced_in_flight": coalescer.in_flight_count,
-        "scanner_probes_blocked": request.app.get("_scanner_probes", 0),
+        "scanner_probes_blocked": request.app.get("_scanner_probes", {}).get("count", 0),
     })
 
 
@@ -608,6 +612,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
         app["tracker"] = QueueTracker()
         app["result_cache"] = ResultCache(ttl_seconds=cache_ttl)
         app["coalescer"] = RequestCoalescer()
+        # Avoid setting attributes after startup (aiohttp deprecation warning)
+        app["_scanner_probes"] = {"count": 0}
         app["_cache_cleanup_task"] = asyncio.ensure_future(_cache_cleanup_loop(app))
 
     async def on_cleanup(app):

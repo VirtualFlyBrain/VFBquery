@@ -942,6 +942,17 @@ def term_info_parse_object(results, short_form):
             q = UpstreamClassConnectivity_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
+        # FlyBase stock finder — for Feature terms (FBgn/FBal/FBti/FBtp/FBco/FBst)
+        sf = vfbTerm.term.core.short_form
+        if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")):
+            q = FindStocks_to_schema(termInfo["Name"], {"short_form": sf})
+            queries.append(q)
+
+        # FlyBase combination publications — for FBco terms
+        if sf.startswith("FBco"):
+            q = FindComboPublications_to_schema(termInfo["Name"], {"short_form": sf})
+            queries.append(q)
+
         # For individuals that are painted domains of anatomical regions, add parent class queries
         if termInfo["IsIndividual"] and termInfo["Technique"] and any('computer' in t.lower() for t in termInfo["Technique"]):
             anatomical_classes = []
@@ -1804,6 +1815,30 @@ def TransgeneExpressionHere_to_schema(name, take_default):
     Query chain: Multi-step Owlery and Neo4j queries
     """
     return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Nervous_system", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
+
+
+def FindStocks_to_schema(name, take_default):
+    """Schema for FindStocks query — find available fly stocks from FlyBase."""
+    return Query(
+        query="FindStocks",
+        label=f"Find fly stocks for {name}",
+        function="get_flybase_stocks",
+        takes={"short_form": {"$and": ["Feature"]}, "default": take_default},
+        preview=5,
+        preview_columns=["stock_id", "stock_number", "genotype", "collection"],
+    )
+
+
+def FindComboPublications_to_schema(name, take_default):
+    """Schema for FindComboPublications query — find publications for a split system combination."""
+    return Query(
+        query="FindComboPublications",
+        label=f"Find publications for {name}",
+        function="get_flybase_combo_pubs",
+        takes={"short_form": {"$and": ["Feature"]}, "default": take_default},
+        preview=5,
+        preview_columns=["fbrf", "title", "year", "pub_type"],
+    )
 
 
 def serialize_solr_output(results):
@@ -3136,6 +3171,100 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
         'pairwise_connections': {'title': 'Pairwise Connections', 'type': 'number', 'order': 4},
         'total_weight': {'title': 'Total Weight', 'type': 'number', 'order': 5},
         'avg_weight': {'title': 'Avg Weight', 'type': 'number', 'order': 6},
+    }
+    return {'headers': headers, 'rows': rows, 'count': total_count}
+
+
+def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
+    """Find available fly stocks from FlyBase for a Feature term.
+
+    :param short_form: FlyBase feature ID (FBgn/FBal/FBti/FBco/FBst)
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise formatted dict
+    :param limit: maximum number of results (-1 for all)
+    :return: Stock records from FlyBase
+    """
+    from .flybase_stocks import find_stocks
+
+    try:
+        stocks = find_stocks(short_form)
+    except Exception as e:
+        print(f"Error querying FlyBase stocks for {short_form}: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    rows = []
+    for s in stocks:
+        rows.append({
+            'stock_id': s.get('stock_id', ''),
+            'stock_number': s.get('stock_number', ''),
+            'genotype': s.get('genotype', ''),
+            'collection': s.get('collection', ''),
+        })
+
+    total_count = len(rows)
+    if limit != -1:
+        rows = rows[:limit]
+
+    if return_dataframe:
+        return pd.DataFrame(rows)
+
+    headers = {
+        'stock_id': {'title': 'Stock ID', 'type': 'text', 'order': 0},
+        'stock_number': {'title': 'Stock Number', 'type': 'text', 'order': 1},
+        'genotype': {'title': 'Genotype', 'type': 'text', 'order': 2},
+        'collection': {'title': 'Collection', 'type': 'text', 'order': 3},
+    }
+    return {'headers': headers, 'rows': rows, 'count': total_count}
+
+
+def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = -1):
+    """Find publications for a FlyBase split system combination.
+
+    :param short_form: FlyBase combination ID (FBco...)
+    :param return_dataframe: Returns pandas DataFrame if True, otherwise formatted dict
+    :param limit: maximum number of results (-1 for all)
+    :return: Publication records from FlyBase
+    """
+    from .flybase_combo_pubs import find_combo_publications
+
+    try:
+        pubs = find_combo_publications(short_form)
+    except Exception as e:
+        print(f"Error querying FlyBase publications for {short_form}: {e}")
+        if return_dataframe:
+            return pd.DataFrame()
+        return {'headers': {}, 'rows': [], 'count': 0}
+
+    rows = []
+    for p in pubs:
+        rows.append({
+            'fbrf': p.get('fbrf', ''),
+            'title': p.get('title', ''),
+            'year': p.get('year', ''),
+            'miniref': p.get('miniref', ''),
+            'pub_type': p.get('pub_type', ''),
+            'doi': p.get('doi', ''),
+            'pmid': p.get('pmid', ''),
+            'pmcid': p.get('pmcid', ''),
+        })
+
+    total_count = len(rows)
+    if limit != -1:
+        rows = rows[:limit]
+
+    if return_dataframe:
+        return pd.DataFrame(rows)
+
+    headers = {
+        'fbrf': {'title': 'FBrf', 'type': 'text', 'order': 0},
+        'title': {'title': 'Title', 'type': 'text', 'order': 1},
+        'year': {'title': 'Year', 'type': 'text', 'order': 2},
+        'miniref': {'title': 'Reference', 'type': 'text', 'order': 3},
+        'pub_type': {'title': 'Type', 'type': 'text', 'order': 4},
+        'doi': {'title': 'DOI', 'type': 'text', 'order': 5},
+        'pmid': {'title': 'PMID', 'type': 'text', 'order': 6},
+        'pmcid': {'title': 'PMCID', 'type': 'text', 'order': 7},
     }
     return {'headers': headers, 'rows': rows, 'count': total_count}
 

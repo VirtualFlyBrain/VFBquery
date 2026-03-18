@@ -275,6 +275,10 @@ QUERY_TYPE_MAP = {
 
     # Publications
     "TermsForPub":                   "get_terms_for_pub",
+
+    # FlyBase integration
+    "FindStocks":                    "get_flybase_stocks",
+    "FindComboPublications":         "get_flybase_combo_pubs",
 }
 
 

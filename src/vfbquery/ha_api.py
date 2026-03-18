@@ -180,7 +180,12 @@ class QueueTracker:
 # vulnerability scanners learn nothing about the stack.
 # ---------------------------------------------------------------------------
 
-ALLOWED_PATHS = frozenset({"/get_term_info", "/run_query", "/health", "/status"})
+ALLOWED_PATHS = frozenset({
+    "/get_term_info", "/run_query", "/health", "/status",
+    "/resolve_entity", "/find_stocks",
+    "/resolve_combination", "/find_combo_publications",
+    "/list_connectome_datasets", "/query_connectivity",
+})
 
 
 @web.middleware
@@ -304,6 +309,43 @@ def _run_query(short_form, func_name):
 
     # Convert numpy types to Python types for JSON serialization
     return _convert_numpy_types(result)
+
+
+def _run_resolve_entity(name_or_id):
+    """Execute resolve_entity in a worker process."""
+    return _vfb.resolve_entity(name_or_id)
+
+
+def _run_find_stocks(feature_id, collection_filter):
+    """Execute find_stocks in a worker process."""
+    return _vfb.find_stocks(feature_id, collection_filter=collection_filter)
+
+
+def _run_resolve_combination(name_or_id):
+    """Execute resolve_combination in a worker process."""
+    return _vfb.resolve_combination(name_or_id)
+
+
+def _run_find_combo_publications(fbco_id):
+    """Execute find_combo_publications in a worker process."""
+    return _vfb.find_combo_publications(fbco_id)
+
+
+def _run_list_connectome_datasets():
+    """Execute list_connectome_datasets in a worker process."""
+    return _vfb.list_connectome_datasets()
+
+
+def _run_query_connectivity(upstream_type, downstream_type, weight,
+                            group_by_class, exclude_dbs):
+    """Execute query_connectivity in a worker process."""
+    return _vfb.query_connectivity(
+        upstream_type=upstream_type,
+        downstream_type=downstream_type,
+        weight=weight,
+        group_by_class=group_by_class,
+        exclude_dbs=exclude_dbs,
+    )
 
 
 def _convert_numpy_types(obj):
@@ -565,6 +607,136 @@ async def handle_status(request):
 
 
 # ---------------------------------------------------------------------------
+# FlyBase & connectivity endpoint handlers
+# ---------------------------------------------------------------------------
+
+async def _dispatch_to_pool(request, cache_key, worker_fn, *args):
+    """Shared dispatch logic for new endpoints — cache, coalesce, queue, run."""
+    rcache = request.app["result_cache"]
+    coalescer = request.app["coalescer"]
+
+    cached = rcache.get(cache_key)
+    if cached is not None:
+        return web.json_response(cached)
+
+    fut, is_owner = await coalescer.get_or_create(cache_key)
+    if not is_owner:
+        try:
+            result = await fut
+            return web.json_response(result)
+        except Exception:
+            tb = traceback.format_exc()
+            return web.json_response({"error": "Query failed", "detail": tb}, status=500)
+
+    tracker = request.app["tracker"]
+    max_queue = request.app.get("max_queue_depth")
+    if max_queue:
+        snap = tracker.snapshot
+        if snap["waiting"] >= max_queue:
+            await coalescer.remove(cache_key)
+            return web.json_response(
+                {"error": "Server overloaded, please retry later"},
+                status=503, headers={"Retry-After": "30"},
+            )
+
+    pool = request.app["pool"]
+    sem = request.app["semaphore"]
+    await tracker.enter_queue()
+    try:
+        async with sem:
+            await tracker.leave_queue_start_work()
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(pool, worker_fn, *args)
+        rcache.put(cache_key, result)
+        await coalescer.remove(cache_key)
+        fut.set_result(result)
+        return web.json_response(result)
+    except Exception as exc:
+        tb = traceback.format_exc()
+        log.error("%s — FAILED\n%s", cache_key, tb)
+        await coalescer.remove(cache_key)
+        if not fut.done():
+            fut.set_exception(exc)
+        return web.json_response({"error": "Query failed", "detail": tb}, status=500)
+    finally:
+        await tracker.finish_work()
+
+
+async def handle_resolve_entity(request):
+    """GET /resolve_entity?query=<name_or_id>"""
+    query = request.query.get("query")
+    if not query:
+        return web.json_response({"error": "Missing required parameter: query"}, status=400)
+    return await _dispatch_to_pool(
+        request, f"resolve_entity:{query}", _run_resolve_entity, query
+    )
+
+
+async def handle_find_stocks(request):
+    """GET /find_stocks?id=<feature_id>&collection=<optional_filter>"""
+    feature_id = request.query.get("id")
+    if not feature_id:
+        return web.json_response({"error": "Missing required parameter: id"}, status=400)
+    collection = request.query.get("collection") or None
+    return await _dispatch_to_pool(
+        request, f"find_stocks:{feature_id}:{collection}",
+        _run_find_stocks, feature_id, collection,
+    )
+
+
+async def handle_resolve_combination(request):
+    """GET /resolve_combination?query=<name_or_id>"""
+    query = request.query.get("query")
+    if not query:
+        return web.json_response({"error": "Missing required parameter: query"}, status=400)
+    return await _dispatch_to_pool(
+        request, f"resolve_combination:{query}", _run_resolve_combination, query
+    )
+
+
+async def handle_find_combo_publications(request):
+    """GET /find_combo_publications?id=<FBco_ID>"""
+    fbco_id = request.query.get("id")
+    if not fbco_id:
+        return web.json_response({"error": "Missing required parameter: id"}, status=400)
+    return await _dispatch_to_pool(
+        request, f"find_combo_publications:{fbco_id}",
+        _run_find_combo_publications, fbco_id,
+    )
+
+
+async def handle_list_connectome_datasets(request):
+    """GET /list_connectome_datasets"""
+    return await _dispatch_to_pool(
+        request, "list_connectome_datasets", _run_list_connectome_datasets,
+    )
+
+
+async def handle_query_connectivity(request):
+    """GET /query_connectivity?upstream_type=X&downstream_type=Y&weight=5&group_by_class=false&exclude_dbs=hb,fafb"""
+    upstream = request.query.get("upstream_type") or None
+    downstream = request.query.get("downstream_type") or None
+    if upstream is None and downstream is None:
+        return web.json_response(
+            {"error": "At least one of upstream_type or downstream_type required"},
+            status=400,
+        )
+    weight = int(request.query.get("weight", "5"))
+    group_by_class = request.query.get("group_by_class", "false").lower() in ("true", "1", "yes")
+    exclude_dbs_raw = request.query.get("exclude_dbs")
+    if exclude_dbs_raw is not None:
+        exclude_dbs = [s.strip() for s in exclude_dbs_raw.split(",") if s.strip()]
+    else:
+        exclude_dbs = ["hb", "fafb"]
+
+    key = f"query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}"
+    return await _dispatch_to_pool(
+        request, key, _run_query_connectivity,
+        upstream, downstream, weight, group_by_class, exclude_dbs,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 
@@ -596,6 +768,14 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/run_query", handle_run_query)
     app.router.add_get("/health", handle_health)
     app.router.add_get("/status", handle_status)
+
+    # FlyBase & connectivity endpoints
+    app.router.add_get("/resolve_entity", handle_resolve_entity)
+    app.router.add_get("/find_stocks", handle_find_stocks)
+    app.router.add_get("/resolve_combination", handle_resolve_combination)
+    app.router.add_get("/find_combo_publications", handle_find_combo_publications)
+    app.router.add_get("/list_connectome_datasets", handle_list_connectome_datasets)
+    app.router.add_get("/query_connectivity", handle_query_connectivity)
 
     # Store config for /status and handlers
     app["max_workers"] = max_workers

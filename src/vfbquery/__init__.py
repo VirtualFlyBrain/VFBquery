@@ -1,5 +1,8 @@
 from .vfb_queries import *
 from .solr_result_cache import get_solr_cache
+from .flybase_stocks import resolve_entity, find_stocks
+from .flybase_combo_pubs import resolve_combination, find_combo_publications
+from .vfb_connectivity import list_connectome_datasets, query_connectivity
 
 # SOLR-based caching (simplified single-layer approach)
 try:
@@ -95,4 +98,4 @@ except ImportError:
     __solr_caching_available__ = False
 
 # Version information
-__version__ = "1.6.1"
+__version__ = "1.7.0"

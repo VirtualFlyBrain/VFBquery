@@ -12,16 +12,33 @@ def _get_nc():
 
 
 def _resolve_neuron_type_label(nc, label):
-    """Resolve a neuron type label to a VFB short_form ID.
+    """Resolve a neuron type label or FBbt ID to a VFB short_form ID.
 
-    Tries exact label match first, then case-insensitive.
+    Accepts FBbt IDs (e.g. "FBbt_00003789"), exact labels, synonym matches,
+    or case-insensitive labels.
 
     :param nc: Neo4jConnect instance
-    :param label: Neuron type label (e.g. "Kenyon cell")
+    :param label: Neuron type label (e.g. "Kenyon cell") or FBbt ID
     :return: short_form ID (e.g. "FBbt_00003686")
     :raises ValueError: if label not found
     """
-    # Exact match
+    import re
+
+    # Direct FBbt ID lookup
+    if re.match(r'^FBbt_\d+$', label):
+        results = nc.commit_list([
+            f"MATCH (n:Class:Neuron {{short_form: '{label}'}}) "
+            f"RETURN n.short_form LIMIT 1"
+        ])
+        dc = dict_cursor(results)
+        if dc:
+            return dc[0]["n.short_form"]
+        raise ValueError(
+            f"Neuron class not found for ID '{label}'. "
+            "Check the ID is a valid neuron class (not an anatomy region)."
+        )
+
+    # Exact label match
     results = nc.commit_list([
         f"MATCH (n:Class:Neuron) WHERE n.label = '{label}' "
         f"RETURN n.short_form LIMIT 1"
@@ -30,10 +47,19 @@ def _resolve_neuron_type_label(nc, label):
     if dc:
         return dc[0]["n.short_form"]
 
-    # Case-insensitive fallback
+    # Case-insensitive label fallback
     results = nc.commit_list([
         f"MATCH (n:Class:Neuron) WHERE toLower(n.label) = toLower('{label}') "
         f"RETURN n.short_form, n.label LIMIT 5"
+    ])
+    dc = dict_cursor(results)
+    if dc:
+        return dc[0]["n.short_form"]
+
+    # Synonym match (catches short names like "Tm1")
+    results = nc.commit_list([
+        f"MATCH (n:Class:Neuron) WHERE '{label}' IN n.synonym "
+        f"RETURN n.short_form LIMIT 1"
     ])
     dc = dict_cursor(results)
     if dc:

@@ -7,7 +7,12 @@ from .flybase_db import get_connection
 
 
 def resolve_combination(name_or_id):
-    """Resolve a combination name, synonym, or FBco ID.
+    """Resolve a combination name or synonym.
+
+    This Python helper still accepts FBco IDs for backwards compatibility.
+    The HA API ``/resolve_combination`` endpoint prefers unresolved query text
+    and, if an FBco ID slips through, rewrites it to the combination name via
+    VFB term_info before resolving.
 
     Resolution order:
       1. If FBco ID: direct lookup by feature.uniquename

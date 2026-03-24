@@ -15,6 +15,12 @@ Backpressure features:
 Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /get_term_info?id=<short_form>
     GET /run_query?id=<short_form>&query_type=<QueryType>
+    GET /resolve_entity?query=<name_or_symbol>         # IDs rewritten to names
+    GET /find_stocks?id=<resolved_flybase_feature_id>
+    GET /resolve_combination?query=<name_or_synonym>   # IDs rewritten to names
+    GET /find_combo_publications?id=<resolved_fbco_id>
+    GET /list_connectome_datasets
+    GET /query_connectivity?upstream_type=<name>&downstream_type=<name>
     GET /health
     GET /status          — queue depth, cache stats & worker utilisation
 
@@ -28,6 +34,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 import asyncio
 import time
@@ -53,6 +60,8 @@ log = logging.getLogger("vfbquery.ha_api")
 # or --workers CLI flag.
 DEFAULT_WORKERS = 10
 DEFAULT_MAX_QUEUE_DEPTH = 200
+_FLYBASE_FEATURE_ID_RE = re.compile(r"^FB(?:gn|al|ti|st|co)\d+$", re.IGNORECASE)
+_FBCO_ID_RE = re.compile(r"^FBco\d+$", re.IGNORECASE)
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +326,10 @@ def _run_query(short_form, func_name):
 
 def _run_resolve_entity(name_or_id):
     """Execute resolve_entity in a worker process."""
-    return _vfb.resolve_entity(name_or_id)
+    query = _rewrite_resolve_entity_query(name_or_id)
+    if query is None:
+        return {"match_type": "NOT_FOUND", "results": []}
+    return _vfb.resolve_entity(query)
 
 
 def _run_find_stocks(feature_id, collection_filter):
@@ -327,7 +339,10 @@ def _run_find_stocks(feature_id, collection_filter):
 
 def _run_resolve_combination(name_or_id):
     """Execute resolve_combination in a worker process."""
-    return _vfb.resolve_combination(name_or_id)
+    query = _rewrite_resolve_combination_query(name_or_id)
+    if query is None:
+        return {"match_type": "NOT_FOUND", "results": []}
+    return _vfb.resolve_combination(query)
 
 
 def _run_find_combo_publications(fbco_id):
@@ -366,6 +381,72 @@ def _convert_numpy_types(obj):
         return obj.tolist()
     else:
         return obj
+
+
+def _parse_resolver_query(query):
+    """Normalise a resolver query parameter."""
+    normalized = (query or "").strip()
+    if not normalized:
+        raise ValueError("Missing required parameter: query")
+    return normalized
+
+
+def _canonicalize_flybase_feature_id(feature_id):
+    """Return canonical FlyBase casing for a supported feature ID."""
+    match = re.match(r"^FB(gn|al|ti|st|co)(\d+)$", feature_id or "", re.IGNORECASE)
+    if not match:
+        return feature_id
+    return f"FB{match.group(1).lower()}{match.group(2)}"
+
+
+def _canonicalize_fbco_id(fbco_id):
+    """Return canonical FlyBase casing for an FBco ID."""
+    match = re.match(r"^FBco(\d+)$", fbco_id or "", re.IGNORECASE)
+    if not match:
+        return fbco_id
+    return f"FBco{match.group(1)}"
+
+
+def _preferred_term_info_query(term_info):
+    """Pick a stable name/label from VFB term_info."""
+    if not isinstance(term_info, dict):
+        return None
+
+    candidate = (term_info.get("Name") or "").strip()
+    if candidate:
+        return candidate
+
+    meta = term_info.get("Meta")
+    if isinstance(meta, dict):
+        for key in ("Symbol", "Name"):
+            candidate = (meta.get(key) or "").strip()
+            if candidate:
+                match = re.match(r"^\[(.+)\]\([^)]+\)$", candidate)
+                return match.group(1) if match else candidate
+
+    return None
+
+
+def _rewrite_resolve_entity_query(name_or_id):
+    """Rewrite a FlyBase feature ID to a preferred VFB term name."""
+    query = _parse_resolver_query(name_or_id)
+    if not _FLYBASE_FEATURE_ID_RE.match(query):
+        return query
+
+    canonical_id = _canonicalize_flybase_feature_id(query)
+    term_info = _vfb.get_term_info(canonical_id, preview=False)
+    return _preferred_term_info_query(term_info)
+
+
+def _rewrite_resolve_combination_query(name_or_id):
+    """Rewrite an FBco ID to a preferred VFB term name."""
+    query = _parse_resolver_query(name_or_id)
+    if not _FBCO_ID_RE.match(query):
+        return query
+
+    canonical_id = _canonicalize_fbco_id(query)
+    term_info = _vfb.get_term_info(canonical_id, preview=False)
+    return _preferred_term_info_query(term_info)
 
 
 # ---------------------------------------------------------------------------
@@ -667,10 +748,12 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args):
 
 
 async def handle_resolve_entity(request):
-    """GET /resolve_entity?query=<name_or_id>"""
-    query = request.query.get("query")
-    if not query:
-        return web.json_response({"error": "Missing required parameter: query"}, status=400)
+    """GET /resolve_entity?query=<name_or_symbol>"""
+    try:
+        query = _parse_resolver_query(request.query.get("query"))
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
     return await _dispatch_to_pool(
         request, f"resolve_entity:{query}", _run_resolve_entity, query
     )
@@ -689,10 +772,12 @@ async def handle_find_stocks(request):
 
 
 async def handle_resolve_combination(request):
-    """GET /resolve_combination?query=<name_or_id>"""
-    query = request.query.get("query")
-    if not query:
-        return web.json_response({"error": "Missing required parameter: query"}, status=400)
+    """GET /resolve_combination?query=<name_or_synonym>"""
+    try:
+        query = _parse_resolver_query(request.query.get("query"))
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
     return await _dispatch_to_pool(
         request, f"resolve_combination:{query}", _run_resolve_combination, query
     )

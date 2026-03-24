@@ -18,7 +18,12 @@ def _run_query(conn, sql, params):
 
 
 def resolve_entity(name_or_id):
-    """Resolve a user-provided name, symbol, or FlyBase ID to a canonical FlyBase feature.
+    """Resolve a user-provided name or symbol to a canonical FlyBase feature.
+
+    This Python helper still accepts FlyBase IDs for backwards compatibility.
+    The HA API ``/resolve_entity`` endpoint prefers unresolved query text and,
+    if an ID slips through, rewrites it to the feature name via VFB term_info
+    before resolving.
 
     Resolution order for names (not IDs):
       1. Exact match on feature.name

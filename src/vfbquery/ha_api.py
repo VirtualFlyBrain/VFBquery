@@ -327,8 +327,6 @@ def _run_query(short_form, func_name):
 def _run_resolve_entity(name_or_id):
     """Execute resolve_entity in a worker process."""
     query = _rewrite_resolve_entity_query(name_or_id)
-    if query is None:
-        return {"match_type": "NOT_FOUND", "results": []}
     return _vfb.resolve_entity(query)
 
 
@@ -340,8 +338,6 @@ def _run_find_stocks(feature_id, collection_filter):
 def _run_resolve_combination(name_or_id):
     """Execute resolve_combination in a worker process."""
     query = _rewrite_resolve_combination_query(name_or_id)
-    if query is None:
-        return {"match_type": "NOT_FOUND", "results": []}
     return _vfb.resolve_combination(query)
 
 
@@ -428,25 +424,25 @@ def _preferred_term_info_query(term_info):
 
 
 def _rewrite_resolve_entity_query(name_or_id):
-    """Rewrite a FlyBase feature ID to a preferred VFB term name."""
+    """Rewrite a FlyBase feature ID to a preferred VFB term name when available."""
     query = _parse_resolver_query(name_or_id)
     if not _FLYBASE_FEATURE_ID_RE.match(query):
         return query
 
     canonical_id = _canonicalize_flybase_feature_id(query)
     term_info = _vfb.get_term_info(canonical_id, preview=False)
-    return _preferred_term_info_query(term_info)
+    return _preferred_term_info_query(term_info) or canonical_id
 
 
 def _rewrite_resolve_combination_query(name_or_id):
-    """Rewrite an FBco ID to a preferred VFB term name."""
+    """Rewrite an FBco ID to a preferred VFB term name when available."""
     query = _parse_resolver_query(name_or_id)
     if not _FBCO_ID_RE.match(query):
         return query
 
     canonical_id = _canonicalize_fbco_id(query)
     term_info = _vfb.get_term_info(canonical_id, preview=False)
-    return _preferred_term_info_query(term_info)
+    return _preferred_term_info_query(term_info) or canonical_id
 
 
 # ---------------------------------------------------------------------------

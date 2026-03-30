@@ -363,6 +363,43 @@ def _run_query_connectivity(upstream_type, downstream_type, weight,
     )
 
 
+# ---------------------------------------------------------------------------
+# Graph post-processing — mapping from query function name to graph converter
+# ---------------------------------------------------------------------------
+
+_GRAPH_CONVERTERS = {
+    "get_neuron_neuron_connectivity": "graph_from_neuron_neuron",
+    "get_neuron_region_connectivity": "graph_from_neuron_region",
+    "get_downstream_class_connectivity": "graph_from_downstream_class",
+    "get_upstream_class_connectivity": "graph_from_upstream_class",
+}
+
+
+def _maybe_add_graph(result, func_name, short_form):
+    """Add a graph representation to *result* if the query type supports it.
+
+    Returns a shallow copy with the ``graph`` key added, so the original
+    cached dict is never mutated.
+    """
+    converter_name = _GRAPH_CONVERTERS.get(func_name)
+    if not converter_name or not isinstance(result, dict):
+        return result
+
+    try:
+        from . import graph_builder
+        converter = getattr(graph_builder, converter_name)
+        rows = result.get("rows", [])
+        if not rows:
+            return result
+        graph = converter(rows, short_form, short_form)
+        if graph is not None:
+            result = dict(result)  # shallow copy to avoid mutating cache
+            result["graph"] = graph
+    except Exception as exc:
+        log.warning("Graph generation failed for %s(%s): %s", func_name, short_form, exc)
+    return result
+
+
 def _convert_numpy_types(obj):
     """Recursively convert numpy types to Python types for JSON serialization."""
     if isinstance(obj, dict):
@@ -533,7 +570,7 @@ async def handle_get_term_info(request):
 
 
 async def handle_run_query(request):
-    """GET /run_query?id=<short_form>&query_type=<QueryType>"""
+    """GET /run_query?id=<short_form>&query_type=<QueryType>&include_graph=false"""
     short_form = request.query.get("id")
     query_type = request.query.get("query_type")
 
@@ -556,6 +593,8 @@ async def handle_run_query(request):
             {"error": "Missing required parameter: id"}, status=400
         )
 
+    include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
+
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
     # Normalize key — AllDatasets ignores the id parameter
@@ -568,6 +607,8 @@ async def handle_run_query(request):
     cached = rcache.get(key)
     if cached is not None:
         log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
+        if include_graph:
+            cached = _maybe_add_graph(cached, func_name, short_form)
         return web.json_response(cached)
 
     # ---- Coalescing: piggyback on identical in-flight query ----
@@ -578,6 +619,8 @@ async def handle_run_query(request):
         )
         try:
             result = await fut
+            if include_graph:
+                result = _maybe_add_graph(result, func_name, short_form)
             return web.json_response(result)
         except Exception:
             tb = traceback.format_exc()
@@ -625,6 +668,8 @@ async def handle_run_query(request):
         rcache.put(key, result)
         await coalescer.remove(key)
         fut.set_result(result)
+        if include_graph:
+            result = _maybe_add_graph(result, func_name, short_form)
         return web.json_response(result)
     except Exception as exc:
         tb = traceback.format_exc()
@@ -691,19 +736,32 @@ async def handle_status(request):
 # FlyBase & connectivity endpoint handlers
 # ---------------------------------------------------------------------------
 
-async def _dispatch_to_pool(request, cache_key, worker_fn, *args):
-    """Shared dispatch logic for new endpoints — cache, coalesce, queue, run."""
+async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
+    """Shared dispatch logic for new endpoints — cache, coalesce, queue, run.
+
+    If *post_fn* is given it is called on the result **after** cache
+    retrieval/storage.  This keeps graph generation out of the cache
+    while still letting handlers augment results cheaply.  *post_fn*
+    receives the result dict and must return the (possibly modified) dict.
+    When the result comes from cache, *post_fn* runs in-process (no
+    worker needed) because graph builders are lightweight CPU work plus
+    a single Neo4j batch lookup.
+    """
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
 
     cached = rcache.get(cache_key)
     if cached is not None:
+        if post_fn is not None:
+            cached = post_fn(cached)
         return web.json_response(cached)
 
     fut, is_owner = await coalescer.get_or_create(cache_key)
     if not is_owner:
         try:
             result = await fut
+            if post_fn is not None:
+                result = post_fn(result)
             return web.json_response(result)
         except Exception:
             tb = traceback.format_exc()
@@ -731,6 +789,8 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args):
         rcache.put(cache_key, result)
         await coalescer.remove(cache_key)
         fut.set_result(result)
+        if post_fn is not None:
+            result = post_fn(result)
         return web.json_response(result)
     except Exception as exc:
         tb = traceback.format_exc()
@@ -798,7 +858,7 @@ async def handle_list_connectome_datasets(request):
 
 
 async def handle_query_connectivity(request):
-    """GET /query_connectivity?upstream_type=X&downstream_type=Y&weight=5&group_by_class=false&exclude_dbs=hb,fafb"""
+    """GET /query_connectivity?upstream_type=X&downstream_type=Y&weight=5&group_by_class=false&exclude_dbs=hb,fafb&include_graph=false"""
     upstream = request.query.get("upstream_type") or None
     downstream = request.query.get("downstream_type") or None
     if upstream is None and downstream is None:
@@ -813,11 +873,27 @@ async def handle_query_connectivity(request):
         exclude_dbs = [s.strip() for s in exclude_dbs_raw.split(",") if s.strip()]
     else:
         exclude_dbs = ["hb", "fafb"]
+    include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
+
+    post_fn = None
+    if include_graph:
+        def post_fn(result):
+            from .graph_builder import graph_from_query_connectivity
+            conns = result.get("connections") if isinstance(result, dict) else None
+            if conns:
+                graph = graph_from_query_connectivity(
+                    conns, group_by_class, upstream, downstream,
+                )
+                if graph is not None:
+                    result = dict(result)  # shallow copy to avoid mutating cache
+                    result["graph"] = graph
+            return result
 
     key = f"query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}"
     return await _dispatch_to_pool(
         request, key, _run_query_connectivity,
         upstream, downstream, weight, group_by_class, exclude_dbs,
+        post_fn=post_fn,
     )
 
 

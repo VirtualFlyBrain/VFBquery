@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-04-02 04:24:56 UTC
-**Git Commit:** 61aa5246a68235d553092532946a91899ea9da08
+**Test Date:** 2026-04-03 04:25:44 UTC
+**Git Commit:** 9efd0255d47f3be41eeaea807d06a1c3737154ef
 **Branch:** main
-**Workflow Run:** [23883678745](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/23883678745)
+**Workflow Run:** [23933675248](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/23933675248)
 
 ## Test Overview
 
@@ -111,14 +111,23 @@ Test scRNAseq transcriptomics queries ... ok
 test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test NBLAST similarity queries ... ok
 test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test dataset and template queries ... ok
+Test dataset and template queries ... FAIL
 test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test publication and transgene queries ... ok
 
+======================================================================
+FAIL: test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test dataset and template queries
 ----------------------------------------------------------------------
-Ran 15 tests in 94.773s
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 660, in test_13_dataset_template_queries
+    self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllAlignedImages exceeded threshold")
+AssertionError: 7.344918489456177 not less than 3.0 : AllAlignedImages exceeded threshold
 
-OK
+----------------------------------------------------------------------
+Ran 15 tests in 102.413s
+
+FAILED (failures=1)
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -128,118 +137,114 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ================================================================================
 TERM INFO QUERIES
 ================================================================================
-get_term_info (mushroom body): 2.9996s ✅
-get_term_info (individual): 2.6712s ✅
+get_term_info (mushroom body): 2.7069s ✅
+get_term_info (individual): 1.5735s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 2.8930s ✅
+NeuronsPartHere: 1.9524s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 2.5496s ✅
-NeuronsPresynapticHere: 2.3869s ✅
-NeuronsPostsynapticHere: 2.4473s ✅
-NeuronNeuronConnectivity: 2.4050s ✅
+NeuronsSynaptic: 2.0559s ✅
+NeuronsPresynapticHere: 1.5464s ✅
+NeuronsPostsynapticHere: 2.1134s ✅
+NeuronNeuronConnectivity: 1.6915s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 2.0303s ✅
-PartsOf: 2.2720s ✅
-SubclassesOf: 2.2630s ✅
+ComponentsOf: 1.4132s ✅
+PartsOf: 1.3266s ✅
+SubclassesOf: 1.7995s ✅
 
 ================================================================================
 TRACT/NERVE AND LINEAGE QUERIES
 ================================================================================
-NeuronClassesFasciculatingHere: 2.1488s ✅
-TractsNervesInnervatingHere: 2.0073s ✅
-LineageClonesIn: 2.1418s ✅
+NeuronClassesFasciculatingHere: 1.8721s ✅
+TractsNervesInnervatingHere: 1.3115s ✅
+LineageClonesIn: 1.2788s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
 ================================================================================
-ImagesNeurons: 3.6881s ✅
-ImagesThatDevelopFrom: 2.1547s ✅
-epFrag: 2.3652s ✅
+ImagesNeurons: 2.2705s ✅
+ImagesThatDevelopFrom: 1.3577s ✅
+epFrag: 1.2966s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 2.0623s ✅
+ListAllAvailableImages: 1.2923s ✅
 
 ================================================================================
 CONNECTIVITY QUERIES
 ================================================================================
-NeuronNeuronConnectivityQuery: 2.0926s ✅
-NeuronRegionConnectivityQuery: 2.1416s ✅
+NeuronNeuronConnectivityQuery: 1.3184s ✅
+NeuronRegionConnectivityQuery: 1.6823s ✅
 
 ================================================================================
 SIMILARITY QUERIES (Neo4j NBLAST)
 ================================================================================
-SimilarMorphologyTo: 1.1923s ✅
+SimilarMorphologyTo: 1.2470s ✅
 
 ================================================================================
 NEURON INPUT QUERIES (Neo4j)
 ================================================================================
-NeuronInputsTo: 3.5432s ✅
+NeuronInputsTo: 2.6948s ✅
 
 ================================================================================
 EXPRESSION PATTERN QUERIES (Neo4j)
 ================================================================================
-ExpressionOverlapsHere: 1.4338s ✅
+ExpressionOverlapsHere: 0.9843s ✅
   └─ Found 3922 total expression patterns, returned 10
 
 ================================================================================
 TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
 ================================================================================
-anatScRNAseqQuery: 1.0489s ✅
+anatScRNAseqQuery: 0.6444s ✅
   └─ Found 57 total clusters, returned 10
-clusterExpression: 2.0976s ✅
+clusterExpression: 26.5485s ✅
   └─ Found 4588 genes expressed, returned 10
-expressionCluster: 1.1284s ✅
+clusterExpression: Skipped (test data may not exist): 26.548524856567383 not less than 15.0 : clusterExpression exceeded threshold
+expressionCluster: 0.7016s ✅
   └─ Found 9 clusters expressing gene
-scRNAdatasetData: 1.1223s ✅
+scRNAdatasetData: 0.5767s ✅
   └─ Found 13 clusters in dataset, returned 10
 
 ================================================================================
 NBLAST SIMILARITY QUERIES
 ================================================================================
-SimilarMorphologyTo: 1.2264s ✅
+SimilarMorphologyTo: 0.9788s ✅
   └─ Found 215 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 1.0721s ✅
+SimilarMorphologyToPartOf: 1.1983s ✅
   └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.8496s ✅
+SimilarMorphologyToPartOfexp: 0.7849s ✅
   └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 1.0386s ✅
+SimilarMorphologyToNB: 0.7177s ✅
   └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.8817s ✅
+SimilarMorphologyToNBexp: 0.7245s ✅
   └─ Found 15 NeuronBridge expression matches, returned 10
 ✅ All NBLAST similarity queries completed
 
 ================================================================================
 DATASET/TEMPLATE QUERIES
 ================================================================================
-PaintedDomains: 1.0686s ✅
+PaintedDomains: 0.6367s ✅
   └─ Found 46 painted domains, returned 10
-DatasetImages: 1.0163s ✅
+DatasetImages: 0.8108s ✅
   └─ Found 46 images in dataset, returned 10
-AllAlignedImages: 2.8194s ✅
+AllAlignedImages: 7.3449s ✅
   └─ Found 527179 aligned images, returned 10
-AlignedDatasets: 1.1054s ✅
-  └─ Found 72 aligned datasets, returned 10
-AllDatasets: 1.3139s ✅
-  └─ Found 130 total datasets, returned 20
-✅ All dataset/template queries completed
 
 ================================================================================
 PUBLICATION/TRANSGENE QUERIES
 ================================================================================
-TermsForPub: 1.0364s ✅
+TermsForPub: 0.6251s ✅
   └─ Found 2 terms for publication
-TransgeneExpressionHere: 2.3738s ✅
+TransgeneExpressionHere: 2.3200s ✅
   └─ Found 2340 transgene expressions, returned 10
 ✅ All publication/transgene queries completed
 
@@ -252,7 +257,7 @@ test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
 Performance test for specific term info queries. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 4.125s
+Ran 1 test in 2.580s
 
 OK
 VFBquery functions patched with caching support
@@ -262,10 +267,10 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 2.0685 seconds
-VFB_00101567 query took: 2.0565 seconds
-Total time for both queries: 4.1251 seconds
-Performance Level: 🟠 Acceptable (3-6 seconds)
+FBbt_00003748 query took: 1.2850 seconds
+VFB_00101567 query took: 1.2947 seconds
+Total time for both queries: 2.5797 seconds
+Performance Level: 🟡 Good (1.5-3 seconds)
 ==================================================
 Performance test completed successfully!
 ```
@@ -283,4 +288,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-04-02 04:24:56 UTC*
+*Last updated: 2026-04-03 04:25:44 UTC*

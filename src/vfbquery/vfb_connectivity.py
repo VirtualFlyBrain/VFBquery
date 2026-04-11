@@ -151,18 +151,18 @@ def _build_connectivity_cypher(upstream_id, downstream_id, weight,
     """
     clauses = []
 
-    # Match upstream class and subclasses
+    # Match upstream class directly (subclass expansion is handled at
+    # query time via OWLERY in the Solr-cached path; this Neo4j fallback
+    # keeps only direct INSTANCEOF matching for consistency).
     if upstream_id is not None:
         clauses.append(
-            f"MATCH (:Class:Neuron {{short_form:'{upstream_id}'}})"
-            f"<-[:SUBCLASSOF*0..]-(c1:Class:Neuron)"
+            f"MATCH (c1:Class:Neuron {{short_form:'{upstream_id}'}})"
         )
 
-    # Match downstream class and subclasses
+    # Match downstream class directly
     if downstream_id is not None:
         clauses.append(
-            f"MATCH (:Class:Neuron {{short_form:'{downstream_id}'}})"
-            f"<-[:SUBCLASSOF*0..]-(c2:Class:Neuron)"
+            f"MATCH (c2:Class:Neuron {{short_form:'{downstream_id}'}})"
         )
 
     # Core synapse matching

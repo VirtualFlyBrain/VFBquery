@@ -3009,14 +3009,130 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
     }
 
 
+def _fetch_connectivity_entries(short_form: str, solr_field: str):
+    """Fetch connectivity entries from Solr for a neuron class and all its
+    OWLERY subclasses.
+
+    Returns a flat list of parsed JSON entries (dicts) from the Solr
+    connectivity field, collected across every subclass doc.
+    """
+    # Step 1: OWLERY subclass expansion (includes the class itself)
+    owl_query = f"<{short_form}>"
+    try:
+        subclass_ids = vc.vfb.oc.get_subclasses(
+            query=owl_query, query_by_label=False, verbose=False
+        )
+    except Exception as e:
+        print(f"Owlery subclass query failed for {short_form}: {e}")
+        subclass_ids = []
+
+    # Always include the queried class itself
+    if short_form not in subclass_ids:
+        subclass_ids.insert(0, short_form)
+
+    if not subclass_ids:
+        return []
+
+    # Step 2: Batch-fetch from Solr using {!terms f=id}
+    id_list = ','.join(subclass_ids)
+    try:
+        results = vfb_solr.search(
+            q='id:*',
+            fq=f'{{!terms f=id}}{id_list}',
+            fl=solr_field,
+            rows=len(subclass_ids),
+        )
+    except Exception as e:
+        print(f"Error querying Solr for {solr_field}: {e}")
+        return []
+
+    # Step 3: Parse all connectivity JSON from all returned docs
+    all_entries = []
+    for doc in results.docs:
+        if solr_field not in doc:
+            continue
+        raw = doc[solr_field]
+        field_json = raw[0] if isinstance(raw, list) else raw
+        try:
+            entries = json.loads(field_json)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if isinstance(entries, list):
+            all_entries.extend(entries)
+        else:
+            all_entries.append(entries)
+
+    return all_entries
+
+
+def _merge_connectivity_rows(entries, partner_key, partner_id_key, partner_label_key):
+    """Merge connectivity entries by partner class, summing statistics.
+
+    Returns a list of merged row dicts ready for DataFrame / dict output.
+    ``partner_key`` is the output column name (e.g. 'downstream_class'),
+    ``partner_id_key`` / ``partner_label_key`` are the keys inside
+    ``class_connectivity`` to read partner id and label from.
+    """
+    # Accumulate by partner class id
+    merged = {}  # partner_id -> {label, total_n, connected_n, pw, tw}
+    for entry in entries:
+        cc = entry.get('class_connectivity', {})
+        obj = entry.get('object', {})
+        pid = obj.get('short_form', cc.get(partner_id_key, ''))
+        plabel = obj.get('label', cc.get(partner_label_key, ''))
+        if not pid:
+            continue
+        if pid not in merged:
+            merged[pid] = {
+                'label': plabel,
+                'total_n': 0,
+                'connected_n': 0,
+                'pairwise_connections': 0,
+                'total_weight': 0,
+            }
+        m = merged[pid]
+        m['total_n'] += _num(cc.get('total_upstream_count', 0))
+        m['connected_n'] += _num(cc.get('connected_upstream_count', 0))
+        m['pairwise_connections'] += _num(cc.get('pairwise_connections', 0))
+        m['total_weight'] += _num(cc.get('total_weight', 0))
+
+    rows = []
+    for pid, m in merged.items():
+        total_n = m['total_n']
+        connected_n = m['connected_n']
+        pw = m['pairwise_connections']
+        tw = m['total_weight']
+        pct = round((connected_n / total_n) * 100) if total_n else 0
+        avg = tw / pw if pw else 0
+        rows.append({
+            'id': pid,
+            partner_key: f"[{m['label']}]({pid})" if pid else m['label'],
+            'total_n': total_n,
+            'connected_n': connected_n,
+            'percent_connected': pct,
+            'pairwise_connections': pw,
+            'total_weight': tw,
+            'avg_weight': avg,
+        })
+    return rows
+
+
+def _num(v):
+    """Coerce a value to a number, defaulting to 0."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0
+
+
 @with_solr_cache('downstream_class_connectivity_query')
 def get_downstream_class_connectivity(short_form: str, return_dataframe=True, limit: int = -1):
     """
     Retrieves downstream connectivity classes for the specified neuron class.
 
-    Reads the downstream_connectivity_query Solr field, which contains a JSON array
-    of vfb_query-format objects populated by the neuron_downstream_connectivity_indexer.
-    Each element represents one (primary_class → downstream_class) connection summary.
+    Uses OWLERY to expand subclasses of the queried class, fetches the
+    downstream_connectivity_query Solr field for each, and merges results
+    by downstream partner class.
 
     Matching criteria: Class + Neuron
 
@@ -3025,50 +3141,21 @@ def get_downstream_class_connectivity(short_form: str, return_dataframe=True, li
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Downstream partner neuron classes with connectivity statistics
     """
-    solr_field = 'downstream_connectivity_query'
-    try:
-        results = vfb_solr.search(f'id:{short_form}', fl=solr_field, rows=1)
-    except Exception as e:
-        print(f"Error querying Solr for downstream class connectivity: {e}")
+    entries = _fetch_connectivity_entries(short_form, 'downstream_connectivity_query')
+    if not entries:
         if return_dataframe:
             return pd.DataFrame()
         return {'headers': {}, 'rows': [], 'count': 0}
 
-    if not results.hits or not results.docs or solr_field not in results.docs[0]:
-        if return_dataframe:
-            return pd.DataFrame()
-        return {'headers': {}, 'rows': [], 'count': 0}
+    rows = _merge_connectivity_rows(
+        entries,
+        partner_key='downstream_class',
+        partner_id_key='downstream_class_id',
+        partner_label_key='downstream_class',
+    )
 
-    raw = results.docs[0][solr_field]
-    field_json = raw[0] if isinstance(raw, list) else raw
-    try:
-        entries = json.loads(field_json)
-    except (json.JSONDecodeError, TypeError) as e:
-        print(f"Error parsing downstream_connectivity_query JSON for {short_form}: {e}")
-        if return_dataframe:
-            return pd.DataFrame()
-        return {'headers': {}, 'rows': [], 'count': 0}
-
-    if not isinstance(entries, list):
-        entries = [entries]
-
-    rows = []
-    for entry in entries:
-        cc = entry.get('class_connectivity', {})
-        obj = entry.get('object', {})
-        ds_id = obj.get('short_form', cc.get('downstream_class_id', ''))
-        ds_label = obj.get('label', cc.get('downstream_class', ''))
-        row = {
-            'id': ds_id,
-            'downstream_class': f"[{ds_label}]({ds_id})" if ds_id else ds_label,
-            'total_n': cc.get('total_upstream_count', ''),
-            'connected_n': cc.get('connected_upstream_count', ''),
-            'percent_connected': cc.get('percent_connected', ''),
-            'pairwise_connections': cc.get('pairwise_connections', ''),
-            'total_weight': cc.get('total_weight', ''),
-            'avg_weight': cc.get('average_weight', ''),
-        }
-        rows.append(row)
+    # Sort by pairwise_connections descending
+    rows.sort(key=lambda r: r.get('pairwise_connections', 0), reverse=True)
 
     total_count = len(rows)
     if limit != -1:
@@ -3097,9 +3184,9 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
     """
     Retrieves upstream connectivity classes for the specified neuron class.
 
-    Reads the upstream_connectivity_query Solr field, which contains a JSON array
-    of vfb_query-format objects populated by the neuron_upstream_connectivity_indexer.
-    Each element represents one (upstream_class → primary_class) connection summary.
+    Uses OWLERY to expand subclasses of the queried class, fetches the
+    upstream_connectivity_query Solr field for each, and merges results
+    by upstream partner class.
 
     Matching criteria: Class + Neuron
 
@@ -3108,50 +3195,21 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Upstream partner neuron classes with connectivity statistics
     """
-    solr_field = 'upstream_connectivity_query'
-    try:
-        results = vfb_solr.search(f'id:{short_form}', fl=solr_field, rows=1)
-    except Exception as e:
-        print(f"Error querying Solr for upstream class connectivity: {e}")
+    entries = _fetch_connectivity_entries(short_form, 'upstream_connectivity_query')
+    if not entries:
         if return_dataframe:
             return pd.DataFrame()
         return {'headers': {}, 'rows': [], 'count': 0}
 
-    if not results.hits or not results.docs or solr_field not in results.docs[0]:
-        if return_dataframe:
-            return pd.DataFrame()
-        return {'headers': {}, 'rows': [], 'count': 0}
+    rows = _merge_connectivity_rows(
+        entries,
+        partner_key='upstream_class',
+        partner_id_key='upstream_class_id',
+        partner_label_key='upstream_class',
+    )
 
-    raw = results.docs[0][solr_field]
-    field_json = raw[0] if isinstance(raw, list) else raw
-    try:
-        entries = json.loads(field_json)
-    except (json.JSONDecodeError, TypeError) as e:
-        print(f"Error parsing upstream_connectivity_query JSON for {short_form}: {e}")
-        if return_dataframe:
-            return pd.DataFrame()
-        return {'headers': {}, 'rows': [], 'count': 0}
-
-    if not isinstance(entries, list):
-        entries = [entries]
-
-    rows = []
-    for entry in entries:
-        cc = entry.get('class_connectivity', {})
-        obj = entry.get('object', {})
-        us_id = obj.get('short_form', cc.get('upstream_class_id', ''))
-        us_label = obj.get('label', cc.get('upstream_class', ''))
-        row = {
-            'id': us_id,
-            'upstream_class': f"[{us_label}]({us_id})" if us_id else us_label,
-            'total_n': cc.get('total_upstream_count', ''),
-            'connected_n': cc.get('connected_upstream_count', ''),
-            'percent_connected': cc.get('percent_connected', ''),
-            'pairwise_connections': cc.get('pairwise_connections', ''),
-            'total_weight': cc.get('total_weight', ''),
-            'avg_weight': cc.get('average_weight', ''),
-        }
-        rows.append(row)
+    # Sort by pairwise_connections descending
+    rows.sort(key=lambda r: r.get('pairwise_connections', 0), reverse=True)
 
     total_count = len(rows)
     if limit != -1:

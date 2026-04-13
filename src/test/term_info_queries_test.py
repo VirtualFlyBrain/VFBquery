@@ -299,7 +299,7 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("thumbnail" in serialized)
 
         self.assertTrue("references" in serialized)
-        self.assertEqual(7, len(serialized["references"]))
+        self.assertEqual(9, len(serialized["references"]))
 
         self.assertTrue("targetingSplits" in serialized)
         self.assertEqual(6, len(serialized["targetingSplits"]))

@@ -225,17 +225,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           cat performance.md >> $GITHUB_STEP_SUMMARY
           
-      - name: Commit Performance Report
+      - name: Commit and Push Performance Report
         if: always()
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add performance.md
           git diff --staged --quiet || git commit -m "Update performance test results [skip ci]"
-          
-      - name: Push Performance Report
-        if: always()
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.head_ref || github.ref_name }}
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          git pull --rebase origin "$BRANCH" || true
+          git push origin HEAD:"$BRANCH" || echo "Push failed — performance report not updated"

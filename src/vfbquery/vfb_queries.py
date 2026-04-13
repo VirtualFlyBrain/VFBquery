@@ -4776,15 +4776,38 @@ SELECT DISTINCT ?child ?childLabel ?parent ?parentLabel WHERE {{
     # ------------------------------------------------------------------
 
     def _build_ancestors_subclass(term_id, depth, visited):
-        """Build is-a ancestor chain from SOLR term_info parents."""
+        """Build is-a ancestor chain from SOLR term_info parents.
+
+        Filters to FBbt cell terms only (types includes 'Cell') to
+        exclude cross-ontology parents (CL, UBERON, BFO, etc.) and
+        non-cell ancestors (developmental lineage, anatomical structure).
+        Stops at 'cell' (FBbt_00007002).
+        """
         if term_id in visited or (max_depth != -1 and depth >= max_depth):
             return []
-        visited.add(term_id)
-        parent_tuples = _term_info_parents(term_id)
-        if not parent_tuples:
+        if term_id == 'FBbt_00007002':  # cell — top of useful hierarchy
             return []
+        visited.add(term_id)
+
+        try:
+            results = vfb_solr.search(f'id:{term_id}', fl='term_info', rows=1)
+            if not results.docs or 'term_info' not in results.docs[0]:
+                return []
+            raw = results.docs[0]['term_info']
+            ti = json.loads(raw[0] if isinstance(raw, list) else raw)
+            parents = ti.get('parents', [])
+        except Exception:
+            return []
+
         ancestors = []
-        for psf, plabel in parent_tuples:
+        for p in parents:
+            psf = p['short_form']
+            # Filter: must be FBbt and must be a cell type
+            if not psf.startswith('FBbt_'):
+                continue
+            if 'Cell' not in p.get('types', []):
+                continue
+            plabel = p.get('label', psf)
             label_cache[psf] = plabel
             node = {'id': psf, 'label': plabel}
             further = _build_ancestors_subclass(psf, depth + 1, visited)

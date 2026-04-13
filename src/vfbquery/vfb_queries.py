@@ -4538,3 +4538,400 @@ def fill_query_results(term_info, force_refresh: bool = False):
         process_query(query)
 
     return term_info
+
+
+def get_hierarchy(short_form, relationship='part_of', direction='both', max_depth=1):
+    """Build a hierarchy tree showing ancestors and/or descendants of a term.
+
+    For ``subclass_of`` descendants, all descendants are fetched in one Owlery
+    call (fast, cached) and the tree is reconstructed by looking up each term's
+    parents in SOLR.  For ``part_of`` descendants, direct children are fetched
+    per level via Owlery ``direct=True`` (slower on first call, but results are
+    cached by the Owlery server).
+
+    :param short_form: Root term ID (e.g. 'FBbt_00005801')
+    :param relationship: 'part_of' for brain region structure, 'subclass_of' for cell type hierarchies
+    :param direction: 'descendants', 'ancestors', or 'both'
+    :param max_depth: Levels to expand (default 1 = direct only; -1 = unlimited)
+    :return: Nested dict with id, label, ancestors, descendants
+    """
+    if relationship not in ('part_of', 'subclass_of'):
+        raise ValueError("relationship must be 'part_of' or 'subclass_of'")
+    if direction not in ('descendants', 'ancestors', 'both'):
+        raise ValueError("direction must be 'descendants', 'ancestors', or 'both'")
+
+    label_cache = {}
+    _ont_solr = pysolr.Solr('https://solr.virtualflybrain.org/solr/ontology/', always_commit=False, timeout=30)
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _batch_lookup_labels(ids):
+        """Fetch labels for a list of IDs from the ontology SOLR core."""
+        missing = [i for i in ids if i not in label_cache]
+        if not missing:
+            return
+        try:
+            id_list = ','.join(missing)
+            results = _ont_solr.search(
+                q='*:*',
+                fq=f'{{!terms f=short_form}}{id_list}',
+                fl='short_form,label',
+                rows=len(missing)
+            )
+            for doc in results.docs:
+                label_cache[doc.get('short_form', '')] = doc.get('label', doc.get('short_form', ''))
+        except Exception:
+            pass
+        for i in missing:
+            label_cache.setdefault(i, i)
+
+    def _get_all_children(term_id):
+        """Get all descendants (transitive) using the existing cached functions."""
+        if relationship == 'part_of':
+            result = get_parts_of(term_id, return_dataframe=False)
+        else:
+            result = get_subclasses_of(term_id, return_dataframe=False)
+        if not result or not result.get('rows'):
+            return []
+        return [row['id'] for row in result['rows'] if row.get('id') and row['id'] != term_id]
+
+    def _term_info_parents(term_id):
+        """Return [(parent_sf, parent_label), ...] from SOLR term_info."""
+        try:
+            results = vfb_solr.search(f'id:{term_id}', fl='term_info', rows=1)
+            if not results.docs or 'term_info' not in results.docs[0]:
+                return []
+            raw = results.docs[0]['term_info']
+            ti = json.loads(raw[0] if isinstance(raw, list) else raw)
+            if relationship == 'subclass_of':
+                return [(p['short_form'], p.get('label', p['short_form'])) for p in ti.get('parents', [])]
+            else:
+                # part_of: BFO_0000050 in relationships
+                out = []
+                for r in ti.get('relationships', []):
+                    if 'BFO_0000050' in r.get('relation', {}).get('iri', ''):
+                        obj = r['object']
+                        out.append((obj['short_form'], obj.get('label', obj['short_form'])))
+                # Fallback to Neo4j edge
+                if not out:
+                    try:
+                        cypher = (
+                            f"MATCH (c:Class {{short_form: '{term_id}'}})"
+                            f"-[:part_of]->(p:Class) "
+                            f"RETURN p.short_form AS sf, p.label AS label"
+                        )
+                        for row in get_dict_cursor()(vc.nc.commit_list([cypher])):
+                            out.append((row['sf'], row.get('label', row['sf'])))
+                    except Exception:
+                        pass
+                return out
+        except Exception:
+            return []
+
+    # ------------------------------------------------------------------
+    # Descendants
+    # ------------------------------------------------------------------
+
+    def _build_descendants_subclass(root_id):
+        """Build subclass tree: one cached Owlery call + batch SOLR parent lookup."""
+        all_desc = _get_all_children(root_id)
+        if not all_desc:
+            return []
+
+        tree_ids = set(all_desc) | {root_id}
+        _batch_lookup_labels(list(tree_ids))
+
+        # Batch-fetch parents from vfb_json SOLR
+        children_of = {tid: [] for tid in tree_ids}
+        id_list = ','.join(all_desc)
+        try:
+            results = vfb_solr.search(
+                q='id:*', fq=f'{{!terms f=id}}{id_list}', fl='id,term_info', rows=len(all_desc)
+            )
+            for doc in results.docs:
+                child_id = doc.get('id', '')
+                if 'term_info' not in doc:
+                    continue
+                raw = doc['term_info']
+                ti = json.loads(raw[0] if isinstance(raw, list) else raw)
+                parents_in_tree = [p['short_form'] for p in ti.get('parents', []) if p['short_form'] in tree_ids]
+                if parents_in_tree:
+                    for pid in parents_in_tree:
+                        children_of[pid].append(child_id)
+                else:
+                    children_of[root_id].append(child_id)
+        except Exception:
+            children_of[root_id] = all_desc
+
+        def build(node_id, depth):
+            node = {'id': node_id, 'label': label_cache.get(node_id, node_id)}
+            if max_depth == -1 or depth < max_depth:
+                kids = children_of.get(node_id, [])
+                if kids:
+                    node['descendants'] = [
+                        build(k, depth + 1)
+                        for k in sorted(kids, key=lambda x: label_cache.get(x, x))
+                    ]
+            return node
+
+        top = children_of.get(root_id, [])
+        return [build(k, 1) for k in sorted(top, key=lambda x: label_cache.get(x, x))]
+
+    def _build_descendants_part_of(root_id):
+        """Build part_of descendant tree via Ubergraph SPARQL.
+
+        Queries the Ubergraph redundant graph for all transitive part_of
+        edges within the subtree, then reconstructs the nesting by finding
+        each child's most specific parent.
+        """
+        import requests as _req
+        from collections import defaultdict
+
+        root_iri = _short_form_to_iri(root_id)
+        sparql = f'''
+PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?child ?childLabel ?parent ?parentLabel WHERE {{
+  GRAPH <http://reasoner.renci.org/redundant> {{
+    ?child BFO:0000050 <{root_iri}> .
+    ?child BFO:0000050 ?parent .
+  }}
+  FILTER(?parent != ?child)
+  FILTER(
+    ?parent = <{root_iri}> ||
+    EXISTS {{
+      GRAPH <http://reasoner.renci.org/redundant> {{
+        ?parent BFO:0000050 <{root_iri}> .
+      }}
+    }}
+  )
+  ?child rdfs:label ?childLabel .
+  ?parent rdfs:label ?parentLabel .
+  FILTER(STRSTARTS(STR(?child), "http://purl.obolibrary.org/obo/FBbt_"))
+}}
+'''
+        try:
+            resp = _req.get(
+                'https://ubergraph.apps.renci.org/sparql',
+                params={'query': sparql},
+                headers={'Accept': 'application/json'},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            bindings = resp.json().get('results', {}).get('bindings', [])
+        except Exception:
+            # Fallback to flat list via Owlery
+            all_parts = _get_all_children(root_id)
+            if not all_parts:
+                return []
+            _batch_lookup_labels(all_parts)
+            return [
+                {'id': pid, 'label': label_cache.get(pid, pid)}
+                for pid in sorted(all_parts, key=lambda x: label_cache.get(x, x))
+            ]
+
+        if not bindings:
+            return []
+
+        # Parse SPARQL results into parent map
+        parents_of = defaultdict(set)
+        all_parts = set()
+        for b in bindings:
+            csf = b['child']['value'].rsplit('/', 1)[-1]
+            psf = b['parent']['value'].rsplit('/', 1)[-1]
+            parents_of[csf].add(psf)
+            label_cache[csf] = b['childLabel']['value']
+            label_cache[psf] = b['parentLabel']['value']
+            all_parts.add(csf)
+
+        # Find most specific parent for each child
+        # (no other parent of this child is itself a descendant of this parent)
+        children_of = defaultdict(list)
+        for child in all_parts:
+            best = []
+            for p in parents_of[child]:
+                if not any(p in parents_of.get(q, set()) for q in parents_of[child] if q != p):
+                    best.append(p)
+            for bp in best:
+                children_of[bp].append(child)
+
+        def build(node_id, depth):
+            node = {'id': node_id, 'label': label_cache.get(node_id, node_id)}
+            if max_depth == -1 or depth < max_depth:
+                kids = children_of.get(node_id, [])
+                if kids:
+                    node['descendants'] = [
+                        build(k, depth + 1)
+                        for k in sorted(kids, key=lambda x: label_cache.get(x, x))
+                    ]
+            return node
+
+        top = children_of.get(root_id, [])
+        return [build(k, 1) for k in sorted(top, key=lambda x: label_cache.get(x, x))]
+
+    # ------------------------------------------------------------------
+    # Ancestors
+    # ------------------------------------------------------------------
+
+    def _build_ancestors_subclass(term_id, depth, visited):
+        """Build is-a ancestor chain from SOLR term_info parents."""
+        if term_id in visited or (max_depth != -1 and depth >= max_depth):
+            return []
+        visited.add(term_id)
+        parent_tuples = _term_info_parents(term_id)
+        if not parent_tuples:
+            return []
+        ancestors = []
+        for psf, plabel in parent_tuples:
+            label_cache[psf] = plabel
+            node = {'id': psf, 'label': plabel}
+            further = _build_ancestors_subclass(psf, depth + 1, visited)
+            if further:
+                node['ancestors'] = further
+            ancestors.append(node)
+        return ancestors
+
+    def _build_ancestors_part_of(term_id):
+        """Build part_of ancestor chain via Ubergraph SPARQL.
+
+        Filters ancestors to terms that are part of the nervous system
+        (or the nervous system itself) to exclude developmental lineage
+        terms and generic structural classes that leak in via is-a
+        propagation in the Ubergraph redundant graph.
+        """
+        import requests as _req
+        from collections import defaultdict
+
+        term_iri = _short_form_to_iri(term_id)
+        sparql = f'''
+PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
+PREFIX FBbt: <http://purl.obolibrary.org/obo/FBbt_>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?ancestor ?ancestorLabel ?parent ?parentLabel WHERE {{
+  GRAPH <http://reasoner.renci.org/redundant> {{
+    <{term_iri}> BFO:0000050 ?ancestor .
+  }}
+  FILTER(?ancestor != <{term_iri}>)
+  FILTER(STRSTARTS(STR(?ancestor), "http://purl.obolibrary.org/obo/FBbt_"))
+  FILTER(
+    ?ancestor = FBbt:00005093 ||
+    EXISTS {{
+      GRAPH <http://reasoner.renci.org/redundant> {{
+        ?ancestor BFO:0000050 FBbt:00005093 .
+      }}
+    }}
+  )
+  ?ancestor rdfs:label ?ancestorLabel .
+  OPTIONAL {{
+    GRAPH <http://reasoner.renci.org/redundant> {{
+      ?ancestor BFO:0000050 ?parent .
+    }}
+    FILTER(
+      ?parent = FBbt:00005093 ||
+      EXISTS {{
+        GRAPH <http://reasoner.renci.org/redundant> {{
+          ?parent BFO:0000050 FBbt:00005093 .
+        }}
+      }}
+    )
+    FILTER(?parent != ?ancestor)
+    FILTER(STRSTARTS(STR(?parent), "http://purl.obolibrary.org/obo/FBbt_"))
+    FILTER(
+      EXISTS {{
+        GRAPH <http://reasoner.renci.org/redundant> {{
+          <{term_iri}> BFO:0000050 ?parent .
+        }}
+      }}
+    )
+    ?parent rdfs:label ?parentLabel .
+  }}
+}}
+'''
+        try:
+            resp = _req.get(
+                'https://ubergraph.apps.renci.org/sparql',
+                params={'query': sparql},
+                headers={'Accept': 'application/json'},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            bindings = resp.json().get('results', {}).get('bindings', [])
+        except Exception:
+            # Fallback to term_info approach
+            return _build_ancestors_subclass(term_id, 0, set())
+
+        if not bindings:
+            return []
+
+        # Build parent map among ancestors
+        parents_of = defaultdict(set)
+        all_ancestors = set()
+        for b in bindings:
+            asf = b['ancestor']['value'].rsplit('/', 1)[-1]
+            label_cache[asf] = b['ancestorLabel']['value']
+            all_ancestors.add(asf)
+            if 'parent' in b:
+                psf = b['parent']['value'].rsplit('/', 1)[-1]
+                parents_of[asf].add(psf)
+                label_cache[psf] = b['parentLabel']['value']
+
+        # Find most specific ancestors (direct parents of the query term)
+        # = ancestors that aren't themselves ancestors of another ancestor
+        children_of = defaultdict(list)
+        for anc in all_ancestors:
+            best = []
+            for p in parents_of.get(anc, set()):
+                if p in all_ancestors:
+                    if not any(p in parents_of.get(q, set()) for q in parents_of.get(anc, set()) if q != p and q in all_ancestors):
+                        best.append(p)
+            for bp in best:
+                children_of[bp].append(anc)
+
+        # Direct parents of query term = ancestors with no child that is also an ancestor
+        direct_parents = [a for a in all_ancestors if not any(a in parents_of.get(other, set()) for other in all_ancestors if other != a)]
+
+        def build(node_id, depth):
+            node = {'id': node_id, 'label': label_cache.get(node_id, node_id)}
+            if max_depth == -1 or depth < max_depth:
+                # Find this node's parents among the ancestors
+                node_parents = [p for p in parents_of.get(node_id, set()) if p in all_ancestors]
+                # Most specific parents
+                best = []
+                for p in node_parents:
+                    if not any(p in parents_of.get(q, set()) for q in node_parents if q != p):
+                        best.append(p)
+                if best:
+                    node['ancestors'] = [
+                        build(p, depth + 1)
+                        for p in sorted(best, key=lambda x: label_cache.get(x, x))
+                    ]
+            return node
+
+        return [build(dp, 1) for dp in sorted(direct_parents, key=lambda x: label_cache.get(x, x))]
+
+    # ------------------------------------------------------------------
+    # Assemble result
+    # ------------------------------------------------------------------
+
+    _batch_lookup_labels([short_form])
+    root = {
+        'id': short_form,
+        'label': label_cache.get(short_form, short_form),
+        'relationship': relationship,
+    }
+
+    if direction in ('descendants', 'both'):
+        if relationship == 'subclass_of':
+            root['descendants'] = _build_descendants_subclass(short_form)
+        else:
+            root['descendants'] = _build_descendants_part_of(short_form)
+
+    if direction in ('ancestors', 'both'):
+        if relationship == 'subclass_of':
+            root['ancestors'] = _build_ancestors_subclass(short_form, 0, set())
+        else:
+            root['ancestors'] = _build_ancestors_part_of(short_form)
+
+    return root

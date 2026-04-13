@@ -105,7 +105,7 @@ class OwleryClient:
             # Based on VFBConnect's query() method
             params = {
                 'object': iri_query,
-                'direct': 'false',  # Always use indirect (transitive) queries
+                'direct': 'true' if direct else 'false',
                 'includeDeprecated': 'false',  # Exclude deprecated terms
                 'includeEquivalent': 'true'  # Include equivalent classes
             }

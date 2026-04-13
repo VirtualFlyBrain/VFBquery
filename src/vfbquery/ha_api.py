@@ -930,6 +930,37 @@ async def handle_get_hierarchy(request):
     )
 
 
+async def handle_get_hierarchy_html(request):
+    """GET /get_hierarchy_html?id=FBbt_00005801&relationship=part_of&direction=both&max_depth=1
+
+    Serves the hierarchy as a self-contained HTML page (Content-Type: text/html).
+    """
+    short_form = request.query.get("id")
+    if not short_form:
+        return web.Response(text="Error: id parameter is required", status=400)
+    relationship = request.query.get("relationship", "part_of")
+    if relationship not in ("part_of", "subclass_of"):
+        return web.Response(text="Error: relationship must be 'part_of' or 'subclass_of'", status=400)
+    direction = request.query.get("direction", "both")
+    if direction not in ("descendants", "ancestors", "both"):
+        return web.Response(text="Error: direction must be 'descendants', 'ancestors', or 'both'", status=400)
+    max_depth = int(request.query.get("max_depth", "1"))
+
+    key = f"get_hierarchy:{short_form}:{relationship}:{direction}:{max_depth}"
+    json_response = await _dispatch_to_pool(
+        request, key, _run_get_hierarchy,
+        short_form, relationship, direction, max_depth,
+    )
+
+    # Extract HTML from the JSON result
+    import json as _json
+    result = _json.loads(json_response.body)
+    html = result.get("html", "")
+    if not html:
+        return web.Response(text="No hierarchy data found", status=404)
+    return web.Response(text=html, content_type="text/html")
+
+
 # ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
@@ -971,6 +1002,7 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/list_connectome_datasets", handle_list_connectome_datasets)
     app.router.add_get("/query_connectivity", handle_query_connectivity)
     app.router.add_get("/get_hierarchy", handle_get_hierarchy)
+    app.router.add_get("/get_hierarchy_html", handle_get_hierarchy_html)
 
     # Store config for /status and handlers
     app["max_workers"] = max_workers

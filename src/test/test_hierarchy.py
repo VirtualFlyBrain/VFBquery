@@ -111,6 +111,39 @@ class TestPartOfAncestors:
         assert 'FBbt_00003627' in ancestor_ids  # protocerebrum
 
 
+class TestDisplayOutput:
+    @pytest.mark.integration
+    def test_display_field_present(self):
+        result = get_hierarchy(KENYON_CELL, 'subclass_of', 'both', max_depth=1)
+        assert 'display' in result
+        assert isinstance(result['display'], str)
+        assert 'Kenyon cell' in result['display']
+
+    @pytest.mark.integration
+    def test_display_shows_ancestors(self):
+        result = get_hierarchy(KENYON_CELL, 'subclass_of', 'both', max_depth=1)
+        assert 'ancestors' in result['display'].lower()
+        assert 'mushroom body intrinsic neuron' in result['display']
+
+    @pytest.mark.integration
+    def test_display_shows_tree_connectors(self):
+        result = get_hierarchy(KENYON_CELL, 'subclass_of', 'descendants', max_depth=1)
+        assert '├──' in result['display'] or '└──' in result['display']
+
+    @pytest.mark.integration
+    def test_html_field_present(self):
+        result = get_hierarchy(KENYON_CELL, 'subclass_of', 'both', max_depth=1)
+        assert 'html' in result
+        assert '<!DOCTYPE html>' in result['html']
+        assert 'Kenyon cell' in result['html']
+
+    @pytest.mark.integration
+    def test_html_contains_vfb_links(self):
+        result = get_hierarchy(KENYON_CELL, 'subclass_of', 'descendants', max_depth=1)
+        assert 'virtualflybrain.org' in result['html']
+        assert KENYON_CELL in result['html']
+
+
 class TestBothDirections:
     @pytest.mark.integration
     def test_both_returns_ancestors_and_descendants(self):

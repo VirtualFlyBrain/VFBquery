@@ -4957,4 +4957,193 @@ SELECT DISTINCT ?ancestor ?ancestorLabel ?parent ?parentLabel WHERE {{
         else:
             root['ancestors'] = _build_ancestors_part_of(short_form)
 
+    # ------------------------------------------------------------------
+    # Render display text and HTML
+    # ------------------------------------------------------------------
+
+    VFB_BASE = 'https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id='
+    DEFAULT_MAX_SIBLINGS = 10  # truncate large sibling groups in text display
+
+    def _text_tree(node, prefix='', is_last=True, is_root=True, max_siblings=DEFAULT_MAX_SIBLINGS):
+        """Render a node and its descendants as a text tree."""
+        lines = []
+        label = f'{node["label"]} ({node["id"]})'
+        if is_root:
+            lines.append(label)
+        else:
+            lines.append(prefix + ('└── ' if is_last else '├── ') + label)
+        child_prefix = prefix + ('    ' if is_last else '│   ')
+        children = node.get('descendants', [])
+        for i, child in enumerate(children):
+            if max_siblings is not None and len(children) > max_siblings and i == max_siblings - 2:
+                lines.append(child_prefix + f'├── ... ({len(children) - max_siblings + 1} more)')
+                lines.extend(_text_tree(children[-1], child_prefix, True, False, max_siblings))
+                break
+            lines.extend(_text_tree(child, child_prefix, i == len(children) - 1, False, max_siblings))
+        return lines
+
+    def _invert_ancestor_tree(ancestors, leaf_node):
+        """Invert ancestor tree so highest-level terms are roots and the query term is a leaf.
+
+        Returns a list of top-level nodes, each with 'descendants' pointing downward
+        toward the query term.
+        """
+        def _collect_roots(ancestors):
+            """Find the top-level ancestors (those with no further ancestors)."""
+            roots = []
+            for a in ancestors:
+                if 'ancestors' in a and a['ancestors']:
+                    roots.extend(_collect_roots(a['ancestors']))
+                else:
+                    roots.append(a)
+            return roots
+
+        def _build_inverted(node, ancestors, target_leaf):
+            """Build downward tree from an ancestor node toward the target leaf."""
+            # Find which of the ancestors list directly to this node
+            children_toward_leaf = []
+            for a in ancestors:
+                if 'ancestors' in a and a['ancestors']:
+                    for grandparent in a['ancestors']:
+                        if grandparent['id'] == node['id']:
+                            children_toward_leaf.append(a)
+                elif a['id'] == node['id']:
+                    # This ancestor IS the current node — leaf's direct parent
+                    pass
+
+            result = {'id': node['id'], 'label': node['label']}
+            if children_toward_leaf:
+                result['descendants'] = [
+                    _build_inverted(c, ancestors, target_leaf)
+                    for c in sorted(children_toward_leaf, key=lambda x: x.get('label', ''))
+                ]
+            else:
+                # This node's child is the query term itself
+                result['descendants'] = [leaf_node]
+            return result
+
+        # Collect all ancestor nodes into a flat list with their parent links
+        all_nodes = {}  # id -> node
+        parent_map = {}  # child_id -> set of parent_ids
+
+        def _walk(ancestors, child_id=None):
+            for a in ancestors:
+                all_nodes[a['id']] = {'id': a['id'], 'label': a['label']}
+                if child_id:
+                    parent_map.setdefault(child_id, set()).add(a['id'])
+                if 'ancestors' in a and a['ancestors']:
+                    _walk(a['ancestors'], a['id'])
+
+        _walk(ancestors, leaf_node['id'])
+
+        # Roots are nodes that aren't children of anything
+        all_children = set()
+        for children in parent_map.values():
+            all_children.update(children)
+        all_parents = set(parent_map.keys())
+        root_ids = all_children - all_parents
+
+        if not root_ids:
+            # Fallback: all direct ancestors are roots
+            root_ids = {a['id'] for a in ancestors}
+
+        # Add leaf node to all_nodes so its label is available
+        all_nodes[leaf_node['id']] = leaf_node
+
+        # Build downward trees from each root
+        def _build_down(node_id):
+            node = {'id': node_id, 'label': all_nodes.get(node_id, {}).get('label', node_id)}
+            children_ids = [cid for cid, pids in parent_map.items() if node_id in pids]
+            if children_ids:
+                node['descendants'] = [
+                    _build_down(cid)
+                    for cid in sorted(children_ids, key=lambda x: all_nodes.get(x, {}).get('label', x))
+                ]
+            return node
+
+        return [_build_down(rid) for rid in sorted(root_ids, key=lambda x: all_nodes.get(x, {}).get('label', x))]
+
+    display_lines = []
+    if 'ancestors' in root and root['ancestors']:
+        rel_label = 'Part of' if relationship == 'part_of' else 'Is a'
+        display_lines.append(f'{rel_label} (ancestors):')
+        inverted = _invert_ancestor_tree(root['ancestors'], {'id': root['id'], 'label': root['label']})
+        for node in inverted:
+            display_lines.extend(_text_tree(node))
+        display_lines.append('')
+
+    if 'descendants' in root:
+        rel_label = 'Has parts' if relationship == 'part_of' else 'Subtypes'
+        display_lines.append(f'{rel_label} (descendants):')
+        display_lines.extend(_text_tree(root))
+
+    root['display'] = '\n'.join(display_lines)
+
+    # Full display (no sibling truncation)
+    full_lines = []
+    if 'ancestors' in root and root['ancestors']:
+        rel_label = 'Part of' if relationship == 'part_of' else 'Is a'
+        full_lines.append(f'{rel_label} (ancestors):')
+        inverted_full = _invert_ancestor_tree(root['ancestors'], {'id': root['id'], 'label': root['label']})
+        for node in inverted_full:
+            full_lines.extend(_text_tree(node, max_siblings=None))
+        full_lines.append('')
+
+    if 'descendants' in root:
+        rel_label = 'Has parts' if relationship == 'part_of' else 'Subtypes'
+        full_lines.append(f'{rel_label} (descendants):')
+        full_lines.extend(_text_tree(root, max_siblings=None))
+
+    root['display_full'] = '\n'.join(full_lines)
+
+    # HTML rendering
+    def _html_tree_nodes(node, depth=0, key='descendants'):
+        """Render a node as nested HTML list items."""
+        sid = node['id']
+        label = node['label']
+        link = f'<a href="{VFB_BASE}{sid}" target="_blank">{label}</a> <span class="id">({sid})</span>'
+        children = node.get(key, [])
+        if not children:
+            return f'<li><details class="leaf"><summary>{link}</summary></details></li>'
+        items = ''.join(_html_tree_nodes(c, depth + 1, key) for c in children)
+        return f'<li><details{"" if depth > 1 else " open"}><summary>{link}</summary><ul>{items}</ul></details></li>'
+
+    html_parts = [
+        '<!DOCTYPE html><html><head><meta charset="utf-8">',
+        f'<title>Hierarchy: {root["label"]}</title>',
+        '<style>',
+        'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; margin: 2em; max-width: 900px; line-height: 1.5; color: #24292e; }',
+        'h1 { font-size: 1.4em; border-bottom: 1px solid #e1e4e8; padding-bottom: .3em; }',
+        'h2 { font-size: 1.1em; margin-top: 1.5em; color: #586069; }',
+        'ul { list-style: none; padding-left: 1.5em; }',
+        'li { margin: .2em 0; }',
+        'details > summary { cursor: pointer; }',
+        'details > summary:hover { color: #0366d6; }',
+        'details.leaf > summary { list-style-type: "·  "; cursor: default; }',
+        'details.leaf > summary::-webkit-details-marker { display: none; }',
+        'a { color: #0366d6; text-decoration: none; }',
+        'a:hover { text-decoration: underline; }',
+        '.id { color: #6a737d; font-size: .85em; }',
+        '.path { background: #f6f8fa; padding: .8em 1em; border-radius: 6px; margin: 1em 0; font-size: .95em; }',
+        '.path a { font-weight: 500; }',
+        '</style></head><body>',
+        f'<h1>{root["label"]} <span class="id">({root["id"]})</span></h1>',
+    ]
+
+    if 'ancestors' in root and root['ancestors']:
+        rel_label = 'Part of' if relationship == 'part_of' else 'Is a'
+        html_parts.append(f'<h2>{rel_label} (ancestors)</h2>')
+        inverted_html = _invert_ancestor_tree(root['ancestors'], {'id': root['id'], 'label': root['label']})
+        items = ''.join(_html_tree_nodes(n) for n in inverted_html)
+        html_parts.append(f'<ul>{items}</ul>')
+
+    if 'descendants' in root and root['descendants']:
+        rel_label = 'Has parts' if relationship == 'part_of' else 'Subtypes'
+        html_parts.append(f'<h2>{rel_label} (descendants)</h2>')
+        root_node_html = _html_tree_nodes({'id': root['id'], 'label': root['label'], 'descendants': root['descendants']})
+        html_parts.append(f'<ul>{root_node_html}</ul>')
+
+    html_parts.append('</body></html>')
+    root['html'] = '\n'.join(html_parts)
+
     return root

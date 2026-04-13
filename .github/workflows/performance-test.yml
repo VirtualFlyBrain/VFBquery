@@ -230,8 +230,12 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          # Fetch latest branch, reset to it, then apply only performance.md
+          cp performance.md /tmp/performance.md
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          cp /tmp/performance.md performance.md
           git add performance.md
           git diff --staged --quiet || git commit -m "Update performance test results [skip ci]"
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          git pull --rebase origin "$BRANCH" || true
           git push origin HEAD:"$BRANCH" || echo "Push failed — performance report not updated"

@@ -291,6 +291,11 @@ class TermInfoOutputSchema(Schema):
     Meta = fields.Dict(keys=fields.String(), values=fields.String(), required=True)
     Tags = fields.List(fields.String(), required=True)
     Queries = fields.List(QueryField(), required=False)
+    # RelatedTools: MCP tools (other than run_query) that are useful for this entity.
+    # Each entry: {"tool": "<tool_name>", "label": "...", "default_args": {...}}.
+    # Distinct from Queries because these are not dispatched via run_query — the
+    # client should call the named tool directly with default_args.
+    RelatedTools = fields.List(fields.Dict(), required=False)
     IsIndividual = fields.Bool(missing=False, required=False)
     Images = fields.Dict(keys=fields.String(), values=fields.List(fields.Nested(ImageSchema()), missing={}), required=False, allow_none=True)
     IsClass = fields.Bool(missing=False, required=False)
@@ -400,6 +405,7 @@ def term_info_parse_object(results, short_form):
     termInfo["SuperTypes"] = []
     termInfo["Tags"] = []
     termInfo["Queries"] = []
+    termInfo["RelatedTools"] = []
     termInfo["IsClass"] = False
     termInfo["IsIndividual"] = False
     termInfo["IsTemplate"] = False
@@ -944,7 +950,46 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
             q = UpstreamClassConnectivity_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
-        
+
+        # Hierarchy entries — surfaced in RelatedTools, dispatched via the
+        # get_hierarchy MCP tool rather than run_query.
+        sf_for_hier = vfbTerm.term.core.short_form
+        # subclass_of hierarchy is meaningful for cell-type taxonomies.
+        # Gate: Class + Cell (matches the "Cell"-bounded ancestor filter inside
+        # get_hierarchy itself).
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Cell"]):
+            termInfo["RelatedTools"].append({
+                "tool": "get_hierarchy",
+                "label": f"Cell-type hierarchy of {termInfo['Name']}",
+                "default_args": {
+                    "id": sf_for_hier,
+                    "relationship": "subclass_of",
+                    "direction": "both",
+                    "max_depth": 1,
+                },
+            })
+        # part_of hierarchy is meaningful for nervous-system regions
+        # (brain, neuropils, ganglia, tracts), but NOT for cells/neurons or
+        # non-neural anatomy. Special-case the nervous system root, which lacks
+        # the "Nervous_system" SuperType because it isn't part_of itself.
+        is_ns_region = (
+            termInfo["SuperTypes"]
+            and contains_all_tags(termInfo["SuperTypes"], ["Class", "Nervous_system"])
+            and "Cell" not in termInfo["SuperTypes"]
+        )
+        is_ns_root = sf_for_hier == "FBbt_00005093"
+        if is_ns_region or is_ns_root:
+            termInfo["RelatedTools"].append({
+                "tool": "get_hierarchy",
+                "label": f"Region containment hierarchy of {termInfo['Name']}",
+                "default_args": {
+                    "id": sf_for_hier,
+                    "relationship": "part_of",
+                    "direction": "both",
+                    "max_depth": 1,
+                },
+            })
+
         # FlyBase stock finder — for Feature terms (FBgn/FBal/FBti/FBtp/FBco/FBst)
         sf = vfbTerm.term.core.short_form
         if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")):

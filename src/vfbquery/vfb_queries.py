@@ -740,8 +740,9 @@ def term_info_parse_object(results, short_form):
         
         # NeuronsPartHere query - for Class+Anatomy terms (synaptic neuropils, etc.)
         # Matches XMI criteria: Class + Synaptic_neuropil, or other anatomical regions
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
-            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
+        # Excluded for neuron classes: "neurons with some part in <a neuron>" is not a meaningful query
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and (
+            "Synaptic_neuropil" in termInfo["SuperTypes"] or
             "Anatomy" in termInfo["SuperTypes"]
         ):
             q = NeuronsPartHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
@@ -783,9 +784,11 @@ def term_info_parse_object(results, short_form):
             q = ComponentsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # PartsOf query - for any Class
+        # PartsOf query - for any Class except neuron classes
         # Matches XMI criteria: Class (any)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]):
+        # Excluded for neuron classes: anatomical sub-parts of a neuron type are not modelled
+        # in the ontology in a way that makes this query useful at the class level.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"]:
             q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         

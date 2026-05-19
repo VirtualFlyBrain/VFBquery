@@ -41,7 +41,7 @@ jobs:
         run: |
           python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
         
-      - name: Run Legacy Performance Test  
+      - name: Run Legacy Performance Test
         env:
           VFBQUERY_CACHE_ENABLED: 'true'
           MPLBACKEND: 'Agg'
@@ -49,7 +49,22 @@ jobs:
           VISPY_USE_EGL: '0'
         run: |
           python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee -a performance_test_output.log
-        
+
+      - name: Run Connectivity Tests
+        env:
+          VFBQUERY_CACHE_ENABLED: 'true'
+          MPLBACKEND: 'Agg'
+          VISPY_GL_LIB: 'osmesa'
+          VISPY_USE_EGL: '0'
+        run: |
+          python -m unittest -v \
+            src.test.test_neuron_neuron_connectivity \
+            src.test.test_neuron_region_connectivity \
+            src.test.test_upstream_class_connectivity \
+            src.test.test_downstream_class_connectivity \
+            src.test.test_vfb_connectivity \
+            2>&1 | tee -a performance_test_output.log
+
       - name: Create Performance Report
         if: always()  # Always run this step, even if the test fails
         run: |
@@ -177,7 +192,7 @@ jobs:
               echo "|-------|----------|--------|" >> performance.md
               
               # Parse timing information
-              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages):" performance_test_output.log | while read line; do
+              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages|NeuronNeuronConnectivityQuery|NeuronRegionConnectivityQuery|NeuronInputsTo|DownstreamClassConnectivity|UpstreamClassConnectivity|QueryConnectivity):" performance_test_output.log | while read line; do
                 QUERY=$(echo "$line" | sed 's/:.*//') 
                 DURATION=$(echo "$line" | sed 's/.*: \([0-9.]*\)s.*/\1/')
                 if echo "$line" | grep -q "✅"; then

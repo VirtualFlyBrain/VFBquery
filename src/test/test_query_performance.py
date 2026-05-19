@@ -34,12 +34,15 @@ from vfbquery.vfb_queries import (
     get_neuron_neuron_connectivity,
     get_neuron_region_connectivity,
     get_individual_neuron_inputs,
+    get_downstream_class_connectivity,
+    get_upstream_class_connectivity,
     get_expression_overlaps_here,
     get_anatomy_scrnaseq,
     get_cluster_expression,
     get_expression_cluster,
     get_scrnaseq_dataset_data,
 )
+from vfbquery.vfb_connectivity import query_connectivity
 
 
 class QueryPerformanceTest(unittest.TestCase):
@@ -348,7 +351,57 @@ class QueryPerformanceTest(unittest.TestCase):
         )
         print(f"NeuronRegionConnectivityQuery: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronRegionConnectivityQuery exceeded threshold")
-    
+
+    def test_07b_class_connectivity_queries(self):
+        """Test class-level connectivity queries (pre-indexed Solr)"""
+        print("\n" + "="*80)
+        print("CLASS CONNECTIVITY QUERIES (Solr pre-indexed)")
+        print("="*80)
+
+        # FBbt_00001482 = lineage NB3-2 primary interneuron — known to have
+        # downstream/upstream connectivity data in the vfb_json Solr core.
+        test_class = "FBbt_00001482"
+
+        # DownstreamClassConnectivity
+        result, duration, success = self._time_query(
+            "DownstreamClassConnectivity",
+            get_downstream_class_connectivity,
+            test_class,
+            return_dataframe=False,
+        )
+        print(f"DownstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "DownstreamClassConnectivity exceeded threshold")
+
+        # UpstreamClassConnectivity
+        result, duration, success = self._time_query(
+            "UpstreamClassConnectivity",
+            get_upstream_class_connectivity,
+            test_class,
+            return_dataframe=False,
+        )
+        print(f"UpstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+        self.assertLess(duration, self.THRESHOLD_MEDIUM, "UpstreamClassConnectivity exceeded threshold")
+
+    def test_07c_cross_dataset_connectivity(self):
+        """Test cross-dataset query_connectivity (live, both-end filtered)"""
+        print("\n" + "="*80)
+        print("CROSS-DATASET CONNECTIVITY (live, slow)")
+        print("="*80)
+
+        # Both-end + group_by_class is the fastest variant per LLM guidance.
+        # giant fiber neuron → peripherally synapsing interneuron is a
+        # known-good pair with non-zero results.
+        result, duration, success = self._time_query(
+            "QueryConnectivity",
+            query_connectivity,
+            upstream_type="giant fiber neuron",
+            downstream_type="peripherally synapsing interneuron",
+            group_by_class=True,
+        )
+        print(f"QueryConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+        # Live cross-dataset query — allow up to 5 min per the MCP timeout.
+        self.assertLess(duration, 300.0, "QueryConnectivity exceeded threshold")
+
     def test_08_similarity_queries(self):
         """Test NBLAST similarity queries"""
         print("\n" + "="*80)

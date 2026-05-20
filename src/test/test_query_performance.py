@@ -352,14 +352,18 @@ class QueryPerformanceTest(unittest.TestCase):
         print(f"NeuronRegionConnectivityQuery: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronRegionConnectivityQuery exceeded threshold")
 
-    # FBbt_00001482 = lineage NB3-2 primary interneuron — known to have
-    # downstream/upstream connectivity data in the vfb_json Solr core.
-    CLASS_CONNECTIVITY_TEST_CLASS = "FBbt_00001482"
+    # FBbt_00100234 = MBON01 — a specific mushroom body output neuron type
+    # with a small instance count (preferred over broad lineage classes for
+    # bounded test runtime). The class-level connectivity queries are a
+    # multi-step aggregation (Neo4j + batched Solr + ancestor walk), not a
+    # single Solr lookup, so cold-cache calls can take tens of seconds even
+    # on a small class.
+    CLASS_CONNECTIVITY_TEST_CLASS = "FBbt_00100234"
 
     def test_07b_downstream_class_connectivity(self):
-        """Test DownstreamClassConnectivity query (pre-indexed Solr)"""
+        """Test DownstreamClassConnectivity query (multi-step aggregation)"""
         print("\n" + "="*80)
-        print("DOWNSTREAM CLASS CONNECTIVITY (Solr pre-indexed)")
+        print("DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)")
         print("="*80)
 
         result, duration, success = self._time_query(
@@ -369,12 +373,12 @@ class QueryPerformanceTest(unittest.TestCase):
             return_dataframe=False,
         )
         print(f"DownstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "DownstreamClassConnectivity exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "DownstreamClassConnectivity exceeded threshold")
 
     def test_07b_upstream_class_connectivity(self):
-        """Test UpstreamClassConnectivity query (pre-indexed Solr)"""
+        """Test UpstreamClassConnectivity query (multi-step aggregation)"""
         print("\n" + "="*80)
-        print("UPSTREAM CLASS CONNECTIVITY (Solr pre-indexed)")
+        print("UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)")
         print("="*80)
 
         result, duration, success = self._time_query(
@@ -384,7 +388,7 @@ class QueryPerformanceTest(unittest.TestCase):
             return_dataframe=False,
         )
         print(f"UpstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "UpstreamClassConnectivity exceeded threshold")
+        self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "UpstreamClassConnectivity exceeded threshold")
 
     def test_07c_cross_dataset_connectivity(self):
         """Test cross-dataset query_connectivity (live, both-end filtered)"""

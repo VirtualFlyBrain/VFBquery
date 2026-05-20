@@ -1521,7 +1521,20 @@ def DownstreamClassConnectivity_to_schema(name, take_default):
     Schema for downstream class connectivity query.
     Shows which neuron classes receive synapses from this neuron class.
     Matching criteria: Class + Neuron
-    Query chain: Solr downstream_connectivity_query field
+
+    Implementation: multi-step aggregation, not a single Solr lookup.
+      1. Neo4j: instances in the SUBCLASSOF closure of the queried class.
+      2. Solr cache (batched): per-instance synaptic partners.
+      3. Solr: direct partner classes from the downstream_connectivity_query
+         field (seed set for the partner-side ancestor walk).
+      4. Neo4j: walk SUBCLASSOF up from each direct partner to the neuron root.
+      5. Neo4j (batched): partner_instance -> {class_ids} membership map.
+      6. In-memory aggregation with set-union semantics to handle FBbt
+         multi-inheritance without double-counting.
+
+    Results are cached server-side (@with_solr_cache) per queried class, so
+    repeat calls return in milliseconds, but cold calls on broad classes can
+    take tens of seconds.
     """
     query = "DownstreamClassConnectivity"
     label = f"Downstream connectivity classes for {name}"
@@ -1540,7 +1553,11 @@ def UpstreamClassConnectivity_to_schema(name, take_default):
     Schema for upstream class connectivity query.
     Shows which neuron classes send synapses to this neuron class.
     Matching criteria: Class + Neuron
-    Query chain: Solr upstream_connectivity_query field
+
+    Implementation: same multi-step aggregation as
+    DownstreamClassConnectivity but with the upstream_connectivity_query
+    Solr field as the seed for the partner-side ancestor walk. See
+    DownstreamClassConnectivity_to_schema for the full pipeline.
     """
     query = "UpstreamClassConnectivity"
     label = f"Upstream connectivity classes for {name}"
@@ -3404,12 +3421,18 @@ def get_downstream_class_connectivity(short_form: str, return_dataframe=True, li
     """
     Retrieves downstream connectivity classes for the specified neuron class.
 
-    Uses OWLERY to expand subclasses of the queried class, fetches per-instance
+    Uses a Neo4j SUBCLASSOF traversal to enumerate instances of the queried
+    class (Owlery's get_instances was observed to hang for some classes;
+    Cypher is equivalent and fast here), bulk-fetches per-instance
     connectivity from the Solr cache, and aggregates by partner class with
     set-union semantics on partner instance memberships. The partner-side
-    hierarchy is walked up to ``NEURON_ROOT_SHORT_FORM`` so that connections to
-    a child class also count toward each ancestor class's row, without
+    hierarchy is walked up to ``NEURON_ROOT_SHORT_FORM`` so that connections
+    to a child class also count toward each ancestor class's row, without
     double-counting under FBbt multi-inheritance.
+
+    Server-side cached via ``@with_solr_cache``; cold calls on broad classes
+    can take tens of seconds because of the aggregation work (already batched
+    across Solr/Neo4j round-trips).
 
     Matching criteria: Class + Neuron
 
@@ -3454,12 +3477,15 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
     """
     Retrieves upstream connectivity classes for the specified neuron class.
 
-    Uses OWLERY to expand subclasses of the queried class, fetches per-instance
-    connectivity from the Solr cache, and aggregates by partner class with
-    set-union semantics on partner instance memberships. The partner-side
-    hierarchy is walked up to ``NEURON_ROOT_SHORT_FORM`` so that connections
-    from a child class also count toward each ancestor class's row, without
-    double-counting under FBbt multi-inheritance.
+    Same multi-step aggregation as ``get_downstream_class_connectivity`` but
+    walking the upstream side: Neo4j SUBCLASSOF enumerates queried-class
+    instances, batched Solr cache fetches their synaptic partners, and the
+    partner-side hierarchy is walked up to ``NEURON_ROOT_SHORT_FORM`` with
+    set-union semantics to avoid double-counting under FBbt multi-inheritance.
+
+    Server-side cached via ``@with_solr_cache``; cold calls on broad classes
+    can take tens of seconds because of the aggregation work (already batched
+    across Solr/Neo4j round-trips).
 
     Matching criteria: Class + Neuron
 

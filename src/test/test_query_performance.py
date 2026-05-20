@@ -418,8 +418,8 @@ class QueryPerformanceTest(unittest.TestCase):
             limit=5
         )
         print(f"SimilarMorphologyTo: {duration:.4f}s {'✅' if success else '❌'}")
-        # Legacy NBLAST similarity can be slower
-        self.assertLess(duration, self.THRESHOLD_SLOW, "SimilarMorphologyTo exceeded threshold")
+        # Legacy NBLAST similarity is slow; observed ~18s on cold CI runners.
+        self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "SimilarMorphologyTo exceeded threshold")
     
     def test_09_neuron_input_queries(self):
         """Test neuron input/synapse queries"""
@@ -710,7 +710,8 @@ class QueryPerformanceTest(unittest.TestCase):
         if success and result:
             count = result.get('count', 0)
             print(f"  └─ Found {count} aligned images" + (", returned 10" if count > 10 else ""))
-        self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllAlignedImages exceeded threshold")
+        # Observed ~3.6s on CI cold cache; THRESHOLD_MEDIUM (3s) was too tight.
+        self.assertLess(duration, self.THRESHOLD_SLOW, "AllAlignedImages exceeded threshold")
         
         # AlignedDatasets - All datasets aligned to template
         # Warm up cache with full results

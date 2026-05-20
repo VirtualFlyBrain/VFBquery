@@ -352,31 +352,35 @@ class QueryPerformanceTest(unittest.TestCase):
         print(f"NeuronRegionConnectivityQuery: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_SLOW, "NeuronRegionConnectivityQuery exceeded threshold")
 
-    def test_07b_class_connectivity_queries(self):
-        """Test class-level connectivity queries (pre-indexed Solr)"""
+    # FBbt_00001482 = lineage NB3-2 primary interneuron — known to have
+    # downstream/upstream connectivity data in the vfb_json Solr core.
+    CLASS_CONNECTIVITY_TEST_CLASS = "FBbt_00001482"
+
+    def test_07b_downstream_class_connectivity(self):
+        """Test DownstreamClassConnectivity query (pre-indexed Solr)"""
         print("\n" + "="*80)
-        print("CLASS CONNECTIVITY QUERIES (Solr pre-indexed)")
+        print("DOWNSTREAM CLASS CONNECTIVITY (Solr pre-indexed)")
         print("="*80)
 
-        # FBbt_00001482 = lineage NB3-2 primary interneuron — known to have
-        # downstream/upstream connectivity data in the vfb_json Solr core.
-        test_class = "FBbt_00001482"
-
-        # DownstreamClassConnectivity
         result, duration, success = self._time_query(
             "DownstreamClassConnectivity",
             get_downstream_class_connectivity,
-            test_class,
+            self.CLASS_CONNECTIVITY_TEST_CLASS,
             return_dataframe=False,
         )
         print(f"DownstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
         self.assertLess(duration, self.THRESHOLD_MEDIUM, "DownstreamClassConnectivity exceeded threshold")
 
-        # UpstreamClassConnectivity
+    def test_07b_upstream_class_connectivity(self):
+        """Test UpstreamClassConnectivity query (pre-indexed Solr)"""
+        print("\n" + "="*80)
+        print("UPSTREAM CLASS CONNECTIVITY (Solr pre-indexed)")
+        print("="*80)
+
         result, duration, success = self._time_query(
             "UpstreamClassConnectivity",
             get_upstream_class_connectivity,
-            test_class,
+            self.CLASS_CONNECTIVITY_TEST_CLASS,
             return_dataframe=False,
         )
         print(f"UpstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")

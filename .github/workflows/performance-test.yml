@@ -66,12 +66,14 @@ jobs:
           VISPY_GL_LIB: 'osmesa'
           VISPY_USE_EGL: '0'
         run: |
-          python -m unittest -v \
-            src.test.test_neuron_neuron_connectivity \
-            src.test.test_neuron_region_connectivity \
-            src.test.test_upstream_class_connectivity \
-            src.test.test_downstream_class_connectivity \
-            src.test.test_vfb_connectivity \
+          # These files are pytest-style (plain classes + @pytest.mark.integration).
+          # Run with pytest so the markers are honoured and collection works.
+          pytest -v \
+            src/test/test_neuron_neuron_connectivity.py \
+            src/test/test_neuron_region_connectivity.py \
+            src/test/test_upstream_class_connectivity.py \
+            src/test/test_downstream_class_connectivity.py \
+            src/test/test_vfb_connectivity.py \
             2>&1 | tee -a performance_test_output.log
 
       - name: Create Performance Report
@@ -177,8 +179,12 @@ jobs:
           # unittest -v even when other tests failed. Use the absence of
           # FAIL:/ERROR: lines as the truth source (mirrors the final
           # "Fail job on test failures" step).
-          if grep -q "Ran.*test" performance_test_output.log; then
-            if grep -q "FAIL:\|ERROR:" performance_test_output.log; then
+          # unittest summary: "Ran N tests in Xs".
+          # pytest summary line ends with " in X.XXs" prefixed by " passed", " failed",
+          # " error", or "no tests ran". Match either runner's summary markers.
+          if grep -q "Ran .* test\| passed in \| failed in \| error in \|no tests ran" performance_test_output.log; then
+            # unittest emits "FAIL:" / "ERROR:"; pytest emits "FAILED " / "ERROR " (no colon).
+            if grep -q "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log; then
               echo "❌ **Test Status**: Performance tests ran but reported failures" >> performance.md
             else
               echo "✅ **Test Status**: Performance tests completed" >> performance.md
@@ -274,9 +280,11 @@ jobs:
         # commit so those still happen.
         if: always()
         run: |
-          if grep -q "FAIL:\|ERROR:" performance_test_output.log; then
-            echo "::error::unittest reported FAIL or ERROR lines in performance_test_output.log"
-            grep "FAIL:\|ERROR:" performance_test_output.log
+          # Match both unittest format ("FAIL:" / "ERROR:") and pytest format
+          # ("FAILED " / "ERROR " — no colon) so this catches either runner.
+          if grep -q "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log; then
+            echo "::error::Test run reported FAIL or ERROR lines in performance_test_output.log"
+            grep "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log
             exit 1
           fi
           echo "No FAIL/ERROR lines detected."

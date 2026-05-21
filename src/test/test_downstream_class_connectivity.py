@@ -108,6 +108,105 @@ class TestDownstreamClassConnectivityDataFrame:
         assert df.empty
 
 
+class TestDownstreamClassConnectivityHierarchyRollup:
+    """Regression tests for the partner-side hierarchy rollup behaviour:
+    connections to a child class also count toward each ancestor class within
+    the Neuron subtree, without double-counting under FBbt multi-inheritance.
+    """
+
+    @pytest.fixture(scope='class')
+    def result(self):
+        return get_downstream_class_connectivity(
+            TEST_CLASS, return_dataframe=False, force_refresh=True,
+        )
+
+    @pytest.mark.integration
+    def test_parent_class_appears_with_sensible_counts(self, result):
+        """A row keyed on a parent class should have connected_n at least as
+        large as any of its descendant rows (set-union semantics) and at most
+        the sum of descendant connected_n (no double-counting beyond what
+        multi-inheritance forces).
+        """
+        from vfbquery.vfb_queries import vc, get_dict_cursor
+
+        rows = result["rows"]
+        ids = [r["id"] for r in rows]
+        assert ids, "Expected at least one row to test against"
+
+        # Find any (parent, child) pair among the row ids.
+        q = (
+            "MATCH (p:Class)<-[:SUBCLASSOF*1..]-(c:Class) "
+            "WHERE p.short_form IN %s AND c.short_form IN %s "
+            "RETURN p.short_form AS parent, c.short_form AS child LIMIT 1"
+            % (ids, ids)
+        )
+        pairs = get_dict_cursor()(vc.nc.commit_list([q]))
+        if not pairs:
+            pytest.skip("No parent/child pair among result rows for this class")
+
+        parent_id = pairs[0]["parent"]
+        child_id = pairs[0]["child"]
+        parent_row = next(r for r in rows if r["id"] == parent_id)
+        # Sum connected_n across all descendant rows (not just the one returned).
+        desc_q = (
+            "MATCH (p:Class {short_form: '%s'})<-[:SUBCLASSOF*1..]-(c:Class) "
+            "WHERE c.short_form IN %s "
+            "RETURN collect(DISTINCT c.short_form) AS descs"
+            % (parent_id, ids)
+        )
+        desc_rows = get_dict_cursor()(vc.nc.commit_list([desc_q]))
+        descendant_ids = desc_rows[0]["descs"] if desc_rows else [child_id]
+        descendant_rows = [r for r in rows if r["id"] in descendant_ids]
+        max_child = max(r["connected_n"] for r in descendant_rows)
+        sum_child = sum(r["connected_n"] for r in descendant_rows)
+        assert parent_row["connected_n"] >= max_child, (
+            f"Parent {parent_id} connected_n={parent_row['connected_n']} should "
+            f"be >= max descendant connected_n={max_child}"
+        )
+        assert parent_row["connected_n"] <= sum_child, (
+            f"Parent {parent_id} connected_n={parent_row['connected_n']} should "
+            f"be <= sum of descendant connected_n={sum_child}"
+        )
+
+    @pytest.mark.integration
+    def test_total_n_is_constant_across_rows(self, result):
+        """`total_n` is the queried-side instance count and must be the same
+        for every output row (regression for the previous summed-across-
+        subclasses value).
+        """
+        rows = result["rows"]
+        assert rows, "Expected at least one row"
+        total_ns = {r["total_n"] for r in rows}
+        assert len(total_ns) == 1, (
+            f"Expected total_n to be constant across rows, got: {total_ns}"
+        )
+        assert next(iter(total_ns)) > 0
+
+    @pytest.mark.integration
+    def test_no_rows_above_neuron_root(self, result):
+        """The partner-side ancestor walk should stop at the Neuron class
+        (FBbt_00005106). No row id should be a class outside the Neuron
+        subtree.
+        """
+        from vfbquery.vfb_queries import vc, get_dict_cursor, NEURON_ROOT_SHORT_FORM
+
+        ids = [r["id"] for r in result["rows"]]
+        assert ids, "Expected at least one row"
+        q = (
+            "MATCH (root:Class {short_form: '%s'})<-[:SUBCLASSOF*0..]-(c:Class) "
+            "WHERE c.short_form IN %s "
+            "RETURN collect(DISTINCT c.short_form) AS in_neuron"
+            % (NEURON_ROOT_SHORT_FORM, ids)
+        )
+        result_rows = get_dict_cursor()(vc.nc.commit_list([q]))
+        in_neuron = set(result_rows[0]["in_neuron"]) if result_rows else set()
+        offenders = [i for i in ids if i not in in_neuron]
+        assert not offenders, (
+            f"Found {len(offenders)} row(s) outside the Neuron subtree: "
+            f"{offenders[:5]}"
+        )
+
+
 class TestDownstreamClassConnectivitySchema:
     def test_schema_generation(self):
         schema = DownstreamClassConnectivity_to_schema(

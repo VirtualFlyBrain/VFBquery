@@ -6,3 +6,4 @@ pysolr
 get_version
 aiohttp
 psycopg[binary]>=3.0
+pytest

@@ -14,7 +14,12 @@ jobs:
     name: "Performance Test"
     runs-on: ubuntu-latest
     timeout-minutes: 60  # Set a timeout to prevent jobs from running indefinitely
-    
+    defaults:
+      run:
+        # pipefail so `python -m unittest ... | tee` propagates unittest's exit
+        # status instead of always returning tee's 0.
+        shell: bash -o pipefail -e {0}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +46,10 @@ jobs:
         run: |
           python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
         
-      - name: Run Legacy Performance Test  
+      - name: Run Legacy Performance Test
+        # Always run, even if the previous test step failed, so we still get
+        # the report data and don't mask additional regressions.
+        if: always()
         env:
           VFBQUERY_CACHE_ENABLED: 'true'
           MPLBACKEND: 'Agg'
@@ -49,7 +57,25 @@ jobs:
           VISPY_USE_EGL: '0'
         run: |
           python -m unittest -v src.test.term_info_queries_test.TermInfoQueriesTest.test_term_info_performance 2>&1 | tee -a performance_test_output.log
-        
+
+      - name: Run Connectivity Tests
+        if: always()
+        env:
+          VFBQUERY_CACHE_ENABLED: 'true'
+          MPLBACKEND: 'Agg'
+          VISPY_GL_LIB: 'osmesa'
+          VISPY_USE_EGL: '0'
+        run: |
+          # These files are pytest-style (plain classes + @pytest.mark.integration).
+          # Run with pytest so the markers are honoured and collection works.
+          pytest -v \
+            src/test/test_neuron_neuron_connectivity.py \
+            src/test/test_neuron_region_connectivity.py \
+            src/test/test_upstream_class_connectivity.py \
+            src/test/test_downstream_class_connectivity.py \
+            src/test/test_vfb_connectivity.py \
+            2>&1 | tee -a performance_test_output.log
+
       - name: Create Performance Report
         if: always()  # Always run this step, even if the test fails
         run: |
@@ -148,9 +174,21 @@ jobs:
           
           EOF
           
-          # Check overall test status
-          if grep -q "OK" performance_test_output.log || grep -q "Ran.*test" performance_test_output.log; then
-            echo "✅ **Test Status**: Performance tests completed" >> performance.md
+          # Check overall test status. Note: matching "OK" or "ok" would
+          # false-positive on per-test "test_foo ... ok" lines emitted by
+          # unittest -v even when other tests failed. Use the absence of
+          # FAIL:/ERROR: lines as the truth source (mirrors the final
+          # "Fail job on test failures" step).
+          # unittest summary: "Ran N tests in Xs".
+          # pytest summary line ends with " in X.XXs" prefixed by " passed", " failed",
+          # " error", or "no tests ran". Match either runner's summary markers.
+          if grep -q "Ran .* test\| passed in \| failed in \| error in \|no tests ran" performance_test_output.log; then
+            # unittest emits "FAIL:" / "ERROR:"; pytest emits "FAILED " / "ERROR " (no colon).
+            if grep -q "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log; then
+              echo "❌ **Test Status**: Performance tests ran but reported failures" >> performance.md
+            else
+              echo "✅ **Test Status**: Performance tests completed" >> performance.md
+            fi
             echo "" >> performance.md
             
             # Count successes and failures
@@ -177,7 +215,7 @@ jobs:
               echo "|-------|----------|--------|" >> performance.md
               
               # Parse timing information
-              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages):" performance_test_output.log | while read line; do
+              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages|NeuronNeuronConnectivityQuery|NeuronRegionConnectivityQuery|NeuronInputsTo|DownstreamClassConnectivity|UpstreamClassConnectivity|QueryConnectivity):" performance_test_output.log | while read line; do
                 QUERY=$(echo "$line" | sed 's/:.*//') 
                 DURATION=$(echo "$line" | sed 's/.*: \([0-9.]*\)s.*/\1/')
                 if echo "$line" | grep -q "✅"; then
@@ -233,3 +271,20 @@ jobs:
           git add performance.md
           git diff --staged --quiet || git commit -m "Update performance test results [skip ci]"
           git push origin HEAD:main
+
+      - name: Fail job on test failures
+        # Belt-and-braces: pipefail on the test steps should already make the
+        # job red on any unittest failure. This grep is a safety net in case a
+        # future test runner emits FAIL/ERROR lines without a non-zero exit
+        # (e.g. partial runs, swallowed pipelines). Runs after the report and
+        # commit so those still happen.
+        if: always()
+        run: |
+          # Match both unittest format ("FAIL:" / "ERROR:") and pytest format
+          # ("FAILED " / "ERROR " — no colon) so this catches either runner.
+          if grep -q "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log; then
+            echo "::error::Test run reported FAIL or ERROR lines in performance_test_output.log"
+            grep "FAIL:\|ERROR:\|FAILED\b\|^ERROR\b" performance_test_output.log
+            exit 1
+          fi
+          echo "No FAIL/ERROR lines detected."

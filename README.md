@@ -9,7 +9,7 @@ pip install --upgrade vfbquery
 
 VFBquery includes intelligent SOLR-based caching for optimal performance:
 
-- **54,000x speedup** for repeated queries
+- **Instant Results** for repeated queries
 - **NBLAST similarity queries**: 10+ seconds → <0.1 seconds (cached)
 - **Zero configuration** - works automatically
 - **Persistent cache** survives restarts

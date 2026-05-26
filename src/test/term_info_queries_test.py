@@ -1,3 +1,4 @@
+import os
 import unittest
 import time
 from vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
@@ -582,17 +583,31 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result_1, "FBbt_00003748 query returned None")
         self.assertIsNotNone(result_2, "VFB_00101567 query returned None")
         
-        # Performance assertions - fail if queries take too long
-        # These thresholds are based on observed performance characteristics
-        max_single_query_time = 10.0  # seconds (increased from 5.0 to account for SOLR cache overhead)
-        max_total_time = 10.0  # seconds (2 queries * 5 seconds each)
-        
-        self.assertLess(duration_1, max_single_query_time, 
-                       f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold")
+        # Performance assertions - fail if queries take too long.
+        # Thresholds depend on whether SOLR result caching is enabled. When
+        # VFBQUERY_CACHE_ENABLED=false (CI sets this in python-test.yml so the
+        # test exercises the live path), every call is a fresh Neo4j round-trip
+        # rather than a cache hit, so timings are roughly an order of magnitude
+        # higher. The cache-disabled budget below matches the observed
+        # uncached latency on healthy infra (~10-20s per query for FBbt_00003748
+        # which has a large neighbourhood).
+        cache_enabled = os.environ.get("VFBQUERY_CACHE_ENABLED", "true").lower() != "false"
+        if cache_enabled:
+            max_single_query_time = 10.0
+            max_total_time = 10.0
+        else:
+            max_single_query_time = 30.0
+            max_total_time = 45.0
+
+        self.assertLess(duration_1, max_single_query_time,
+                       f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold "
+                       f"(cache_enabled={cache_enabled})")
         self.assertLess(duration_2, max_single_query_time,
-                       f"VFB_00101567 query took {duration_2:.4f}s, exceeding {max_single_query_time}s threshold")
+                       f"VFB_00101567 query took {duration_2:.4f}s, exceeding {max_single_query_time}s threshold "
+                       f"(cache_enabled={cache_enabled})")
         self.assertLess(duration_1 + duration_2, max_total_time,
-                       f"Total query time {duration_1 + duration_2:.4f}s exceeds {max_total_time}s threshold")
+                       f"Total query time {duration_1 + duration_2:.4f}s exceeds {max_total_time}s threshold "
+                       f"(cache_enabled={cache_enabled})")
         
         # Log success
         print("Performance test completed successfully!")

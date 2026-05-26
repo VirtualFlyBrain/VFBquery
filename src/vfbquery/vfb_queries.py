@@ -1833,22 +1833,22 @@ def scRNAdatasetData_to_schema(name, take_default):
 
 def SimilarMorphologyToPartOf_to_schema(name, take_default):
     """Schema for SimilarMorphologyToPartOf (NBLASTexp) query."""
-    return Query(query="SimilarMorphologyToPartOf", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of", takes={"short_form": {"$and": ["Individual", "Neuron", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+    return Query(query="SimilarMorphologyToPartOf", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of", takes={"short_form": {"$and": ["Individual", "Neuron", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToPartOfexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToPartOfexp (reverse NBLASTexp) query."""
-    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, {"$and": ["Individual", "Expression_pattern_fragment", "NBLASTexp"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, {"$and": ["Individual", "Expression_pattern_fragment", "NBLASTexp"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToNB_to_schema(name, take_default):
     """Schema for SimilarMorphologyToNB (NeuronBridge) query."""
-    return Query(query="SimilarMorphologyToNB", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb", takes={"short_form": {"$and": ["Individual", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+    return Query(query="SimilarMorphologyToNB", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb", takes={"short_form": {"$and": ["Individual", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToNBexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToNBexp (NeuronBridge expression) query."""
-    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags"])
+    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToUserData_to_schema(name, take_default):
@@ -1863,12 +1863,12 @@ def PaintedDomains_to_schema(name, take_default):
 
 def DatasetImages_to_schema(name, take_default):
     """Schema for DatasetImages query."""
-    return Query(query="DatasetImages", label=f"Images in dataset {name}", function="get_dataset_images", takes={"short_form": {"$and": ["DataSet", "has_image"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+    return Query(query="DatasetImages", label=f"Images in dataset {name}", function="get_dataset_images", takes={"short_form": {"$and": ["DataSet", "has_image"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type", "template", "technique", "thumbnail"])
 
 
 def AllAlignedImages_to_schema(name, take_default):
     """Schema for AllAlignedImages query."""
-    return Query(query="AllAlignedImages", label=f"All images aligned to {name}", function="get_all_aligned_images", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+    return Query(query="AllAlignedImages", label=f"All images aligned to {name}", function="get_all_aligned_images", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type", "template", "technique", "thumbnail"])
 
 
 def AlignedDatasets_to_schema(name, take_default):
@@ -4511,24 +4511,36 @@ def get_similar_morphology(neuron_short_form: str, return_dataframe=True, limit:
 def get_similar_morphology_part_of(neuron_short_form: str, return_dataframe=True, limit: int = -1):
     """
     Retrieve expression patterns with similar morphology to part of the specified neuron (NBLASTexp).
-    
+
     XMI: has_similar_morphology_to_part_of
     """
     count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score) RETURN count(primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.NBLAST_score) WITH primary, nblast
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
-        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.NBLAST_score[0] AS score, types ORDER BY score DESC"""
+        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+        WITH primary, nblast, channel, ri, templ
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        WITH primary, nblast, channel, ri, templ, technique
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
+        RETURN primary.short_form AS id,
+               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+               nblast.NBLAST_score[0] AS score,
+               types,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+        ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Expression Pattern", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Expression Pattern", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_similar_morphology_part_of_exp(expression_short_form: str, return_dataframe=True, limit: int = -1):
@@ -4536,18 +4548,30 @@ def get_similar_morphology_part_of_exp(expression_short_form: str, return_datafr
     count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.NBLAST_score) RETURN count(primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.NBLAST_score) WITH primary, nblast
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
-        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.NBLAST_score[0] AS score, types ORDER BY score DESC"""
+        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+        WITH primary, nblast, channel, ri, templ
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        WITH primary, nblast, channel, ri, templ, technique
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
+        RETURN primary.short_form AS id,
+               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+               nblast.NBLAST_score[0] AS score,
+               types,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+        ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Neuron", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Neuron", "type": "markdown", "order": 0}, "score": {"title": "NBLAST Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_similar_morphology_nb(neuron_short_form: str, return_dataframe=True, limit: int = -1):
@@ -4555,18 +4579,30 @@ def get_similar_morphology_nb(neuron_short_form: str, return_dataframe=True, lim
     count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.neuronbridge_score) RETURN count(primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{neuron_short_form}' AND EXISTS(nblast.neuronbridge_score) WITH primary, nblast
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
-        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.neuronbridge_score[0] AS score, types ORDER BY score DESC"""
+        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+        WITH primary, nblast, channel, ri, templ
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        WITH primary, nblast, channel, ri, templ, technique
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
+        RETURN primary.short_form AS id,
+               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+               nblast.neuronbridge_score[0] AS score,
+               types,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+        ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=True, limit: int = -1):
@@ -4574,18 +4610,30 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
     count_query = f"MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score) RETURN count(primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score) WITH primary, nblast
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast
-        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, nblast.neuronbridge_score[0] AS score, types ORDER BY score DESC"""
+        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+        WITH primary, nblast, channel, ri, templ
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        WITH primary, nblast, channel, ri, templ, technique
+        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
+        RETURN primary.short_form AS id,
+               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+               nblast.neuronbridge_score[0] AS score,
+               types,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+        ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_similar_morphology_userdata(upload_id: str, return_dataframe=True, limit: int = -1):
@@ -4632,18 +4680,25 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
     count_query = f"MATCH (c:DataSet {{short_form:'{dataset_short_form}'}})<-[:has_source]-(primary:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual) RETURN count(primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (c:DataSet {{short_form:'{dataset_short_form}'}})<-[:has_source]-(primary:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
-        RETURN primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, typ.label AS type"""
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        RETURN primary.short_form AS id,
+               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+               typ.label AS type,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(template.symbol[0],template.label),template.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template.symbol[0],template.label), REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template.symbol[0],template.label), template.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_all_aligned_images(template_short_form: str, return_dataframe=True, limit: int = -1):
@@ -4651,18 +4706,25 @@ def get_all_aligned_images(template_short_form: str, return_dataframe=True, limi
     count_query = f"MATCH (:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[:in_register_with]-(:Individual)-[:depicts]->(di:Individual) RETURN count(di) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
-    main_query = f"""MATCH (:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[:in_register_with]-(:Individual)-[:depicts]->(di:Individual)
+
+    main_query = f"""MATCH (templ:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)<-[irw:in_register_with]-(channel:Individual)-[:depicts]->(di:Individual)
         OPTIONAL MATCH (di)-[:INSTANCEOF]->(typ:Class)
-        RETURN DISTINCT di.short_form AS id, '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name, apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags, typ.label AS type"""
+        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+        RETURN DISTINCT di.short_form AS id,
+               '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name,
+               apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags,
+               typ.label AS type,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+               technique.label AS technique,
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(di.symbol[0],di.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(di.symbol[0],di.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit: int = -1):

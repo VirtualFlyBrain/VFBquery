@@ -1,3 +1,5 @@
+import json
+from datetime import datetime, timedelta
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -37,6 +39,77 @@ class SolrResultCacheFailoverTest(unittest.TestCase):
             self.assertFalse(cache._solr_disabled)
             # One call for the health check, one for the cache query itself
             self.assertGreaterEqual(get.call_count, 1)
+
+    def test_cache_invalidated_on_major_version_change(self):
+        cache = SolrResultCache()
+        cache._solr_available = MagicMock(return_value=True)
+        cache._package_version = "1.8.1"
+
+        cached_data = {
+            "result": {"foo": "bar"},
+            "cached_at": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "params": {"limit": -1},
+            "hit_count": 0,
+            "cache_version": "1.0",
+            "package_version": "1.8.0",
+            "ttl_hours": 2160,
+        }
+
+        response_doc = {"response": {"docs": [{"cache_data": json.dumps(cached_data)}]}}
+
+        with patch("vfbquery.solr_result_cache.requests.get") as get:
+            get.return_value = MagicMock(status_code=200, json=lambda: response_doc)
+            result = cache.get_cached_result("term_info", "FBbt_00000000")
+            self.assertIsNone(result)
+            self.assertEqual(get.call_count, 1)
+
+    def test_cache_retained_on_patch_version_change(self):
+        cache = SolrResultCache()
+        cache._solr_available = MagicMock(return_value=True)
+        cache._package_version = "1.8.2"
+
+        cached_data = {
+            "result": {"foo": "bar"},
+            "cached_at": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "params": {"limit": -1},
+            "hit_count": 0,
+            "cache_version": "1.0",
+            "package_version": "1.8.1",
+            "ttl_hours": 2160,
+        }
+
+        response_doc = {"response": {"docs": [{"cache_data": json.dumps(cached_data)}]}}
+
+        with patch("vfbquery.solr_result_cache.requests.get") as get:
+            get.return_value = MagicMock(status_code=200, json=lambda: response_doc)
+            result = cache.get_cached_result("term_info", "FBbt_00000000")
+            self.assertEqual(result, {"foo": "bar"})
+            self.assertEqual(get.call_count, 1)
+
+    def test_cache_invalidated_when_cached_version_missing(self):
+        cache = SolrResultCache()
+        cache._solr_available = MagicMock(return_value=True)
+        cache._package_version = "1.8.2"
+
+        cached_data = {
+            "result": {"foo": "bar"},
+            "cached_at": datetime.now().isoformat(),
+            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            "params": {"limit": -1},
+            "hit_count": 0,
+            "cache_version": "1.0",
+            "ttl_hours": 2160,
+        }
+
+        response_doc = {"response": {"docs": [{"cache_data": json.dumps(cached_data)}]}}
+
+        with patch("vfbquery.solr_result_cache.requests.get") as get:
+            get.return_value = MagicMock(status_code=200, json=lambda: response_doc)
+            result = cache.get_cached_result("term_info", "FBbt_00000000")
+            self.assertIsNone(result)
+            self.assertEqual(get.call_count, 1)
 
 
 if __name__ == "__main__":

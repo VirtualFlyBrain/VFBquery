@@ -12,6 +12,7 @@ Neo4j queries and data processing.
 
 import json
 import os
+import re
 import requests
 import hashlib
 import time
@@ -22,6 +23,15 @@ import logging
 from dataclasses import dataclass, asdict
 import pandas as pd
 from vfbquery.term_info_queries import NumpyEncoder
+
+try:
+    from importlib.metadata import version as get_distribution_version, PackageNotFoundError
+except ImportError:
+    try:
+        from importlib_metadata import version as get_distribution_version, PackageNotFoundError
+    except ImportError:
+        get_distribution_version = None
+        PackageNotFoundError = Exception
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +115,49 @@ class SolrResultCache:
             "params": params,  # Store the parameters used for this query
             "hit_count": 0,
             "cache_version": "1.0",  # For future compatibility
+            "package_version": self._get_cache_package_version(),
             "ttl_hours": self.ttl_hours  # Store TTL for debugging
         }
     
+    def _normalize_version(self, version: Optional[str]) -> Optional[str]:
+        """Normalize a version string to major.minor only."""
+        if not version or not isinstance(version, str):
+            return None
+        match = re.match(r'^\s*(\d+)(?:\.(\d+))?', version)
+        if not match:
+            return None
+        major = match.group(1)
+        minor = match.group(2) or '0'
+        return f"{major}.{minor}"
+
+    def _get_package_version(self) -> Optional[str]:
+        """Return the VFBquery package version for cache validation."""
+        if hasattr(self, '_package_version') and self._package_version is not None:
+            return self._package_version
+
+        version_value = os.getenv('VFBQUERY_VERSION')
+        if version_value:
+            self._package_version = version_value
+            return version_value
+
+        if get_distribution_version is None:
+            self._package_version = None
+            return None
+
+        try:
+            self._package_version = get_distribution_version('vfbquery')
+        except PackageNotFoundError:
+            self._package_version = None
+        except Exception as e:
+            logger.warning(f"Could not determine package version for cache validation: {e}")
+            self._package_version = None
+
+        return self._package_version
+
+    def _get_cache_package_version(self) -> Optional[str]:
+        """Return the normalized package version used for cache invalidation."""
+        return self._normalize_version(self._get_package_version())
+
     def _solr_available(self) -> bool:
         """Return True if Solr caching looks operational.
 
@@ -198,6 +248,17 @@ class SolrResultCache:
             # Parse the cached metadata and result
             cached_data = json.loads(cached_field)
             
+            # Check package version before anything else so stale cache is rejected early
+            current_version = self._get_cache_package_version()
+            cached_version = self._normalize_version(cached_data.get("package_version") or cached_data.get("version"))
+            if current_version and cached_version != current_version:
+                logger.info(
+                    f"Cache invalidated for {query_type}({term_id}) because package major.minor version changed "
+                    f"(cached={cached_version}, current={current_version})"
+                )
+                self._clear_expired_cache_document(cache_doc_id)
+                return None
+
             # Check expiration (3-month max age)
             try:
                 expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))

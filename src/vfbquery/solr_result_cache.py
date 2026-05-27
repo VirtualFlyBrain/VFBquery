@@ -391,9 +391,33 @@ class SolrResultCache:
                 logger.info(f"Cached {query_type} for {term_id} as {cache_doc_id}, size: {cached_data['result_size']/1024:.1f}KB")
                 return True
             else:
-                logger.error(f"Failed to cache result: HTTP {response.status_code} - {response.text}")
+                # Server-side failure (typical examples: 500 Lucene IndexWriter
+                # closed after a disk I/O error; 502/503 SOLR proxy down). The
+                # original code only logged here and kept retrying every call,
+                # which floods the log and adds ~200-300ms per query for the
+                # round-trip to fail. Treat any 5xx as cause to trip the same
+                # backoff machinery the exception branch uses, so subsequent
+                # cache_result() calls fast-fail via _solr_available().
+                err = f"HTTP {response.status_code} - {response.text[:500]}"
+                if response.status_code >= 500:
+                    self._solr_disabled = True
+                    self._solr_disabled_until = time.time() + self._solr_backoff_seconds
+                    if err != self._solr_last_error:
+                        logger.warning(
+                            "Solr cache write returned %d; disabling cache for %ds: %s",
+                            response.status_code,
+                            self._solr_backoff_seconds,
+                            err,
+                        )
+                        self._solr_last_error = err
+                else:
+                    # 4xx — probably a payload / config issue. Don't disable
+                    # but log once.
+                    if err != self._solr_last_error:
+                        logger.error("Failed to cache result: %s", err)
+                        self._solr_last_error = err
                 return False
-                
+
         except Exception as e:
             # Mark Solr as temporarily unavailable to avoid repeated errors
             self._solr_disabled = True
@@ -766,9 +790,21 @@ def with_solr_cache(query_type: str):
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
+            # Honour VFBQUERY_CACHE_ENABLED=false by bypassing the cache layer
+            # entirely. The __init__.py only gates the second-layer
+            # patch_vfbquery_with_caching() patch, but this @with_solr_cache
+            # decorator is applied at module-import time and so was firing
+            # unconditionally before this guard — flooding the log with HTTP
+            # 500s and adding hundreds of ms per call when the cache backend
+            # is down. Pop force_refresh either way so the wrapped function
+            # doesn't see a stray kwarg it doesn't accept.
+            if os.getenv('VFBQUERY_CACHE_ENABLED', 'true').lower() in ('false', '0', 'no', 'off'):
+                kwargs.pop('force_refresh', None)
+                return func(*args, **kwargs)
+
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
-            
+
             # Check if limit is applied - only cache full results (limit=-1)
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)

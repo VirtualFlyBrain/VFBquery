@@ -2463,19 +2463,37 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     #     matches v2 prod's `Type` column from SOLR's `types` collection
     #   - template  = `[symbol](short_form)` markdown of the alignment template
     #   - technique = imaging technique label (channel -[:is_specified_output_of]-> Class)
-    main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class)
+    #
+    # Each OPTIONAL branch is wrapped in a CALL subquery so the outer query
+    # carries one row per n2 throughout. Without this, an n2 with N
+    # cross-references × M alignments × K types would produce N×M×K rows
+    # that DISTINCT then collapses at the end — wasteful, especially on
+    # densely-typed neurons. Each subquery either aggregates (for `type`)
+    # or LIMIT 1s (for the single representative cross-ref / alignment
+    # the V2 row needs), so n2 stays the row key end-to-end.
+    main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to]-(n2:Individual)-[:INSTANCEOF]->(c2:Class)
             WHERE n1.short_form = '{neuron}' and exists(r.{similarity_score})
-            WITH c1, n1, r, n2, c2
-            OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
-            WHERE site.is_data_source
-            WITH n2, r, c2, rx, site
-            OPTIONAL MATCH (n2)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
-            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH n2, r, c2, rx, site, channel, ri, templ, technique
-            OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
-            WITH n2, r, rx, site, channel, ri, templ, technique,
-                 apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
-            RETURN DISTINCT n2.short_form as id,
+            WITH DISTINCT r, n2
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
+                RETURN apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
+                WHERE site.is_data_source
+                WITH rx, site LIMIT 1
+                RETURN rx, site
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+                OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+                WITH ri, templ, technique LIMIT 1
+                RETURN ri, templ, technique
+            }}
+            RETURN n2.short_form as id,
             apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name,
             r.{similarity_score}[0] AS score,
             apoc.text.join(coalesce(n2.uniqueFacets, []), '|') AS tags,

@@ -1262,7 +1262,12 @@ def SimilarMorphologyTo_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id","score","name","tags","thumbnail"]
+    # Match the v1.10.1 SimilarMorphologyTo* preview shape and add the new
+    # type column this PR exposes — keeps term-info previews in sync with
+    # the full /run_query response. source/source_id are intentionally
+    # omitted; they're noisy in compact previews and only meaningful when
+    # the user opens the full table.
+    preview_columns = ["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 

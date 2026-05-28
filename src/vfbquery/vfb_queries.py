@@ -1266,8 +1266,10 @@ def SimilarMorphologyTo_to_schema(name, take_default):
     # type column this PR exposes — keeps term-info previews in sync with
     # the full /run_query response. source/source_id are intentionally
     # omitted; they're noisy in compact previews and only meaningful when
-    # the user opens the full table.
-    preview_columns = ["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"]
+    # the user opens the full table. Keep score before name so preview
+    # sorting continues to default to score-descending under the current
+    # header-order-based preview sort selection.
+    preview_columns = ["id", "score", "name", "tags", "type", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 

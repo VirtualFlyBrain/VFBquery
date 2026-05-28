@@ -1262,7 +1262,14 @@ def SimilarMorphologyTo_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id","score","name","tags","thumbnail"]
+    # Match the v1.10.1 SimilarMorphologyTo* preview shape and add the new
+    # type column this PR exposes — keeps term-info previews in sync with
+    # the full /run_query response. source/source_id are intentionally
+    # omitted; they're noisy in compact previews and only meaningful when
+    # the user opens the full table. Keep score before name so preview
+    # sorting continues to default to score-descending under the current
+    # header-order-based preview sort selection.
+    preview_columns = ["id", "score", "name", "tags", "type", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -2453,19 +2460,50 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
-    main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) 
+    # Extends the v1.10.1 channel/template/technique pattern. Adds:
+    #   - type      = pipe-joined parent class labels (n2 -[:INSTANCEOF]-> Class)
+    #     matches v2 prod's `Type` column from SOLR's `types` collection
+    #   - template  = `[symbol](short_form)` markdown of the alignment template
+    #   - technique = imaging technique label (channel -[:is_specified_output_of]-> Class)
+    #
+    # Each OPTIONAL branch is wrapped in a CALL subquery so the outer query
+    # carries one row per n2 throughout. Without this, an n2 with N
+    # cross-references × M alignments × K types would produce N×M×K rows
+    # that DISTINCT then collapses at the end — wasteful, especially on
+    # densely-typed neurons. Each subquery either aggregates (for `type`)
+    # or LIMIT 1s (for the single representative cross-ref / alignment
+    # the V2 row needs), so n2 stays the row key end-to-end.
+    main_query = f"""MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to]-(n2:Individual)-[:INSTANCEOF]->(c2:Class)
             WHERE n1.short_form = '{neuron}' and exists(r.{similarity_score})
-            WITH c1, n1, r, n2, c2
-            OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
-            WHERE site.is_data_source
-            WITH n2, r, c2, rx, site
-            OPTIONAL MATCH (n2)<-[:depicts]-(:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
-            RETURN DISTINCT n2.short_form as id,
-            apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name, 
+            WITH DISTINCT r, n2
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
+                RETURN apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
+                WHERE site.is_data_source
+                WITH rx, site LIMIT 1
+                RETURN rx, site
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+                OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+                WITH ri, templ, technique LIMIT 1
+                RETURN ri, templ, technique
+            }}
+            RETURN n2.short_form as id,
+            apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name,
             r.{similarity_score}[0] AS score,
-            apoc.text.join(n2.uniqueFacets, '|') AS tags,
+            apoc.text.join(coalesce(n2.uniqueFacets, []), '|') AS tags,
+            type,
             REPLACE(apoc.text.format("[%s](%s)",[COALESCE(site.symbol[0],site.label),site.short_form]), '[null](null)', '') AS source,
             REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id,
+            REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(n2.symbol[0],n2.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail
             ORDER BY score DESC"""
 
@@ -2478,9 +2516,13 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     # Convert the results to a DataFrame
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
-    columns_to_encode = ['name', 'source', 'source_id', 'thumbnail']
+    # template is a `[symbol](short_form)` markdown link — must be encoded the
+    # same way as name/source/source_id/thumbnail so the V2 frontend's link
+    # parser renders it consistently. type/technique are plain text and
+    # don't need encoding.
+    columns_to_encode = ['name', 'source', 'source_id', 'template', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
@@ -2490,8 +2532,11 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {0: "Desc"}},
                 "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
                 "tags": {"title": "Tags", "type": "tags", "order": 2},
-                "source": {"title": "Source", "type": "metadata", "order": 3},
-                "source_id": {"title": "Source ID", "type": "metadata", "order": 4},
+                "type": {"title": "Type", "type": "text", "order": 3},
+                "source": {"title": "Source", "type": "metadata", "order": 4},
+                "source_id": {"title": "Source ID", "type": "metadata", "order": 5},
+                "template": {"title": "Template", "type": "markdown", "order": 6},
+                "technique": {"title": "Imaging Technique", "type": "text", "order": 7},
                 "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
             },
             "rows": [
@@ -2502,8 +2547,11 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                         "name",
                         "score",
                         "tags",
+                        "type",
                         "source",
                         "source_id",
+                        "template",
+                        "technique",
                         "thumbnail"
                     ]
                 }

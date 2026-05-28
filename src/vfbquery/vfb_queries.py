@@ -2469,7 +2469,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             WITH n2, r, c2, rx, site, channel, ri, templ, technique
             OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
             WITH n2, r, rx, site, channel, ri, templ, technique,
-                 apoc.text.join(collect(DISTINCT coalesce(typ.label, '')), '; ') AS type
+                 apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
             RETURN DISTINCT n2.short_form as id,
             apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name,
             r.{similarity_score}[0] AS score,
@@ -2491,9 +2491,13 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
     # Convert the results to a DataFrame
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
-    columns_to_encode = ['name', 'source', 'source_id', 'thumbnail']
+    # template is a `[symbol](short_form)` markdown link — must be encoded the
+    # same way as name/source/source_id/thumbnail so the V2 frontend's link
+    # parser renders it consistently. type/technique are plain text and
+    # don't need encoding.
+    columns_to_encode = ['name', 'source', 'source_id', 'template', 'thumbnail']
     df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
@@ -2503,8 +2507,11 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {0: "Desc"}},
                 "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {1: "Asc"}},
                 "tags": {"title": "Tags", "type": "tags", "order": 2},
-                "source": {"title": "Source", "type": "metadata", "order": 3},
-                "source_id": {"title": "Source ID", "type": "metadata", "order": 4},
+                "type": {"title": "Type", "type": "text", "order": 3},
+                "source": {"title": "Source", "type": "metadata", "order": 4},
+                "source_id": {"title": "Source ID", "type": "metadata", "order": 5},
+                "template": {"title": "Template", "type": "markdown", "order": 6},
+                "technique": {"title": "Imaging Technique", "type": "text", "order": 7},
                 "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
             },
             "rows": [
@@ -2515,8 +2522,11 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                         "name",
                         "score",
                         "tags",
+                        "type",
                         "source",
                         "source_id",
+                        "template",
+                        "technique",
                         "thumbnail"
                     ]
                 }

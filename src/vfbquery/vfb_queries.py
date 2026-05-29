@@ -4872,6 +4872,13 @@ def _dataset_return_clause(ds_var: str = "ds") -> str:
     get_all_datasets. Matches v2 prod columns:
       id, name, pubs(Reference), tags(Gross_Type), license, template,
       technique, thumbnail, image_count.
+
+    NB: no ORDER BY here — the caller applies LIMIT (and any ORDER BY)
+    after ``WITH DISTINCT ds`` and BEFORE the CALL subqueries fire, so
+    we only enrich the rows we actually need. Otherwise 130 datasets
+    × 4 CALL subqueries (one of which counts edges over millions of
+    ``has_source`` relationships) easily breaches the 3 s perf-test
+    threshold.
     """
     return f"""
         RETURN
@@ -4884,7 +4891,6 @@ def _dataset_return_clause(ds_var: str = "ds") -> str:
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), templ.short_form + "," + coalesce(i.short_form, {ds_var}.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail,
             image_count
-        ORDER BY name
     """
 
 
@@ -4921,11 +4927,18 @@ def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit:
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
 
+    # LIMIT applied AFTER DISTINCT and BEFORE the CALL subqueries — otherwise
+    # all 86 (AlignedDatasets) / 130 (AllDatasets) datasets get enriched
+    # through 4 CALL subqueries (one of which counts has_source edges) and
+    # the limit only trims afterwards. That blew past the THRESHOLD_MEDIUM
+    # (3 s) perf-test budget on CI.
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
         WITH DISTINCT ds
+        ORDER BY coalesce(ds.label, ds.short_form)
+        {limit_clause}
         {_dataset_enrichment_cypher('ds')}
         {_dataset_return_clause('ds')}"""
-    if limit != -1: main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
@@ -4945,11 +4958,13 @@ def get_all_datasets(return_dataframe=True, limit: int = -1):
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
 
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual)<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
         WITH DISTINCT ds
+        ORDER BY coalesce(ds.label, ds.short_form)
+        {limit_clause}
         {_dataset_enrichment_cypher('ds')}
         {_dataset_return_clause('ds')}"""
-    if limit != -1: main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
@@ -5016,10 +5031,17 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
+    # Same as get_aligned_datasets: apply LIMIT before the CALL subqueries
+    # fire so we only enrich the rows we actually need. With 2,340
+    # mushroom-body EPs and a 5-hop thumbnail join inside the CALL, the
+    # naive "append LIMIT at the end" form ran for tens of seconds.
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     main_query = f"""
         MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
         WHERE anat.short_form = '{anatomy_short_form}'
         WITH DISTINCT ep
+        ORDER BY ep.label
+        {limit_clause}
         CALL {{
             WITH ep
             OPTIONAL MATCH (ep)<-[:overlaps|part_of]-(:Individual)-[:has_reference|pub]->(p:pub)
@@ -5040,10 +5062,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             REPLACE(apoc.text.format("[%s](%s)", [COALESCE(templ.symbol[0], templ.label), templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), templ.short_form + "," + coalesce(i.short_form, ep.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail
-        ORDER BY ep.label
     """
-    if limit != -1:
-        main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))

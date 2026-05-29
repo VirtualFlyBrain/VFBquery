@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-05-28 07:05:50 UTC
-**Git Commit:** d0018aa405662802ed041d52c21a6cc21780fda5
+**Test Date:** 2026-05-29 06:43:48 UTC
+**Git Commit:** 0107c22b5d694915021325efbebb96b837efeac8
 **Branch:** main
-**Workflow Run:** [26557757296](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26557757296)
+**Workflow Run:** [26621133877](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26621133877)
 
 ## Test Overview
 
@@ -85,7 +85,31 @@ This performance test measures the execution time of all implemented VFB queries
 
 ```
 test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test term info query performance ... ok
+Test term info query performance ... Failed to cache result: HTTP 500 - {
+  "responseHeader":{
+    "status":500,
+    "QTime":148},
+  "error":{
+    "metadata":[
+      "error-class","org.apache.solr.common.SolrException",
+      "root-error-class","java.nio.file.NoSuchFileException"],
+    "msg":"Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index",
+    "trace":"org.apache.solr.common.SolrException: Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:246)\n\tat org.apache.solr.update.processor.RunUpdateProcessorFactory$RunUpdateProcessor.processAdd(RunUpdateProcessorFactory.java:73)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.NestedUpdateProcessorFactory$NestedUpdateProcessor.processAdd(NestedUpdateProcessorFactory.java:79)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doLocalAdd(DistributedUpdateProcessor.java:263)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doVersionAdd(DistributedUpdateProcessor.java:502)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.lambda$versionAdd$0(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.VersionBucket.runWithLock(VersionBucket.java:50)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.versionAdd(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.processAdd(DistributedUpdateProcessor.java:229)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AddSchemaFieldsUpdateProcessorFactory$AddSchemaFieldsUpdateProcessor.processAdd(AddSchemaFieldsUpdateProcessorFactory.java:481)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldNameMutatingUpdateProcessorFactory$1.processAdd(FieldNameMutatingUpdateProcessorFactory.java:75)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AbstractDefaultValueUpdateProcessorFactory$DefaultValueUpdateProcessor.processAdd(AbstractDefaultValueUpdateProcessorFactory.java:92)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.handleAdds(JsonLoader.java:521)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.processUpdate(JsonLoader.java:180)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.load(JsonLoader.java:156)\n\tat org.apache.solr.handler.loader.JsonLoader.load(JsonLoader.java:84)\n\tat org.apache.solr.handler.UpdateRequestHandler$1.load(UpdateRequestHandler.java:97)\n\tat org.apache.solr.handler.ContentStreamHandlerBase.handleRequestBody(ContentStreamHandlerBase.java:82)\n\tat org.apache.solr.handler.RequestHandlerBase.handleRequest(RequestHandlerBase.java:216)\n\tat org.apache.solr.core.SolrCore.execute(SolrCore.java:2637)\n\tat org.apache.solr.servlet.HttpSolrCall.execute(HttpSolrCall.java:794)\n\tat org.apache.solr.servlet.HttpSolrCall.call(HttpSolrCall.java:560)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:437)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:367)\n\tat org.eclipse.jetty.servlet.FilterHolder.doFilter(FilterHolder.java:201)\n\tat org.eclipse.jetty.servlet.ServletHandler$Chain.doFilter(ServletHandler.java:1626)\n\tat org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:552)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)\n\tat org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:600)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:235)\n\tat org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:1624)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:233)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1440)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:188)\n\tat org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:505)\n\tat org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:1594)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:186)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1355)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)\n\tat org.eclipse.jetty.server.handler.ContextHandlerCollection.handle(ContextHandlerCollection.java:191)\n\tat org.eclipse.jetty.server.handler.InetAccessHandler.handle(InetAccessHandler.java:177)\n\tat org.eclipse.jetty.server.handler.HandlerCollection.handle(HandlerCollection.java:146)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.rewrite.handler.RewriteHandler.handle(RewriteHandler.java:322)\n\tat org.eclipse.jetty.server.handler.gzip.GzipHandler.handle(GzipHandler.java:772)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.Server.handle(Server.java:516)\n\tat org.eclipse.jetty.server.HttpChannel.lambda$handle$1(HttpChannel.java:487)\n\tat org.eclipse.jetty.server.HttpChannel.dispatch(HttpChannel.java:732)\n\tat org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:479)\n\tat org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:277)\n\tat org.eclipse.jetty.io.AbstractConnection$ReadCallback.succeeded(AbstractConnection.java:311)\n\tat org.eclipse.jetty.io.FillInterest.fillable(FillInterest.java:105)\n\tat org.eclipse.jetty.io.ChannelEndPoint$1.run(ChannelEndPoint.java:104)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.runTask(EatWhatYouKill.java:338)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.doProduce(EatWhatYouKill.java:315)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.tryProduce(EatWhatYouKill.java:173)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.run(EatWhatYouKill.java:131)\n\tat org.eclipse.jetty.util.thread.ReservedThreadExecutor$ReservedThread.run(ReservedThreadExecutor.java:409)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:883)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool$Runner.run(QueuedThreadPool.java:1034)\n\tat java.base/java.lang.Thread.run(Unknown Source)\nCaused by: org.apache.lucene.store.AlreadyClosedException: this IndexWriter is closed\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:877)\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:891)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1468)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1464)\n\tat org.apache.solr.update.DirectUpdateHandler2.updateDocOrDocValues(DirectUpdateHandler2.java:967)\n\tat org.apache.solr.update.DirectUpdateHandler2.doNormalUpdate(DirectUpdateHandler2.java:342)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc0(DirectUpdateHandler2.java:294)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:241)\n\t... 77 more\nCaused by: java.nio.file.NoSuchFileException: /var/solr/data/vfb_json/data/index/segments_2hcz3\n\tat java.base/sun.nio.fs.UnixException.translateToIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixFileSystemProvider.implDelete(Unknown Source)\n\tat java.base/sun.nio.fs.AbstractFileSystemProvider.delete(Unknown Source)\n\tat java.base/java.nio.file.Files.delete(Unknown Source)\n\tat org.apache.lucene.store.FSDirectory.privateDeleteFile(FSDirectory.java:370)\n\tat org.apache.lucene.store.FSDirectory.deletePendingFiles(FSDirectory.java:352)\n\tat org.apache.lucene.store.FSDirectory.maybeDeletePendingFiles(FSDirectory.java:363)\n\tat org.apache.lucene.store.FSDirectory.deleteFile(FSDirectory.java:340)\n\tat org.apache.lucene.store.NRTCachingDirectory.deleteFile(NRTCachingDirectory.java:118)\n\tat org.apache.lucene.store.LockValidatingDirectoryWrapper.deleteFile(LockValidatingDirectoryWrapper.java:38)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFile(IndexFileDeleter.java:705)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFiles(IndexFileDeleter.java:692)\n\tat org.apache.lucene.index.IndexFileDeleter.decRef(IndexFileDeleter.java:598)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteCommits(IndexFileDeleter.java:382)\n\tat org.apache.lucene.index.IndexFileDeleter.checkpoint(IndexFileDeleter.java:536)\n\tat org.apache.lucene.index.IndexWriter.finishCommit(IndexWriter.java:3822)\n\tat org.apache.lucene.index.IndexWriter.commitInternal(IndexWriter.java:3778)\n\tat org.apache.lucene.index.IndexWriter.commit(IndexWriter.java:3728)\n\tat org.apache.solr.update.DirectUpdateHandler2.commit(DirectUpdateHandler2.java:675)\n\tat org.apache.solr.update.CommitTracker.run(CommitTracker.java:273)\n\tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source)\n\tat java.base/java.util.concurrent.FutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)\n\t... 1 more\n",
+    "code":500}}
+
+Failed to cache result: HTTP 500 - {
+  "responseHeader":{
+    "status":500,
+    "QTime":148},
+  "error":{
+    "metadata":[
+      "error-class","org.apache.solr.common.SolrException",
+      "root-error-class","java.nio.file.NoSuchFileException"],
+    "msg":"Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index",
+    "trace":"org.apache.solr.common.SolrException: Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:246)\n\tat org.apache.solr.update.processor.RunUpdateProcessorFactory$RunUpdateProcessor.processAdd(RunUpdateProcessorFactory.java:73)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.NestedUpdateProcessorFactory$NestedUpdateProcessor.processAdd(NestedUpdateProcessorFactory.java:79)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doLocalAdd(DistributedUpdateProcessor.java:263)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doVersionAdd(DistributedUpdateProcessor.java:502)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.lambda$versionAdd$0(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.VersionBucket.runWithLock(VersionBucket.java:50)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.versionAdd(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.processAdd(DistributedUpdateProcessor.java:229)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AddSchemaFieldsUpdateProcessorFactory$AddSchemaFieldsUpdateProcessor.processAdd(AddSchemaFieldsUpdateProcessorFactory.java:481)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldNameMutatingUpdateProcessorFactory$1.processAdd(FieldNameMutatingUpdateProcessorFactory.java:75)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AbstractDefaultValueUpdateProcessorFactory$DefaultValueUpdateProcessor.processAdd(AbstractDefaultValueUpdateProcessorFactory.java:92)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.handleAdds(JsonLoader.java:521)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.processUpdate(JsonLoader.java:180)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.load(JsonLoader.java:156)\n\tat org.apache.solr.handler.loader.JsonLoader.load(JsonLoader.java:84)\n\tat org.apache.solr.handler.UpdateRequestHandler$1.load(UpdateRequestHandler.java:97)\n\tat org.apache.solr.handler.ContentStreamHandlerBase.handleRequestBody(ContentStreamHandlerBase.java:82)\n\tat org.apache.solr.handler.RequestHandlerBase.handleRequest(RequestHandlerBase.java:216)\n\tat org.apache.solr.core.SolrCore.execute(SolrCore.java:2637)\n\tat org.apache.solr.servlet.HttpSolrCall.execute(HttpSolrCall.java:794)\n\tat org.apache.solr.servlet.HttpSolrCall.call(HttpSolrCall.java:560)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:437)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:367)\n\tat org.eclipse.jetty.servlet.FilterHolder.doFilter(FilterHolder.java:201)\n\tat org.eclipse.jetty.servlet.ServletHandler$Chain.doFilter(ServletHandler.java:1626)\n\tat org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:552)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)\n\tat org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:600)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:235)\n\tat org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:1624)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:233)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1440)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:188)\n\tat org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:505)\n\tat org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:1594)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:186)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1355)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)\n\tat org.eclipse.jetty.server.handler.ContextHandlerCollection.handle(ContextHandlerCollection.java:191)\n\tat org.eclipse.jetty.server.handler.InetAccessHandler.handle(InetAccessHandler.java:177)\n\tat org.eclipse.jetty.server.handler.HandlerCollection.handle(HandlerCollection.java:146)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.rewrite.handler.RewriteHandler.handle(RewriteHandler.java:322)\n\tat org.eclipse.jetty.server.handler.gzip.GzipHandler.handle(GzipHandler.java:772)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.Server.handle(Server.java:516)\n\tat org.eclipse.jetty.server.HttpChannel.lambda$handle$1(HttpChannel.java:487)\n\tat org.eclipse.jetty.server.HttpChannel.dispatch(HttpChannel.java:732)\n\tat org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:479)\n\tat org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:277)\n\tat org.eclipse.jetty.io.AbstractConnection$ReadCallback.succeeded(AbstractConnection.java:311)\n\tat org.eclipse.jetty.io.FillInterest.fillable(FillInterest.java:105)\n\tat org.eclipse.jetty.io.ChannelEndPoint$1.run(ChannelEndPoint.java:104)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.runTask(EatWhatYouKill.java:338)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.doProduce(EatWhatYouKill.java:315)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.tryProduce(EatWhatYouKill.java:173)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.run(EatWhatYouKill.java:131)\n\tat org.eclipse.jetty.util.thread.ReservedThreadExecutor$ReservedThread.run(ReservedThreadExecutor.java:409)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:883)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool$Runner.run(QueuedThreadPool.java:1034)\n\tat java.base/java.lang.Thread.run(Unknown Source)\nCaused by: org.apache.lucene.store.AlreadyClosedException: this IndexWriter is closed\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:877)\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:891)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1468)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1464)\n\tat org.apache.solr.update.DirectUpdateHandler2.updateDocOrDocValues(DirectUpdateHandler2.java:967)\n\tat org.apache.solr.update.DirectUpdateHandler2.doNormalUpdate(DirectUpdateHandler2.java:342)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc0(DirectUpdateHandler2.java:294)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:241)\n\t... 77 more\nCaused by: java.nio.file.NoSuchFileException: /var/solr/data/vfb_json/data/index/segments_2hcz3\n\tat java.base/sun.nio.fs.UnixException.translateToIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixFileSystemProvider.implDelete(Unknown Source)\n\tat java.base/sun.nio.fs.AbstractFileSystemProvider.delete(Unknown Source)\n\tat java.base/java.nio.file.Files.delete(Unknown Source)\n\tat org.apache.lucene.store.FSDirectory.privateDeleteFile(FSDirectory.java:370)\n\tat org.apache.lucene.store.FSDirectory.deletePendingFiles(FSDirectory.java:352)\n\tat org.apache.lucene.store.FSDirectory.maybeDeletePendingFiles(FSDirectory.java:363)\n\tat org.apache.lucene.store.FSDirectory.deleteFile(FSDirectory.java:340)\n\tat org.apache.lucene.store.NRTCachingDirectory.deleteFile(NRTCachingDirectory.java:118)\n\tat org.apache.lucene.store.LockValidatingDirectoryWrapper.deleteFile(LockValidatingDirectoryWrapper.java:38)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFile(IndexFileDeleter.java:705)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFiles(IndexFileDeleter.java:692)\n\tat org.apache.lucene.index.IndexFileDeleter.decRef(IndexFileDeleter.java:598)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteCommits(IndexFileDeleter.java:382)\n\tat org.apache.lucene.index.IndexFileDeleter.checkpoint(IndexFileDeleter.java:536)\n\tat org.apache.lucene.index.IndexWriter.finishCommit(IndexWriter.java:3822)\n\tat org.apache.lucene.index.IndexWriter.commitInternal(IndexWriter.java:3778)\n\tat org.apache.lucene.index.IndexWriter.commit(IndexWriter.java:3728)\n\tat org.apache.solr.update.DirectUpdateHandler2.commit(DirectUpdateHandler2.java:675)\n\tat org.apache.solr.update.CommitTracker.run(CommitTracker.java:273)\n\tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source)\n\tat java.base/java.util.concurrent.FutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)\n\t... 1 more\n",
+    "code":500}}
+
+FAIL
 test_02_neuron_part_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test neuron part overlap queries ... ok
 test_03_synaptic_queries (src.test.test_query_performance.QueryPerformanceTest)
@@ -121,10 +145,19 @@ Test dataset and template queries ... ok
 test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test publication and transgene queries ... ok
 
+======================================================================
+FAIL: test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test term info query performance
 ----------------------------------------------------------------------
-Ran 18 tests in 134.325s
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 116, in test_01_term_info_queries
+    self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "term_info query exceeded threshold")
+AssertionError: 32.170971393585205 not less than 31.0 : term_info query exceeded threshold
 
-OK
+----------------------------------------------------------------------
+Ran 18 tests in 115.825s
+
+FAILED (failures=1)
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -134,133 +167,132 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ================================================================================
 TERM INFO QUERIES
 ================================================================================
-get_term_info (mushroom body): 6.1410s ✅
-get_term_info (individual): 6.0859s ✅
+get_term_info (mushroom body): 32.1710s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 6.9535s ✅
+NeuronsPartHere: 2.8434s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 2.8994s ✅
-NeuronsPresynapticHere: 2.3585s ✅
-NeuronsPostsynapticHere: 2.4734s ✅
-NeuronNeuronConnectivity: 2.7049s ✅
+NeuronsSynaptic: 2.3029s ✅
+NeuronsPresynapticHere: 2.2779s ✅
+NeuronsPostsynapticHere: 2.4030s ✅
+NeuronNeuronConnectivity: 2.0837s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 2.1980s ✅
-PartsOf: 2.6747s ✅
-SubclassesOf: 3.1493s ✅
+ComponentsOf: 1.9663s ✅
+PartsOf: 1.9950s ✅
+SubclassesOf: 1.9459s ✅
 
 ================================================================================
 TRACT/NERVE AND LINEAGE QUERIES
 ================================================================================
-NeuronClassesFasciculatingHere: 3.7257s ✅
-TractsNervesInnervatingHere: 3.8040s ✅
-LineageClonesIn: 2.0089s ✅
+NeuronClassesFasciculatingHere: 1.9152s ✅
+TractsNervesInnervatingHere: 1.9636s ✅
+LineageClonesIn: 1.9336s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
 ================================================================================
-ImagesNeurons: 3.6302s ✅
-ImagesThatDevelopFrom: 2.3138s ✅
-epFrag: 2.8265s ✅
+ImagesNeurons: 3.4474s ✅
+ImagesThatDevelopFrom: 2.2195s ✅
+epFrag: 1.9318s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 5.6657s ✅
+ListAllAvailableImages: 1.9709s ✅
 
 ================================================================================
 CONNECTIVITY QUERIES
 ================================================================================
-NeuronNeuronConnectivityQuery: 3.8148s ✅
-NeuronRegionConnectivityQuery: 1.9827s ✅
+NeuronNeuronConnectivityQuery: 1.9366s ✅
+NeuronRegionConnectivityQuery: 1.9911s ✅
 
 ================================================================================
 DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)
 ================================================================================
-DownstreamClassConnectivity: 4.0141s ✅
+DownstreamClassConnectivity: 1.9594s ✅
 
 ================================================================================
 UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)
 ================================================================================
-UpstreamClassConnectivity: 2.0182s ✅
+UpstreamClassConnectivity: 1.9148s ✅
 
 ================================================================================
 CROSS-DATASET CONNECTIVITY (live, slow)
 ================================================================================
-QueryConnectivity: 1.8851s ✅
+QueryConnectivity: 2.2000s ✅
 
 ================================================================================
 SIMILARITY QUERIES (Neo4j NBLAST)
 ================================================================================
-SimilarMorphologyTo: 1.0389s ✅
+SimilarMorphologyTo: 1.0281s ✅
 
 ================================================================================
 NEURON INPUT QUERIES (Neo4j)
 ================================================================================
-NeuronInputsTo: 5.0821s ✅
+NeuronInputsTo: 3.1234s ✅
 
 ================================================================================
 EXPRESSION PATTERN QUERIES (Neo4j)
 ================================================================================
-ExpressionOverlapsHere: 1.8291s ✅
+ExpressionOverlapsHere: 1.2684s ✅
   └─ Found 3922 total expression patterns, returned 10
 
 ================================================================================
 TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
 ================================================================================
-anatScRNAseqQuery: 1.2635s ✅
+anatScRNAseqQuery: 1.0150s ✅
   └─ Found 57 total clusters, returned 10
-clusterExpression: 2.8978s ✅
+clusterExpression: 1.4734s ✅
   └─ Found 4588 genes expressed, returned 10
-expressionCluster: 1.1102s ✅
+expressionCluster: 0.8423s ✅
   └─ Found 9 clusters expressing gene
-scRNAdatasetData: 0.9274s ✅
+scRNAdatasetData: 0.8227s ✅
   └─ Found 13 clusters in dataset, returned 10
 
 ================================================================================
 NBLAST SIMILARITY QUERIES
 ================================================================================
-SimilarMorphologyTo: 1.1088s ✅
+SimilarMorphologyTo: 1.1755s ✅
   └─ Found 215 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 1.0538s ✅
+SimilarMorphologyToPartOf: 1.0333s ✅
   └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.9900s ✅
+SimilarMorphologyToPartOfexp: 1.0620s ✅
   └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.8449s ✅
+SimilarMorphologyToNB: 0.8851s ✅
   └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.8571s ✅
+SimilarMorphologyToNBexp: 1.0264s ✅
   └─ Found 15 NeuronBridge expression matches, returned 10
 ✅ All NBLAST similarity queries completed
 
 ================================================================================
 DATASET/TEMPLATE QUERIES
 ================================================================================
-PaintedDomains: 1.0013s ✅
+PaintedDomains: 0.9859s ✅
   └─ Found 46 painted domains, returned 10
-DatasetImages: 0.9788s ✅
+DatasetImages: 0.9138s ✅
   └─ Found 46 images in dataset, returned 10
-AllAlignedImages: 3.7387s ✅
+AllAlignedImages: 2.6492s ✅
   └─ Found 527179 aligned images, returned 10
-AlignedDatasets: 1.4548s ✅
+AlignedDatasets: 0.9752s ✅
   └─ Found 86 aligned datasets, returned 10
-AllDatasets: 1.2864s ✅
+AllDatasets: 1.2791s ✅
   └─ Found 130 total datasets, returned 20
 ✅ All dataset/template queries completed
 
 ================================================================================
 PUBLICATION/TRANSGENE QUERIES
 ================================================================================
-TermsForPub: 1.2238s ✅
+TermsForPub: 1.0080s ✅
   └─ Found 2 terms for publication
-TransgeneExpressionHere: 2.0046s ✅
+TransgeneExpressionHere: 1.9658s ✅
   └─ Found 2340 transgene expressions, returned 10
 ✅ All publication/transgene queries completed
 
@@ -270,12 +302,45 @@ PERFORMANCE TEST SUMMARY
 All performance tests completed!
 ================================================================================
 test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
-Performance test for specific term info queries. ... ok
+Performance test for specific term info queries. ... Failed to cache result: HTTP 500 - {
+  "responseHeader":{
+    "status":500,
+    "QTime":156},
+  "error":{
+    "metadata":[
+      "error-class","org.apache.solr.common.SolrException",
+      "root-error-class","java.nio.file.NoSuchFileException"],
+    "msg":"Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index",
+    "trace":"org.apache.solr.common.SolrException: Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:246)\n\tat org.apache.solr.update.processor.RunUpdateProcessorFactory$RunUpdateProcessor.processAdd(RunUpdateProcessorFactory.java:73)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.NestedUpdateProcessorFactory$NestedUpdateProcessor.processAdd(NestedUpdateProcessorFactory.java:79)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doLocalAdd(DistributedUpdateProcessor.java:263)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doVersionAdd(DistributedUpdateProcessor.java:502)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.lambda$versionAdd$0(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.VersionBucket.runWithLock(VersionBucket.java:50)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.versionAdd(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.processAdd(DistributedUpdateProcessor.java:229)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AddSchemaFieldsUpdateProcessorFactory$AddSchemaFieldsUpdateProcessor.processAdd(AddSchemaFieldsUpdateProcessorFactory.java:481)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldNameMutatingUpdateProcessorFactory$1.processAdd(FieldNameMutatingUpdateProcessorFactory.java:75)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AbstractDefaultValueUpdateProcessorFactory$DefaultValueUpdateProcessor.processAdd(AbstractDefaultValueUpdateProcessorFactory.java:92)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.handleAdds(JsonLoader.java:521)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.processUpdate(JsonLoader.java:180)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.load(JsonLoader.java:156)\n\tat org.apache.solr.handler.loader.JsonLoader.load(JsonLoader.java:84)\n\tat org.apache.solr.handler.UpdateRequestHandler$1.load(UpdateRequestHandler.java:97)\n\tat org.apache.solr.handler.ContentStreamHandlerBase.handleRequestBody(ContentStreamHandlerBase.java:82)\n\tat org.apache.solr.handler.RequestHandlerBase.handleRequest(RequestHandlerBase.java:216)\n\tat org.apache.solr.core.SolrCore.execute(SolrCore.java:2637)\n\tat org.apache.solr.servlet.HttpSolrCall.execute(HttpSolrCall.java:794)\n\tat org.apache.solr.servlet.HttpSolrCall.call(HttpSolrCall.java:560)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:437)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:367)\n\tat org.eclipse.jetty.servlet.FilterHolder.doFilter(FilterHolder.java:201)\n\tat org.eclipse.jetty.servlet.ServletHandler$Chain.doFilter(ServletHandler.java:1626)\n\tat org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:552)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)\n\tat org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:600)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:235)\n\tat org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:1624)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:233)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1440)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:188)\n\tat org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:505)\n\tat org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:1594)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:186)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1355)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)\n\tat org.eclipse.jetty.server.handler.ContextHandlerCollection.handle(ContextHandlerCollection.java:191)\n\tat org.eclipse.jetty.server.handler.InetAccessHandler.handle(InetAccessHandler.java:177)\n\tat org.eclipse.jetty.server.handler.HandlerCollection.handle(HandlerCollection.java:146)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.rewrite.handler.RewriteHandler.handle(RewriteHandler.java:322)\n\tat org.eclipse.jetty.server.handler.gzip.GzipHandler.handle(GzipHandler.java:772)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.Server.handle(Server.java:516)\n\tat org.eclipse.jetty.server.HttpChannel.lambda$handle$1(HttpChannel.java:487)\n\tat org.eclipse.jetty.server.HttpChannel.dispatch(HttpChannel.java:732)\n\tat org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:479)\n\tat org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:277)\n\tat org.eclipse.jetty.io.AbstractConnection$ReadCallback.succeeded(AbstractConnection.java:311)\n\tat org.eclipse.jetty.io.FillInterest.fillable(FillInterest.java:105)\n\tat org.eclipse.jetty.io.ChannelEndPoint$1.run(ChannelEndPoint.java:104)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.runTask(EatWhatYouKill.java:338)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.doProduce(EatWhatYouKill.java:315)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.tryProduce(EatWhatYouKill.java:173)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.run(EatWhatYouKill.java:131)\n\tat org.eclipse.jetty.util.thread.ReservedThreadExecutor$ReservedThread.run(ReservedThreadExecutor.java:409)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:883)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool$Runner.run(QueuedThreadPool.java:1034)\n\tat java.base/java.lang.Thread.run(Unknown Source)\nCaused by: org.apache.lucene.store.AlreadyClosedException: this IndexWriter is closed\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:877)\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:891)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1468)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1464)\n\tat org.apache.solr.update.DirectUpdateHandler2.updateDocOrDocValues(DirectUpdateHandler2.java:967)\n\tat org.apache.solr.update.DirectUpdateHandler2.doNormalUpdate(DirectUpdateHandler2.java:342)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc0(DirectUpdateHandler2.java:294)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:241)\n\t... 77 more\nCaused by: java.nio.file.NoSuchFileException: /var/solr/data/vfb_json/data/index/segments_2hcz3\n\tat java.base/sun.nio.fs.UnixException.translateToIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixFileSystemProvider.implDelete(Unknown Source)\n\tat java.base/sun.nio.fs.AbstractFileSystemProvider.delete(Unknown Source)\n\tat java.base/java.nio.file.Files.delete(Unknown Source)\n\tat org.apache.lucene.store.FSDirectory.privateDeleteFile(FSDirectory.java:370)\n\tat org.apache.lucene.store.FSDirectory.deletePendingFiles(FSDirectory.java:352)\n\tat org.apache.lucene.store.FSDirectory.maybeDeletePendingFiles(FSDirectory.java:363)\n\tat org.apache.lucene.store.FSDirectory.deleteFile(FSDirectory.java:340)\n\tat org.apache.lucene.store.NRTCachingDirectory.deleteFile(NRTCachingDirectory.java:118)\n\tat org.apache.lucene.store.LockValidatingDirectoryWrapper.deleteFile(LockValidatingDirectoryWrapper.java:38)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFile(IndexFileDeleter.java:705)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFiles(IndexFileDeleter.java:692)\n\tat org.apache.lucene.index.IndexFileDeleter.decRef(IndexFileDeleter.java:598)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteCommits(IndexFileDeleter.java:382)\n\tat org.apache.lucene.index.IndexFileDeleter.checkpoint(IndexFileDeleter.java:536)\n\tat org.apache.lucene.index.IndexWriter.finishCommit(IndexWriter.java:3822)\n\tat org.apache.lucene.index.IndexWriter.commitInternal(IndexWriter.java:3778)\n\tat org.apache.lucene.index.IndexWriter.commit(IndexWriter.java:3728)\n\tat org.apache.solr.update.DirectUpdateHandler2.commit(DirectUpdateHandler2.java:675)\n\tat org.apache.solr.update.CommitTracker.run(CommitTracker.java:273)\n\tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source)\n\tat java.base/java.util.concurrent.FutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)\n\t... 1 more\n",
+    "code":500}}
+
+Failed to cache result: HTTP 500 - {
+  "responseHeader":{
+    "status":500,
+    "QTime":152},
+  "error":{
+    "metadata":[
+      "error-class","org.apache.solr.common.SolrException",
+      "root-error-class","java.nio.file.NoSuchFileException"],
+    "msg":"Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index",
+    "trace":"org.apache.solr.common.SolrException: Server error writing document id vfb_query_term_info_FBbt_00003748_preview_True to the index\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:246)\n\tat org.apache.solr.update.processor.RunUpdateProcessorFactory$RunUpdateProcessor.processAdd(RunUpdateProcessorFactory.java:73)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.NestedUpdateProcessorFactory$NestedUpdateProcessor.processAdd(NestedUpdateProcessorFactory.java:79)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doLocalAdd(DistributedUpdateProcessor.java:263)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.doVersionAdd(DistributedUpdateProcessor.java:502)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.lambda$versionAdd$0(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.VersionBucket.runWithLock(VersionBucket.java:50)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.versionAdd(DistributedUpdateProcessor.java:343)\n\tat org.apache.solr.update.processor.DistributedUpdateProcessor.processAdd(DistributedUpdateProcessor.java:229)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AddSchemaFieldsUpdateProcessorFactory$AddSchemaFieldsUpdateProcessor.processAdd(AddSchemaFieldsUpdateProcessorFactory.java:481)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldNameMutatingUpdateProcessorFactory$1.processAdd(FieldNameMutatingUpdateProcessorFactory.java:75)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.FieldMutatingUpdateProcessor.processAdd(FieldMutatingUpdateProcessor.java:118)\n\tat org.apache.solr.update.processor.UpdateRequestProcessor.processAdd(UpdateRequestProcessor.java:55)\n\tat org.apache.solr.update.processor.AbstractDefaultValueUpdateProcessorFactory$DefaultValueUpdateProcessor.processAdd(AbstractDefaultValueUpdateProcessorFactory.java:92)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.handleAdds(JsonLoader.java:521)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.processUpdate(JsonLoader.java:180)\n\tat org.apache.solr.handler.loader.JsonLoader$SingleThreadedJsonLoader.load(JsonLoader.java:156)\n\tat org.apache.solr.handler.loader.JsonLoader.load(JsonLoader.java:84)\n\tat org.apache.solr.handler.UpdateRequestHandler$1.load(UpdateRequestHandler.java:97)\n\tat org.apache.solr.handler.ContentStreamHandlerBase.handleRequestBody(ContentStreamHandlerBase.java:82)\n\tat org.apache.solr.handler.RequestHandlerBase.handleRequest(RequestHandlerBase.java:216)\n\tat org.apache.solr.core.SolrCore.execute(SolrCore.java:2637)\n\tat org.apache.solr.servlet.HttpSolrCall.execute(HttpSolrCall.java:794)\n\tat org.apache.solr.servlet.HttpSolrCall.call(HttpSolrCall.java:560)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:437)\n\tat org.apache.solr.servlet.SolrDispatchFilter.doFilter(SolrDispatchFilter.java:367)\n\tat org.eclipse.jetty.servlet.FilterHolder.doFilter(FilterHolder.java:201)\n\tat org.eclipse.jetty.servlet.ServletHandler$Chain.doFilter(ServletHandler.java:1626)\n\tat org.eclipse.jetty.servlet.ServletHandler.doHandle(ServletHandler.java:552)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:143)\n\tat org.eclipse.jetty.security.SecurityHandler.handle(SecurityHandler.java:600)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:235)\n\tat org.eclipse.jetty.server.session.SessionHandler.doHandle(SessionHandler.java:1624)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextHandle(ScopedHandler.java:233)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doHandle(ContextHandler.java:1440)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:188)\n\tat org.eclipse.jetty.servlet.ServletHandler.doScope(ServletHandler.java:505)\n\tat org.eclipse.jetty.server.session.SessionHandler.doScope(SessionHandler.java:1594)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.nextScope(ScopedHandler.java:186)\n\tat org.eclipse.jetty.server.handler.ContextHandler.doScope(ContextHandler.java:1355)\n\tat org.eclipse.jetty.server.handler.ScopedHandler.handle(ScopedHandler.java:141)\n\tat org.eclipse.jetty.server.handler.ContextHandlerCollection.handle(ContextHandlerCollection.java:191)\n\tat org.eclipse.jetty.server.handler.InetAccessHandler.handle(InetAccessHandler.java:177)\n\tat org.eclipse.jetty.server.handler.HandlerCollection.handle(HandlerCollection.java:146)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.rewrite.handler.RewriteHandler.handle(RewriteHandler.java:322)\n\tat org.eclipse.jetty.server.handler.gzip.GzipHandler.handle(GzipHandler.java:772)\n\tat org.eclipse.jetty.server.handler.HandlerWrapper.handle(HandlerWrapper.java:127)\n\tat org.eclipse.jetty.server.Server.handle(Server.java:516)\n\tat org.eclipse.jetty.server.HttpChannel.lambda$handle$1(HttpChannel.java:487)\n\tat org.eclipse.jetty.server.HttpChannel.dispatch(HttpChannel.java:732)\n\tat org.eclipse.jetty.server.HttpChannel.handle(HttpChannel.java:479)\n\tat org.eclipse.jetty.server.HttpConnection.onFillable(HttpConnection.java:277)\n\tat org.eclipse.jetty.io.AbstractConnection$ReadCallback.succeeded(AbstractConnection.java:311)\n\tat org.eclipse.jetty.io.FillInterest.fillable(FillInterest.java:105)\n\tat org.eclipse.jetty.io.ChannelEndPoint$1.run(ChannelEndPoint.java:104)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.runTask(EatWhatYouKill.java:338)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.doProduce(EatWhatYouKill.java:315)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.tryProduce(EatWhatYouKill.java:173)\n\tat org.eclipse.jetty.util.thread.strategy.EatWhatYouKill.run(EatWhatYouKill.java:131)\n\tat org.eclipse.jetty.util.thread.ReservedThreadExecutor$ReservedThread.run(ReservedThreadExecutor.java:409)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool.runJob(QueuedThreadPool.java:883)\n\tat org.eclipse.jetty.util.thread.QueuedThreadPool$Runner.run(QueuedThreadPool.java:1034)\n\tat java.base/java.lang.Thread.run(Unknown Source)\nCaused by: org.apache.lucene.store.AlreadyClosedException: this IndexWriter is closed\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:877)\n\tat org.apache.lucene.index.IndexWriter.ensureOpen(IndexWriter.java:891)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1468)\n\tat org.apache.lucene.index.IndexWriter.updateDocuments(IndexWriter.java:1464)\n\tat org.apache.solr.update.DirectUpdateHandler2.updateDocOrDocValues(DirectUpdateHandler2.java:967)\n\tat org.apache.solr.update.DirectUpdateHandler2.doNormalUpdate(DirectUpdateHandler2.java:342)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc0(DirectUpdateHandler2.java:294)\n\tat org.apache.solr.update.DirectUpdateHandler2.addDoc(DirectUpdateHandler2.java:241)\n\t... 77 more\nCaused by: java.nio.file.NoSuchFileException: /var/solr/data/vfb_json/data/index/segments_2hcz3\n\tat java.base/sun.nio.fs.UnixException.translateToIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixException.rethrowAsIOException(Unknown Source)\n\tat java.base/sun.nio.fs.UnixFileSystemProvider.implDelete(Unknown Source)\n\tat java.base/sun.nio.fs.AbstractFileSystemProvider.delete(Unknown Source)\n\tat java.base/java.nio.file.Files.delete(Unknown Source)\n\tat org.apache.lucene.store.FSDirectory.privateDeleteFile(FSDirectory.java:370)\n\tat org.apache.lucene.store.FSDirectory.deletePendingFiles(FSDirectory.java:352)\n\tat org.apache.lucene.store.FSDirectory.maybeDeletePendingFiles(FSDirectory.java:363)\n\tat org.apache.lucene.store.FSDirectory.deleteFile(FSDirectory.java:340)\n\tat org.apache.lucene.store.NRTCachingDirectory.deleteFile(NRTCachingDirectory.java:118)\n\tat org.apache.lucene.store.LockValidatingDirectoryWrapper.deleteFile(LockValidatingDirectoryWrapper.java:38)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFile(IndexFileDeleter.java:705)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteFiles(IndexFileDeleter.java:692)\n\tat org.apache.lucene.index.IndexFileDeleter.decRef(IndexFileDeleter.java:598)\n\tat org.apache.lucene.index.IndexFileDeleter.deleteCommits(IndexFileDeleter.java:382)\n\tat org.apache.lucene.index.IndexFileDeleter.checkpoint(IndexFileDeleter.java:536)\n\tat org.apache.lucene.index.IndexWriter.finishCommit(IndexWriter.java:3822)\n\tat org.apache.lucene.index.IndexWriter.commitInternal(IndexWriter.java:3778)\n\tat org.apache.lucene.index.IndexWriter.commit(IndexWriter.java:3728)\n\tat org.apache.solr.update.DirectUpdateHandler2.commit(DirectUpdateHandler2.java:675)\n\tat org.apache.solr.update.CommitTracker.run(CommitTracker.java:273)\n\tat java.base/java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source)\n\tat java.base/java.util.concurrent.FutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)\n\t... 1 more\n",
+    "code":500}}
+
+FAIL
+
+======================================================================
+FAIL: test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
+Performance test for specific term info queries.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/VFBquery/VFBquery/src/test/term_info_queries_test.py", line 602, in test_term_info_performance
+    self.assertLess(duration_1, max_single_query_time,
+AssertionError: 50.42414927482605 not less than 10.0 : FBbt_00003748 query took 50.4241s, exceeding 10.0s threshold (cache_enabled=True)
 
 ----------------------------------------------------------------------
-Ran 1 test in 6.414s
+Ran 1 test in 52.526s
 
-OK
+FAILED (failures=1)
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -283,12 +348,11 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 2.5889 seconds
-VFB_00101567 query took: 3.8245 seconds
-Total time for both queries: 6.4134 seconds
+FBbt_00003748 query took: 50.4241 seconds
+VFB_00101567 query took: 2.1008 seconds
+Total time for both queries: 52.5249 seconds
 Performance Level: 🔴 Slow (> 6 seconds)
 ==================================================
-Performance test completed successfully!
 ============================= test session starts ==============================
 platform linux -- Python 3.10.20, pytest-9.0.3, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.10.20/x64/bin/python
 cachedir: .pytest_cache
@@ -329,10 +393,10 @@ src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHiera
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation PASSED [ 56%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results PASSED [ 58%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys PASSED [ 60%]
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present FAILED [ 61%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present PASSED [ 61%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected PASSED [ 63%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero PASSED [ 65%]
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe FAILED [ 67%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe PASSED [ 67%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns PASSED [ 69%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected PASSED [ 70%]
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe PASSED [ 72%]
@@ -352,143 +416,6 @@ src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude
 src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning PASSED [ 98%]
 src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error PASSED [100%]
 
-=================================== FAILURES ===================================
-___________ TestDownstreamClassConnectivityDict.test_headers_present ___________
-
-self = <src.test.test_downstream_class_connectivity.TestDownstreamClassConnectivityDict object at 0x7f42647e6710>
-
-    @pytest.mark.integration
-    def test_headers_present(self):
-        result = get_downstream_class_connectivity(
-            TEST_CLASS, return_dataframe=False, limit=1, force_refresh=True
-        )
-        assert "headers" in result
->       assert "downstream_class" in result["headers"]
-E       AssertionError: assert 'downstream_class' in {}
-
-src/test/test_downstream_class_connectivity.py:53: AssertionError
------------------------------ Captured stdout call -----------------------------
-Bulk per-instance cache fetch failed (_dataframe_False): Connection to server 'http://solr.virtualflybrain.org/solr/vfb_json/select/' timed out: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-Warning: per-instance connectivity cache missing for 107/107 instances of FBbt_00001482; those will be skipped (results may be a slight underestimate).
------------------------------- Captured log call -------------------------------
-ERROR    pysolr:pysolr.py:344 Connection to server 'http://solr.virtualflybrain.org/solr/vfb_json/select/' timed out: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 534, in _make_request
-    response = conn.getresponse()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connection.py", line 571, in getresponse
-    httplib_response = super().getresponse()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 1395, in getresponse
-    response.begin()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 323, in begin
-    version, status, reason = self._read_status()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 284, in _read_status
-    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/socket.py", line 717, in readinto
-    return self._sock.recv_into(b)
-TimeoutError: [Errno 110] Connection timed out
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/adapters.py", line 696, in send
-    resp = conn.urlopen(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 842, in urlopen
-    retries = retries.increment(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/util/retry.py", line 498, in increment
-    raise reraise(type(error), error, _stacktrace)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/util/util.py", line 39, in reraise
-    raise value
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 788, in urlopen
-    response = self._make_request(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 536, in _make_request
-    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 367, in _raise_timeout
-    raise ReadTimeoutError(
-urllib3.exceptions.ReadTimeoutError: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/pysolr.py", line 334, in _send_request
-    resp = requests_method(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 712, in post
-    return self.request("POST", url, data=data, json=json, **kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 651, in request
-    resp = self.send(prep, **send_kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 784, in send
-    r = adapter.send(request, **kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/adapters.py", line 742, in send
-    raise ReadTimeout(e, request=request)
-requests.exceptions.ReadTimeout: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-_______ TestDownstreamClassConnectivityDataFrame.test_returns_dataframe ________
-
-self = <src.test.test_downstream_class_connectivity.TestDownstreamClassConnectivityDataFrame object at 0x7f42647e5c90>
-
-    @pytest.mark.integration
-    def test_returns_dataframe(self):
-        df = get_downstream_class_connectivity(
-            TEST_CLASS, return_dataframe=True, force_refresh=True
-        )
-        assert isinstance(df, pd.DataFrame)
->       assert not df.empty
-E       assert not True
-E        +  where True = Empty DataFrame\nColumns: []\nIndex: [].empty
-
-src/test/test_downstream_class_connectivity.py:82: AssertionError
------------------------------ Captured stdout call -----------------------------
-Error querying Solr for downstream_connectivity_query: Connection to server 'http://solr.virtualflybrain.org/solr/vfb_json/select/?q=id%3A%2A&fq=%7B%21terms+f%3Did%7DFBbt_00001482%2CFBbt_20009301%2CFBbt_20009313%2CFBbt_20009302%2CFBbt_00047819%2CFBbt_20009333%2CFBbt_20009300%2CFBbt_20009305%2CFBbt_20009306%2CFBbt_20009303%2CFBbt_00048628%2CFBbt_00047019%2CFBbt_20009297%2CFBbt_00047852%2CFBbt_20009298%2CFBbt_20009362%2CFBbt_00047020%2CFBbt_20009309%2CFBbt_20009308&fl=downstream_connectivity_query&rows=19&wt=json' timed out: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
------------------------------- Captured log call -------------------------------
-ERROR    vfbquery.solr_result_cache:solr_result_cache.py:457 Error clearing cache entry: HTTPSConnectionPool(host='solr.virtualflybrain.org', port=443): Read timed out. (read timeout=5)
-WARNING  vfbquery.solr_result_cache:solr_result_cache.py:403 Solr cache write failed; disabling cache for 60s: HTTPSConnectionPool(host='solr.virtualflybrain.org', port=443): Read timed out. (read timeout=30)
-ERROR    pysolr:pysolr.py:344 Connection to server 'http://solr.virtualflybrain.org/solr/vfb_json/select/?q=id%3A%2A&fq=%7B%21terms+f%3Did%7DFBbt_00001482%2CFBbt_20009301%2CFBbt_20009313%2CFBbt_20009302%2CFBbt_00047819%2CFBbt_20009333%2CFBbt_20009300%2CFBbt_20009305%2CFBbt_20009306%2CFBbt_20009303%2CFBbt_00048628%2CFBbt_00047019%2CFBbt_20009297%2CFBbt_00047852%2CFBbt_20009298%2CFBbt_20009362%2CFBbt_00047020%2CFBbt_20009309%2CFBbt_20009308&fl=downstream_connectivity_query&rows=19&wt=json' timed out: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 534, in _make_request
-    response = conn.getresponse()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connection.py", line 571, in getresponse
-    httplib_response = super().getresponse()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 1395, in getresponse
-    response.begin()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 323, in begin
-    version, status, reason = self._read_status()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/http/client.py", line 284, in _read_status
-    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/socket.py", line 717, in readinto
-    return self._sock.recv_into(b)
-TimeoutError: [Errno 110] Connection timed out
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/adapters.py", line 696, in send
-    resp = conn.urlopen(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 842, in urlopen
-    retries = retries.increment(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/util/retry.py", line 498, in increment
-    raise reraise(type(error), error, _stacktrace)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/util/util.py", line 39, in reraise
-    raise value
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 788, in urlopen
-    response = self._make_request(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 536, in _make_request
-    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/urllib3/connectionpool.py", line 367, in _raise_timeout
-    raise ReadTimeoutError(
-urllib3.exceptions.ReadTimeoutError: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/pysolr.py", line 334, in _send_request
-    resp = requests_method(
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 671, in get
-    return self.request("GET", url, params=params, **kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 651, in request
-    resp = self.send(prep, **send_kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/sessions.py", line 784, in send
-    r = adapter.send(request, **kwargs)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/requests/adapters.py", line 742, in send
-    raise ReadTimeout(e, request=request)
-requests.exceptions.ReadTimeout: HTTPConnectionPool(host='solr.virtualflybrain.org', port=80): Read timed out. (read timeout=990)
 =============================== warnings summary ===============================
 ../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
   /opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
@@ -726,11 +653,7 @@ src/test/test_vfb_connectivity.py:114
     @pytest.mark.integration
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present - AssertionError: assert 'downstream_class' in {}
-FAILED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe - assert not True
- +  where True = Empty DataFrame\nColumns: []\nIndex: [].empty
-============ 2 failed, 53 passed, 64 warnings in 3570.78s (0:59:30) ============
+================= 55 passed, 64 warnings in 2083.32s (0:34:43) =================
 ```
 
 ## Summary
@@ -746,4 +669,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-05-28 07:05:50 UTC*
+*Last updated: 2026-05-29 06:43:48 UTC*

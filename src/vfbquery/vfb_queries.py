@@ -1358,7 +1358,7 @@ def NeuronsPresynapticHere_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "label", "tags", "thumbnail"]
+    preview_columns = ["id", "label", "tags", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -1598,7 +1598,7 @@ def TractsNervesInnervatingHere_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "label", "tags", "thumbnail"]
+    preview_columns = ["id", "label", "tags", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -1623,7 +1623,7 @@ def LineageClonesIn_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "label", "tags", "thumbnail"]
+    preview_columns = ["id", "label", "tags", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -1855,7 +1855,7 @@ def SimilarMorphologyToNB_to_schema(name, take_default):
 
 def SimilarMorphologyToNBexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToNBexp (NeuronBridge expression) query."""
-    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
+    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToUserData_to_schema(name, take_default):
@@ -1865,7 +1865,7 @@ def SimilarMorphologyToUserData_to_schema(name, take_default):
 
 def PaintedDomains_to_schema(name, take_default):
     """Schema for PaintedDomains query."""
-    return Query(query="PaintedDomains", label=f"Painted domains for {name}", function="get_painted_domains", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "type", "thumbnail"])
+    return Query(query="PaintedDomains", label=f"Painted domains for {name}", function="get_painted_domains", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "type", "description", "thumbnail"])
 
 
 def DatasetImages_to_schema(name, take_default):
@@ -1880,12 +1880,12 @@ def AllAlignedImages_to_schema(name, take_default):
 
 def AlignedDatasets_to_schema(name, take_default):
     """Schema for AlignedDatasets query."""
-    return Query(query="AlignedDatasets", label=f"Datasets aligned to {name}", function="get_aligned_datasets", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags"])
+    return Query(query="AlignedDatasets", label=f"Datasets aligned to {name}", function="get_aligned_datasets", takes={"short_form": {"$and": ["Template", "Individual"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "pubs", "tags", "license", "template", "technique", "thumbnail", "image_count"])
 
 
 def AllDatasets_to_schema(name, take_default):
     """Schema for AllDatasets query."""
-    return Query(query="AllDatasets", label="All available datasets", function="get_all_datasets", takes={"short_form": {"$and": ["Template"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags"])
+    return Query(query="AllDatasets", label="All available datasets", function="get_all_datasets", takes={"short_form": {"$and": ["Template"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "pubs", "tags", "license", "template", "technique", "thumbnail", "image_count"])
 
 
 def TermsForPub_to_schema(name, take_default):
@@ -1902,7 +1902,7 @@ def TransgeneExpressionHere_to_schema(name, take_default):
     
     Query chain: Multi-step Owlery and Neo4j queries
     """
-    return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Nervous_system", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "tags"])
+    return Query(query="TransgeneExpressionHere", label=f"Transgene expression in {name}", function="get_transgene_expression_here", takes={"short_form": {"$and": ["Class", "Nervous_system", "Anatomy"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "pubs", "tags", "template", "technique", "thumbnail"])
 
 
 def FindStocks_to_schema(name, take_default):
@@ -3788,6 +3788,8 @@ def _get_neurons_part_here_headers():
         "tags": {"title": "Tags", "type": "tags", "order": 2},
         "source": {"title": "Data Source", "type": "metadata", "order": 3},
         "source_id": {"title": "Data Source ID", "type": "metadata", "order": 4},
+        "template": {"title": "Template", "type": "markdown", "order": 6},
+        "technique": {"title": "Imaging Technique", "type": "text", "order": 7},
         "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
     }
 
@@ -3798,6 +3800,8 @@ def _get_standard_query_headers():
         "id": {"title": "Add", "type": "selection_id", "order": -1},
         "label": {"title": "Name", "type": "markdown", "order": 0, "sort": {0: "Asc"}},
         "tags": {"title": "Tags", "type": "tags", "order": 2},
+        "template": {"title": "Template", "type": "markdown", "order": 6},
+        "technique": {"title": "Imaging Technique", "type": "text", "order": 7},
         "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}
     }
 
@@ -3892,34 +3896,61 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                 # Extract tags from unique_facets
                 tags = '|'.join(term_core.get('unique_facets', []))
                 
-                # Extract thumbnail from anatomy_channel_image if available
+                # Extract thumbnail + template + technique from
+                # anatomy_channel_image[0].channel_image. v2 prod's SOLR-backed
+                # processor surfaces all three as separate columns
+                # (Template_Space, Imaging_Technique, Images); v2-dev was
+                # previously only getting Images because we only built the
+                # thumbnail markdown.
                 thumbnail = ''
+                template = ''
+                technique = ''
                 anatomy_images = field_data.get('anatomy_channel_image', [])
                 if anatomy_images and len(anatomy_images) > 0:
                     first_img = anatomy_images[0]
                     channel_image = first_img.get('channel_image', {})
                     image_info = channel_image.get('image', {})
+
+                    # Template — `[label](short_form)` markdown so the
+                    # VFBqueryJsonProcessor's stripMarkdownLink renders a
+                    # clickable link in the V2 Template_Space column.
+                    template_anatomy = image_info.get('template_anatomy', {})
+                    template_short_form = template_anatomy.get('short_form', '') if template_anatomy else ''
+                    template_label_raw = ''
+                    if template_anatomy:
+                        template_label_raw = template_anatomy.get('symbol') or template_anatomy.get('label', '')
+                    template_label = unquote(template_label_raw) if template_label_raw else ''
+                    if template_label and template_short_form:
+                        template = f"[{template_label}]({template_short_form})"
+
+                    # Imaging technique — plain label (V2 Imaging_Technique
+                    # column renders as text; matches how
+                    # get_similar_morphology_part_of et al. emit it).
+                    technique_info = channel_image.get('imaging_technique', {})
+                    if technique_info:
+                        technique_label_raw = technique_info.get('label', '')
+                        technique = unquote(technique_label_raw) if technique_label_raw else ''
+
+                    # Thumbnail — canonical `[![alt](url 'alt')](ref)` form.
                     thumbnail_url = image_info.get('image_thumbnail', '')
-                    
                     if thumbnail_url:
                         # Convert to HTTPS and use non-transparent version
                         thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
-                        
+
                         # Format thumbnail with proper markdown link (matching Neo4j behavior)
-                        template_anatomy = image_info.get('template_anatomy', {})
-                        if template_anatomy:
-                            template_label = template_anatomy.get('symbol') or template_anatomy.get('label', '')
-                            template_label = unquote(template_label)
+                        if template_label:
                             anatomy_label = first_img.get('anatomy', {}).get('label', label_text)
                             anatomy_label = unquote(anatomy_label)
                             alt_text = f"{anatomy_label} aligned to {template_label}"
                             thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
-                
+
                 # Build row
                 row = {
                     'id': class_short_form,
                     'label': f"[{label_text}]({class_short_form})",
                     'tags': tags,
+                    'template': template,
+                    'technique': technique,
                     'thumbnail': thumbnail
                 }
                 
@@ -3955,8 +3986,10 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         # Convert to DataFrame if requested
         if return_dataframe:
             df = pd.DataFrame(rows)
-            # Apply markdown encoding
-            columns_to_encode = ['label', 'thumbnail']
+            # Apply markdown encoding — template is a `[label](short_form)`
+            # link and needs the same encoding as label/thumbnail so the V2
+            # frontend's link parser renders it consistently.
+            columns_to_encode = ['label', 'template', 'thumbnail']
             df = encode_markdown_links(df, columns_to_encode)
             return df
         
@@ -4659,19 +4692,34 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
 
-    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score) WITH primary, nblast
-        OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
-        WITH primary, nblast, channel, ri, templ
-        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-        WITH primary, nblast, channel, ri, templ, technique
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
+    # Add `type` as pipe-joined parent class labels (matches v2 prod's
+    # `Type` column). Aggregate in a CALL subquery scoped to `primary` so
+    # multi-INSTANCEOF neurons don't multiply rows under the existing
+    # OPTIONAL MATCH chain. `types` (nested struct) is kept for
+    # return_dataframe=True consumers but dropped from the dict response
+    # so the processor's generic List handler doesn't dump HashMap
+    # toString into the Reference column.
+    main_query = f"""MATCH (n:Individual)-[nblast:has_similar_morphology_to_part_of]-(primary:Individual) WHERE n.short_form = '{expression_short_form}' AND EXISTS(nblast.neuronbridge_score)
+        WITH DISTINCT primary, nblast
+        CALL {{
+            WITH primary
+            OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
+            RETURN apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
+        }}
+        CALL {{
+            WITH primary
+            OPTIONAL MATCH (primary)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH ri, templ, technique LIMIT 1
+            RETURN ri, templ, technique
+        }}
         RETURN primary.short_form AS id,
                '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                nblast.neuronbridge_score[0] AS score,
-               types,
+               type,
                REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
-               technique.label AS technique,
+               coalesce(technique.label, '') AS technique,
                REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
         ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
@@ -4681,7 +4729,7 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
     if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
 
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "type": {"title": "Type", "type": "text", "order": 3}, "template": {"title": "Template", "type": "markdown", "order": 4}, "technique": {"title": "Imaging Technique", "type": "text", "order": 5}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_similar_morphology_userdata(upload_id: str, return_dataframe=True, limit: int = -1):
@@ -4720,7 +4768,11 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
     if not df.empty: df = encode_markdown_links(df, ['name', 'thumbnail'])
     
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Domain", "type": "markdown", "order": 0}, "type": {"title": "Type", "type": "text", "order": 1}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "type", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    # description is already populated by the Cypher (coalesce of di/d
+    # description). v2 prod surfaces it as the `Definition` column via
+    # COL_HEADER_MAP[description] = Definition — was previously dropped
+    # because it wasn't listed in headers/rows.
+    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Domain", "type": "markdown", "order": 0}, "type": {"title": "Type", "type": "text", "order": 1}, "description": {"title": "Definition", "type": "text", "order": 2}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "type", "description", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
 def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: int = -1):
@@ -4775,40 +4827,139 @@ def get_all_aligned_images(template_short_form: str, return_dataframe=True, limi
     return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
+def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
+    """Return CALL subqueries that, given a DataSet bound as ``ds_var``,
+    aggregate the columns v2 prod surfaces from SOLR:
+
+      pubs        — "; "-joined `core.label` (matches v2's Reference column)
+      license     — `[label](short_form)` markdown link
+      template/technique/thumbnail — one representative channel-image
+                    (matches prod's `apoc.cypher.run('… LIMIT 5')` shape)
+      image_count — DISTINCT count of individuals sourced to the dataset
+
+    Each branch is wrapped in its own CALL so the outer carrier row stays
+    one-per-ds; no cartesian blow-up between pubs × license × alignments.
+    """
+    return f"""
+        CALL {{
+            WITH {ds_var}
+            OPTIONAL MATCH ({ds_var})-[:has_reference]->(p:pub)
+            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> ''], '; ') AS pubs
+        }}
+        CALL {{
+            WITH {ds_var}
+            OPTIONAL MATCH ({ds_var})-[:has_license|license]->(lic:License)
+            WITH lic LIMIT 1
+            RETURN REPLACE(apoc.text.format("[%s](%s)", [COALESCE(lic.symbol[0], lic.label), lic.short_form]), '[null](null)', '') AS license
+        }}
+        CALL {{
+            WITH {ds_var}
+            OPTIONAL MATCH ({ds_var})<-[:has_source]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH i, templ, technique, irw, channel LIMIT 1
+            RETURN i, templ, technique, irw
+        }}
+        CALL {{
+            WITH {ds_var}
+            OPTIONAL MATCH ({ds_var})<-[:has_source]-(img:Individual)
+            RETURN count(DISTINCT img) AS image_count
+        }}
+    """
+
+
+def _dataset_return_clause(ds_var: str = "ds") -> str:
+    """Return the RETURN tail used by both get_aligned_datasets and
+    get_all_datasets. Matches v2 prod columns:
+      id, name, pubs(Reference), tags(Gross_Type), license, template,
+      technique, thumbnail, image_count.
+    """
+    return f"""
+        RETURN
+            {ds_var}.short_form AS id,
+            '[' + coalesce({ds_var}.label, {ds_var}.short_form) + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + {ds_var}.short_form + ')' AS name,
+            pubs,
+            apoc.text.join(coalesce({ds_var}.uniqueFacets, []), '|') AS tags,
+            license,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(templ.symbol[0], templ.label), templ.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), templ.short_form + "," + coalesce(i.short_form, {ds_var}.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail,
+            image_count
+        ORDER BY name
+    """
+
+
+def _dataset_response_dict(rows, total_count):
+    """Shared response shape for get_aligned_datasets and
+    get_all_datasets — column ordering mirrors v2 prod's
+    `[Name, Reference, Gross_Type, License, Template_Space,
+    Imaging_Technique, Images, Image_count]`.
+    """
+    return {
+        "headers": {
+            "id": {"title": "ID", "type": "selection_id", "order": -1},
+            "name": {"title": "Dataset", "type": "markdown", "order": 0},
+            "pubs": {"title": "Reference", "type": "metadata", "order": 1},
+            "tags": {"title": "Tags", "type": "tags", "order": 2},
+            "license": {"title": "License", "type": "markdown", "order": 3},
+            "template": {"title": "Template", "type": "markdown", "order": 4},
+            "technique": {"title": "Imaging Technique", "type": "text", "order": 5},
+            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 6},
+            "image_count": {"title": "Image_count", "type": "numeric", "order": 7},
+        },
+        "rows": rows,
+        "count": total_count,
+    }
+
+
 def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit: int = -1):
-    """List all datasets aligned to a template."""
+    """List all datasets aligned to a template, with the same columns v2
+    prod's SOLR-backed chain surfaces (Reference, License, Template_Space,
+    Imaging_Technique, Images, Image_count). Closes the v2 parity gap
+    flagged in projects/geppetto-vfbquery-migration/V2_V2DEV_PARITY_SWEEP.md.
+    """
     count_query = f"MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) RETURN count(ds) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
-        RETURN DISTINCT ds.short_form AS id, '[' + ds.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + ds.short_form + ')' AS name, apoc.text.join(coalesce(ds.uniqueFacets, []), '|') AS tags"""
+        WITH DISTINCT ds
+        {_dataset_enrichment_cypher('ds')}
+        {_dataset_return_clause('ds')}"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
+    if not df.empty:
+        df = encode_markdown_links(df, ['name', 'license', 'template', 'thumbnail'])
+
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Dataset", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}}, "rows": [{key: row[key] for key in ["id", "name", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    rows = [{k: row[k] for k in ['id', 'name', 'pubs', 'tags', 'license', 'template', 'technique', 'thumbnail', 'image_count']}
+            for row in safe_to_dict(df, sort_by_id=False)]
+    return _dataset_response_dict(rows, total_count)
 
 
 def get_all_datasets(return_dataframe=True, limit: int = -1):
-    """List all available datasets."""
+    """List all available datasets, with the same column shape as
+    get_aligned_datasets (matches v2 prod's AllDatasets columns)."""
     count_query = "MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual)<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) WITH DISTINCT ds RETURN count(ds) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
+
     main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual)<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
-        RETURN DISTINCT ds.short_form AS id, '[' + ds.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + ds.short_form + ')' AS name, apoc.text.join(coalesce(ds.uniqueFacets, []), '|') AS tags"""
+        WITH DISTINCT ds
+        {_dataset_enrichment_cypher('ds')}
+        {_dataset_return_clause('ds')}"""
     if limit != -1: main_query += f" LIMIT {limit}"
-    
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
+    if not df.empty:
+        df = encode_markdown_links(df, ['name', 'license', 'template', 'thumbnail'])
     
     if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Dataset", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}}, "rows": [{key: row[key] for key in ["id", "name", "tags"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    rows = [{k: row[k] for k in ['id', 'name', 'pubs', 'tags', 'license', 'template', 'technique', 'thumbnail', 'image_count']}
+            for row in safe_to_dict(df, sort_by_id=False)]
+    return _dataset_response_dict(rows, total_count)
 
 
 # ===== Publication Query =====
@@ -4835,10 +4986,88 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
 # ===== Complex Transgene Expression Query =====
 
 def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True, limit: int = -1):
-    """Multi-step query: Owlery subclasses + expression overlaps."""
-    # This uses a combination of Owlery and Neo4j similar to get_expression_overlaps_here
-    # but specifically for transgenes. For now, we'll use the existing expression pattern logic
-    return get_expression_overlaps_here(anatomy_short_form, return_dataframe, limit)
+    """Reports of transgene expression in the specified anatomical region.
+
+    Returns one row per overlapping/part-of Expression_pattern with:
+      - Reference (pubs) — `; `-joined publication labels
+      - Gross_Type (tags)
+      - Template_Space / Imaging_Technique / Images (one representative
+        channel-image per ep, picked via CALL subquery with LIMIT 1)
+
+    Matches the prod XMI Cypher at
+    geppetto-vfb/master:model/vfb.xmi @dataSources.0/@queries.7 (the
+    SOLR-backed "Query for exp from anatomy with no warning" path),
+    flattened to the same column shape v1.10.1 introduced for the
+    SimilarMorphologyTo* siblings so the geppetto-vfb processor's
+    COL_HEADER_MAP maps everything cleanly.
+
+    TODO: Expressed_in column. Prod surfaces it from the
+    anatomy_channel_image[].anatomy.label list — one chip per
+    representative image. Needs a small design decision on how to
+    render multiple values in a flat string column; deferred to a
+    follow-up so the rest of the columns can ship now.
+    """
+    count_query = f"""
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
+        WHERE anat.short_form = '{anatomy_short_form}'
+        RETURN COUNT(DISTINCT ep) AS total_count
+    """
+    count_results = vc.nc.commit_list([count_query])
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
+    total_count = count_df['total_count'][0] if not count_df.empty else 0
+
+    main_query = f"""
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
+        WHERE anat.short_form = '{anatomy_short_form}'
+        WITH DISTINCT ep
+        CALL {{
+            WITH ep
+            OPTIONAL MATCH (ep)<-[:overlaps|part_of]-(:Individual)-[:has_reference|pub]->(p:pub)
+            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> ''], '; ') AS pubs
+        }}
+        CALL {{
+            WITH ep
+            OPTIONAL MATCH (ep)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH i, templ, technique, irw LIMIT 1
+            RETURN i, templ, technique, irw
+        }}
+        RETURN
+            ep.short_form AS id,
+            apoc.text.format("[%s](%s)", [ep.label, ep.short_form]) AS name,
+            apoc.text.join(coalesce(ep.uniqueFacets, []), '|') AS tags,
+            pubs,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(templ.symbol[0], templ.label), templ.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(templ.symbol[0], templ.label), templ.short_form + "," + coalesce(i.short_form, ep.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail
+        ORDER BY ep.label
+    """
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+
+    results = vc.nc.commit_list([main_query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if not df.empty:
+        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
+    if return_dataframe:
+        return df
+    return {
+        "headers": {
+            "id": {"title": "ID", "type": "selection_id", "order": -1},
+            "name": {"title": "Expression Pattern", "type": "markdown", "order": 0},
+            "pubs": {"title": "Publications", "type": "metadata", "order": 1},
+            "tags": {"title": "Tags", "type": "tags", "order": 2},
+            "template": {"title": "Template", "type": "markdown", "order": 3},
+            "technique": {"title": "Imaging Technique", "type": "text", "order": 4},
+            "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
+        },
+        "rows": [
+            {k: row[k] for k in ['id', 'name', 'pubs', 'tags', 'template', 'technique', 'thumbnail']}
+            for row in safe_to_dict(df, sort_by_id=False)
+        ],
+        "count": total_count,
+    }
 
 
 def fill_query_results(term_info, force_refresh: bool = False):

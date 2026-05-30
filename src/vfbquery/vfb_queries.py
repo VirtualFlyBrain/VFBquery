@@ -12,6 +12,7 @@ import numpy as np
 from urllib.parse import unquote
 from .solr_result_cache import with_solr_cache
 import time
+import re
 import requests
 import inspect
 

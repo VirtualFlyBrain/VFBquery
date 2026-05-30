@@ -5074,7 +5074,11 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         CALL {{
             WITH ep
             OPTIONAL MATCH (ep)<-[:overlaps|part_of]-(:Individual)-[:has_reference|pub]->(p:pub)
-            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> ''], '; ') AS pubs
+            // Strip "Unattributed" pub labels — they're VFB's marker for an
+            // expression pattern with no citation, but rendered in the V2
+            // Reference column they look like a real citation. Match v2 prod
+            // behaviour which hides Unattributed entirely.
+            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> '' AND l <> 'Unattributed'], '; ') AS pubs
         }}
         CALL {{
             WITH ep

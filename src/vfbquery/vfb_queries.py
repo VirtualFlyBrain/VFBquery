@@ -3896,25 +3896,55 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                 # Extract tags from unique_facets
                 tags = '|'.join(term_core.get('unique_facets', []))
                 
-                # Extract thumbnail + template + technique from
-                # anatomy_channel_image[0].channel_image. v2 prod's SOLR-backed
-                # processor surfaces all three as separate columns
-                # (Template_Space, Imaging_Technique, Images); v2-dev was
-                # previously only getting Images because we only built the
-                # thumbnail markdown.
+                # Extract thumbnail + template + technique from SOLR.
+                #
+                # Class queries (anat_query) wrap each image as
+                #   anatomy_channel_image: [{anatomy, channel_image: {...}}]
+                # Individual / instance queries (anat_image_query, used by
+                # query_instances=True callers like ImagesNeurons and epFrag)
+                # use a flat top-level
+                #   channel_image: [{image, channel, imaging_technique}]
+                # with no `anatomy_channel_image` wrapper at all.
+                #
+                # Normalise both shapes to a single `channel_image` dict
+                # before extracting template / technique / thumbnail so the
+                # instance queries (ImagesNeurons et al) actually get
+                # populated Template_Space / Imaging_Technique / Images
+                # columns instead of empty strings.
                 thumbnail = ''
                 template = ''
                 technique = ''
+
+                channel_image = {}
+                anatomy_label_for_alt = label_text
                 anatomy_images = field_data.get('anatomy_channel_image', [])
                 if anatomy_images and len(anatomy_images) > 0:
-                    first_img = anatomy_images[0]
-                    channel_image = first_img.get('channel_image', {})
-                    image_info = channel_image.get('image', {})
+                    # Class shape: pick the first wrapper, dig into channel_image.
+                    first_wrapper = anatomy_images[0]
+                    channel_image = first_wrapper.get('channel_image', {}) or {}
+                    wrapper_anat = first_wrapper.get('anatomy') or {}
+                    if isinstance(wrapper_anat, dict) and wrapper_anat.get('label'):
+                        anatomy_label_for_alt = wrapper_anat['label']
+                else:
+                    # Instance shape: top-level channel_image is already the
+                    # list of channel-image entries.
+                    ci_list = field_data.get('channel_image', [])
+                    if ci_list and len(ci_list) > 0:
+                        first_entry = ci_list[0] or {}
+                        # Some emitters nest again as {channel_image: {...}},
+                        # most are flat — handle both defensively.
+                        if isinstance(first_entry, dict) and 'image' in first_entry:
+                            channel_image = first_entry
+                        else:
+                            channel_image = first_entry.get('channel_image', {}) or {}
+
+                if channel_image:
+                    image_info = channel_image.get('image', {}) or {}
 
                     # Template — `[label](short_form)` markdown so the
                     # VFBqueryJsonProcessor's stripMarkdownLink renders a
                     # clickable link in the V2 Template_Space column.
-                    template_anatomy = image_info.get('template_anatomy', {})
+                    template_anatomy = image_info.get('template_anatomy', {}) or {}
                     template_short_form = template_anatomy.get('short_form', '') if template_anatomy else ''
                     template_label_raw = ''
                     if template_anatomy:
@@ -3926,7 +3956,7 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                     # Imaging technique — plain label (V2 Imaging_Technique
                     # column renders as text; matches how
                     # get_similar_morphology_part_of et al. emit it).
-                    technique_info = channel_image.get('imaging_technique', {})
+                    technique_info = channel_image.get('imaging_technique', {}) or {}
                     if technique_info:
                         technique_label_raw = technique_info.get('label', '')
                         technique = unquote(technique_label_raw) if technique_label_raw else ''
@@ -3939,8 +3969,7 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
 
                         # Format thumbnail with proper markdown link (matching Neo4j behavior)
                         if template_label:
-                            anatomy_label = first_img.get('anatomy', {}).get('label', label_text)
-                            anatomy_label = unquote(anatomy_label)
+                            anatomy_label = unquote(anatomy_label_for_alt)
                             alt_text = f"{anatomy_label} aligned to {template_label}"
                             thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
 

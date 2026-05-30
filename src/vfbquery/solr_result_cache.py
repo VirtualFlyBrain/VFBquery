@@ -248,10 +248,23 @@ class SolrResultCache:
             # Parse the cached metadata and result
             cached_data = json.loads(cached_field)
             
-            # Check package version before anything else so stale cache is rejected early
+            # Check package version before anything else so stale cache is rejected early.
+            #
+            # IMPORTANT: only invalidate when BOTH sides have a recorded
+            # version AND they differ. Pre-v1.12.1 cache writers didn't store
+            # `package_version`, so legacy entries have `cached_version = None`.
+            # Treating `None != "1.12"` as a mismatch was invalidating every
+            # legacy entry on contact and turning every CI / test-suite run
+            # into a cold-cache run — UpstreamClassConnectivity in particular
+            # went from ~1 s warm to >40 s cold and was breaching
+            # THRESHOLD_VERY_SLOW (31 s) on every run of the perf test on the
+            # ~2 100 pre-version entries in the upstream_class_connectivity
+            # collection alone. Honouring legacy entries is safe: nothing
+            # about the response shape required `package_version` to be
+            # stored for the entry to be correct under prior wheels.
             current_version = self._get_cache_package_version()
             cached_version = self._normalize_version(cached_data.get("package_version") or cached_data.get("version"))
-            if current_version and cached_version != current_version:
+            if current_version and cached_version and cached_version != current_version:
                 logger.info(
                     f"Cache invalidated for {query_type}({term_id}) because package major.minor version changed "
                     f"(cached={cached_version}, current={current_version})"
@@ -941,65 +954,90 @@ def with_solr_cache(query_type: str):
             # Execute function - for expensive queries, get quick results first, then cache full results in background
             result = None
             if query_type in expensive_query_types:
-                # For expensive queries: execute with original parameters for quick return, cache full results in background
-                # print(f"DEBUG: Executing {query_type} with original parameters for quick return")
+                # For expensive queries: execute with original parameters for quick return.
                 result = func(*args, **kwargs)
-                
-                # Start background thread to get full results and cache them
-                def cache_full_results_background():
-                    try:
-                        # Check if function supports limit parameter
-                        import inspect
-                        if 'limit' in inspect.signature(func).parameters:
-                            full_kwargs = kwargs.copy()
-                            full_kwargs['limit'] = -1
-                            # print(f"DEBUG: Background: Executing {query_type} with full results for caching")
-                            full_result = func(*args, **full_kwargs)
-                            
-                            # Validate and cache the full result
-                            if full_result is not None:
-                                result_is_valid = False
-                                if hasattr(full_result, 'empty'):  # DataFrame
-                                    result_is_valid = not full_result.empty
-                                elif isinstance(full_result, dict):
-                                    if 'count' in full_result:
-                                        count_value = full_result.get('count', -1)
-                                        result_is_valid = count_value >= 0
+
+                # Fast path: when the caller's request was already for the full
+                # result (limit=-1, i.e. should_cache is True), the foreground
+                # call already produced exactly the bytes we'd cache. Skip the
+                # background thread entirely — it would otherwise re-run the
+                # same expensive function (doubling the work) and would be
+                # killed mid-write if the host process exits before it
+                # completes (which happens reliably in unittest runners).
+                # Caching synchronously also means the very next call hits
+                # the cache, not a 40+ s cold path.
+                if should_cache and result is not None:
+                    fg_is_valid = False
+                    if hasattr(result, 'empty'):
+                        fg_is_valid = not result.empty
+                    elif isinstance(result, dict):
+                        if 'count' in result:
+                            fg_is_valid = result.get('count', -1) >= 0
+                        else:
+                            fg_is_valid = bool(result)
+                    elif isinstance(result, (list, str)):
+                        fg_is_valid = len(result) > 0
+                    else:
+                        fg_is_valid = True
+                    if fg_is_valid:
+                        try:
+                            cache.cache_result(query_type, cache_term_id, result, **kwargs)
+                            logger.debug(f"Foreground cached full result for {term_id}")
+                        except Exception as e:
+                            logger.debug(f"Foreground caching failed for {term_id}: {e}")
+                else:
+                    # Limited request: caller asked for fewer than all rows, so
+                    # the foreground call doesn't have the full result we'd want
+                    # to cache. Fall back to the original background-fetch
+                    # behaviour to populate the cache asynchronously.
+                    def cache_full_results_background():
+                        try:
+                            import inspect
+                            if 'limit' in inspect.signature(func).parameters:
+                                full_kwargs = kwargs.copy()
+                                full_kwargs['limit'] = -1
+                                full_result = func(*args, **full_kwargs)
+
+                                if full_result is not None:
+                                    result_is_valid = False
+                                    if hasattr(full_result, 'empty'):
+                                        result_is_valid = not full_result.empty
+                                    elif isinstance(full_result, dict):
+                                        if 'count' in full_result:
+                                            count_value = full_result.get('count', -1)
+                                            result_is_valid = count_value >= 0
+                                        else:
+                                            result_is_valid = bool(full_result)
+                                    elif isinstance(full_result, (list, str)):
+                                        result_is_valid = len(full_result) > 0
                                     else:
-                                        result_is_valid = bool(full_result)
-                                elif isinstance(full_result, (list, str)):
-                                    result_is_valid = len(full_result) > 0
-                                else:
-                                    result_is_valid = True
-                                
-                                if result_is_valid:
-                                    # Special validation for term_info
-                                    if query_type == 'term_info':
-                                        is_complete = (full_result and isinstance(full_result, dict) and 
-                                                      full_result.get('Id') and full_result.get('Name'))
-                                        if is_complete:
+                                        result_is_valid = True
+
+                                    if result_is_valid:
+                                        if query_type == 'term_info':
+                                            is_complete = (full_result and isinstance(full_result, dict) and
+                                                          full_result.get('Id') and full_result.get('Name'))
+                                            if is_complete:
+                                                try:
+                                                    full_kwargs_for_cache = kwargs.copy()
+                                                    full_kwargs_for_cache['limit'] = -1
+                                                    cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
+                                                    logger.debug(f"Background cached complete full result for {term_id}")
+                                                except Exception as e:
+                                                    logger.debug(f"Background caching failed: {e}")
+                                        else:
                                             try:
                                                 full_kwargs_for_cache = kwargs.copy()
                                                 full_kwargs_for_cache['limit'] = -1
                                                 cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
-                                                logger.debug(f"Background cached complete full result for {term_id}")
+                                                logger.debug(f"Background cached full result for {term_id}")
                                             except Exception as e:
                                                 logger.debug(f"Background caching failed: {e}")
-                                    else:
-                                        try:
-                                            full_kwargs_for_cache = kwargs.copy()
-                                            full_kwargs_for_cache['limit'] = -1
-                                            cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
-                                            logger.debug(f"Background cached full result for {term_id}")
-                                        except Exception as e:
-                                            logger.debug(f"Background caching failed: {e}")
-                    except Exception as e:
-                        logger.debug(f"Background caching thread failed: {e}")
-                
-                # Start background caching thread
-                background_thread = threading.Thread(target=cache_full_results_background, daemon=True)
-                background_thread.start()
-                # print(f"DEBUG: Started background caching thread for {query_type}({term_id})")
+                        except Exception as e:
+                            logger.debug(f"Background caching thread failed: {e}")
+
+                    background_thread = threading.Thread(target=cache_full_results_background, daemon=True)
+                    background_thread.start()
             else:
                 # For non-expensive queries: use original caching logic
                 full_result = None

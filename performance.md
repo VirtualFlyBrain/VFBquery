@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-05-30 15:05:39 UTC
-**Git Commit:** ce4f6dd707d2109fbd2b47d5b51e0d4a5a34dece
+**Test Date:** 2026-05-30 16:18:53 UTC
+**Git Commit:** ca2c6544718292a88c19903eda6c361109de0e38
 **Branch:** main
-**Workflow Run:** [26687112125](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26687112125)
+**Workflow Run:** [26688147599](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26688147599)
 
 ## Test Overview
 
@@ -84,317 +84,723 @@ This performance test measures the execution time of all implemented VFB queries
 ## Test Results
 
 ```
+test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test term info query performance ... ok
+test_02_neuron_part_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron part overlap queries ... ok
+test_03_synaptic_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test synaptic terminal queries ... ok
+test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test anatomical hierarchy queries ... ok
+test_05_tract_lineage_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test tract/nerve and lineage clone queries ... ok
+test_05b_image_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test image and developmental lineage queries ... ok
+test_06_instance_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test instance retrieval queries ... ok
+test_07_connectivity_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron connectivity queries ... ok
+test_07b_downstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test DownstreamClassConnectivity query (multi-step aggregation) ... ok
+test_07b_upstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test UpstreamClassConnectivity query (multi-step aggregation) ... FAIL
+test_07c_cross_dataset_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test cross-dataset query_connectivity (live, both-end filtered) ... ok
+test_08_similarity_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test NBLAST similarity queries ... ok
+test_09_neuron_input_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron input/synapse queries ... ok
+test_10_expression_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test expression pattern queries ... ok
+test_11_transcriptomics_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test scRNAseq transcriptomics queries ... ok
+test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test NBLAST similarity queries ... ok
+test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test dataset and template queries ... ok
+test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test publication and transgene queries ... ok
+
+======================================================================
+FAIL: test_07b_upstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test UpstreamClassConnectivity query (multi-step aggregation)
+----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/runpy.py", line 196, in _run_module_as_main
-    return _run_code(code, main_globals, None,
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/runpy.py", line 86, in _run_code
-    exec(code, run_globals)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/__main__.py", line 18, in <module>
-    main(module=None)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 100, in __init__
-    self.parseArgs(argv)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 147, in parseArgs
-    self.createTests()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 158, in createTests
-    self.test = self.testLoader.loadTestsFromNames(self.testNames,
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 220, in loadTestsFromNames
-    suites = [self.loadTestsFromName(name, module) for name in names]
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 220, in <listcomp>
-    suites = [self.loadTestsFromName(name, module) for name in names]
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 154, in loadTestsFromName
-    module = __import__(module_name)
-  File "/home/runner/work/VFBquery/VFBquery/src/__init__.py", line 1, in <module>
-    from vfbquery import *
-  File "/home/runner/work/VFBquery/VFBquery/src/vfbquery/__init__.py", line 1, in <module>
-    from .vfb_queries import *
-  File "/home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py", line 344, in <module>
-    _RE_IMAGE_URL = re.compile(
-NameError: name 're' is not defined
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 391, in test_07b_upstream_class_connectivity
+    self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "UpstreamClassConnectivity exceeded threshold")
+AssertionError: 71.05023455619812 not less than 31.0 : UpstreamClassConnectivity exceeded threshold
+
+----------------------------------------------------------------------
+Ran 18 tests in 157.309s
+
+FAILED (failures=1)
+VFBquery functions patched with caching support
+VFBquery: SOLR caching enabled by default (3-month TTL)
+         Disable with: export VFBQUERY_CACHE_ENABLED=false
+
+🔥 SOLR caching enabled for performance tests
+
+================================================================================
+TERM INFO QUERIES
+================================================================================
+get_term_info (mushroom body): 2.8970s ✅
+get_term_info (individual): 3.8553s ✅
+
+================================================================================
+NEURON PART OVERLAP QUERIES
+================================================================================
+NeuronsPartHere: 2.9173s ✅
+
+================================================================================
+SYNAPTIC TERMINAL QUERIES
+================================================================================
+NeuronsSynaptic: 2.2656s ✅
+NeuronsPresynapticHere: 1.9396s ✅
+NeuronsPostsynapticHere: 2.1307s ✅
+NeuronNeuronConnectivity: 1.9085s ✅
+
+================================================================================
+ANATOMICAL HIERARCHY QUERIES
+================================================================================
+ComponentsOf: 2.2462s ✅
+PartsOf: 1.8004s ✅
+SubclassesOf: 2.5439s ✅
+
+================================================================================
+TRACT/NERVE AND LINEAGE QUERIES
+================================================================================
+NeuronClassesFasciculatingHere: 1.9871s ✅
+TractsNervesInnervatingHere: 1.6634s ✅
+LineageClonesIn: 1.9439s ✅
+
+================================================================================
+IMAGE AND DEVELOPMENTAL QUERIES
+================================================================================
+ImagesNeurons: 3.2665s ✅
+ImagesThatDevelopFrom: 1.9273s ✅
+epFrag: 1.6420s ✅
+
+================================================================================
+INSTANCE QUERIES
+================================================================================
+ListAllAvailableImages: 1.6489s ✅
+
+================================================================================
+CONNECTIVITY QUERIES
+================================================================================
+NeuronNeuronConnectivityQuery: 1.6596s ✅
+NeuronRegionConnectivityQuery: 1.6469s ✅
+
+================================================================================
+DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)
+================================================================================
+DownstreamClassConnectivity: 1.7446s ✅
+
+================================================================================
+UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)
+================================================================================
+UpstreamClassConnectivity: 71.0502s ✅
+
+================================================================================
+CROSS-DATASET CONNECTIVITY (live, slow)
+================================================================================
+QueryConnectivity: 2.4454s ✅
+
+================================================================================
+SIMILARITY QUERIES (Neo4j NBLAST)
+================================================================================
+SimilarMorphologyTo: 3.3290s ✅
+
+================================================================================
+NEURON INPUT QUERIES (Neo4j)
+================================================================================
+NeuronInputsTo: 3.2915s ✅
+
+================================================================================
+EXPRESSION PATTERN QUERIES (Neo4j)
+================================================================================
+ExpressionOverlapsHere: 1.4609s ✅
+  └─ Found 3922 total expression patterns, returned 10
+
+================================================================================
+TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
+================================================================================
+anatScRNAseqQuery: 0.8457s ✅
+  └─ Found 57 total clusters, returned 10
+clusterExpression: 1.2075s ✅
+  └─ Found 4588 genes expressed, returned 10
+expressionCluster: 0.6846s ✅
+  └─ Found 9 clusters expressing gene
+scRNAdatasetData: 0.9397s ✅
+  └─ Found 13 clusters in dataset, returned 10
+
+================================================================================
+NBLAST SIMILARITY QUERIES
+================================================================================
+SimilarMorphologyTo: 1.1766s ✅
+  └─ Found 215 NBLAST matches, returned 10
+SimilarMorphologyToPartOf: 0.7253s ✅
+  └─ Found 0 NBLASTexp matches
+SimilarMorphologyToPartOfexp: 0.7478s ✅
+  └─ Found 0 reverse NBLASTexp matches
+SimilarMorphologyToNB: 0.8840s ✅
+  └─ Found 15 NeuronBridge matches, returned 10
+SimilarMorphologyToNBexp: 1.1352s ✅
+  └─ Found 15 NeuronBridge expression matches, returned 10
+✅ All NBLAST similarity queries completed
+
+================================================================================
+DATASET/TEMPLATE QUERIES
+================================================================================
+PaintedDomains: 0.8338s ✅
+  └─ Found 46 painted domains, returned 10
+DatasetImages: 0.7233s ✅
+  └─ Found 46 images in dataset, returned 10
+AllAlignedImages: 2.6711s ✅
+  └─ Found 527179 aligned images, returned 10
+AlignedDatasets: 1.0145s ✅
+  └─ Found 86 aligned datasets, returned 10
+AllDatasets: 1.4793s ✅
+  └─ Found 130 total datasets, returned 20
+✅ All dataset/template queries completed
+
+================================================================================
+PUBLICATION/TRANSGENE QUERIES
+================================================================================
+TermsForPub: 0.8283s ✅
+  └─ Found 2 terms for publication
+TransgeneExpressionHere: 1.1092s ✅
+  └─ Found 2340 transgene expressions, returned 10
+✅ All publication/transgene queries completed
+
+================================================================================
+PERFORMANCE TEST SUMMARY
+================================================================================
+All performance tests completed!
+================================================================================
+
+=== RETRY ATTEMPT (auto-retry on first failure) ===
+test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test term info query performance ... ok
+test_02_neuron_part_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron part overlap queries ... ok
+test_03_synaptic_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test synaptic terminal queries ... ok
+test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test anatomical hierarchy queries ... ok
+test_05_tract_lineage_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test tract/nerve and lineage clone queries ... ok
+test_05b_image_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test image and developmental lineage queries ... ok
+test_06_instance_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test instance retrieval queries ... ok
+test_07_connectivity_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron connectivity queries ... ok
+test_07b_downstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test DownstreamClassConnectivity query (multi-step aggregation) ... ok
+test_07b_upstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test UpstreamClassConnectivity query (multi-step aggregation) ... FAIL
+test_07c_cross_dataset_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test cross-dataset query_connectivity (live, both-end filtered) ... ok
+test_08_similarity_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test NBLAST similarity queries ... ok
+test_09_neuron_input_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test neuron input/synapse queries ... ok
+test_10_expression_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test expression pattern queries ... ok
+test_11_transcriptomics_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test scRNAseq transcriptomics queries ... ok
+test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test NBLAST similarity queries ... ok
+test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test dataset and template queries ... ok
+test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
+Test publication and transgene queries ... ok
+
+======================================================================
+FAIL: test_07b_upstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
+Test UpstreamClassConnectivity query (multi-step aggregation)
+----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/runpy.py", line 196, in _run_module_as_main
-    return _run_code(code, main_globals, None,
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/runpy.py", line 86, in _run_code
-    exec(code, run_globals)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/__main__.py", line 18, in <module>
-    main(module=None)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 100, in __init__
-    self.parseArgs(argv)
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 147, in parseArgs
-    self.createTests()
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/main.py", line 158, in createTests
-    self.test = self.testLoader.loadTestsFromNames(self.testNames,
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 220, in loadTestsFromNames
-    suites = [self.loadTestsFromName(name, module) for name in names]
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 220, in <listcomp>
-    suites = [self.loadTestsFromName(name, module) for name in names]
-  File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/unittest/loader.py", line 154, in loadTestsFromName
-    module = __import__(module_name)
-  File "/home/runner/work/VFBquery/VFBquery/src/__init__.py", line 1, in <module>
-    from vfbquery import *
-  File "/home/runner/work/VFBquery/VFBquery/src/vfbquery/__init__.py", line 1, in <module>
-    from .vfb_queries import *
-  File "/home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py", line 344, in <module>
-    _RE_IMAGE_URL = re.compile(
-NameError: name 're' is not defined
+  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 391, in test_07b_upstream_class_connectivity
+    self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "UpstreamClassConnectivity exceeded threshold")
+AssertionError: 68.34025835990906 not less than 31.0 : UpstreamClassConnectivity exceeded threshold
+
+----------------------------------------------------------------------
+Ran 18 tests in 146.793s
+
+FAILED (failures=1)
+VFBquery functions patched with caching support
+VFBquery: SOLR caching enabled by default (3-month TTL)
+         Disable with: export VFBQUERY_CACHE_ENABLED=false
+
+🔥 SOLR caching enabled for performance tests
+
+================================================================================
+TERM INFO QUERIES
+================================================================================
+get_term_info (mushroom body): 2.1852s ✅
+get_term_info (individual): 1.7520s ✅
+
+================================================================================
+NEURON PART OVERLAP QUERIES
+================================================================================
+NeuronsPartHere: 2.1360s ✅
+
+================================================================================
+SYNAPTIC TERMINAL QUERIES
+================================================================================
+NeuronsSynaptic: 2.4723s ✅
+NeuronsPresynapticHere: 1.8371s ✅
+NeuronsPostsynapticHere: 2.2068s ✅
+NeuronNeuronConnectivity: 1.6585s ✅
+
+================================================================================
+ANATOMICAL HIERARCHY QUERIES
+================================================================================
+ComponentsOf: 1.6233s ✅
+PartsOf: 1.6968s ✅
+SubclassesOf: 1.8108s ✅
+
+================================================================================
+TRACT/NERVE AND LINEAGE QUERIES
+================================================================================
+NeuronClassesFasciculatingHere: 1.6613s ✅
+TractsNervesInnervatingHere: 1.6323s ✅
+LineageClonesIn: 1.6336s ✅
+
+================================================================================
+IMAGE AND DEVELOPMENTAL QUERIES
+================================================================================
+ImagesNeurons: 3.1210s ✅
+ImagesThatDevelopFrom: 2.0918s ✅
+epFrag: 1.9306s ✅
+
+================================================================================
+INSTANCE QUERIES
+================================================================================
+ListAllAvailableImages: 1.6906s ✅
+
+================================================================================
+CONNECTIVITY QUERIES
+================================================================================
+NeuronNeuronConnectivityQuery: 1.6690s ✅
+NeuronRegionConnectivityQuery: 1.9326s ✅
+
+================================================================================
+DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)
+================================================================================
+DownstreamClassConnectivity: 1.7025s ✅
+
+================================================================================
+UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)
+================================================================================
+UpstreamClassConnectivity: 68.3403s ✅
+
+================================================================================
+CROSS-DATASET CONNECTIVITY (live, slow)
+================================================================================
+QueryConnectivity: 1.4735s ✅
+
+================================================================================
+SIMILARITY QUERIES (Neo4j NBLAST)
+================================================================================
+SimilarMorphologyTo: 2.8359s ✅
+
+================================================================================
+NEURON INPUT QUERIES (Neo4j)
+================================================================================
+NeuronInputsTo: 2.9447s ✅
+
+================================================================================
+EXPRESSION PATTERN QUERIES (Neo4j)
+================================================================================
+ExpressionOverlapsHere: 1.5714s ✅
+  └─ Found 3922 total expression patterns, returned 10
+
+================================================================================
+TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
+================================================================================
+anatScRNAseqQuery: 0.8487s ✅
+  └─ Found 57 total clusters, returned 10
+clusterExpression: 1.3028s ✅
+  └─ Found 4588 genes expressed, returned 10
+expressionCluster: 0.6824s ✅
+  └─ Found 9 clusters expressing gene
+scRNAdatasetData: 0.6753s ✅
+  └─ Found 13 clusters in dataset, returned 10
+
+================================================================================
+NBLAST SIMILARITY QUERIES
+================================================================================
+SimilarMorphologyTo: 0.8907s ✅
+  └─ Found 215 NBLAST matches, returned 10
+SimilarMorphologyToPartOf: 1.0458s ✅
+  └─ Found 0 NBLASTexp matches
+SimilarMorphologyToPartOfexp: 0.7448s ✅
+  └─ Found 0 reverse NBLASTexp matches
+SimilarMorphologyToNB: 0.8608s ✅
+  └─ Found 15 NeuronBridge matches, returned 10
+SimilarMorphologyToNBexp: 0.7482s ✅
+  └─ Found 15 NeuronBridge expression matches, returned 10
+✅ All NBLAST similarity queries completed
+
+================================================================================
+DATASET/TEMPLATE QUERIES
+================================================================================
+PaintedDomains: 0.8321s ✅
+  └─ Found 46 painted domains, returned 10
+DatasetImages: 0.7110s ✅
+  └─ Found 46 images in dataset, returned 10
+AllAlignedImages: 2.6748s ✅
+  └─ Found 527179 aligned images, returned 10
+AlignedDatasets: 0.8346s ✅
+  └─ Found 86 aligned datasets, returned 10
+AllDatasets: 1.8681s ✅
+  └─ Found 130 total datasets, returned 20
+✅ All dataset/template queries completed
+
+================================================================================
+PUBLICATION/TRANSGENE QUERIES
+================================================================================
+TermsForPub: 1.0826s ✅
+  └─ Found 2 terms for publication
+TransgeneExpressionHere: 1.0834s ✅
+  └─ Found 2340 transgene expressions, returned 10
+✅ All publication/transgene queries completed
+
+================================================================================
+PERFORMANCE TEST SUMMARY
+================================================================================
+All performance tests completed!
+================================================================================
+test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
+Performance test for specific term info queries. ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 4.062s
+
+OK
+VFBquery functions patched with caching support
+VFBquery: SOLR caching enabled by default (3-month TTL)
+         Disable with: export VFBQUERY_CACHE_ENABLED=false
+
+==================================================
+Performance Test Results:
+==================================================
+FBbt_00003748 query took: 2.3800 seconds
+VFB_00101567 query took: 1.6815 seconds
+Total time for both queries: 4.0615 seconds
+Performance Level: 🟠 Acceptable (3-6 seconds)
+==================================================
+Performance test completed successfully!
 ============================= test session starts ==============================
 platform linux -- Python 3.10.20, pytest-9.0.3, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.10.20/x64/bin/python
 cachedir: .pytest_cache
 rootdir: /home/runner/work/VFBquery/VFBquery
 configfile: pyproject.toml
-collecting ... collected 0 items / 5 errors
+collecting ... collected 55 items
 
-==================================== ERRORS ====================================
-_________ ERROR collecting src/test/test_neuron_neuron_connectivity.py _________
-/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:688: in _load_unlocked
-    ???
-<frozen importlib._bootstrap_external>:883: in exec_module
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-src/__init__.py:1: in <module>
-    from vfbquery import *
-src/vfbquery/__init__.py:1: in <module>
-    from .vfb_queries import *
-src/vfbquery/vfb_queries.py:344: in <module>
-    _RE_IMAGE_URL = re.compile(
-E   NameError: name 're' is not defined
-_________ ERROR collecting src/test/test_neuron_region_connectivity.py _________
-/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:688: in _load_unlocked
-    ???
-<frozen importlib._bootstrap_external>:883: in exec_module
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-src/__init__.py:1: in <module>
-    from vfbquery import *
-src/vfbquery/__init__.py:1: in <module>
-    from .vfb_queries import *
-src/vfbquery/vfb_queries.py:344: in <module>
-    _RE_IMAGE_URL = re.compile(
-E   NameError: name 're' is not defined
-________ ERROR collecting src/test/test_upstream_class_connectivity.py _________
-/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:688: in _load_unlocked
-    ???
-<frozen importlib._bootstrap_external>:883: in exec_module
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-src/__init__.py:1: in <module>
-    from vfbquery import *
-src/vfbquery/__init__.py:1: in <module>
-    from .vfb_queries import *
-src/vfbquery/vfb_queries.py:344: in <module>
-    _RE_IMAGE_URL = re.compile(
-E   NameError: name 're' is not defined
-_______ ERROR collecting src/test/test_downstream_class_connectivity.py ________
-/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:688: in _load_unlocked
-    ???
-<frozen importlib._bootstrap_external>:883: in exec_module
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-src/__init__.py:1: in <module>
-    from vfbquery import *
-src/vfbquery/__init__.py:1: in <module>
-    from .vfb_queries import *
-src/vfbquery/vfb_queries.py:344: in <module>
-    _RE_IMAGE_URL = re.compile(
-E   NameError: name 're' is not defined
-______________ ERROR collecting src/test/test_vfb_connectivity.py ______________
-/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:992: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-<frozen importlib._bootstrap>:1050: in _gcd_import
-    ???
-<frozen importlib._bootstrap>:1027: in _find_and_load
-    ???
-<frozen importlib._bootstrap>:1006: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:688: in _load_unlocked
-    ???
-<frozen importlib._bootstrap_external>:883: in exec_module
-    ???
-<frozen importlib._bootstrap>:241: in _call_with_frames_removed
-    ???
-src/__init__.py:1: in <module>
-    from vfbquery import *
-src/vfbquery/__init__.py:1: in <module>
-    from .vfb_queries import *
-src/vfbquery/vfb_queries.py:344: in <module>
-    _RE_IMAGE_URL = re.compile(
-E   NameError: name 're' is not defined
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results PASSED [  1%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys PASSED [  3%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present PASSED [  5%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected PASSED [  7%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream PASSED [  9%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_downstream PASSED [ 10%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe PASSED [ 12%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns PASSED [ 14%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected PASSED [ 16%]
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation PASSED [ 18%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results PASSED [ 20%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys PASSED [ 21%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present PASSED [ 23%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected PASSED [ 25%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe PASSED [ 27%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_dataframe_has_expected_columns PASSED [ 29%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected PASSED [ 30%]
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivitySchema::test_schema_generation PASSED [ 32%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_returns_results PASSED [ 34%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys PASSED [ 36%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present PASSED [ 38%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected PASSED [ 40%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_empty_class_returns_zero PASSED [ 41%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe PASSED [ 43%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns PASSED [ 45%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_limit_respected PASSED [ 47%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe PASSED [ 49%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts PASSED [ 50%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows PASSED [ 52%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root PASSED [ 54%]
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation PASSED [ 56%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results PASSED [ 58%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys PASSED [ 60%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present PASSED [ 61%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected PASSED [ 63%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero PASSED [ 65%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe PASSED [ 67%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns PASSED [ 69%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected PASSED [ 70%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe PASSED [ 72%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts PASSED [ 74%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows PASSED [ 76%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root PASSED [ 78%]
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation PASSED [ 80%]
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets PASSED [ 81%]
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol PASSED [ 83%]
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present PASSED [ 85%]
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol PASSED [ 87%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types PASSED [ 89%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone PASSED [ 90%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class PASSED [ 92%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results PASSED [ 94%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results PASSED [ 96%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning PASSED [ 98%]
+src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error PASSED [100%]
+
 =============================== warnings summary ===============================
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
 ../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
   /opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
     super().__init__(default=default, dump_default=dump_default, **kwargs)
 
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:986: 10 warnings
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:986
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:986
   /opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:986: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
     super().__init__(**kwargs)
 
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776: 20 warnings
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776
   /opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:776: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
     super().__init__(**kwargs)
 
-src/vfbquery/vfb_queries.py:137
-src/vfbquery/vfb_queries.py:137
-src/vfbquery/vfb_queries.py:137
-src/vfbquery/vfb_queries.py:137
-src/vfbquery/vfb_queries.py:137
-  /home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py:137: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
+src/vfbquery/vfb_queries.py:138
+  /home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py:138: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
     output_format = fields.String(required=False, missing='table')
 
-../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218: 20 warnings
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218
+../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218
   /opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:1218: RemovedInMarshmallow4Warning: The 'missing' argument to fields is deprecated. Use 'load_default' instead.
     super().__init__(**kwargs)
 
-src/vfbquery/vfb_queries.py:307
-src/vfbquery/vfb_queries.py:307
-src/vfbquery/vfb_queries.py:307
-src/vfbquery/vfb_queries.py:307
-src/vfbquery/vfb_queries.py:307
-  /home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py:307: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
-    Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
-
-src/vfbquery/vfb_queries.py:308
-src/vfbquery/vfb_queries.py:308
-src/vfbquery/vfb_queries.py:308
-src/vfbquery/vfb_queries.py:308
 src/vfbquery/vfb_queries.py:308
   /home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py:308: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
+    Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
+
+src/vfbquery/vfb_queries.py:309
+  /home/runner/work/VFBquery/VFBquery/src/vfbquery/vfb_queries.py:309: ChangedInMarshmallow4Warning: `Field` should not be instantiated. Use `fields.Raw` or  another field subclass instead.
     Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False, allow_none=True)
 
+src/test/test_neuron_neuron_connectivity.py:22
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:31
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:31: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:41
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:41: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:51
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:51: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:59
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:59: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:70
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:70: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:85
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:85: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:93
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:93: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_neuron_connectivity.py:101
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_neuron_connectivity.py:101: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:23
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:23: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:32
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:32: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:42
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:42: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:52
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:52: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:64
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:64: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:72
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:72: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_neuron_region_connectivity.py:80
+  /home/runner/work/VFBquery/VFBquery/src/test/test_neuron_region_connectivity.py:80: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:25
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:25: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:34
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:34: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:47
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:55
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:55: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:64
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:64: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:76
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:76: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:84
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:84: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:95
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:95: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:102
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:102: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:124
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:124: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:168
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:168: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_upstream_class_connectivity.py:181
+  /home/runner/work/VFBquery/VFBquery/src/test/test_upstream_class_connectivity.py:181: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:25
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:25: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:34
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:34: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:47
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:55
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:55: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:64
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:64: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:76
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:76: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:84
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:84: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:95
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:95: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:102
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:102: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:123
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:123: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:171
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:171: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_downstream_class_connectivity.py:185
+  /home/runner/work/VFBquery/VFBquery/src/test/test_downstream_class_connectivity.py:185: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:16
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:16: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:21
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:21: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:28
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:28: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:34
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:34: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:47
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:56
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:56: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:71
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:71: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:85
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:85: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:101
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:101: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
+src/test/test_vfb_connectivity.py:114
+  /home/runner/work/VFBquery/VFBquery/src/test/test_vfb_connectivity.py:114: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.integration
+
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-ERROR src/test/test_neuron_neuron_connectivity.py - NameError: name 're' is not defined
-ERROR src/test/test_neuron_region_connectivity.py - NameError: name 're' is not defined
-ERROR src/test/test_upstream_class_connectivity.py - NameError: name 're' is not defined
-ERROR src/test/test_downstream_class_connectivity.py - NameError: name 're' is not defined
-ERROR src/test/test_vfb_connectivity.py - NameError: name 're' is not defined
-!!!!!!!!!!!!!!!!!!! Interrupted: 5 errors during collection !!!!!!!!!!!!!!!!!!!!
-======================== 70 warnings, 5 errors in 1.24s ========================
+================= 55 passed, 64 warnings in 1302.50s (0:21:42) =================
 ```
 
 ## Summary
 
-❌ **Test Status**: Performance tests failed to run properly
+❌ **Test Status**: Performance tests ran but reported failures
 
-Please check the test output above for errors.
 
 ---
 
@@ -404,4 +810,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-05-30 15:05:39 UTC*
+*Last updated: 2026-05-30 16:18:53 UTC*

@@ -24,6 +24,24 @@ jobs:
         fi
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+    # Mirror what publish_to_pypi.yaml does so the docker image and the
+    # PyPI wheel never disagree about their own version.
+    - name: Sync setup.py / __init__.py version to tag
+      id: version
+      run: |
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Tag build detected: syncing __version__ to $VERSION"
+          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" setup.py
+          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" src/vfbquery/__init__.py
+        else
+          VERSION=$(grep '^__version__' setup.py | sed 's/.*"\(.*\)".*/\1/')
+          echo "Branch / dev build: using committed version $VERSION"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "  setup.py:    $(grep ^__version__ setup.py)"
+        echo "  __init__.py: $(grep ^__version__ src/vfbquery/__init__.py)"
+
     - name: Build test Docker image
       run: docker build --no-cache . --file Dockerfile --tag test-image
 
@@ -42,6 +60,23 @@ jobs:
         fi
         docker stop test-container || true
         docker rm test-container
+
+    # Belt-and-braces: catch any future drift between the workflow
+    # sync step and what actually ends up inside the image. If the
+    # built image reports a version different from what we asked for,
+    # refuse to push it.
+    - name: Verify image reports expected version
+      run: |
+        EXPECTED="${{ steps.version.outputs.version }}"
+        ACTUAL=$(docker run --rm --entrypoint python test-image -c "from importlib.metadata import version; print(version('vfbquery'))" 2>/dev/null | tr -d '[:space:]')
+        echo "Expected vfbquery version: $EXPECTED"
+        echo "Image reports vfbquery   : $ACTUAL"
+        if [[ "$EXPECTED" != "$ACTUAL" ]]; then
+          echo "ERROR: image version $ACTUAL does not match expected $EXPECTED"
+          echo "       (see solr_result_cache.py:251-258 — mismatches the wheel and"
+          echo "       cached package_version so cache invalidation silently breaks)"
+          exit 1
+        fi
 
     - name: Build Docker image
       run: docker build . --file Dockerfile --tag virtualflybrain/vfbquery:${{ steps.meta.outputs.tag }}

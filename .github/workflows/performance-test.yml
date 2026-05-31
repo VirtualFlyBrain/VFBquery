@@ -264,10 +264,19 @@ jobs:
             fi
             echo "" >> performance.md
             
-            # Count successes and failures
-            TOTAL_TESTS=$(grep -c "^test_" performance_test_output.log || echo "0")
-            FAILED_TESTS=$(grep -c "FAIL:" performance_test_output.log || echo "0")
-            ERROR_TESTS=$(grep -c "ERROR:" performance_test_output.log || echo "0")
+            # Count successes and failures. `grep -c` already prints `0` and
+            # exits 1 on no-match, so combining it with `|| echo "0"` gave
+            # variables containing literal `"0\n0"` and broke the arithmetic
+            # below ("syntax error in expression (error token is "0")").
+            # Swallow the exit code with `|| true` and let grep's own output
+            # stand; default to 0 only if the variable is empty (file
+            # missing).
+            TOTAL_TESTS=$(grep -c "^test_" performance_test_output.log 2>/dev/null || true)
+            FAILED_TESTS=$(grep -c "FAIL:" performance_test_output.log 2>/dev/null || true)
+            ERROR_TESTS=$(grep -c "ERROR:" performance_test_output.log 2>/dev/null || true)
+            TOTAL_TESTS=${TOTAL_TESTS:-0}
+            FAILED_TESTS=${FAILED_TESTS:-0}
+            ERROR_TESTS=${ERROR_TESTS:-0}
             PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - ERROR_TESTS))
             
             echo "### Test Statistics" >> performance.md

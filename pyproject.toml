@@ -4,3 +4,12 @@ requires = [
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+# Register custom marks so the connectivity test files' `@pytest.mark.integration`
+# decorations stop logging `PytestUnknownMarkWarning` per occurrence per
+# xdist worker. Each unregistered mark was emitting four-plus warning
+# blocks in performance.md — pure noise.
+markers = [
+    "integration: integration tests that exercise the live VFB upstream (Neo4j, SOLR, owlery). Skip via -m 'not integration'.",
+]

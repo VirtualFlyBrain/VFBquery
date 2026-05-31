@@ -47,19 +47,19 @@ jobs:
           curl -v --max-time 10 "http://owl.virtualflybrain.org/kbs/vfb" || echo "Server unreachable"
           
       - name: Run Performance Test
-        # Auto-retry once on failure: cold-start runs hit Neo4j + SOLR with
-        # empty result caches and frequently breach THRESHOLD_VERY_SLOW
-        # purely on first-call latency. The retry runs with the cache the
-        # first attempt warmed; flakes-from-cold-start no longer mask real
-        # regressions. If the second attempt also fails, surface the failure.
-        # IMPORTANT: the retry OVERWRITES performance_test_output.log so that
-        # the downstream "Fail job on test failures" step grades on the
-        # second attempt's output only — otherwise attempt 1's `FAIL:` lines
-        # leak through and turn a green retry red.
+        # Switched from `python -m unittest` (single-threaded) to `pytest -n auto`
+        # so the suite parallelises across the runner's vCPUs. pytest discovers
+        # unittest.TestCase subclasses automatically; no test refactoring needed.
+        # Auto-retry once on failure: cold-start runs hit Neo4j + SOLR with empty
+        # result caches and can breach thresholds on first-call latency. The
+        # retry runs warm. If both fail, surface the failure.
+        # IMPORTANT: the retry OVERWRITES performance_test_output.log so the
+        # downstream "Fail job on test failures" step grades on the second
+        # attempt's output only.
         run: |
           set +e
-          echo "=== Performance test attempt 1/2 ==="
-          python -m unittest src.test.test_query_performance -v 2>&1 | tee performance_test_output.log
+          echo "=== Performance test attempt 1/2 (parallel) ==="
+          pytest -v -n auto src/test/test_query_performance.py 2>&1 | tee performance_test_output.log
           FIRST_EXIT=${PIPESTATUS[0]}
           if [[ $FIRST_EXIT -eq 0 ]]; then
               exit 0
@@ -67,7 +67,7 @@ jobs:
           echo ""
           echo "=== Attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
           echo "=== RETRY ATTEMPT (auto-retry on first failure) ===" > performance_test_output.log
-          python -m unittest src.test.test_query_performance -v 2>&1 | tee -a performance_test_output.log
+          pytest -v -n auto src/test/test_query_performance.py 2>&1 | tee -a performance_test_output.log
           exit ${PIPESTATUS[0]}
 
       - name: Run Legacy Performance Test
@@ -123,7 +123,7 @@ jobs:
           # grades on the last attempt only.
           set +e
           echo "=== Connectivity test attempt 1/2 (parallel) ==="
-          pytest -v -n auto \
+          pytest -v -n 8 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \
@@ -137,7 +137,7 @@ jobs:
           fi
           echo ""
           echo "=== Connectivity attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
-          pytest -v -n auto \
+          pytest -v -n 8 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \

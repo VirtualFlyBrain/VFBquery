@@ -33,6 +33,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade -r requirements.txt
           python -m pip install -e .  # Editable install ensures we test the actual source code
+          # pytest-xdist powers the `-n auto` parallel run in the
+          # Connectivity Tests step below. Installed here rather than in
+          # requirements.txt because it's only needed at test time.
+          python -m pip install pytest-xdist
       
       - name: Test Owlery Connectivity
         run: |
@@ -96,10 +100,16 @@ jobs:
         run: |
           # These files are pytest-style (plain classes + @pytest.mark.integration).
           # Run with pytest so the markers are honoured and collection works.
+          # `-n auto` parallelises across all available CPU cores via
+          # pytest-xdist (typically 2-4 on GitHub-hosted ubuntu runners). The
+          # connectivity tests hit the live upstream and don't share fixtures
+          # or in-process state, so they parallelise cleanly. SOLR cache writes
+          # are idempotent so a race between two cold workers on the same
+          # term_id just produces two identical writes.
           # Auto-retry once on failure — same rationale as Run Performance Test.
           set +e
-          echo "=== Connectivity test attempt 1/2 ==="
-          pytest -v \
+          echo "=== Connectivity test attempt 1/2 (parallel) ==="
+          pytest -v -n auto \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \
@@ -113,7 +123,7 @@ jobs:
           echo ""
           echo "=== Connectivity attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
           echo "=== CONNECTIVITY RETRY ATTEMPT ===" >> performance_test_output.log
-          pytest -v \
+          pytest -v -n auto \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \

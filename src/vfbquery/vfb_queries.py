@@ -133,10 +133,10 @@ class QuerySchema(Schema):
     function = fields.String(required=True)
     takes = fields.Nested(TakesSchema(), required=False, missing={})
     preview = fields.Integer(required=False, missing=0)
-    preview_columns = fields.List(fields.String(), required=False, missing=[])
-    preview_results = fields.List(fields.Dict(), required=False, missing=[])
-    output_format = fields.String(required=False, missing='table')
-    count = fields.Integer(required=False, missing=-1)
+    preview_columns = fields.List(fields.String(), required=False, load_default=[])
+    preview_results = fields.List(fields.Dict(), required=False, load_default=[])
+    output_format = fields.String(required=False, load_default='table')
+    count = fields.Integer(required=False, load_default=-1)
 
 class License:
     def __init__(self, iri, short_form, label, icon, source, source_iri):
@@ -305,8 +305,8 @@ class TermInfoOutputSchema(Schema):
     IsPaintedDomain = fields.Bool(missing=False, required=False)
     Domains = fields.Dict(keys=fields.Integer(), values=fields.Nested(ImageSchema()), required=False, allow_none=True)
     Licenses = fields.Dict(keys=fields.Integer(), values=fields.Nested(LicenseSchema()), required=False, allow_none=True)
-    Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False)
-    Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Field()), required=False, allow_none=True)
+    Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False)
+    Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
     Technique = fields.List(fields.String(), required=False, allow_none=True)
 
     @post_load

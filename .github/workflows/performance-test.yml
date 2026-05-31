@@ -264,20 +264,28 @@ jobs:
             fi
             echo "" >> performance.md
             
-            # Count successes and failures. `grep -c` already prints `0` and
-            # exits 1 on no-match, so combining it with `|| echo "0"` gave
-            # variables containing literal `"0\n0"` and broke the arithmetic
-            # below ("syntax error in expression (error token is "0")").
-            # Swallow the exit code with `|| true` and let grep's own output
-            # stand; default to 0 only if the variable is empty (file
-            # missing).
-            TOTAL_TESTS=$(grep -c "^test_" performance_test_output.log 2>/dev/null || true)
-            FAILED_TESTS=$(grep -c "FAIL:" performance_test_output.log 2>/dev/null || true)
-            ERROR_TESTS=$(grep -c "ERROR:" performance_test_output.log 2>/dev/null || true)
-            TOTAL_TESTS=${TOTAL_TESTS:-0}
-            FAILED_TESTS=${FAILED_TESTS:-0}
-            ERROR_TESTS=${ERROR_TESTS:-0}
-            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS - ERROR_TESTS))
+            # Count successes and failures. The log mixes both unittest
+            # (`test_xxx ... ok`/`FAIL:`/`ERROR:`) and pytest
+            # (`... PASSED`/`FAILED`/`ERROR` lines) outputs depending on
+            # which step wrote it. Sum both formats so the report shows a
+            # meaningful total instead of "Total: 1" (which is what we got
+            # when only the unittest-format legacy step matched).
+            #
+            # `grep -c` already prints `0` and exits 1 on no-match, so
+            # `|| true` is needed to swallow the exit code (otherwise
+            # set -e aborts the step). Default empty captures to 0.
+            UNITTEST_TESTS=$(grep -cE "^test_" performance_test_output.log 2>/dev/null || true)
+            PYTEST_TESTS=$(grep -cE " (PASSED|FAILED|ERROR)( |$)" performance_test_output.log 2>/dev/null || true)
+            UNITTEST_FAIL=$(grep -cE "^(FAIL|ERROR):" performance_test_output.log 2>/dev/null || true)
+            PYTEST_FAIL=$(grep -cE " (FAILED|ERROR)( |$)" performance_test_output.log 2>/dev/null || true)
+            UNITTEST_TESTS=${UNITTEST_TESTS:-0}
+            PYTEST_TESTS=${PYTEST_TESTS:-0}
+            UNITTEST_FAIL=${UNITTEST_FAIL:-0}
+            PYTEST_FAIL=${PYTEST_FAIL:-0}
+            TOTAL_TESTS=$((UNITTEST_TESTS + PYTEST_TESTS))
+            FAILED_TESTS=$((UNITTEST_FAIL + PYTEST_FAIL))
+            ERROR_TESTS=0  # ERROR counts already folded into FAILED above
+            PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
             
             echo "### Test Statistics" >> performance.md
             echo "" >> performance.md

@@ -13,3 +13,15 @@ build-backend = "setuptools.build_meta"
 markers = [
     "integration: integration tests that exercise the live VFB upstream (Neo4j, SOLR, owlery). Skip via -m 'not integration'.",
 ]
+
+# Silence the marshmallow deprecation warnings that bubble up from inside
+# the library itself (marshmallow/fields.py:582,776,986,1218). Our own
+# code calls to `missing=`/`fields.Field()` have been migrated to
+# `load_default=`/`fields.Raw()`, but transitive deps (e.g. via
+# vfb_connect / dataclasses-json) still trigger them. Hiding the
+# library-internal noise — but NOT user-code DeprecationWarnings —
+# keeps performance.md readable.
+filterwarnings = [
+    "ignore::marshmallow.warnings.RemovedInMarshmallow4Warning",
+    "ignore::marshmallow.warnings.ChangedInMarshmallow4Warning",
+]

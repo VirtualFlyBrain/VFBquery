@@ -59,7 +59,7 @@ jobs:
         run: |
           set +e
           echo "=== Performance test attempt 1/2 (parallel) ==="
-          pytest -v -n auto src/test/test_query_performance.py 2>&1 | tee performance_test_output.log
+          pytest -v -s -n auto src/test/test_query_performance.py 2>&1 | tee performance_test_output.log
           FIRST_EXIT=${PIPESTATUS[0]}
           if [[ $FIRST_EXIT -eq 0 ]]; then
               exit 0
@@ -67,7 +67,7 @@ jobs:
           echo ""
           echo "=== Attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
           echo "=== RETRY ATTEMPT (auto-retry on first failure) ===" > performance_test_output.log
-          pytest -v -n auto src/test/test_query_performance.py 2>&1 | tee -a performance_test_output.log
+          pytest -v -s -n auto src/test/test_query_performance.py 2>&1 | tee -a performance_test_output.log
           exit ${PIPESTATUS[0]}
 
       - name: Run Legacy Performance Test
@@ -123,7 +123,7 @@ jobs:
           # grades on the last attempt only.
           set +e
           echo "=== Connectivity test attempt 1/2 (parallel) ==="
-          pytest -v -n 8 \
+          pytest -v -s -n 8 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \
@@ -137,7 +137,7 @@ jobs:
           fi
           echo ""
           echo "=== Connectivity attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
-          pytest -v -n 8 \
+          pytest -v -s -n 8 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \
@@ -296,9 +296,12 @@ jobs:
               echo "| Query | Duration | Status |" >> performance.md
               echo "|-------|----------|--------|" >> performance.md
               
-              # Parse timing information
-              grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages|NeuronNeuronConnectivityQuery|NeuronRegionConnectivityQuery|NeuronInputsTo|DownstreamClassConnectivity|UpstreamClassConnectivity|QueryConnectivity):" performance_test_output.log | while read line; do
-                QUERY=$(echo "$line" | sed 's/:.*//') 
+              # Parse timing information. The `|| true` guards against pipefail
+              # propagating grep's exit-1 (no matches) into the step — which
+              # was happening when pytest captured stdout and the per-query
+              # timing lines never landed in the log.
+              { grep -E "^(get_term_info|NeuronsPartHere|NeuronsSynaptic|NeuronsPresynapticHere|NeuronsPostsynapticHere|ComponentsOf|PartsOf|SubclassesOf|NeuronClassesFasciculatingHere|TractsNervesInnervatingHere|LineageClonesIn|ListAllAvailableImages|NeuronNeuronConnectivityQuery|NeuronRegionConnectivityQuery|NeuronInputsTo|DownstreamClassConnectivity|UpstreamClassConnectivity|QueryConnectivity):" performance_test_output.log || true; } | while read line; do
+                QUERY=$(echo "$line" | sed 's/:.*//')
                 DURATION=$(echo "$line" | sed 's/.*: \([0-9.]*\)s.*/\1/')
                 if echo "$line" | grep -q "✅"; then
                   STATUS="✅ Pass"

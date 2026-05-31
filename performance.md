@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-05-31 12:55:14 UTC
-**Git Commit:** 0aeb1c7ff7788273b0cbb8d127d89249294989e7
+**Test Date:** 2026-05-31 13:31:15 UTC
+**Git Commit:** de86553a3e54c836a19821eb25ee174e74c7b993
 **Branch:** main
-**Workflow Run:** [26712958748](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26712958748)
+**Workflow Run:** [26713771770](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/26713771770)
 
 ## Test Overview
 
@@ -84,200 +84,6 @@ This performance test measures the execution time of all implemented VFB queries
 ## Test Results
 
 ```
-test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test term info query performance ... ok
-test_02_neuron_part_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test neuron part overlap queries ... ok
-test_03_synaptic_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test synaptic terminal queries ... ok
-test_04_anatomy_hierarchy_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test anatomical hierarchy queries ... ok
-test_05_tract_lineage_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test tract/nerve and lineage clone queries ... ok
-test_05b_image_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test image and developmental lineage queries ... ok
-test_06_instance_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test instance retrieval queries ... ok
-test_07_connectivity_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test neuron connectivity queries ... ok
-test_07b_downstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
-Test DownstreamClassConnectivity query (multi-step aggregation) ... ok
-test_07b_upstream_class_connectivity (src.test.test_query_performance.QueryPerformanceTest)
-Test UpstreamClassConnectivity query (multi-step aggregation) ... ok
-test_07c_cross_dataset_connectivity (src.test.test_query_performance.QueryPerformanceTest)
-Test cross-dataset query_connectivity (live, both-end filtered) ... ok
-test_08_similarity_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test NBLAST similarity queries ... ok
-test_09_neuron_input_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test neuron input/synapse queries ... ok
-test_10_expression_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test expression pattern queries ... ok
-test_11_transcriptomics_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test scRNAseq transcriptomics queries ... ok
-test_12_nblast_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test NBLAST similarity queries ... ok
-test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test dataset and template queries ... FAIL
-test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test publication and transgene queries ... ok
-
-======================================================================
-FAIL: test_13_dataset_template_queries (src.test.test_query_performance.QueryPerformanceTest)
-Test dataset and template queries
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/runner/work/VFBquery/VFBquery/src/test/test_query_performance.py", line 755, in test_13_dataset_template_queries
-    self.assertLess(duration, self.THRESHOLD_MEDIUM, "AllDatasets exceeded threshold")
-AssertionError: 3.298332452774048 not less than 3.0 : AllDatasets exceeded threshold
-
-----------------------------------------------------------------------
-Ran 18 tests in 92.192s
-
-FAILED (failures=1)
-VFBquery functions patched with caching support
-VFBquery: SOLR caching enabled by default (3-month TTL)
-         Disable with: export VFBQUERY_CACHE_ENABLED=false
-
-🔥 SOLR caching enabled for performance tests
-
-================================================================================
-TERM INFO QUERIES
-================================================================================
-get_term_info (mushroom body): 2.5479s ✅
-get_term_info (individual): 2.5369s ✅
-
-================================================================================
-NEURON PART OVERLAP QUERIES
-================================================================================
-NeuronsPartHere: 2.9878s ✅
-
-================================================================================
-SYNAPTIC TERMINAL QUERIES
-================================================================================
-NeuronsSynaptic: 2.5472s ✅
-NeuronsPresynapticHere: 1.9353s ✅
-NeuronsPostsynapticHere: 2.4648s ✅
-NeuronNeuronConnectivity: 2.2540s ✅
-
-================================================================================
-ANATOMICAL HIERARCHY QUERIES
-================================================================================
-ComponentsOf: 1.9774s ✅
-PartsOf: 1.9386s ✅
-SubclassesOf: 1.9741s ✅
-
-================================================================================
-TRACT/NERVE AND LINEAGE QUERIES
-================================================================================
-NeuronClassesFasciculatingHere: 1.9607s ✅
-TractsNervesInnervatingHere: 1.9323s ✅
-LineageClonesIn: 1.9403s ✅
-
-================================================================================
-IMAGE AND DEVELOPMENTAL QUERIES
-================================================================================
-ImagesNeurons: 4.0433s ✅
-ImagesThatDevelopFrom: 2.3019s ✅
-epFrag: 1.9491s ✅
-
-================================================================================
-INSTANCE QUERIES
-================================================================================
-ListAllAvailableImages: 1.9410s ✅
-
-================================================================================
-CONNECTIVITY QUERIES
-================================================================================
-NeuronNeuronConnectivityQuery: 1.9947s ✅
-NeuronRegionConnectivityQuery: 1.9614s ✅
-
-================================================================================
-DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)
-================================================================================
-DownstreamClassConnectivity: 2.1082s ✅
-
-================================================================================
-UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)
-================================================================================
-UpstreamClassConnectivity: 1.9889s ✅
-
-================================================================================
-CROSS-DATASET CONNECTIVITY (live, slow)
-================================================================================
-QueryConnectivity: 2.0356s ✅
-
-================================================================================
-SIMILARITY QUERIES (Neo4j NBLAST)
-================================================================================
-SimilarMorphologyTo: 1.0475s ✅
-
-================================================================================
-NEURON INPUT QUERIES (Neo4j)
-================================================================================
-NeuronInputsTo: 3.1172s ✅
-
-================================================================================
-EXPRESSION PATTERN QUERIES (Neo4j)
-================================================================================
-ExpressionOverlapsHere: 1.3179s ✅
-  └─ Found 3922 total expression patterns, returned 10
-
-================================================================================
-TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
-================================================================================
-anatScRNAseqQuery: 0.9636s ✅
-  └─ Found 57 total clusters, returned 10
-clusterExpression: 1.3762s ✅
-  └─ Found 4588 genes expressed, returned 10
-expressionCluster: 1.0373s ✅
-  └─ Found 9 clusters expressing gene
-scRNAdatasetData: 1.0544s ✅
-  └─ Found 13 clusters in dataset, returned 10
-
-================================================================================
-NBLAST SIMILARITY QUERIES
-================================================================================
-SimilarMorphologyTo: 1.1530s ✅
-  └─ Found 215 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 0.8063s ✅
-  └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.8255s ✅
-  └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.8261s ✅
-  └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.9698s ✅
-  └─ Found 15 NeuronBridge expression matches, returned 10
-✅ All NBLAST similarity queries completed
-
-================================================================================
-DATASET/TEMPLATE QUERIES
-================================================================================
-PaintedDomains: 0.9593s ✅
-  └─ Found 46 painted domains, returned 10
-DatasetImages: 0.8138s ✅
-  └─ Found 46 images in dataset, returned 10
-AllAlignedImages: 3.2910s ✅
-  └─ Found 527179 aligned images, returned 10
-AlignedDatasets: 0.9990s ✅
-  └─ Found 86 aligned datasets, returned 10
-AllDatasets: 3.2983s ✅
-  └─ Found 130 total datasets, returned 20
-
-================================================================================
-PUBLICATION/TRANSGENE QUERIES
-================================================================================
-TermsForPub: 1.4117s ✅
-  └─ Found 2 terms for publication
-TransgeneExpressionHere: 1.0346s ✅
-  └─ Found 2340 transgene expressions, returned 10
-✅ All publication/transgene queries completed
-
-================================================================================
-PERFORMANCE TEST SUMMARY
-================================================================================
-All performance tests completed!
-================================================================================
-
 === RETRY ATTEMPT (auto-retry on first failure) ===
 test_01_term_info_queries (src.test.test_query_performance.QueryPerformanceTest)
 Test term info query performance ... ok
@@ -317,7 +123,7 @@ test_14_publication_transgene_queries (src.test.test_query_performance.QueryPerf
 Test publication and transgene queries ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 84.338s
+Ran 18 tests in 66.303s
 
 OK
 VFBquery functions patched with caching support
@@ -329,133 +135,133 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ================================================================================
 TERM INFO QUERIES
 ================================================================================
-get_term_info (mushroom body): 1.9813s ✅
-get_term_info (individual): 2.0459s ✅
+get_term_info (mushroom body): 1.4535s ✅
+get_term_info (individual): 1.4388s ✅
 
 ================================================================================
 NEURON PART OVERLAP QUERIES
 ================================================================================
-NeuronsPartHere: 2.3625s ✅
+NeuronsPartHere: 1.8002s ✅
 
 ================================================================================
 SYNAPTIC TERMINAL QUERIES
 ================================================================================
-NeuronsSynaptic: 2.4050s ✅
-NeuronsPresynapticHere: 2.0239s ✅
-NeuronsPostsynapticHere: 2.3672s ✅
-NeuronNeuronConnectivity: 1.9673s ✅
+NeuronsSynaptic: 1.7595s ✅
+NeuronsPresynapticHere: 1.4150s ✅
+NeuronsPostsynapticHere: 1.6469s ✅
+NeuronNeuronConnectivity: 1.4026s ✅
 
 ================================================================================
 ANATOMICAL HIERARCHY QUERIES
 ================================================================================
-ComponentsOf: 1.9760s ✅
-PartsOf: 1.9768s ✅
-SubclassesOf: 2.0222s ✅
+ComponentsOf: 1.3981s ✅
+PartsOf: 1.3777s ✅
+SubclassesOf: 1.4041s ✅
 
 ================================================================================
 TRACT/NERVE AND LINEAGE QUERIES
 ================================================================================
-NeuronClassesFasciculatingHere: 1.9518s ✅
-TractsNervesInnervatingHere: 1.9200s ✅
-LineageClonesIn: 1.9854s ✅
+NeuronClassesFasciculatingHere: 3.2920s ✅
+TractsNervesInnervatingHere: 1.9219s ✅
+LineageClonesIn: 1.4473s ✅
 
 ================================================================================
 IMAGE AND DEVELOPMENTAL QUERIES
 ================================================================================
-ImagesNeurons: 3.6375s ✅
-ImagesThatDevelopFrom: 2.2133s ✅
-epFrag: 2.0078s ✅
+ImagesNeurons: 2.7182s ✅
+ImagesThatDevelopFrom: 1.6223s ✅
+epFrag: 1.3700s ✅
 
 ================================================================================
 INSTANCE QUERIES
 ================================================================================
-ListAllAvailableImages: 1.9664s ✅
+ListAllAvailableImages: 1.4016s ✅
 
 ================================================================================
 CONNECTIVITY QUERIES
 ================================================================================
-NeuronNeuronConnectivityQuery: 1.9615s ✅
-NeuronRegionConnectivityQuery: 1.9610s ✅
+NeuronNeuronConnectivityQuery: 1.3696s ✅
+NeuronRegionConnectivityQuery: 1.3995s ✅
 
 ================================================================================
 DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)
 ================================================================================
-DownstreamClassConnectivity: 2.0561s ✅
+DownstreamClassConnectivity: 1.4234s ✅
 
 ================================================================================
 UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)
 ================================================================================
-UpstreamClassConnectivity: 1.9721s ✅
+UpstreamClassConnectivity: 1.4422s ✅
 
 ================================================================================
 CROSS-DATASET CONNECTIVITY (live, slow)
 ================================================================================
-QueryConnectivity: 1.4871s ✅
+QueryConnectivity: 1.1352s ✅
 
 ================================================================================
 SIMILARITY QUERIES (Neo4j NBLAST)
 ================================================================================
-SimilarMorphologyTo: 1.0042s ✅
+SimilarMorphologyTo: 0.8421s ✅
 
 ================================================================================
 NEURON INPUT QUERIES (Neo4j)
 ================================================================================
-NeuronInputsTo: 2.9508s ✅
+NeuronInputsTo: 2.8888s ✅
 
 ================================================================================
 EXPRESSION PATTERN QUERIES (Neo4j)
 ================================================================================
-ExpressionOverlapsHere: 1.3663s ✅
+ExpressionOverlapsHere: 1.0157s ✅
   └─ Found 3922 total expression patterns, returned 10
 
 ================================================================================
 TRANSCRIPTOMICS QUERIES (Neo4j scRNAseq)
 ================================================================================
-anatScRNAseqQuery: 0.9441s ✅
+anatScRNAseqQuery: 0.7483s ✅
   └─ Found 57 total clusters, returned 10
-clusterExpression: 0.9045s ✅
+clusterExpression: 0.7818s ✅
   └─ Found 4588 genes expressed, returned 10
-expressionCluster: 0.7589s ✅
+expressionCluster: 0.5994s ✅
   └─ Found 9 clusters expressing gene
-scRNAdatasetData: 0.7696s ✅
+scRNAdatasetData: 0.6789s ✅
   └─ Found 13 clusters in dataset, returned 10
 
 ================================================================================
 NBLAST SIMILARITY QUERIES
 ================================================================================
-SimilarMorphologyTo: 0.9982s ✅
+SimilarMorphologyTo: 0.7848s ✅
   └─ Found 215 NBLAST matches, returned 10
-SimilarMorphologyToPartOf: 0.8094s ✅
+SimilarMorphologyToPartOf: 0.6410s ✅
   └─ Found 0 NBLASTexp matches
-SimilarMorphologyToPartOfexp: 0.8106s ✅
+SimilarMorphologyToPartOfexp: 0.6384s ✅
   └─ Found 0 reverse NBLASTexp matches
-SimilarMorphologyToNB: 0.8243s ✅
+SimilarMorphologyToNB: 0.6386s ✅
   └─ Found 15 NeuronBridge matches, returned 10
-SimilarMorphologyToNBexp: 0.8509s ✅
+SimilarMorphologyToNBexp: 0.6481s ✅
   └─ Found 15 NeuronBridge expression matches, returned 10
 ✅ All NBLAST similarity queries completed
 
 ================================================================================
 DATASET/TEMPLATE QUERIES
 ================================================================================
-PaintedDomains: 0.9806s ✅
+PaintedDomains: 0.6943s ✅
   └─ Found 46 painted domains, returned 10
-DatasetImages: 0.7912s ✅
+DatasetImages: 0.6303s ✅
   └─ Found 46 images in dataset, returned 10
-AllAlignedImages: 2.7386s ✅
+AllAlignedImages: 2.6236s ✅
   └─ Found 527179 aligned images, returned 10
-AlignedDatasets: 0.9736s ✅
+AlignedDatasets: 0.7538s ✅
   └─ Found 86 aligned datasets, returned 10
-AllDatasets: 1.5779s ✅
+AllDatasets: 1.3917s ✅
   └─ Found 130 total datasets, returned 20
 ✅ All dataset/template queries completed
 
 ================================================================================
 PUBLICATION/TRANSGENE QUERIES
 ================================================================================
-TermsForPub: 0.9460s ✅
+TermsForPub: 0.7074s ✅
   └─ Found 2 terms for publication
-TransgeneExpressionHere: 1.0384s ✅
+TransgeneExpressionHere: 0.8675s ✅
   └─ Found 2340 transgene expressions, returned 10
 ✅ All publication/transgene queries completed
 
@@ -468,7 +274,7 @@ test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
 Performance test for specific term info queries. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 4.039s
+Ran 1 test in 3.016s
 
 OK
 VFBquery functions patched with caching support
@@ -478,9 +284,9 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 2.0204 seconds
-VFB_00101567 query took: 2.0186 seconds
-Total time for both queries: 4.0390 seconds
+FBbt_00003748 query took: 1.4745 seconds
+VFB_00101567 query took: 1.5409 seconds
+Total time for both queries: 3.0154 seconds
 Performance Level: 🟠 Acceptable (3-6 seconds)
 ==================================================
 Performance test completed successfully!
@@ -495,9 +301,9 @@ created: 4/4 workers
 
 scheduling tests via LoadScheduling
 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation 
 [gw3] [  1%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
@@ -505,20 +311,20 @@ src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::t
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
 [gw2] [  5%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw0] [  7%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
-[gw3] [  9%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
+[gw3] [  7%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
-[gw0] [ 10%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
-[gw3] [ 12%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
+[gw0] [  9%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
+[gw3] [ 10%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
+[gw0] [ 12%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
 [gw2] [ 14%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected 
-[gw0] [ 16%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
-src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected 
-[gw3] [ 18%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
+[gw3] [ 16%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected 
+[gw0] [ 18%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected 
 [gw3] [ 20%] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe 
 [gw1] [ 21%] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
@@ -541,70 +347,70 @@ src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict:
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
 [gw3] [ 38%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-[gw2] [ 40%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
-[gw1] [ 41%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe 
+[gw1] [ 40%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw2] [ 41%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
 [gw0] [ 43%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_returns_results 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-[gw3] [ 45%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
-[gw3] [ 47%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
-[gw1] [ 49%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw1] [ 45%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
-[gw2] [ 50%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
+[gw2] [ 47%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
+[gw3] [ 49%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
+[gw3] [ 50%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
 [gw0] [ 52%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
 [gw0] [ 54%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
-[gw3] [ 56%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
-[gw0] [ 58%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw1] [ 60%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
-[gw2] [ 61%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
+[gw3] [ 56%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
-[gw2] [ 63%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
-[gw3] [ 65%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
+[gw1] [ 58%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
+[gw3] [ 60%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
-[gw0] [ 67%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
-[gw0] [ 69%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
-[gw0] [ 70%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
-[gw0] [ 72%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
-[gw0] [ 74%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
-[gw0] [ 76%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
-[gw1] [ 78%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
+[gw0] [ 61%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw2] [ 63%] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
+[gw3] [ 65%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-[gw0] [ 80%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
-[gw2] [ 81%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
+[gw1] [ 67%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
+[gw1] [ 69%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
+[gw1] [ 70%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
+[gw1] [ 72%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
+[gw1] [ 74%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
+[gw1] [ 76%] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
+[gw2] [ 78%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-[gw2] [ 83%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
+[gw0] [ 80%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
+[gw1] [ 81%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
+[gw1] [ 83%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results 
-[gw0] [ 85%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
-[gw2] [ 87%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results 
+[gw1] [ 85%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
-[gw2] [ 89%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
-[gw0] [ 90%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
+[gw1] [ 87%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error 
-[gw0] [ 92%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error 
-[gw3] [ 94%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
+[gw1] [ 89%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error 
+[gw3] [ 90%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
-[gw3] [ 96%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
-[gw1] [ 98%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
+[gw3] [ 92%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
+[gw0] [ 94%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_is_constant_across_rows 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
+[gw2] [ 96%] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
-[gw1] [100%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
+[gw0] [ 98%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
+[gw2] [100%] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
 
 =============================== warnings summary ===============================
 ../../../../../opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/marshmallow/fields.py:582
@@ -1005,12 +811,12 @@ src/test/test_vfb_connectivity.py:114
     @pytest.mark.integration
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-================= 55 passed, 256 warnings in 413.46s (0:06:53) =================
+================= 55 passed, 256 warnings in 402.44s (0:06:42) =================
 ```
 
 ## Summary
 
-❌ **Test Status**: Performance tests ran but reported failures
+✅ **Test Status**: Performance tests completed
 
 
 ---
@@ -1021,4 +827,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-05-31 12:55:14 UTC*
+*Last updated: 2026-05-31 13:31:15 UTC*

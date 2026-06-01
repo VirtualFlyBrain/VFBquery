@@ -354,30 +354,43 @@ def _run_query(short_form, func_name, force_refresh=False):
     used elsewhere — see ``vfb_queries.fill_query_results`` for the original.
     """
     fn = getattr(_vfb, func_name)
-    kwargs = {"return_dataframe": False}
+    base_kwargs = {"return_dataframe": False}
+
+    # Defensive force_refresh forwarding.
+    #
+    # Earlier attempts (v1.12.9, v1.12.10) used inspect.signature() to decide
+    # whether the target accepted force_refresh, but neither shape works
+    # reliably:
+    #   - Without @functools.wraps, signature() reports `(*args, **kwargs)`
+    #     and we needed a VAR_KEYWORD check.
+    #   - With @functools.wraps (added in v1.12.10), signature() reports the
+    #     *inner* function's parameters, hiding the wrapper's **kwargs.
+    # In both cases the wrapper still accepts force_refresh at the call
+    # level — but introspection can't see that. Stop introspecting; just
+    # try the call, and on TypeError fall back to the version without
+    # force_refresh. The wrapper pops the flag before delegating, so no
+    # inner function ever gets force_refresh as an unexpected kwarg.
+    def _call(extra=None):
+        kw = {**base_kwargs, **(extra or {})}
+        if func_name == "get_all_datasets":
+            return fn(**kw)
+        return fn(short_form, **kw)
+
     if force_refresh:
         try:
-            import inspect
-            params = inspect.signature(fn).parameters
-            # Pass force_refresh either when the function names it directly
-            # OR when it accepts **kwargs (which is what the
-            # @with_solr_cache wrapper does — it pops `force_refresh` off
-            # kwargs before calling the inner function). Without the **kwargs
-            # check we miss every decorated function, because the wrapper has
-            # signature (*args, **kwargs) — no `force_refresh` parameter
-            # name — and the SOLR cache keeps serving stale entries.
-            accepts_kwargs = any(
-                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+            result = _call({"force_refresh": True})
+        except TypeError as e:
+            # Target function didn't accept force_refresh after all.
+            # Log and retry without — better to serve a cached value than
+            # to error.
+            log.warning(
+                "_run_query: %s did not accept force_refresh (%s); "
+                "retrying without it. SOLR cache may not be invalidated.",
+                func_name, e,
             )
-            if "force_refresh" in params or accepts_kwargs:
-                kwargs["force_refresh"] = True
-        except (TypeError, ValueError):
-            # builtins / C functions have no introspectable signature; skip.
-            pass
-    if func_name == "get_all_datasets":
-        result = fn(**kwargs)
+            result = _call()
     else:
-        result = fn(short_form, **kwargs)
+        result = _call()
 
     # Convert numpy types to Python types for JSON serialization
     return _convert_numpy_types(result)

@@ -4182,25 +4182,38 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     :rtype: pandas.DataFrame or dict
     """
     
-    # Count query
+    # `hasScRNAseq` on a parent class is set by the indexer when ANY
+    # subclass has a Cluster composed_primarily_of it, so the
+    # narrow MATCH (primary)<-[:composed_primarily_of]-(c:Cluster) pattern
+    # returns 0 on parent classes with scRNAseq-bearing subclasses
+    # (e.g. pacemaker neuron FBbt_00006048: 0 direct, 3 via subclasses
+    # adult pacemaker neuron / LNv neuron / DN1 neuron). Walk SUBCLASSOF*0..
+    # so subclass-attached Clusters are included, matching the indexer's
+    # propagation semantics. SUBCLASSOF-only is safe here — Clusters bind
+    # to Classes via composed_primarily_of (not the leaf-only INSTANCEOF
+    # path that needed Owlery in get_instances v1.12.8); the class
+    # hierarchy in Neo4j is complete enough for this walk.
     count_query = f"""
         MATCH (primary:Class:Anatomy)
         WHERE primary.short_form = '{anatomy_short_form}'
         WITH primary
-        MATCH (primary)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
-        RETURN COUNT(c) AS total_count
+        MATCH (primary)<-[:SUBCLASSOF*0..]-(sub:Class)
+        MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        RETURN COUNT(DISTINCT c) AS total_count
     """
-    
+
     count_results = vc.nc.commit_list([count_query])
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
-    
+
     # Main query: get clusters with dataset and publication info
     main_query = f"""
         MATCH (primary:Class:Anatomy)
         WHERE primary.short_form = '{anatomy_short_form}'
         WITH primary
-        MATCH (primary)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        MATCH (primary)<-[:SUBCLASSOF*0..]-(sub:Class)
+        MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
+        WITH DISTINCT primary, c, ds
         OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
         WITH {{
             short_form: c.short_form,

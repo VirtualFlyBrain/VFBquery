@@ -99,7 +99,7 @@ def get_term_info_cached(short_form: str, preview: bool = True, force_refresh: b
     Returns:
         Term info dictionary or None if not found
     """
-    return _original_get_term_info(short_form=short_form, preview=preview)
+    return _original_get_term_info(short_form=short_form, preview=preview, force_refresh=force_refresh)
 
 def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -116,7 +116,7 @@ def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1
     Returns:
         Instances data (DataFrame or formatted dict based on return_dataframe)
     """
-    return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('similar_neurons')
 def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -135,7 +135,7 @@ def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_d
     Returns:
         Similar neurons data (DataFrame or list of dicts)
     """
-    return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -150,7 +150,7 @@ def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True,
     Returns:
         Similar morphology data
     """
-    return _original_get_similar_morphology(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_part_of_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -165,7 +165,7 @@ def get_similar_morphology_part_of_cached(neuron_short_form: str, return_datafra
     Returns:
         Similar morphology part-of data
     """
-    return _original_get_similar_morphology_part_of(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology_part_of(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -180,7 +180,7 @@ def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return
     Returns:
         Similar morphology expression data
     """
-    return _original_get_similar_morphology_part_of_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology_part_of_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -194,7 +194,7 @@ def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=Tr
     Returns:
         NBLAST similar morphology data
     """
-    return _original_get_similar_morphology_nb(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology_nb(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -208,7 +208,7 @@ def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_data
     Returns:
         NBLAST expression similarity data
     """
-    return _original_get_similar_morphology_nb_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology_nb_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -222,7 +222,7 @@ def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True
     Returns:
         User data similarity results
     """
-    return _original_get_similar_morphology_userdata(upload_id=upload_id, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_similar_morphology_userdata(upload_id=upload_id, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -236,7 +236,7 @@ def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limi
     Returns:
         Neurons with part in the specified anatomical structure
     """
-    return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -250,7 +250,7 @@ def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, 
     Returns:
         Neurons with synapses in the specified anatomical structure
     """
-    return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -264,7 +264,7 @@ def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dat
     Returns:
         Neurons with presynaptic terminals in the specified anatomical structure
     """
-    return _original_get_neurons_with_presynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neurons_with_presynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -278,7 +278,7 @@ def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_da
     Returns:
         Neurons with postsynaptic terminals in the specified anatomical structure
     """
-    return _original_get_neurons_with_postsynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neurons_with_postsynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_templates_cached(limit: int = -1, return_dataframe: bool = False, force_refresh: bool = False):
     """
@@ -292,7 +292,7 @@ def get_templates_cached(limit: int = -1, return_dataframe: bool = False, force_
     Returns:
         Template data
     """
-    return _original_get_templates(limit=limit, return_dataframe=return_dataframe)
+    return _original_get_templates(limit=limit, return_dataframe=return_dataframe, force_refresh=force_refresh)
 
 def get_related_anatomy_cached(template_short_form: str, limit: int = -1, return_dataframe: bool = False, force_refresh: bool = False):
     """
@@ -307,7 +307,7 @@ def get_related_anatomy_cached(template_short_form: str, limit: int = -1, return
     Returns:
         Related anatomy data
     """
-    return _original_get_related_anatomy(template_short_form=template_short_form, limit=limit, return_dataframe=return_dataframe)
+    return _original_get_related_anatomy(template_short_form=template_short_form, limit=limit, return_dataframe=return_dataframe, force_refresh=force_refresh)
 
 @with_solr_cache('painted_domains')
 def get_painted_domains_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -322,7 +322,7 @@ def get_painted_domains_cached(template_short_form: str, return_dataframe=True, 
     Returns:
         Painted domains data
     """
-    return _original_get_painted_domains(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_painted_domains(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -336,7 +336,7 @@ def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, li
     Returns:
         Dataset images data
     """
-    return _original_get_dataset_images(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_dataset_images(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_all_aligned_images_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -350,7 +350,7 @@ def get_all_aligned_images_cached(template_short_form: str, return_dataframe=Tru
     Returns:
         All aligned images data
     """
-    return _original_get_all_aligned_images(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_all_aligned_images(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('aligned_datasets')
 def get_aligned_datasets_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -365,7 +365,7 @@ def get_aligned_datasets_cached(template_short_form: str, return_dataframe=True,
     Returns:
         Aligned datasets data
     """
-    return _original_get_aligned_datasets(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_aligned_datasets(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_all_datasets_cached(return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -378,7 +378,7 @@ def get_all_datasets_cached(return_dataframe=True, limit: int = -1, force_refres
     Returns:
         All datasets data
     """
-    return _original_get_all_datasets(return_dataframe=return_dataframe, limit=limit)
+    return _original_get_all_datasets(return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_individual_neuron_inputs_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, summary_mode: bool = False, force_refresh: bool = False):
     """
@@ -393,7 +393,7 @@ def get_individual_neuron_inputs_cached(neuron_short_form: str, return_dataframe
     Returns:
         Individual neuron inputs data
     """
-    return _original_get_individual_neuron_inputs(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit, summary_mode=summary_mode)
+    return _original_get_individual_neuron_inputs(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit, summary_mode=summary_mode, force_refresh=force_refresh)
 
 def get_neuron_neuron_connectivity_cached(short_form: str, return_dataframe=True, limit: int = -1, min_weight: float = 0, direction: str = 'both', force_refresh: bool = False):
     """
@@ -423,7 +423,7 @@ def get_neuron_region_connectivity_cached(short_form: str, return_dataframe=True
     Returns:
         Neuron-region connectivity data
     """
-    return _original_get_neuron_region_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neuron_region_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('expression_overlaps_here')
 def get_expression_overlaps_here_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -438,7 +438,7 @@ def get_expression_overlaps_here_cached(anatomy_short_form: str, return_datafram
     Returns:
         Expression overlaps data
     """
-    return _original_get_expression_overlaps_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_expression_overlaps_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('anatomy_scrnaseq')
 def get_anatomy_scrnaseq_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -453,7 +453,7 @@ def get_anatomy_scrnaseq_cached(anatomy_short_form: str, return_dataframe=True, 
     Returns:
         Anatomy scRNAseq data
     """
-    return _original_get_anatomy_scrnaseq(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_anatomy_scrnaseq(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_cluster_expression_cached(cluster_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -467,7 +467,7 @@ def get_cluster_expression_cached(cluster_short_form: str, return_dataframe=True
     Returns:
         Cluster expression data
     """
-    return _original_get_cluster_expression(cluster_short_form=cluster_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_cluster_expression(cluster_short_form=cluster_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_expression_cluster_cached(gene_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -481,7 +481,7 @@ def get_expression_cluster_cached(gene_short_form: str, return_dataframe=True, l
     Returns:
         Expression cluster data
     """
-    return _original_get_expression_cluster(gene_short_form=gene_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_expression_cluster(gene_short_form=gene_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_scrnaseq_dataset_data_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -495,7 +495,7 @@ def get_scrnaseq_dataset_data_cached(dataset_short_form: str, return_dataframe=T
     Returns:
         scRNAseq dataset data
     """
-    return _original_get_scrnaseq_dataset_data(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_scrnaseq_dataset_data(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_transgene_expression_here_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -509,7 +509,7 @@ def get_transgene_expression_here_cached(anatomy_short_form: str, return_datafra
     Returns:
         Transgene expression data
     """
-    return _original_get_transgene_expression_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_transgene_expression_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_components_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -523,7 +523,7 @@ def get_components_of_cached(short_form: str, return_dataframe=True, limit: int 
     Returns:
         Components of the specified anatomical structure
     """
-    return _original_get_components_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_components_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_parts_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -537,7 +537,7 @@ def get_parts_of_cached(short_form: str, return_dataframe=True, limit: int = -1,
     Returns:
         Parts of the specified anatomical structure
     """
-    return _original_get_parts_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_parts_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_subclasses_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -551,7 +551,7 @@ def get_subclasses_of_cached(short_form: str, return_dataframe=True, limit: int 
     Returns:
         Subclasses of the specified class
     """
-    return _original_get_subclasses_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_subclasses_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_neuron_classes_fasciculating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -565,7 +565,7 @@ def get_neuron_classes_fasciculating_here_cached(short_form: str, return_datafra
     Returns:
         Neuron classes fasciculating in the specified anatomical structure
     """
-    return _original_get_neuron_classes_fasciculating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_neuron_classes_fasciculating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_tracts_nerves_innervating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -579,7 +579,7 @@ def get_tracts_nerves_innervating_here_cached(short_form: str, return_dataframe=
     Returns:
         Tracts and nerves innervating the specified anatomical structure
     """
-    return _original_get_tracts_nerves_innervating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_tracts_nerves_innervating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -593,7 +593,7 @@ def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: 
     Returns:
         Lineage clones in the specified anatomical structure
     """
-    return _original_get_lineage_clones_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_lineage_clones_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -607,7 +607,7 @@ def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int
     Returns:
         Images of the specified neuron
     """
-    return _original_get_images_neurons(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_images_neurons(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -621,7 +621,7 @@ def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, 
     Returns:
         Images that develop from the specified anatomical structure
     """
-    return _original_get_images_that_develop_from(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_images_that_develop_from(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -635,7 +635,7 @@ def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=Tr
     Returns:
         Expression pattern fragments data
     """
-    return _original_get_expression_pattern_fragments(short_form=short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_expression_pattern_fragments(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('terms_for_pub')
 def get_terms_for_pub_cached(pub_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
@@ -650,7 +650,7 @@ def get_terms_for_pub_cached(pub_short_form: str, return_dataframe=True, limit: 
     Returns:
         Terms associated with the specified publication
     """
-    return _original_get_terms_for_pub(pub_short_form=pub_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_terms_for_pub(pub_short_form=pub_short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 # Convenience function to replace original functions
 def patch_vfbquery_with_caching():

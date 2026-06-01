@@ -325,7 +325,7 @@ def get_painted_domains_cached(template_short_form: str, return_dataframe=True, 
     """
     return _original_get_painted_domains(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache('template_roi_tree')
+@with_solr_cache('template_roi_tree_v2')
 def get_template_roi_tree_cached(template_short_form: str, return_dataframe: bool = False, force_refresh: bool = False):
     """
     Enhanced get_template_roi_tree with SOLR caching.

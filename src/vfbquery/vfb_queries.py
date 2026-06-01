@@ -4883,18 +4883,27 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
 _VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
-@with_solr_cache('template_roi_tree')
+@with_solr_cache('template_roi_tree_v2')
 def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     """Build a hierarchical ROI tree for a template.
 
     Anchors on the template's INSTANCEOF root Class (so this works for
     every template regardless of anatomical character — adult brain
     variants, adult VNC, larval CNS, the Adult T1 Leg with muscles +
-    neuropils, Adult Head). Walks down through ``part_of`` and
-    ``SUBCLASSOF`` to every Class that has a painted-domain Individual on
-    this template, materialising the nodes and edges required to render
-    the tree. FBbt's DAG character is preserved (multi-parent classes
-    appear under each parent), matching the legacy VFBTree behaviour.
+    neuropils, Adult Head). Walks down through ``part_of``, ``SUBCLASSOF``
+    and ``innervates`` to every Class that has a painted-domain Individual
+    on this template, materialising the nodes and edges required to
+    render the tree. ``innervates`` is what connects e.g. the adult VNC
+    nerves (which are part_of the peripheral nervous system, NOT the
+    central VNC) to the neuromeres they innervate, so without it the
+    legacy walk dropped 16 of the 22 painted VNS nerves from the tree.
+
+    Cache bucket ``template_roi_tree_v2`` (was ``template_roi_tree``)
+    forces a clean re-populate so v1.13.2 entries with the narrower
+    rel-set don't shadow the new walk.
+
+    FBbt's DAG character is preserved (multi-parent classes appear under
+    each parent), matching the legacy VFBTree behaviour.
 
     Returned shape (`return_dataframe` is accepted for symmetry; this
     query is hierarchical and always returns the dict shape):
@@ -4950,7 +4959,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"WITH t, root, "
         f"[r IN painted_rows WHERE r.class_id IS NOT NULL] AS painted_rows "
         f"WITH t, root, painted_rows, [r IN painted_rows | r.class_id] AS leaf_ids "
-        f"OPTIONAL MATCH path = (root)<-[:SUBCLASSOF|part_of*0..20]-(leaf:Class) "
+        f"OPTIONAL MATCH path = (root)<-[:SUBCLASSOF|part_of|innervates*0..]-(leaf:Class) "
         f"WHERE leaf.short_form IN leaf_ids "
         f"WITH t, root, painted_rows, "
         f"collect(distinct [n IN nodes(path) | "
@@ -5054,10 +5063,27 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"region to toggle its overlay on the 3D viewer."
     )
 
+    # painted_class label fallback: any class found by the painted-collection
+    # half of the Cypher carries its own label, so use that when the
+    # tree-walk half didn't reach the class (this happens when the only
+    # path from root to the leaf relies on a relation we don't traverse,
+    # so the class is in painted_by_class but not in nodes_by_id).
+    class_label_by_id = {
+        cid: (plist[0].get('class_label') if plist else None)
+        for cid, plist in painted_by_class.items()
+    }
+    # painted_by_class doesn't store the class_label directly (we project
+    # only individual_id / individual_label into the per-class list), so
+    # rebuild from painted_rows where it does live.
+    for r in painted_rows:
+        cid = r.get('class_id')
+        if cid and not class_label_by_id.get(cid):
+            class_label_by_id[cid] = r.get('class_label')
+
     painted_index = {
         p['individual_id']: {
             'class_id':    cid,
-            'class_label': nodes_by_id.get(cid),
+            'class_label': nodes_by_id.get(cid) or class_label_by_id.get(cid),
         }
         for cid, plist in painted_by_class.items()
         for p in plist

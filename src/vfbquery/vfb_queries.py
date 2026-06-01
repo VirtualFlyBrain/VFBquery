@@ -2051,31 +2051,62 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
 @with_solr_cache('instances')
 def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
-    Retrieves available instances for the given class short form.
-    Uses SOLR term_info data when Neo4j is unavailable (fallback mode).
+    Retrieves available image-bearing instances for the given class short form.
+
+    Subclass closure is resolved via Owlery's reasoner (consistent with the
+    `Neurons*Here`, `ImagesThatDevelopFrom`, `TractsNervesInnervatingHere`
+    family that all use ``_owlery_query_to_results(query_instances=True)``).
+    Per-instance image metadata is then fetched from Neo4j in a single
+    batched query keyed on the Owlery-returned IDs.
+
+    Falls back to the SOLR ``term_info`` ``anatomy_channel_image`` extract
+    if either Owlery or Neo4j is unavailable.
+
     :param short_form: short form of the class
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: results rows
     """
     
     try:
-        # Try to use original Neo4j implementation first
-        # Get the total count of rows
-        count_query = f"""
-        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
-              (i)<-[:depicts]-(:Individual)-[r:in_register_with]->(:Template)
-        RETURN COUNT(r) AS total_count
-        """
-        count_results = vc.nc.commit_list([count_query])
-        count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
-        total_count = count_df['total_count'][0] if not count_df.empty else 0
+        # Step 1: ask Owlery for instance IDs matching the class expression.
+        # Owlery's reasoner handles the subclass closure via OWL inference,
+        # which is the canonical VFBquery idiom (same path used by the
+        # `Neurons*Here`, `ImagesThatDevelopFrom`, `TractsNervesInnervatingHere`
+        # etc. via `_owlery_query_to_results(..., query_instances=True)`).
+        #
+        # Why this matters: the previous Cypher used
+        # `(i)-[:INSTANCEOF]->(p:Class {short_form: $id})` — a single-edge
+        # match that only sees individuals *directly* typed as the queried
+        # class. For any parent class (e.g. mushroom body intrinsic neuron
+        # FBbt_00007484, whose individuals are typed Kenyon cell etc.) the
+        # query returned 0 even though SOLR had dozens of image rows on
+        # file. Asking Owlery first gives us the same subclass-aware result
+        # the legacy v2 XMI chain produced, with proper OWL semantics
+        # (equivalence classes, defined classes, etc.).
+        owl_query = f"<{_short_form_to_iri(short_form)}>"
+        instance_ids = vc.vfb.oc.get_instances(query=owl_query, query_by_label=False)
+        if not instance_ids:
+            if return_dataframe:
+                return pd.DataFrame()
+            return {
+                "headers": _get_instances_headers(),
+                "rows": [],
+                "count": 0,
+            }
 
-        # Define the main Cypher query
+        # Step 2: fetch image metadata for those instances from Neo4j.
         # Pattern: Individual ← depicts ← TemplateChannel → in_register_with → TemplateChannelTemplate → depicts → ActualTemplate
+        # The `parent` column now reports the *actual* class each instance
+        # is typed as (often a subclass of the queried class) rather than
+        # the queried class itself — more useful for v2 display.
+        total_count = len(instance_ids)
+
         query = f"""
-        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class {{ short_form: '{short_form}' }}),
+        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
+        WHERE i.short_form IN {instance_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
         RETURN i.short_form as id,

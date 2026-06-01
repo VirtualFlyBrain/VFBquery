@@ -46,6 +46,34 @@ from aiohttp import web
 import numpy as np
 
 # ---------------------------------------------------------------------------
+# Running-version helper — surfaced in /health and /status so v2-dev and
+# Rancher operators can confirm which build is actually serving a request
+# without having to inspect Docker tags. Source of truth, in order:
+#   1. importlib.metadata.version("vfbquery") — set by the CI tag-sync step
+#      in docker.yml, so it reflects the deployed image's git tag.
+#   2. vfbquery.__version__ — module constant; lags the tag until the CI
+#      sync rewrites it, kept as a fallback for local/dev runs.
+#   3. "unknown" — if both fail (would indicate a broken install).
+# ---------------------------------------------------------------------------
+def _get_running_version() -> str:
+    try:
+        from importlib.metadata import version, PackageNotFoundError
+        try:
+            return version("vfbquery")
+        except PackageNotFoundError:
+            pass
+    except Exception:
+        pass
+    try:
+        import vfbquery
+        return getattr(vfbquery, "__version__", "unknown")
+    except Exception:
+        return "unknown"
+
+
+VFBQUERY_VERSION = _get_running_version()
+
+# ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
 logging.basicConfig(
@@ -690,8 +718,13 @@ async def handle_run_query(request):
 
 
 async def handle_health(request):
-    """GET /health — lightweight liveness probe for upstream nginx."""
-    return web.json_response({"status": "ok"})
+    """GET /health — lightweight liveness probe for upstream nginx.
+
+    Version field is the source of truth for "which build is serving"; v2-dev
+    and Rancher operators can spot-check after a deploy without having to
+    inspect Docker tags.
+    """
+    return web.json_response({"status": "ok", "version": VFBQUERY_VERSION})
 
 
 async def handle_status(request):
@@ -717,6 +750,7 @@ async def handle_status(request):
 
     return web.json_response({
         "status": "ok",
+        "version": VFBQUERY_VERSION,
         "workers": request.app["max_workers"],
         "max_concurrent": request.app["max_concurrent"],
         "max_queue_depth": request.app.get("max_queue_depth"),
@@ -1096,7 +1130,7 @@ def main():
         cache_ttl=args.cache_ttl,
     )
 
-    log.info("VFBquery HA API starting on %s:%d", args.host, args.port)
+    log.info("VFBquery HA API v%s starting on %s:%d", VFBQUERY_VERSION, args.host, args.port)
     web.run_app(
         app,
         host=args.host,

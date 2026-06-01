@@ -358,7 +358,18 @@ def _run_query(short_form, func_name, force_refresh=False):
     if force_refresh:
         try:
             import inspect
-            if "force_refresh" in inspect.signature(fn).parameters:
+            params = inspect.signature(fn).parameters
+            # Pass force_refresh either when the function names it directly
+            # OR when it accepts **kwargs (which is what the
+            # @with_solr_cache wrapper does — it pops `force_refresh` off
+            # kwargs before calling the inner function). Without the **kwargs
+            # check we miss every decorated function, because the wrapper has
+            # signature (*args, **kwargs) — no `force_refresh` parameter
+            # name — and the SOLR cache keeps serving stale entries.
+            accepts_kwargs = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+            )
+            if "force_refresh" in params or accepts_kwargs:
                 kwargs["force_refresh"] = True
         except (TypeError, ValueError):
             # builtins / C functions have no introspectable signature; skip.

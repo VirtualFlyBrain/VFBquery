@@ -10,6 +10,7 @@ pre-computed results that can be retrieved instantly without expensive
 Neo4j queries and data processing.
 """
 
+import functools
 import json
 import os
 import re
@@ -765,6 +766,7 @@ def with_solr_cache(query_type: str):
     The decorated function can accept a 'force_refresh' parameter to bypass cache.
     """
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)

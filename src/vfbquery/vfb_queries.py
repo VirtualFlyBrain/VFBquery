@@ -2069,44 +2069,43 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
     """
     
     try:
-        # Step 1: ask Owlery for instance IDs matching the class expression.
-        # Owlery's reasoner handles the subclass closure via OWL inference,
-        # which is the canonical VFBquery idiom (same path used by the
-        # `Neurons*Here`, `ImagesThatDevelopFrom`, `TractsNervesInnervatingHere`
-        # etc. via `_owlery_query_to_results(..., query_instances=True)`).
+        # Step 1: ask Owlery for the SUBCLASS closure of the queried class.
+        # Owlery's `/subclasses` reasoner does the OWL inference (handles
+        # equivalence classes, defined classes, anonymous class expressions
+        # in the parent chain, etc.). The queried class itself is included
+        # so leaf classes still match.
         #
-        # Why this matters: the previous Cypher used
-        # `(i)-[:INSTANCEOF]->(p:Class {short_form: $id})` — a single-edge
-        # match that only sees individuals *directly* typed as the queried
-        # class. For any parent class (e.g. mushroom body intrinsic neuron
-        # FBbt_00007484, whose individuals are typed Kenyon cell etc.) the
-        # query returned 0 even though SOLR had dozens of image rows on
-        # file. Asking Owlery first gives us the same subclass-aware result
-        # the legacy v2 XMI chain produced, with proper OWL semantics
-        # (equivalence classes, defined classes, etc.).
+        # Why Owlery for subclasses (not instances) — VFB stores Individual→
+        # Class membership as Neo4j INSTANCEOF edges, NOT as OWL
+        # ClassAssertion axioms. Owlery has the class hierarchy but no
+        # individual assertions, so its `/instances` endpoint returns
+        # nothing for entities whose Individuals live only in Neo4j. We
+        # must do the instance match in Neo4j against the Owlery-derived
+        # subclass set. This mirrors the legacy v2 XMI two-step chain
+        # (Owlery subclasses → SOLR per-class lookup) without the SOLR
+        # intermediate.
+        #
+        # Why this matters: the previous Cypher used a single-edge
+        # `(i)-[:INSTANCEOF]->(p:Class {short_form: $id})` match — only
+        # individuals *directly* typed as the queried class were seen.
+        # For any parent class (e.g. mushroom body intrinsic neuron
+        # FBbt_00007484, whose individuals are typed Kenyon cell etc.)
+        # the query returned 0 even though SOLR had dozens of image rows
+        # on file.
         owl_query = f"<{_short_form_to_iri(short_form)}>"
-        instance_ids = vc.vfb.oc.get_instances(query=owl_query, query_by_label=False)
-        if not instance_ids:
-            if return_dataframe:
-                return pd.DataFrame()
-            return {
-                "headers": _get_instances_headers(),
-                "rows": [],
-                "count": 0,
-            }
+        subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
+        # Always include the queried class itself so leaf classes still match.
+        class_ids = list({short_form, *subclass_ids})
 
-        # Step 2: fetch image metadata for those instances from Neo4j.
-        # Pattern: Individual ← depicts ← TemplateChannel → in_register_with → TemplateChannelTemplate → depicts → ActualTemplate
-        # The `parent` column now reports the *actual* class each instance
-        # is typed as (often a subclass of the queried class) rather than
-        # the queried class itself — more useful for v2 display.
-        total_count = len(instance_ids)
-
+        # Step 2: fetch image metadata for instances of any of those
+        # classes from Neo4j. The `parent` column reports the actual class
+        # each instance is typed as (often a leaf subclass of the queried
+        # class) — more useful for v2 display than echoing the queried id.
         query = f"""
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
-        WHERE i.short_form IN {instance_ids!r}
+        WHERE p.short_form IN {class_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
         RETURN i.short_form as id,
@@ -2133,7 +2132,11 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
 
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
         df = encode_markdown_links(df, columns_to_encode)
-        
+
+        # Total count is the row count returned by the Cypher (i.e. instances
+        # of the queried class or any of its Owlery-derived subclasses).
+        total_count = len(df)
+
         if return_dataframe:
             return df
 

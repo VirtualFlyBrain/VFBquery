@@ -4883,7 +4883,7 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
 _VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
-@with_solr_cache('template_roi_tree_v2')
+@with_solr_cache('template_roi_tree')
 def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     """Build a hierarchical ROI tree for a template.
 
@@ -4895,12 +4895,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     on this template, materialising the nodes and edges required to
     render the tree. ``innervates`` is what connects e.g. the adult VNC
     nerves (which are part_of the peripheral nervous system, NOT the
-    central VNC) to the neuromeres they innervate, so without it the
-    legacy walk dropped 16 of the 22 painted VNS nerves from the tree.
-
-    Cache bucket ``template_roi_tree_v2`` (was ``template_roi_tree``)
-    forces a clean re-populate so v1.13.2 entries with the narrower
-    rel-set don't shadow the new walk.
+    central VNC) to the neuromeres they innervate.
 
     FBbt's DAG character is preserved (multi-parent classes appear under
     each parent), matching the legacy VFBTree behaviour.

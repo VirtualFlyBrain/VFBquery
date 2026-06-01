@@ -120,6 +120,12 @@ class ResultCache:
     def put(self, key: str, result):
         self._store[key] = (result, time.monotonic())
 
+    def invalidate(self, key: str):
+        """Forcibly drop an entry — used by handlers that honour
+        force_refresh so a known-stale result is replaced rather than
+        served from cache. No-op if the key isn't present."""
+        self._store.pop(key, None)
+
     def evict_expired(self):
         now = time.monotonic()
         expired = [k for k, (_, ts) in self._store.items() if now - ts > self._ttl]
@@ -339,14 +345,28 @@ def _run_term_info(short_form):
     return _convert_numpy_types(result)
 
 
-def _run_query(short_form, func_name):
-    """Execute a named query function in a worker process. Returns JSON-serialisable dict."""
+def _run_query(short_form, func_name, force_refresh=False):
+    """Execute a named query function in a worker process. Returns JSON-serialisable dict.
+
+    ``force_refresh`` is propagated to the underlying ``vfb_queries`` function
+    only when that function declares it in its signature (e.g. anything
+    decorated with ``@with_solr_cache``). The same introspection pattern is
+    used elsewhere — see ``vfb_queries.fill_query_results`` for the original.
+    """
     fn = getattr(_vfb, func_name)
-    # AllDatasets is the only query that takes no id argument
+    kwargs = {"return_dataframe": False}
+    if force_refresh:
+        try:
+            import inspect
+            if "force_refresh" in inspect.signature(fn).parameters:
+                kwargs["force_refresh"] = True
+        except (TypeError, ValueError):
+            # builtins / C functions have no introspectable signature; skip.
+            pass
     if func_name == "get_all_datasets":
-        result = fn(return_dataframe=False)
+        result = fn(**kwargs)
     else:
-        result = fn(short_form, return_dataframe=False)
+        result = fn(short_form, **kwargs)
 
     # Convert numpy types to Python types for JSON serialization
     return _convert_numpy_types(result)
@@ -622,6 +642,7 @@ async def handle_run_query(request):
         )
 
     include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
+    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
 
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
@@ -632,12 +653,20 @@ async def handle_run_query(request):
         key = f"run_query:{short_form}:{query_type}"
 
     # ---- L1: in-memory result cache ----
-    cached = rcache.get(key)
-    if cached is not None:
-        log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
-        if include_graph:
-            cached = _maybe_add_graph(cached, func_name, short_form)
-        return web.json_response(cached)
+    # force_refresh=true skips the cache read AND drops any stale entry so
+    # the recomputed result replaces it. Otherwise the next request without
+    # force_refresh would still get the stale value.
+    if force_refresh:
+        rcache.invalidate(key)
+        log.info("run_query id=%s query_type=%s — force_refresh: cache invalidated",
+                 short_form, query_type)
+    else:
+        cached = rcache.get(key)
+        if cached is not None:
+            log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
+            if include_graph:
+                cached = _maybe_add_graph(cached, func_name, short_form)
+            return web.json_response(cached)
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
@@ -690,7 +719,7 @@ async def handle_run_query(request):
             await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                pool, _run_query, short_form, func_name
+                pool, _run_query, short_form, func_name, force_refresh
             )
         log.info("run_query id=%s query_type=%s — done", short_form, query_type)
         rcache.put(key, result)

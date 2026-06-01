@@ -311,6 +311,7 @@ QUERY_TYPE_MAP = {
 
     # Templates / datasets
     "PaintedDomains":                "get_painted_domains",
+    "TemplateROIBrowser":            "get_template_roi_tree",
     "DatasetImages":                 "get_dataset_images",
     "AllAlignedImages":              "get_all_aligned_images",
     "AlignedDatasets":               "get_aligned_datasets",

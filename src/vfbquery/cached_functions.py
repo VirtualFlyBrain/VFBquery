@@ -76,6 +76,7 @@ from .vfb_queries import (
     get_similar_morphology_nb_exp as _original_get_similar_morphology_nb_exp,
     get_similar_morphology_userdata as _original_get_similar_morphology_userdata,
     get_painted_domains as _original_get_painted_domains,
+    get_template_roi_tree as _original_get_template_roi_tree,
     get_dataset_images as _original_get_dataset_images,
     get_all_aligned_images as _original_get_all_aligned_images,
     get_aligned_datasets as _original_get_aligned_datasets,
@@ -323,6 +324,29 @@ def get_painted_domains_cached(template_short_form: str, return_dataframe=True, 
         Painted domains data
     """
     return _original_get_painted_domains(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
+
+@with_solr_cache('template_roi_tree')
+def get_template_roi_tree_cached(template_short_form: str, return_dataframe: bool = False, force_refresh: bool = False):
+    """
+    Enhanced get_template_roi_tree with SOLR caching.
+
+    Drives the v2 Template ROI Browser. Returns a nested tree of FBbt
+    classes from the template's anatomy root down to every class that
+    carries a painted-domain Individual, with per-node markdown summaries
+    and a reverse-lookup index for the v2 visibility-toggle handler.
+
+    Args:
+        template_short_form: Template short form (e.g. VFB_00101567)
+        return_dataframe:    Accepted for API symmetry. The query is
+                             hierarchical and always returns the dict
+                             shape regardless.
+        force_refresh:       Bypass SOLR cache and re-run the live
+                             Cypher.
+
+    Returns:
+        ROI tree dict — see get_template_roi_tree docstring for shape.
+    """
+    return _original_get_template_roi_tree(template_short_form=template_short_form, return_dataframe=return_dataframe)
 
 def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -737,6 +761,7 @@ def patch_vfbquery_with_caching():
     vfb_queries.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
     vfb_queries.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
     vfb_queries.get_painted_domains = get_painted_domains_cached
+    vfb_queries.get_template_roi_tree = get_template_roi_tree_cached
     vfb_queries.get_dataset_images = get_dataset_images_cached
     vfb_queries.get_all_aligned_images = get_all_aligned_images_cached
     vfb_queries.get_aligned_datasets = get_aligned_datasets_cached
@@ -778,6 +803,7 @@ def patch_vfbquery_with_caching():
     vfbquery.get_similar_morphology_nb_exp = get_similar_morphology_nb_exp_cached
     vfbquery.get_similar_morphology_userdata = get_similar_morphology_userdata_cached
     vfbquery.get_painted_domains = get_painted_domains_cached
+    vfbquery.get_template_roi_tree = get_template_roi_tree_cached
     vfbquery.get_dataset_images = get_dataset_images_cached
     vfbquery.get_all_aligned_images = get_all_aligned_images_cached
     vfbquery.get_aligned_datasets = get_aligned_datasets_cached

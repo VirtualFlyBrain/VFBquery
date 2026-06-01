@@ -4875,6 +4875,218 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
     return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Domain", "type": "markdown", "order": 0}, "type": {"title": "Type", "type": "text", "order": 1}, "description": {"title": "Definition", "type": "text", "order": 2}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "type", "description", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
+# Short_form syntactic guard for any value interpolated into a Cypher
+# string-literal (Neo4j REST client doesn't pass parameters separately —
+# all queries in this module interpolate). VFB short_forms are
+# alphanumerics + underscore; the guard rejects anything that could break
+# out of the literal.
+_VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+@with_solr_cache('template_roi_tree')
+def get_template_roi_tree(template_short_form: str, return_dataframe=False):
+    """Build a hierarchical ROI tree for a template.
+
+    Anchors on the template's INSTANCEOF root Class (so this works for
+    every template regardless of anatomical character — adult brain
+    variants, adult VNC, larval CNS, the Adult T1 Leg with muscles +
+    neuropils, Adult Head). Walks down through ``part_of`` and
+    ``SUBCLASSOF`` to every Class that has a painted-domain Individual on
+    this template, materialising the nodes and edges required to render
+    the tree. FBbt's DAG character is preserved (multi-parent classes
+    appear under each parent), matching the legacy VFBTree behaviour.
+
+    Returned shape (`return_dataframe` is accepted for symmetry; this
+    query is hierarchical and always returns the dict shape):
+
+        {
+          "template":      {"short_form", "label"},
+          "anatomy_root":  {"short_form", "label"} | None,
+          "summary_md":    "## ROI tree for <template> …",
+          "tree": [
+              {
+                  "id":          str,
+                  "label":       str | None,
+                  "painted_domain": [
+                      {"individual_id", "individual_label"}, ...
+                  ],
+                  "summary_md":  str,
+                  "children":    [...]
+              }
+          ],
+          "painted_domain_index": {
+              "<individual_id>": {"class_id", "class_label"},
+              ...
+          }
+        }
+
+    Notes:
+
+    - ``painted_domain`` is always a list (empty when the class has no
+      painted Individual on this template). T1 Leg has bilateral L/R
+      Individuals on the same Class, so a single-value field would
+      silently drop one side.
+    - ``painted_domain_index`` is the reverse lookup the v2 visibility
+      toggle needs: scene reports "Individual X just hidden" -> map
+      back to the Class node to grey the row.
+    - DAG cycle guard: tracks the ancestor chain so we don't recurse
+      indefinitely if part_of ever loops in FBbt.
+    """
+    if not isinstance(template_short_form, str) or not _VFB_SHORT_FORM_RE.match(template_short_form):
+        raise ValueError(f"Invalid template_short_form: {template_short_form!r}")
+
+    cypher = (
+        f"MATCH (t:Template {{short_form: '{template_short_form}'}})"
+        f"-[:INSTANCEOF]->(root:Class:Anatomy) "
+        f"OPTIONAL MATCH (t)<-[:depicts]-(tc:Template)"
+        f"<-[ie:in_register_with]-(:Individual)"
+        f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(painted_class:Class) "
+        f"WHERE exists(ie.index) "
+        f"WITH t, root, "
+        f"collect(distinct {{class_id: painted_class.short_form, "
+        f"class_label: painted_class.label, "
+        f"individual_id: pd.short_form, "
+        f"individual_label: pd.label}}) AS painted_rows "
+        f"WITH t, root, "
+        f"[r IN painted_rows WHERE r.class_id IS NOT NULL] AS painted_rows "
+        f"WITH t, root, painted_rows, [r IN painted_rows | r.class_id] AS leaf_ids "
+        f"OPTIONAL MATCH path = (root)<-[:SUBCLASSOF|part_of*0..20]-(leaf:Class) "
+        f"WHERE leaf.short_form IN leaf_ids "
+        f"WITH t, root, painted_rows, "
+        f"collect(distinct [n IN nodes(path) | "
+        f"{{id: n.short_form, label: n.label}}]) AS path_node_lists, "
+        f"collect(distinct [rel IN relationships(path) | "
+        f"{{parent: endNode(rel).short_form, "
+        f"child:  startNode(rel).short_form, "
+        f"rel_type: type(rel)}}]) AS path_edge_lists "
+        f"RETURN t.short_form  AS template_id, "
+        f"       t.label       AS template_label, "
+        f"       root.short_form AS root_id, "
+        f"       root.label      AS root_label, "
+        f"       apoc.coll.toSet(apoc.coll.flatten(path_node_lists)) AS nodes, "
+        f"       apoc.coll.toSet(apoc.coll.flatten(path_edge_lists)) AS edges, "
+        f"       painted_rows                                         AS painted"
+    )
+    results = vc.nc.commit_list([cypher])
+    rows = get_dict_cursor()(results) if results else []
+    if not rows:
+        return _empty_roi_tree(template_short_form)
+    row = rows[0]
+
+    nodes_by_id = {n['id']: n.get('label') for n in (row.get('nodes') or []) if n and n.get('id')}
+    edges = [e for e in (row.get('edges') or []) if e and e.get('parent') and e.get('child')]
+    painted_rows = row.get('painted') or []
+
+    painted_by_class = {}
+    for r in painted_rows:
+        if not r.get('class_id'):
+            continue
+        painted_by_class.setdefault(r['class_id'], []).append({
+            'individual_id':    r.get('individual_id'),
+            'individual_label': r.get('individual_label'),
+        })
+
+    children = {}
+    for e in edges:
+        children.setdefault(e['parent'], set()).add(e['child'])
+
+    template_label = row.get('template_label') or template_short_form
+    root_id    = row.get('root_id')
+    root_label = row.get('root_label')
+
+    def _node_summary_md(class_id, class_label, painted_list, parent_label):
+        parts = [
+            f"**{class_label or class_id}** "
+            f"([{class_id}](http://virtualflybrain.org/reports/{class_id}))",
+            "",
+        ]
+        if parent_label:
+            parts.append(f"Part of: *{parent_label}*.")
+            parts.append("")
+        if painted_list:
+            ind_lines = [
+                f"[{p.get('individual_label') or p.get('individual_id')}]"
+                f"(http://virtualflybrain.org/reports/{p.get('individual_id')})"
+                for p in painted_list if p.get('individual_id')
+            ]
+            if ind_lines:
+                parts.append(
+                    f"Painted domain on **{template_label}**: "
+                    + "; ".join(ind_lines) + "."
+                )
+        return "\n".join(parts).rstrip()
+
+    def _build(node_id, ancestors, parent_label):
+        if node_id in ancestors:
+            return None
+        label = nodes_by_id.get(node_id)
+        painted_list = painted_by_class.get(node_id, [])
+        new_ancestors = ancestors | {node_id}
+        kids = []
+        for c in children.get(node_id, ()):
+            built = _build(c, new_ancestors, label)
+            if built is not None:
+                kids.append(built)
+        kids.sort(key=lambda n: (n.get('label') or '').lower())
+        return {
+            'id':             node_id,
+            'label':          label,
+            'painted_domain': painted_list,
+            'summary_md':     _node_summary_md(node_id, label, painted_list, parent_label),
+            'children':       kids,
+        }
+
+    tree_root = _build(root_id, frozenset(), None) if root_id else None
+
+    painted_class_count      = len(painted_by_class)
+    painted_individual_count = sum(len(v) for v in painted_by_class.values())
+
+    summary_md = (
+        f"## ROI tree for **{template_label}**\n\n"
+        f"Anatomy root: "
+        f"[{root_label or root_id}](http://virtualflybrain.org/reports/{root_id}) "
+        f"({root_id}).\n\n"
+        f"{painted_class_count} painted region"
+        f"{'s' if painted_class_count != 1 else ''} "
+        f"({painted_individual_count} painted individual"
+        f"{'s' if painted_individual_count != 1 else ''}) "
+        f"across the FBbt class hierarchy. Click the eye icon next to a "
+        f"region to toggle its overlay on the 3D viewer."
+    )
+
+    painted_index = {
+        p['individual_id']: {
+            'class_id':    cid,
+            'class_label': nodes_by_id.get(cid),
+        }
+        for cid, plist in painted_by_class.items()
+        for p in plist
+        if p.get('individual_id')
+    }
+
+    return {
+        'template':             {'short_form': row.get('template_id') or template_short_form,
+                                 'label':      template_label},
+        'anatomy_root':         ({'short_form': root_id, 'label': root_label}
+                                 if root_id else None),
+        'summary_md':           summary_md,
+        'tree':                 [tree_root] if tree_root else [],
+        'painted_domain_index': painted_index,
+    }
+
+
+def _empty_roi_tree(template_short_form):
+    """Stable response shape when the template has no INSTANCEOF root
+    (data bug) — keeps v2's renderer happy."""
+    return {
+        'template':             {'short_form': template_short_form, 'label': template_short_form},
+        'anatomy_root':         None,
+        'summary_md':           f"No ROI tree available for template `{template_short_form}`.",
+        'tree':                 [],
+        'painted_domain_index': {},
+    }
+
+
 def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: int = -1):
     """List all images in a dataset."""
     count_query = f"MATCH (c:DataSet {{short_form:'{dataset_short_form}'}})<-[:has_source]-(primary:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual) RETURN count(primary) AS count"

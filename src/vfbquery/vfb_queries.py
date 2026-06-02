@@ -5424,15 +5424,16 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     INSTANCEOF leaf subclasses, not the parent. Same closure pattern as
     get_instances (v1.12.8).
 
-    v1.14.3: adds Expressed_in column matching v2 prod's single-value
-    display. Each EP row carries ONE representative leaf anatomy class
-    its Individuals are INSTANCEOF (alphabetically first within the
-    Owlery closure of the queried class), wire-formatted as
-    `label----short_form` so the geppetto-vfb QueryLinkComponent
-    (single-link customComponent that's already on this column in
-    queryBuilderConfiguration.js) parses the entity id and renders it
-    as a clickable navigation link. No new React-side infrastructure
-    or wire-format invention needed.
+    v1.14.5: adds Expressed_in column matching v2 prod's single-value
+    display. Each EP row carries one representative leaf anatomy class
+    (alphabetically first within the Owlery closure) as `[label](id)`
+    markdown — the same convention name / parent / template / dataset
+    already use. Click-target wiring for v2's QueryLinkComponent is
+    handled downstream by the Java VFBqueryJsonProcessor (which
+    extracts the `(id)` from each clickable column's markdown and
+    builds the row's id column to match SOLRQueryProcessor's pattern).
+    VFBquery stays delimiter-agnostic — only lists and `[label](id)`
+    markdown go over the wire, same as every other clickable column.
     """
     # Resolve the full subclass closure of the input anatomy class via
     # Owlery. Owlery handles OWL inference (equivalence classes, defined
@@ -5474,7 +5475,12 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         WHERE anat.short_form IN {anat_short_forms!r}
         WITH ep,
              collect(DISTINCT ar.pub[0]) AS pub_shorts,
-             apoc.coll.sort(collect(DISTINCT anat.label + '----' + anat.short_form))[0] AS expressed_in
+             // Alphabetically-first representative leaf anat per EP,
+             // emitted as `[label](id)` markdown — the same shape
+             // name / parent / template / dataset already use. The
+             // Java VFBqueryJsonProcessor handles click-target wiring
+             // downstream; VFBquery just emits the markdown.
+             apoc.coll.sort(collect(DISTINCT apoc.text.format("[%s](%s)", [anat.label, anat.short_form])))[0] AS expressed_in
         ORDER BY ep.label
         {limit_clause}
         CALL {{
@@ -5513,7 +5519,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
     if not df.empty:
-        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+        df = encode_markdown_links(df, ['name', 'expressed_in', 'template', 'thumbnail'])
 
     if return_dataframe:
         return df

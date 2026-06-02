@@ -5424,14 +5424,15 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     INSTANCEOF leaf subclasses, not the parent. Same closure pattern as
     get_instances (v1.12.8).
 
-    v1.14.3: adds Expressed_in column. Each EP row carries the leaf
-    anatomy classes its Individuals are INSTANCEOF (within the Owlery
-    closure of the queried class), formatted as
-    `label----short_form; label----short_form; ...` so the geppetto-vfb
-    QueryLinkArrayComponent renders one clickable chip per anat
-    (calling window.addVfbId on click). Capped at the first 5 with
-    `+N more` overflow so EPs that overlap large closures stay
-    readable.
+    v1.14.3: adds Expressed_in column matching v2 prod's single-value
+    display. Each EP row carries ONE representative leaf anatomy class
+    its Individuals are INSTANCEOF (alphabetically first within the
+    Owlery closure of the queried class), wire-formatted as
+    `label----short_form` so the geppetto-vfb QueryLinkComponent
+    (single-link customComponent that's already on this column in
+    queryBuilderConfiguration.js) parses the entity id and renders it
+    as a clickable navigation link. No new React-side infrastructure
+    or wire-format invention needed.
     """
     # Resolve the full subclass closure of the input anatomy class via
     # Owlery. Owlery handles OWL inference (equivalence classes, defined
@@ -5473,7 +5474,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         WHERE anat.short_form IN {anat_short_forms!r}
         WITH ep,
              collect(DISTINCT ar.pub[0]) AS pub_shorts,
-             collect(DISTINCT anat.label + '----' + anat.short_form) AS anat_pairs
+             apoc.coll.sort(collect(DISTINCT anat.label + '----' + anat.short_form))[0] AS expressed_in
         ORDER BY ep.label
         {limit_clause}
         CALL {{
@@ -5501,11 +5502,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         RETURN
             ep.short_form AS id,
             apoc.text.format("[%s](%s)", [ep.label, ep.short_form]) AS name,
-            CASE
-                WHEN size(anat_pairs) <= 5
-                THEN apoc.text.join(anat_pairs, '; ')
-                ELSE apoc.text.join(anat_pairs[0..5], '; ') + '; +' + toString(size(anat_pairs)-5) + ' more'
-            END AS expressed_in,
+            expressed_in,
             apoc.text.join(coalesce(ep.uniqueFacets, []), '|') AS tags,
             pubs,
             REPLACE(apoc.text.format("[%s](%s)", [COALESCE(templ.symbol[0], templ.label), templ.short_form]), '[null](null)', '') AS template,

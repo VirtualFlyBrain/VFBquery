@@ -1779,7 +1779,11 @@ def AnatomyExpressedIn_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "name", "tags", "pubs"]
+    # v1.14.2: schema gained Stage / Template / Imaging Technique /
+    # Thumbnail columns to match the legacy ExpressionOverlapsHere
+    # column shape (Name / Reference / Gross_Type / Stage /
+    # Template_Space / Imaging_Technique / Images).
+    preview_columns = ["id", "name", "pubs", "tags", "stages", "template", "technique", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -2809,47 +2813,85 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
+    # v1.14.2: mirror the legacy XMI Cypher for ExpressionOverlapsHere
+    # at geppetto-vfb@998cc28d9^:model/vfb.xmi dataSources[0]/@queries.9
+    # — add Stage / Template_Space / Imaging_Technique / Images columns
+    # by walking from the result anatomy class (not the input EP):
+    #   - stages   : (anoni)-[:Related]->(:FBdv)   (development stage)
+    #   - template : (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]
+    #                      -(:Individual)
+    #                      <-[:depicts]-(channel:Individual)
+    #                      -[:in_register_with]->(template:Individual)
+    #                      -[:depicts]->(template_anat:Individual)
+    #   - technique: (channel)-[:is_specified_output_of]->(technique:Class)
+    #   - thumbnail: built from template_anat + i + irw.thumbnail[0]
+    # Apply LIMIT before the CALL subqueries to keep the multi-hop walks
+    # bounded on EPs with hundreds of overlapping anatomy classes.
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     main_query = f"""
         MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class:Anatomy)
         WHERE ep.short_form = '{expression_pattern_short_form}'
-        WITH DISTINCT collect(DISTINCT ar.pub[0]) as pubs, anat, ep
-        UNWIND pubs as p
-        OPTIONAL MATCH (pub:pub {{ short_form: p}})
-        WITH anat, ep, collect({{
-            core: {{ short_form: pub.short_form, label: coalesce(pub.label,''), iri: pub.iri, types: labels(pub), symbol: coalesce(pub.symbol[0], '') }},
-            PubMed: coalesce(pub.PMID[0], ''),
-            FlyBase: coalesce(([]+pub.FlyBase)[0], ''),
-            DOI: coalesce(pub.DOI[0], '')
-        }}) as pubs
+        WITH anat, collect(DISTINCT ar.pub[0]) AS pub_shorts, collect(DISTINCT anoni) AS anonis
+        ORDER BY anat.label
+        {limit_clause}
+        CALL {{
+            WITH pub_shorts
+            UNWIND pub_shorts AS p_sf
+            OPTIONAL MATCH (p:pub {{ short_form: p_sf }})
+            WITH p WHERE p IS NOT NULL
+                       AND coalesce(p.label, p.short_form) IS NOT NULL
+                       AND coalesce(p.label, p.short_form) <> ''
+                       AND coalesce(p.label, p.short_form) <> 'Unattributed'
+            RETURN apoc.text.join(collect(DISTINCT coalesce(p.label, p.short_form)), '; ') AS pubs
+        }}
+        CALL {{
+            WITH anonis
+            UNWIND anonis AS anoni
+            OPTIONAL MATCH (anoni)-[:Related]->(o:FBdv)
+            WITH o WHERE o IS NOT NULL
+            RETURN apoc.text.join(collect(DISTINCT coalesce(o.label, o.short_form)), '; ') AS stages
+        }}
+        CALL {{
+            WITH anat
+            OPTIONAL MATCH (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH i, template, template_anat, channel, technique, irw
+            LIMIT 1
+            RETURN i, template, template_anat, channel, technique, irw
+        }}
         RETURN
             anat.short_form AS id,
             apoc.text.format("[%s](%s)", [anat.label, anat.short_form]) AS name,
             apoc.text.join(coalesce(anat.uniqueFacets, []), '|') AS tags,
-            pubs
-        ORDER BY anat.label
+            pubs,
+            stages,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(i.symbol[0], coalesce(i.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form + "," + coalesce(i.short_form, anat.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail
     """
-
-    if limit != -1:
-        main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     if not df.empty:
-        df = encode_markdown_links(df, ['name'])
+        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
 
     if return_dataframe:
         return df
 
     return {
         "headers": {
-            "id":   {"title": "ID",           "type": "selection_id", "order": -1},
-            "name": {"title": "Anatomy",      "type": "markdown",     "order":  0},
-            "tags": {"title": "Tags",         "type": "tags",         "order":  1},
-            "pubs": {"title": "Publications", "type": "metadata",     "order":  2},
+            "id":        {"title": "ID",                "type": "selection_id", "order": -1},
+            "name":      {"title": "Anatomy",           "type": "markdown",     "order":  0},
+            "pubs":      {"title": "Publications",      "type": "metadata",     "order":  1},
+            "tags":      {"title": "Tags",              "type": "tags",         "order":  2},
+            "stages":    {"title": "Stage",             "type": "text",         "order":  3},
+            "template":  {"title": "Template",          "type": "markdown",     "order":  4},
+            "technique": {"title": "Imaging Technique", "type": "text",         "order":  5},
+            "thumbnail": {"title": "Thumbnail",         "type": "markdown",     "order":  9},
         },
         "rows": [
-            {key: row[key] for key in ["id", "name", "tags", "pubs"]}
+            {k: row[k] for k in ["id", "name", "pubs", "tags", "stages", "template", "technique", "thumbnail"]}
             for row in safe_to_dict(df, sort_by_id=False)
         ],
         "count": total_count,

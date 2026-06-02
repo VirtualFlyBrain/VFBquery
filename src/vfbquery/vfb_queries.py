@@ -4193,21 +4193,27 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     """
     
     # `hasScRNAseq` on a parent class is set by the indexer when ANY
-    # subclass has a Cluster composed_primarily_of it, so the
-    # narrow MATCH (primary)<-[:composed_primarily_of]-(c:Cluster) pattern
+    # subclass has a Cluster composed_primarily_of it, so the narrow
+    # MATCH (primary)<-[:composed_primarily_of]-(c:Cluster) pattern
     # returns 0 on parent classes with scRNAseq-bearing subclasses
     # (e.g. pacemaker neuron FBbt_00006048: 0 direct, 3 via subclasses
-    # adult pacemaker neuron / LNv neuron / DN1 neuron). Walk SUBCLASSOF*0..
-    # so subclass-attached Clusters are included, matching the indexer's
-    # propagation semantics. SUBCLASSOF-only is safe here — Clusters bind
-    # to Classes via composed_primarily_of (not the leaf-only INSTANCEOF
-    # path that needed Owlery in get_instances v1.12.8); the class
-    # hierarchy in Neo4j is complete enough for this walk.
+    # adult pacemaker neuron / LNv neuron / DN1 neuron).
+    #
+    # v1.14.0: resolve the subclass closure via Owlery /subclasses
+    # (consistent with get_transgene_expression_here and get_instances
+    # v1.12.8). v1.13.5 used a Cypher SUBCLASSOF*0.. walk; that misses
+    # defined-class / equivalence inferences. Owlery is the right tool
+    # and matches the legacy XMI's first-step Owlery walk.
+    try:
+        owl_query = f"<{_short_form_to_iri(anatomy_short_form)}>"
+        subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
+        anat_short_forms = list({anatomy_short_form, *(subclass_ids or [])})
+    except Exception:
+        anat_short_forms = [anatomy_short_form]
+
     count_query = f"""
-        MATCH (primary:Class:Anatomy)
-        WHERE primary.short_form = '{anatomy_short_form}'
-        WITH primary
-        MATCH (primary)<-[:SUBCLASSOF*0..]-(sub:Class)
+        MATCH (sub:Class)
+        WHERE sub.short_form IN {anat_short_forms!r}
         MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
         RETURN COUNT(DISTINCT c) AS total_count
     """
@@ -4216,12 +4222,15 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
-    # Main query: get clusters with dataset and publication info
+    # Main query: get clusters with dataset and publication info.
+    # `primary` is preserved in the projection for parity with the
+    # pre-v1.14.0 shape; we re-fetch the input class as `primary`
+    # so callers expecting that field continue to work.
     main_query = f"""
         MATCH (primary:Class:Anatomy)
         WHERE primary.short_form = '{anatomy_short_form}'
-        WITH primary
-        MATCH (primary)<-[:SUBCLASSOF*0..]-(sub:Class)
+        MATCH (sub:Class)
+        WHERE sub.short_form IN {anat_short_forms!r}
         MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
         WITH DISTINCT primary, c, ds
         OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
@@ -5365,12 +5374,13 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
       - Template_Space / Imaging_Technique / Images (one representative
         channel-image per ep, picked via CALL subquery with LIMIT 1)
 
-    Matches the prod XMI Cypher at
-    geppetto-vfb/master:model/vfb.xmi @dataSources.0/@queries.7 (the
-    SOLR-backed "Query for exp from anatomy with no warning" path),
-    flattened to the same column shape v1.10.1 introduced for the
-    SimilarMorphologyTo* siblings so the geppetto-vfb processor's
-    COL_HEADER_MAP maps everything cleanly.
+    v1.14.0: anatomy traversal now goes through Owlery /subclasses,
+    matching the legacy XMI's first-step Owlery walk
+    (//@dataSources.1/@queries.8 in the pre-migration chain). Without
+    this, a high-level anatomy class (e.g. pacemaker neuron, mushroom
+    body intrinsic neuron) returns 0 EPs because Individuals are typed
+    INSTANCEOF leaf subclasses, not the parent. Same closure pattern as
+    get_instances (v1.12.8).
 
     TODO: Expressed_in column. Prod surfaces it from the
     anatomy_channel_image[].anatomy.label list — one chip per
@@ -5378,9 +5388,22 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     render multiple values in a flat string column; deferred to a
     follow-up so the rest of the columns can ship now.
     """
+    # Resolve the full subclass closure of the input anatomy class via
+    # Owlery. Owlery handles OWL inference (equivalence classes, defined
+    # classes, anonymous class expressions on the parent chain); the
+    # queried class itself is included so leaf classes still match.
+    try:
+        owl_query = f"<{_short_form_to_iri(anatomy_short_form)}>"
+        subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
+        anat_short_forms = list({anatomy_short_form, *(subclass_ids or [])})
+    except Exception:
+        # If Owlery is unreachable, fall back to the input class alone —
+        # better to return the leaf-class result than to fail outright.
+        anat_short_forms = [anatomy_short_form]
+
     count_query = f"""
         MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
-        WHERE anat.short_form = '{anatomy_short_form}'
+        WHERE anat.short_form IN {anat_short_forms!r}
         RETURN COUNT(DISTINCT ep) AS total_count
     """
     count_results = vc.nc.commit_list([count_query])
@@ -5391,21 +5414,35 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
     # fire so we only enrich the rows we actually need. With 2,340
     # mushroom-body EPs and a 5-hop thumbnail join inside the CALL, the
     # naive "append LIMIT at the end" form ran for tens of seconds.
+    #
+    # v1.14.0 pubs walk now matches the legacy XMI Cypher at
+    # geppetto-vfb@998cc28d9^:model/vfb.xmi dataSources[0]/@queries.7:
+    # pub short_forms are stored as an ARRAY PROPERTY on the
+    # overlaps/part_of RELATIONSHIP (ar.pub[0]), not as a separate
+    # [:has_reference|pub] edge from the Individual. The previous
+    # walk traversed an edge that doesn't exist in the current
+    # Neo4j build, so pubs came back empty for every row.
     limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     main_query = f"""
         MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
-        WHERE anat.short_form = '{anatomy_short_form}'
-        WITH DISTINCT ep
+        WHERE anat.short_form IN {anat_short_forms!r}
+        WITH ep, collect(DISTINCT ar.pub[0]) AS pub_shorts
         ORDER BY ep.label
         {limit_clause}
         CALL {{
-            WITH ep
-            OPTIONAL MATCH (ep)<-[:overlaps|part_of]-(:Individual)-[:has_reference|pub]->(p:pub)
-            // Strip "Unattributed" pub labels — they're VFB's marker for an
-            // expression pattern with no citation, but rendered in the V2
-            // Reference column they look like a real citation. Match v2 prod
-            // behaviour which hides Unattributed entirely.
-            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> '' AND l <> 'Unattributed'], '; ') AS pubs
+            WITH pub_shorts
+            UNWIND pub_shorts AS p_sf
+            OPTIONAL MATCH (p:pub {{ short_form: p_sf }})
+            // Strip "Unattributed" pub labels — VFB's marker for an EP
+            // with no citation. Rendered in the V2 Reference column they
+            // look like a real citation. Match v2 prod behaviour which
+            // hides Unattributed entirely. Also drop NULL p (pub_short
+            // without a resolvable pub node) and empty labels.
+            WITH p WHERE p IS NOT NULL
+                       AND coalesce(p.label, p.short_form) IS NOT NULL
+                       AND coalesce(p.label, p.short_form) <> ''
+                       AND coalesce(p.label, p.short_form) <> 'Unattributed'
+            RETURN apoc.text.join(collect(DISTINCT coalesce(p.label, p.short_form)), '; ') AS pubs
         }}
         CALL {{
             WITH ep

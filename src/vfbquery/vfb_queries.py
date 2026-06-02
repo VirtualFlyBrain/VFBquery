@@ -5487,7 +5487,6 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class)
         WHERE anat.short_form IN {anat_short_forms!r}
         WITH ep,
-             collect(DISTINCT ar.pub[0]) AS pub_shorts,
              // Alphabetically-first representative leaf anat per EP,
              // emitted as `[label](id)` markdown — the same shape
              // name / parent / template / dataset already use. The
@@ -5497,8 +5496,26 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         ORDER BY ep.label
         {limit_clause}
         CALL {{
-            WITH pub_shorts
+            // v1.14.7: pubs walk uses ALL overlap/part_of edges on the
+            // EP (no anat-closure filter) so the Reference column
+            // surfaces every publication describing this expression
+            // pattern, not just the ones tied to the subset of
+            // overlapping individuals that fall under the query's
+            // anatomy closure. Also picks up any direct
+            // (ep)-[:has_reference]->(:pub) edges.
+            //
+            // ar.pub is an array property — almost always single-
+            // element in current pdb but UNWIND-flatten in case any
+            // edge carries multiple. apoc.coll.union folds in direct
+            // pub edges if present.
+            WITH ep
+            OPTIONAL MATCH (ep)<-[ar2:overlaps|part_of]-(:Individual)
+            UNWIND coalesce(ar2.pub, []) AS rel_p_sf
+            WITH ep, collect(DISTINCT rel_p_sf) AS rel_pubs
+            OPTIONAL MATCH (ep)-[:has_reference]->(direct:pub)
+            WITH apoc.coll.union(rel_pubs, collect(DISTINCT direct.short_form)) AS pub_shorts
             UNWIND pub_shorts AS p_sf
+            WITH p_sf WHERE p_sf IS NOT NULL
             OPTIONAL MATCH (p:pub {{ short_form: p_sf }})
             // Strip "Unattributed" pub labels — VFB's marker for an EP
             // with no citation. Rendered in the V2 Reference column they
@@ -5509,7 +5526,28 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
                        AND coalesce(p.label, p.short_form) IS NOT NULL
                        AND coalesce(p.label, p.short_form) <> ''
                        AND coalesce(p.label, p.short_form) <> 'Unattributed'
-            RETURN apoc.text.join(collect(DISTINCT coalesce(p.label, p.short_form)), '; ') AS pubs
+            // v1.14.7: emit pubs as per-pub `[label](id)` markdown
+            // joined by `; ` so every Reference chip in v2's
+            // QueryLinkArrayComponent gets its own clickable id.
+            //
+            // The companion VFBqueryJsonProcessor change (uk.ac.vfb.
+            // geppetto v2.2.4.15) recognises this list shape and:
+            //   - strips markdown per item for display
+            //   - expands the row's id-column with ONE slot per pub,
+            //     matching the legacy SOLRQueryProcessor.id() pattern
+            //     at lines 402-407 (slot-per-pub when pubs.size() > 1).
+            //
+            // Safe for TransgeneExpressionHere because the columns
+            // after pubs (tags, template, technique, thumbnail) all
+            // use customComponents that read the cell value directly
+            // rather than the row's id slot, so growing pubs slots
+            // doesn't collide with downstream clickable columns.
+            RETURN apoc.text.join(
+                collect(DISTINCT apoc.text.format("[%s](%s)",
+                                                   [coalesce(p.label, p.short_form),
+                                                    p.short_form])),
+                '; '
+            ) AS pubs
         }}
         CALL {{
             WITH ep

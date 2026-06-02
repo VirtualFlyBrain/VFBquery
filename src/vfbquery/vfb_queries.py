@@ -5028,7 +5028,20 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"WITH t, root, "
         f"[r IN painted_rows WHERE r.class_id IS NOT NULL] AS painted_rows "
         f"WITH t, root, painted_rows, [r IN painted_rows | r.class_id] AS leaf_ids "
-        f"OPTIONAL MATCH path = (root)<-[:SUBCLASSOF|part_of|innervates*0..]-(leaf:Class) "
+        # v1.14.6: expanded the relationship set used to reach painted
+        # leaves. The previous walk (SUBCLASSOF | part_of | innervates)
+        # missed every sensory neuron, motor neuron, muscle attachment
+        # and fasciculating axon — exactly the bulk of painted domains
+        # on the leg / VNC templates. Live diagnostic on Adult T1 Leg
+        # (VFB_00120000) showed 39 hops via part_of, 20 via SUBCLASSOF,
+        # 15 via has_sensory_dendrite_in, 9 via fasciculates_with,
+        # 3 via attached_to_part_of, 1 via sends_synaptic_output_to_cell
+        # when walking each painted class to the anatomy_root.
+        # `overlaps` is deliberately omitted — it's a very broad
+        # spatial relationship in FBbt and would pull in classes that
+        # merely co-locate with leg structures without being part of
+        # the leg ontology.
+        f"OPTIONAL MATCH path = (root)<-[:SUBCLASSOF|part_of|innervates|has_sensory_dendrite_in|fasciculates_with|attached_to_part_of|sends_synaptic_output_to_cell*0..]-(leaf:Class) "
         f"WHERE leaf.short_form IN leaf_ids "
         f"WITH t, root, painted_rows, "
         f"collect(distinct [n IN nodes(path) | "

@@ -450,19 +450,24 @@ def get_neuron_region_connectivity_cached(short_form: str, return_dataframe=True
     return _original_get_neuron_region_connectivity(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
 @with_solr_cache('expression_overlaps_here')
-def get_expression_overlaps_here_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_expression_overlaps_here_cached(expression_pattern_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_expression_overlaps_here with SOLR caching.
 
     Args:
-        anatomy_short_form: Anatomy short form
+        expression_pattern_short_form: Expression_pattern Class short_form
+                                       (e.g. VFBexp_FBtp0001321). v1.13.6
+                                       flipped this function to the
+                                       INVERSE direction — see the
+                                       underlying get_expression_overlaps_here
+                                       docstring for the migration note.
         return_dataframe: Whether to return DataFrame or list of dicts
         limit: Maximum number of results (-1 for all)
 
     Returns:
-        Expression overlaps data
+        Anatomy classes where the expression pattern is expressed.
     """
-    return _original_get_expression_overlaps_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
+    return _original_get_expression_overlaps_here(expression_pattern_short_form=expression_pattern_short_form, return_dataframe=return_dataframe, limit=limit)
 
 @with_solr_cache('anatomy_scrnaseq')
 def get_anatomy_scrnaseq_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):

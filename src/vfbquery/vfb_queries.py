@@ -888,12 +888,21 @@ def term_info_parse_object(results, short_form):
         if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern"]):
             q = epFrag_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
-        
-        # ExpressionOverlapsHere query - for anatomical regions
-        # Matches XMI criteria: Class + Anatomy
-        # Returns expression patterns that overlap with the anatomical region
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]):
-            q = ExpressionOverlapsHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+
+        # AnatomyExpressedIn query - for expression patterns / fragments
+        # Matches XMI criteria: Class + Expression_pattern  OR
+        #                       Class + Expression_pattern_fragment
+        # Returns anatomy classes where this expression pattern is expressed.
+        # Renamed from ExpressionOverlapsHere in v1.13.7 — the legacy emit
+        # below (Class+Anatomy) was a misdirection: that path was offering
+        # an inverse-direction query to anatomy entities, where it returned
+        # zero. The forward-direction "transgene expression here" lookup
+        # for anatomy entities is owned by TransgeneExpressionHere.
+        if termInfo["SuperTypes"] and (
+            contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern"]) or
+            contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern_fragment"])
+        ):
+            q = AnatomyExpressedIn_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
         # anatScRNAseqQuery query - for anatomical regions with scRNAseq data
@@ -1113,9 +1122,11 @@ def term_info_parse_object(results, short_form):
                     q = ImagesNeurons_to_schema(parent_label, {"short_form": parent_short_form})
                     queries.append(q)
                 
-                if "Anatomy" in parent.types:
-                    # ExpressionOverlapsHere query
-                    q = ExpressionOverlapsHere_to_schema(parent_label, {"short_form": parent_short_form})
+                if "Expression_pattern" in parent.types or "Expression_pattern_fragment" in parent.types:
+                    # AnatomyExpressedIn query (renamed from ExpressionOverlapsHere
+                    # in v1.13.7 — the previous emit gated on "Anatomy" was
+                    # forward-direction and a misdirection for this query).
+                    q = AnatomyExpressedIn_to_schema(parent_label, {"short_form": parent_short_form})
                     queries.append(q)
                 
                 if "Anatomy" in parent.types and "hasScRNAseq" in parent.types:
@@ -1740,31 +1751,51 @@ def epFrag_to_schema(name, take_default):
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
-def ExpressionOverlapsHere_to_schema(name, take_default):
+def AnatomyExpressedIn_to_schema(name, take_default):
     """
-    Schema for ExpressionOverlapsHere query.
-    Finds expression patterns that overlap with a specified anatomical region.
-    
+    Schema for AnatomyExpressedIn query (renamed from ExpressionOverlapsHere
+    in v1.13.7 to reflect its actual inverse-direction semantics).
+
+    Given an expression pattern, returns the anatomy classes in which the
+    pattern's Individuals overlap or are part_of anatomy Individuals.
+
     XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
-    
+
     Matching criteria from XMI:
-    - Class + Anatomy
-    
-    Query chain: Neo4j anat_2_ep_query → process
-    Cypher query: MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
-                  WHERE anat.short_form = $id
+    - Class + Expression_pattern
+    - Class + Expression_pattern_fragment
+
+    Cypher query:
+      MATCH (ep:Class:Expression_pattern)
+            <-[ar:overlaps|part_of]-(anoni:Individual)
+            -[:INSTANCEOF]->(anat:Class:Anatomy)
+      WHERE ep.short_form = $id
+
+    Backward compat: the legacy `ExpressionOverlapsHere` query_type is
+    still accepted by ha_api.QUERY_TYPE_MAP and dispatches to the same
+    underlying function — pre-existing bookmarked URLs continue to work.
     """
-    query = "ExpressionOverlapsHere"
-    label = f"Expression patterns overlapping {name}"
+    query = "AnatomyExpressedIn"
+    label = f"Anatomy where {name} is expressed"
     function = "get_expression_overlaps_here"
     takes = {
-        "short_form": {"$and": ["Class", "Anatomy"]},
+        "short_form": {
+            "$or": [
+                {"$and": ["Class", "Expression_pattern"]},
+                {"$and": ["Class", "Expression_pattern_fragment"]},
+            ]
+        },
         "default": take_default,
     }
     preview = 5
     preview_columns = ["id", "name", "tags", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+# Deprecated alias — kept so any direct importer of the old name keeps
+# working. New code should call AnatomyExpressedIn_to_schema directly.
+ExpressionOverlapsHere_to_schema = AnatomyExpressedIn_to_schema
 
 
 def anatScRNAseqQuery_to_schema(name, take_default):
@@ -2764,86 +2795,90 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     return results
 
 
-def get_expression_overlaps_here(anatomy_short_form: str, return_dataframe=True, limit: int = -1):
+def get_expression_overlaps_here(expression_pattern_short_form: str, return_dataframe=True, limit: int = -1):
+    """Anatomy classes overlapped by the specified expression pattern.
+
+    INVERSE direction of TransgeneExpressionHere — given an expression
+    pattern, return the anatomy classes whose Individuals are overlapped
+    by (or part_of) the expression pattern's Individuals. Matches the
+    XMI ExpressionOverlapsHere CompoundRefQuery's description
+    ("Anatomy $NAME is expressed in") and its matchingCriteria
+    (Class + Expression_pattern).
+
+    Up to v1.13.5 this function shipped as the FORWARD direction
+    (anatomy -> expression patterns), duplicating
+    get_transgene_expression_here exactly and returning 0 for any actual
+    expression pattern input — a migration regression from the legacy
+    XMI which had a separate inverse query "Query for anatomy from
+    expression" wired in dataSources[0]. v1.13.6 flips this function to
+    the inverse semantics so v2's ExpressionOverlapsHere on an expression
+    pattern (e.g. VFBexp_FBtp0001321 P{GAL4-per.BS}) returns the 50+
+    anatomy classes where the pattern is expressed.
+
+    Column shape is unchanged (id / name / tags / pubs) so v2's Geppetto
+    processor renders the table identically — only the column meaning
+    flips: id is now the anatomy short_form, name is the anatomy label.
+
+    :param expression_pattern_short_form: short_form of an
+        Expression_pattern Class (e.g. 'VFBexp_FBtp0001321')
+    :param return_dataframe: pandas DataFrame if True else formatted dict
+    :param limit: -1 for all results, otherwise cap on row count
     """
-    Retrieve expression patterns that overlap with the specified anatomical region.
-    
-    This implements the ExpressionOverlapsHere query from the VFB XMI specification.
-    Finds expression patterns where individual instances overlap with or are part of the anatomy.
-    
-    :param anatomy_short_form: Short form identifier of the anatomical region (e.g., 'FBbt_00003982')
-    :param return_dataframe: Returns pandas DataFrame if True, otherwise returns formatted dict (default: True)
-    :param limit: Maximum number of results to return (default: -1 for all results)
-    :return: Expression patterns with overlap relationships, publications, and images
-    :rtype: pandas.DataFrame or dict
-    """
-    
-    # Count query: count distinct expression patterns
     count_query = f"""
-        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
-        WHERE anat.short_form = '{anatomy_short_form}'
-        RETURN COUNT(DISTINCT ep) AS total_count
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class:Anatomy)
+        WHERE ep.short_form = '{expression_pattern_short_form}'
+        RETURN COUNT(DISTINCT anat) AS total_count
     """
-    
+
     count_results = vc.nc.commit_list([count_query])
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
-    
-    # Main query: get expression patterns with details
+
     main_query = f"""
-        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class)
-        WHERE anat.short_form = '{anatomy_short_form}'
+        MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(anoni:Individual)-[:INSTANCEOF]->(anat:Class:Anatomy)
+        WHERE ep.short_form = '{expression_pattern_short_form}'
         WITH DISTINCT collect(DISTINCT ar.pub[0]) as pubs, anat, ep
         UNWIND pubs as p
         OPTIONAL MATCH (pub:pub {{ short_form: p}})
-        WITH anat, ep, collect({{ 
-            core: {{ short_form: pub.short_form, label: coalesce(pub.label,''), iri: pub.iri, types: labels(pub), symbol: coalesce(pub.symbol[0], '') }}, 
-            PubMed: coalesce(pub.PMID[0], ''), 
-            FlyBase: coalesce(([]+pub.FlyBase)[0], ''), 
-            DOI: coalesce(pub.DOI[0], '') 
+        WITH anat, ep, collect({{
+            core: {{ short_form: pub.short_form, label: coalesce(pub.label,''), iri: pub.iri, types: labels(pub), symbol: coalesce(pub.symbol[0], '') }},
+            PubMed: coalesce(pub.PMID[0], ''),
+            FlyBase: coalesce(([]+pub.FlyBase)[0], ''),
+            DOI: coalesce(pub.DOI[0], '')
         }}) as pubs
-        RETURN 
-            ep.short_form AS id,
-            apoc.text.format("[%s](%s)", [ep.label, ep.short_form]) AS name,
-            apoc.text.join(ep.uniqueFacets, '|') AS tags,
+        RETURN
+            anat.short_form AS id,
+            apoc.text.format("[%s](%s)", [anat.label, anat.short_form]) AS name,
+            apoc.text.join(coalesce(anat.uniqueFacets, []), '|') AS tags,
             pubs
-        ORDER BY ep.label
+        ORDER BY anat.label
     """
-    
+
     if limit != -1:
         main_query += f" LIMIT {limit}"
-    
-    # Execute the query
+
     results = vc.nc.commit_list([main_query])
-    
-    # Convert to DataFrame
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    
-    # Encode markdown links
+
     if not df.empty:
-        columns_to_encode = ['name']
-        df = encode_markdown_links(df, columns_to_encode)
-    
+        df = encode_markdown_links(df, ['name'])
+
     if return_dataframe:
         return df
-    else:
-        formatted_results = {
-            "headers": {
-                "id": {"title": "ID", "type": "selection_id", "order": -1},
-                "name": {"title": "Expression Pattern", "type": "markdown", "order": 0},
-                "tags": {"title": "Tags", "type": "tags", "order": 1},
-                "pubs": {"title": "Publications", "type": "metadata", "order": 2}
-            },
-            "rows": [
-                {
-                    key: row[key]
-                    for key in ["id", "name", "tags", "pubs"]
-                }
-                for row in safe_to_dict(df, sort_by_id=False)
-            ],
-            "count": total_count
-        }
-        return formatted_results
+
+    return {
+        "headers": {
+            "id":   {"title": "ID",           "type": "selection_id", "order": -1},
+            "name": {"title": "Anatomy",      "type": "markdown",     "order":  0},
+            "tags": {"title": "Tags",         "type": "tags",         "order":  1},
+            "pubs": {"title": "Publications", "type": "metadata",     "order":  2},
+        },
+        "rows": [
+            {key: row[key] for key in ["id", "name", "tags", "pubs"]}
+            for row in safe_to_dict(df, sort_by_id=False)
+        ],
+        "count": total_count,
+    }
 
 
 def contains_all_tags(lst: List[str], tags: List[str]) -> bool:

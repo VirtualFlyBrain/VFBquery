@@ -1,11 +1,13 @@
 """
-Test suite for ExpressionOverlapsHere query (get_expression_overlaps_here)
+Test suite for ExpressionOverlapsHere query (get_expression_overlaps_here).
 
-This test verifies the Neo4j query implementation that finds expression patterns
-overlapping with specified anatomical regions.
+INVERSE-direction query as of VFBquery v1.13.6 — given an expression
+pattern, return the anatomy classes whose Individuals overlap with the
+pattern's Individuals. The forward direction (anatomy -> expression
+patterns) is now solely owned by TransgeneExpressionHere.
 
 XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
-Query: anat_2_ep_query
+Query: ExpressionOverlapsHere ("Anatomy $NAME is expressed in")
 """
 
 import unittest
@@ -24,7 +26,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
     def test_expression_overlaps_basic_dataframe(self):
         """Test basic query returns DataFrame with expected columns"""
         # Test with adult brain (FBbt_00003982) - known to have expression patterns
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=True)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True)
         
         self.assertIsInstance(result, pd.DataFrame, "Should return pandas DataFrame")
         
@@ -43,7 +45,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
 
     def test_expression_overlaps_formatted_output(self):
         """Test query returns properly formatted dictionary output"""
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=False)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=False)
         
         self.assertIsInstance(result, dict, "Should return dictionary when return_dataframe=False")
         
@@ -79,7 +81,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
     def test_expression_overlaps_limit(self):
         """Test limit parameter restricts number of results"""
         limit = 3
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=True, limit=limit)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=limit)
         
         if not result.empty:
             self.assertLessEqual(len(result), limit, f"Should return at most {limit} results")
@@ -96,7 +98,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
 
     def test_expression_overlaps_publication_data(self):
         """Test that publication data is properly formatted when present"""
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=True, limit=10)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=10)
         
         if not result.empty:
             # Check if pubs column exists and contains data
@@ -121,7 +123,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
 
     def test_expression_overlaps_markdown_encoding(self):
         """Test that markdown links are properly formatted"""
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=True, limit=5)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=5)
         
         if not result.empty:
             # Check that names contain markdown link format [label](url)
@@ -135,7 +137,7 @@ class TestExpressionOverlapsHere(unittest.TestCase):
 
     def test_expression_overlaps_tags_format(self):
         """Test that tags are properly formatted as pipe-separated strings"""
-        result = vq.get_expression_overlaps_here('FBbt_00003982', return_dataframe=True, limit=5)
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=5)
         
         if not result.empty and 'tags' in result.columns:
             for tags in result['tags']:
@@ -149,24 +151,32 @@ class TestExpressionOverlapsHere(unittest.TestCase):
             print(f"\n✓ Tags format verified")
 
 
-class TestExpressionOverlapsHereSchema(unittest.TestCase):
-    """Test cases for ExpressionOverlapsHere_to_schema function"""
+class TestAnatomyExpressedInSchema(unittest.TestCase):
+    """Test cases for AnatomyExpressedIn_to_schema (renamed from
+    ExpressionOverlapsHere_to_schema in v1.13.7). The legacy name is
+    kept as a back-compat alias and must continue to import.
+    """
 
     def test_schema_function_exists(self):
-        """Test that the schema function is properly defined"""
-        self.assertTrue(hasattr(vq, 'ExpressionOverlapsHere_to_schema'), 
-                       "ExpressionOverlapsHere_to_schema function should exist")
+        """Test that both the canonical and legacy schema functions are defined."""
+        self.assertTrue(hasattr(vq, 'AnatomyExpressedIn_to_schema'),
+                       "AnatomyExpressedIn_to_schema function should exist")
+        self.assertTrue(hasattr(vq, 'ExpressionOverlapsHere_to_schema'),
+                       "Legacy ExpressionOverlapsHere_to_schema alias should still exist")
 
     def test_schema_structure(self):
-        """Test that schema function returns proper Query object"""
-        from vfbquery.vfb_queries import ExpressionOverlapsHere_to_schema
-        
-        schema = ExpressionOverlapsHere_to_schema("test anatomy", {"short_form": "FBbt_00003982"})
-        
+        """Test that schema function returns proper Query object."""
+        from vfbquery.vfb_queries import AnatomyExpressedIn_to_schema
+
+        schema = AnatomyExpressedIn_to_schema(
+            "P{GAL4-per.BS} expression pattern",
+            {"short_form": "VFBexp_FBtp0001321"},
+        )
+
         # Check Query object attributes
-        self.assertEqual(schema.query, "ExpressionOverlapsHere")
+        self.assertEqual(schema.query, "AnatomyExpressedIn")
         self.assertEqual(schema.function, "get_expression_overlaps_here")
-        self.assertIn("Expression patterns overlapping", schema.label)
+        self.assertIn("Anatomy where", schema.label)
         self.assertEqual(schema.preview, 5)
         self.assertEqual(schema.preview_columns, ["id", "name", "tags", "pubs"])
         

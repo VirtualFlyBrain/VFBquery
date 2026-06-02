@@ -893,11 +893,8 @@ def term_info_parse_object(results, short_form):
         # Matches XMI criteria: Class + Expression_pattern  OR
         #                       Class + Expression_pattern_fragment
         # Returns anatomy classes where this expression pattern is expressed.
-        # Renamed from ExpressionOverlapsHere in v1.13.7 — the legacy emit
-        # below (Class+Anatomy) was a misdirection: that path was offering
-        # an inverse-direction query to anatomy entities, where it returned
-        # zero. The forward-direction "transgene expression here" lookup
-        # for anatomy entities is owned by TransgeneExpressionHere.
+        # The forward-direction "transgene expression here" lookup for
+        # anatomy entities is owned by TransgeneExpressionHere.
         if termInfo["SuperTypes"] and (
             contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern"]) or
             contains_all_tags(termInfo["SuperTypes"], ["Class", "Expression_pattern_fragment"])
@@ -1123,9 +1120,8 @@ def term_info_parse_object(results, short_form):
                     queries.append(q)
                 
                 if "Expression_pattern" in parent.types or "Expression_pattern_fragment" in parent.types:
-                    # AnatomyExpressedIn query (renamed from ExpressionOverlapsHere
-                    # in v1.13.7 — the previous emit gated on "Anatomy" was
-                    # forward-direction and a misdirection for this query).
+                    # AnatomyExpressedIn query — anatomy classes where this
+                    # expression pattern is expressed.
                     q = AnatomyExpressedIn_to_schema(parent_label, {"short_form": parent_short_form})
                     queries.append(q)
                 
@@ -1753,8 +1749,7 @@ def epFrag_to_schema(name, take_default):
 
 def AnatomyExpressedIn_to_schema(name, take_default):
     """
-    Schema for AnatomyExpressedIn query (renamed from ExpressionOverlapsHere
-    in v1.13.7 to reflect its actual inverse-direction semantics).
+    Schema for AnatomyExpressedIn query.
 
     Given an expression pattern, returns the anatomy classes in which the
     pattern's Individuals overlap or are part_of anatomy Individuals.
@@ -1770,10 +1765,6 @@ def AnatomyExpressedIn_to_schema(name, take_default):
             <-[ar:overlaps|part_of]-(anoni:Individual)
             -[:INSTANCEOF]->(anat:Class:Anatomy)
       WHERE ep.short_form = $id
-
-    Backward compat: the legacy `ExpressionOverlapsHere` query_type is
-    still accepted by ha_api.QUERY_TYPE_MAP and dispatches to the same
-    underlying function — pre-existing bookmarked URLs continue to work.
     """
     query = "AnatomyExpressedIn"
     label = f"Anatomy where {name} is expressed"
@@ -1791,11 +1782,6 @@ def AnatomyExpressedIn_to_schema(name, take_default):
     preview_columns = ["id", "name", "tags", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
-
-
-# Deprecated alias — kept so any direct importer of the old name keeps
-# working. New code should call AnatomyExpressedIn_to_schema directly.
-ExpressionOverlapsHere_to_schema = AnatomyExpressedIn_to_schema
 
 
 def anatScRNAseqQuery_to_schema(name, take_default):
@@ -2800,24 +2786,13 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
 
     INVERSE direction of TransgeneExpressionHere — given an expression
     pattern, return the anatomy classes whose Individuals are overlapped
-    by (or part_of) the expression pattern's Individuals. Matches the
-    XMI ExpressionOverlapsHere CompoundRefQuery's description
-    ("Anatomy $NAME is expressed in") and its matchingCriteria
-    (Class + Expression_pattern).
+    by (or part_of) the expression pattern's Individuals. Backs the
+    XMI AnatomyExpressedIn CompoundRefQuery's matchingCriteria
+    (Class + Expression_pattern OR Class + Expression_pattern_fragment).
 
-    Up to v1.13.5 this function shipped as the FORWARD direction
-    (anatomy -> expression patterns), duplicating
-    get_transgene_expression_here exactly and returning 0 for any actual
-    expression pattern input — a migration regression from the legacy
-    XMI which had a separate inverse query "Query for anatomy from
-    expression" wired in dataSources[0]. v1.13.6 flips this function to
-    the inverse semantics so v2's ExpressionOverlapsHere on an expression
-    pattern (e.g. VFBexp_FBtp0001321 P{GAL4-per.BS}) returns the 50+
-    anatomy classes where the pattern is expressed.
-
-    Column shape is unchanged (id / name / tags / pubs) so v2's Geppetto
-    processor renders the table identically — only the column meaning
-    flips: id is now the anatomy short_form, name is the anatomy label.
+    Columns: id / name / tags / pubs — id is the anatomy short_form,
+    name is the anatomy label, tags / pubs collect dataset and pub
+    metadata over the expressing Individuals.
 
     :param expression_pattern_short_form: short_form of an
         Expression_pattern Class (e.g. 'VFBexp_FBtp0001321')

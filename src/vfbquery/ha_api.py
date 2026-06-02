@@ -301,7 +301,6 @@ QUERY_TYPE_MAP = {
 
     # Expression
     "AnatomyExpressedIn":            "get_expression_overlaps_here",
-    "ExpressionOverlapsHere":        "get_expression_overlaps_here",  # deprecated alias of AnatomyExpressedIn (kept for bookmarked URLs)
     "TransgeneExpressionHere":       "get_transgene_expression_here",
 
     # Transcriptomics

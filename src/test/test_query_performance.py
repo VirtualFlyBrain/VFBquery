@@ -458,24 +458,26 @@ class QueryPerformanceTest(unittest.TestCase):
         print("EXPRESSION PATTERN QUERIES (Neo4j)")
         print("="*80)
         
-        # ExpressionOverlapsHere - test with adult brain which has many expression patterns
-        # Warm up cache with full results
+        # AnatomyExpressedIn - inverse direction (expression pattern ->
+        # anatomy classes). Use VFBexp_FBtp0001321 (P{GAL4-per.BS}),
+        # known to overlap ~50 anatomy classes in pdb.
+        EP_EXAMPLE = 'VFBexp_FBtp0001321'
         try:
-            get_expression_overlaps_here(self.test_terms['medulla'], return_dataframe=False, limit=-1)
+            get_expression_overlaps_here(EP_EXAMPLE, return_dataframe=False, limit=-1)
         except Exception:
             pass  # Ignore warm-up failures
-        
+
         result, duration, success = self._time_query(
-            "ExpressionOverlapsHere (adult brain)",
+            "AnatomyExpressedIn (P{GAL4-per.BS} expression pattern)",
             get_expression_overlaps_here,
-            self.test_terms['medulla'],  # FBbt_00003982 (adult brain/medulla)
+            EP_EXAMPLE,
             return_dataframe=False,
             limit=10  # Limit to 10 for performance test
         )
-        print(f"ExpressionOverlapsHere: {duration:.4f}s {'✅' if success else '❌'}")
+        print(f"AnatomyExpressedIn: {duration:.4f}s {'✅' if success else '❌'}")
         if success and result:
-            print(f"  └─ Found {result.get('count', 0)} total expression patterns, returned 10")
-        self.assertLess(duration, self.THRESHOLD_SLOW, "ExpressionOverlapsHere exceeded threshold")
+            print(f"  └─ Found {result.get('count', 0)} total anatomy classes, returned 10")
+        self.assertLess(duration, self.THRESHOLD_SLOW, "AnatomyExpressedIn exceeded threshold")
     
     def test_11_transcriptomics_queries(self):
         """Test scRNAseq transcriptomics queries"""

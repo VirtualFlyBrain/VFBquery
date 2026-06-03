@@ -5404,22 +5404,82 @@ def get_all_datasets(return_dataframe=True, limit: int = -1):
 # ===== Publication Query =====
 
 def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -1):
-    """List all terms that reference a publication."""
+    """List all terms that reference a publication.
+
+    v1.14.10: add Template_Space / Imaging_Technique / Images columns to
+    restore v2 prod parity. Pre-migration the chain was Cypher id-fetch
+    -> SOLR enrichment (queries.29 -> queries.24 -> dataSources.3/@queries.1
+    in the legacy XMI). SOLR's denormalised record had template / imaging-
+    technique / images baked in for image-bearing individuals. The
+    VFBquery rewrite kept only the Cypher id-fetch and dropped the
+    enrichment. Mirror the AnatomyExpressedIn CALL subquery pattern,
+    keyed off primary acting as its own channel for channel_image
+    primaries; non-image primaries (datasets, EPs, anatomies) leave
+    these cells empty — matches v2 prod which shows the columns blank
+    on dataset rows (e.g. Wolff2018).
+    """
     count_query = f"MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual) RETURN count(DISTINCT primary) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
-    
-    main_query = f"""MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual)
+
+    # Apply LIMIT before the CALL subquery fires so the multi-hop walk
+    # only runs on the rows we actually return — same pattern as
+    # AnatomyExpressedIn / TransgeneExpressionHere.
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
+    main_query = f"""
+        MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual)
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
-        RETURN DISTINCT primary.short_form AS id, '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name, apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags, typ.label AS type"""
-    if limit != -1: main_query += f" LIMIT {limit}"
-    
+        WITH DISTINCT primary, typ
+        ORDER BY primary.label
+        {limit_clause}
+        CALL {{
+            // primary is the channel itself when it's a channel_image —
+            // walk to its template alignment + imaging technique.
+            // For non-image primaries (dataset, EP, anatomy) these
+            // OPTIONAL MATCHes return null and the row's
+            // template / technique / thumbnail cells render empty,
+            // matching v2 prod's behaviour on dataset rows.
+            WITH primary
+            OPTIONAL MATCH (primary)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+            OPTIONAL MATCH (primary)-[:is_specified_output_of]->(technique:Class)
+            WITH primary, template, template_anat, technique, irw
+            LIMIT 1
+            RETURN template, template_anat, technique, irw
+        }}
+        RETURN
+            primary.short_form AS id,
+            apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
+            apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
+            coalesce(typ.label, '') AS type,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(primary.symbol[0], coalesce(primary.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(primary.symbol[0], coalesce(primary.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+    """
+
     results = vc.nc.commit_list([main_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name'])
-    
-    if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Term", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    if not df.empty:
+        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+
+    if return_dataframe:
+        return df
+
+    return {
+        "headers": {
+            "id":        {"title": "ID",                "type": "selection_id", "order": -1},
+            "name":      {"title": "Term",              "type": "markdown",     "order":  0},
+            "tags":      {"title": "Tags",              "type": "tags",         "order":  1},
+            "type":      {"title": "Type",              "type": "text",         "order":  2},
+            "template":  {"title": "Template",          "type": "markdown",     "order":  3},
+            "technique": {"title": "Imaging Technique", "type": "text",         "order":  4},
+            "thumbnail": {"title": "Thumbnail",         "type": "markdown",     "order":  9},
+        },
+        "rows": [
+            {k: row[k] for k in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]}
+            for row in safe_to_dict(df, sort_by_id=False)
+        ],
+        "count": total_count,
+    }
 
 
 # ===== Complex Transgene Expression Query =====

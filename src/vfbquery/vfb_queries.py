@@ -3232,59 +3232,85 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
 
 @with_solr_cache('neuron_region_connectivity_query')
 def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit: int = -1):
-    """
-    Retrieves brain regions where the specified neuron has synaptic terminals.
-    
-    This implements the neuron_region_connectivity_query from the VFB XMI specification.
-    Query chain (from XMI): Neo4j compound query → process
-    Matching criteria: Individual + has_region_connectivity
-    
-    Uses has_presynaptic_terminals_in and has_postsynaptic_terminal_in relationships
-    to find brain regions where the neuron makes connections.
-    
+    """Retrieves brain regions where the specified neuron has synaptic terminals.
+
+    v1.14.12: add Type / Template / Imaging Technique / Thumbnail columns
+    matching the AnatomyExpressedIn / NeuronNeuronConnectivityQuery pattern.
+    CALL subquery walks (target)<-[:depicts]-(channel)-[in_register_with]->
+    (template)-[:depicts]->(template_anat) and (channel)-[:is_specified_output_of]
+    ->(technique). LIMIT applied before the CALL fires so the multi-hop walk
+    only runs on returned rows. region wrapped as `[label](short_form)`
+    markdown so the Brain Region column is clickable.
+
     :param short_form: short form of the neuron (Individual)
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
     :param limit: maximum number of results to return (default -1, returns all results)
-    :return: Brain regions with presynaptic and postsynaptic terminal counts
+    :return: Brain regions with presynaptic and postsynaptic terminal counts + image cols
     """
-    # Build Cypher query based on XMI spec pattern
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
     cypher = f"""
-    MATCH (primary:Individual {{short_form: '{short_form}'}})
-    MATCH (target:Individual)<-[r:has_presynaptic_terminals_in|has_postsynaptic_terminal_in]-(primary)
-    WITH DISTINCT collect(properties(r)) + {{}} as props, target, primary
-    WITH apoc.map.removeKeys(apoc.map.merge(props[0], props[1]), ['iri', 'short_form', 'Related', 'label', 'type']) as synapse_counts,
-         target,
-         primary
-    RETURN 
-        target.short_form AS id,
-        target.label AS region,
-        synapse_counts.`pre` AS presynaptic_terminals,
-        synapse_counts.`post` AS postsynaptic_terminals,
-        target.uniqueFacets AS tags
+        MATCH (primary:Individual {{short_form: '{short_form}'}})
+        MATCH (target:Individual)<-[r:has_presynaptic_terminals_in|has_postsynaptic_terminal_in]-(primary)
+        WITH DISTINCT collect(properties(r)) + [{{}}] AS props, target, primary
+        WITH apoc.map.removeKeys(
+                 apoc.map.merge(props[0], coalesce(props[1], {{}})),
+                 ['iri', 'short_form', 'Related', 'label', 'type']
+             ) AS synapse_counts,
+             target, primary
+        OPTIONAL MATCH (target)-[:INSTANCEOF]->(typ:Class)
+        WITH target, synapse_counts,
+             apoc.text.join(
+                 collect(DISTINCT coalesce(typ.label, '')),
+                 '; '
+             ) AS type
+        ORDER BY target.label
+        {limit_clause}
+        CALL {{
+            WITH target
+            OPTIONAL MATCH (target)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH channel, template, template_anat, technique, irw
+            LIMIT 1
+            RETURN channel, template, template_anat, technique, irw
+        }}
+        RETURN
+            target.short_form AS id,
+            apoc.text.format("[%s](%s)", [target.label, target.short_form]) AS region,
+            type,
+            synapse_counts.`pre` AS presynaptic_terminals,
+            synapse_counts.`post` AS postsynaptic_terminals,
+            apoc.text.join(coalesce(target.uniqueFacets, []), '|') AS tags,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(target.symbol[0], coalesce(target.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(target.symbol[0], coalesce(target.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form + "," + target.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
     """
-    if limit != -1:
-        cypher += f" LIMIT {limit}"
 
-    # Run query using Neo4j client
     results = vc.nc.commit_list([cypher])
     rows = get_dict_cursor()(results)
-    
-    # Format output
+
     if return_dataframe:
         df = pd.DataFrame(rows)
+        if not df.empty:
+            df = encode_markdown_links(df, ['region', 'template', 'thumbnail'])
         return df
-    
-    headers = {
-        'id': {'title': 'Region ID', 'type': 'selection_id', 'order': -1},
-        'region': {'title': 'Brain Region', 'type': 'markdown', 'order': 0},
-        'presynaptic_terminals': {'title': 'Presynaptic Terminals', 'type': 'number', 'order': 1},
-        'postsynaptic_terminals': {'title': 'Postsynaptic Terminals', 'type': 'number', 'order': 2},
-        'tags': {'title': 'Region Types', 'type': 'list', 'order': 3},
-    }
+
     return {
-        'headers': headers,
-        'rows': rows,
-        'count': len(rows)
+        'headers': {
+            'id':                     {'title': 'Region ID',             'type': 'selection_id', 'order': -1},
+            'region':                 {'title': 'Brain Region',          'type': 'markdown',     'order':  0},
+            'type':                   {'title': 'Type',                  'type': 'text',         'order':  1},
+            'presynaptic_terminals':  {'title': 'Presynaptic Terminals', 'type': 'number',       'order':  2},
+            'postsynaptic_terminals': {'title': 'Postsynaptic Terminals','type': 'number',       'order':  3},
+            'template':               {'title': 'Template',              'type': 'markdown',     'order':  4},
+            'technique':              {'title': 'Imaging Technique',     'type': 'text',         'order':  5},
+            'tags':                   {'title': 'Tags',                  'type': 'tags',         'order':  6},
+            'thumbnail':              {'title': 'Thumbnail',             'type': 'markdown',     'order':  9},
+        },
+        'rows': [
+            {k: row.get(k) for k in ['id', 'region', 'type', 'presynaptic_terminals', 'postsynaptic_terminals', 'template', 'technique', 'tags', 'thumbnail']}
+            for row in rows
+        ],
+        'count': len(rows),
     }
 
 
@@ -4301,7 +4327,7 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
         MATCH (sub:Class)
         WHERE sub.short_form IN {anat_short_forms!r}
         MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
-        WITH DISTINCT primary, c, ds
+        WITH DISTINCT primary, c, ds, sub
         OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
         WITH {{
             short_form: c.short_form,
@@ -4332,11 +4358,12 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
             FlyBase: coalesce(([]+p.FlyBase)[0], ''),
             DOI: coalesce(([]+p.DOI)[0], '')
         }}) AS pubs,
-        primary
+        primary, sub
         RETURN
             cluster.short_form AS id,
             apoc.text.format("[%s](%s)", [cluster.label, cluster.short_form]) AS name,
             apoc.text.join(cluster.unique_facets, '|') AS tags,
+            apoc.text.format("[%s](%s)", [sub.label, sub.short_form]) AS cell_type,
             apoc.text.format("[%s](%s)", [dataset.label, dataset.short_form]) AS dataset,
             pubs
         ORDER BY cluster.label
@@ -4351,22 +4378,23 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name', 'dataset']
+        columns_to_encode = ['name', 'cell_type', 'dataset']
         df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
         formatted_results = {
             "headers": {
-                "id": {"title": "ID", "type": "selection_id", "order": -1},
-                "name": {"title": "Cluster", "type": "markdown", "order": 0},
-                "tags": {"title": "Tags", "type": "tags", "order": 1},
-                "dataset": {"title": "Dataset", "type": "markdown", "order": 2},
-                "pubs": {"title": "Publications", "type": "metadata", "order": 3}
+                "id":        {"title": "ID",            "type": "selection_id", "order": -1},
+                "name":      {"title": "Cluster",       "type": "markdown",     "order":  0},
+                "cell_type": {"title": "Cell type",     "type": "markdown",     "order":  1},
+                "dataset":   {"title": "Dataset",       "type": "markdown",     "order":  2},
+                "pubs":      {"title": "Publications",  "type": "metadata",     "order":  3},
+                "tags":      {"title": "Tags",          "type": "tags",         "order":  4}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "tags", "dataset", "pubs"]}
+                {key: row[key] for key in ["id", "name", "cell_type", "dataset", "pubs", "tags"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
@@ -4436,7 +4464,7 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
             apoc.text.join(gene.unique_facets, '|') AS tags,
             expression_level,
             expression_extent,
-            anatomy
+            apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy
         ORDER BY expression_level DESC, gene.symbol
     """
     
@@ -4449,9 +4477,9 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name']
+        columns_to_encode = ['name', 'anatomy']
         df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
@@ -4459,13 +4487,13 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
             "headers": {
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Gene", "type": "markdown", "order": 0},
-                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
                 "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
                 "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
-                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 4}
+                "tags": {"title": "Tags", "type": "tags", "order": 4}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "tags", "expression_level", "expression_extent", "anatomy"]}
+                {key: row[key] for key in ["id", "name", "anatomy", "expression_level", "expression_extent", "tags"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
@@ -4531,7 +4559,7 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
             expression_level,
             expression_extent,
-            anatomy
+            apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy
         ORDER BY expression_level DESC, primary.label
     """
     
@@ -4544,9 +4572,9 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name']
+        columns_to_encode = ['name', 'anatomy']
         df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
@@ -4554,13 +4582,13 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
             "headers": {
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Cluster", "type": "markdown", "order": 0},
-                "tags": {"title": "Tags", "type": "tags", "order": 1},
+                "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
                 "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
                 "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
-                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 4}
+                "tags": {"title": "Tags", "type": "tags", "order": 4}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "tags", "expression_level", "expression_extent", "anatomy"]}
+                {key: row[key] for key in ["id", "name", "anatomy", "expression_level", "expression_extent", "tags"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
@@ -4627,7 +4655,7 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
             c.short_form AS id,
             apoc.text.format("[%s](%s)", [c.label, c.short_form]) AS name,
             apoc.text.join(coalesce(c.uniqueFacets, []), '|') AS tags,
-            anatomy,
+            apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy,
             pubs
         ORDER BY c.label
     """
@@ -4641,9 +4669,9 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name']
+        columns_to_encode = ['name', 'anatomy']
         df = encode_markdown_links(df, columns_to_encode)
-    
+
     if return_dataframe:
         return df
     else:
@@ -4651,12 +4679,12 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
             "headers": {
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Cluster", "type": "markdown", "order": 0},
-                "tags": {"title": "Tags", "type": "tags", "order": 1},
-                "anatomy": {"title": "Anatomy", "type": "metadata", "order": 2},
+                "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
+                "tags": {"title": "Tags", "type": "tags", "order": 2},
                 "pubs": {"title": "Publications", "type": "metadata", "order": 3}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "tags", "anatomy", "pubs"]}
+                {key: row[key] for key in ["id", "name", "anatomy", "tags", "pubs"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count

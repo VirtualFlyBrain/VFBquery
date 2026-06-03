@@ -4310,7 +4310,7 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
             cluster.short_form AS id,
             apoc.text.format("[%s](%s)", [cluster.label, cluster.short_form]) AS name,
             apoc.text.join(cluster.unique_facets, '|') AS tags,
-            dataset,
+            apoc.text.format("[%s](%s)", [dataset.label, dataset.short_form]) AS dataset,
             pubs
         ORDER BY cluster.label
     """
@@ -4324,7 +4324,7 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name']
+        columns_to_encode = ['name', 'dataset']
         df = encode_markdown_links(df, columns_to_encode)
     
     if return_dataframe:
@@ -4335,7 +4335,7 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Cluster", "type": "markdown", "order": 0},
                 "tags": {"title": "Tags", "type": "tags", "order": 1},
-                "dataset": {"title": "Dataset", "type": "metadata", "order": 2},
+                "dataset": {"title": "Dataset", "type": "markdown", "order": 2},
                 "pubs": {"title": "Publications", "type": "metadata", "order": 3}
             },
             "rows": [

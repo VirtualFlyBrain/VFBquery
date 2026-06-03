@@ -3117,25 +3117,27 @@ def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -
 def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit: int = -1, min_weight: float = 0, direction: str = 'both'):
     """
     Retrieves neurons connected to the specified neuron.
-    
+
     This implements the neuron_neuron_connectivity_query from the VFB XMI specification.
     Query chain (from XMI): Neo4j compound query → process
     Matching criteria: Individual + Connected_neuron
-    
+
     Uses synapsed_to relationships to find partner neurons.
-    Returns inputs (upstream) and outputs (downstream) connection information.
-    
+    Returns inputs (upstream) and outputs (downstream) connection information,
+    plus Type / Template_Space / Imaging_Technique / Images columns matching
+    v2 prod parity (AnatomyExpressedIn / TermsForPub pattern: CALL-subquery
+    walk over (oi)<-[:depicts]-(channel)-[in_register_with]->(template)
+    -[:depicts]->(template_anat), bounded by LIMIT before the CALL fires).
+
     :param short_form: short form of the neuron (Individual)
     :param return_dataframe: Returns pandas dataframe if true, otherwise returns formatted dict
     :param limit: maximum number of results to return (default -1, returns all results)
     :param min_weight: minimum connection weight threshold (default 0, XMI spec uses 1)
     :param direction: filter by connection direction - 'both' (default), 'upstream', or 'downstream'
-    :return: Partner neurons with their input/output connection weights
-    
+    :return: Partner neurons with their input/output connection weights and image columns
+
     Note: Caching only applies when all parameters are at default values (complete results).
     """
-    # Build Cypher query to get connected neurons using synapsed_to relationships
-    # XMI spec uses min_weight > 1, but we default to 0 to return all valid connections
     base_cypher = f"""
     MATCH (primary:Individual {{short_form: '{short_form}'}})
     MATCH (oi:Individual)-[r:synapsed_to]-(primary)
@@ -3151,59 +3153,80 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
         direction_filter = " WHERE up IS NOT NULL AND up.weight[0] > 0"
     elif direction == 'downstream':
         direction_filter = " WHERE down IS NOT NULL AND down.weight[0] > 0"
-    # for 'both', no additional WHERE
 
-    cypher = base_cypher + direction_filter + """
-    RETURN DISTINCT
-        oi.short_form AS id,
-        oi.label AS label,
-        coalesce(down.weight[0], 0) AS outputs,
-        coalesce(up.weight[0], 0) AS inputs,
-        oi.uniqueFacets AS tags
+    # Count query stays cheap — no walks, just per-row collapse.
+    count_query = base_cypher + direction_filter + """
+        WITH DISTINCT oi
+        RETURN count(oi) AS total_count
     """
-    
-    if limit != -1:
-        cypher += f" LIMIT {limit}"
 
-    # Run query using Neo4j client
-    results = vc.nc.commit_list([cypher])
-    rows = get_dict_cursor()(results)
-    
-    # Get total count if limit was applied
-    if limit != -1:
-        count_query = base_cypher + direction_filter + """
-        WITH DISTINCT
+    # Main query: collect INSTANCEOF parents into Type, then LIMIT before the
+    # template/technique/thumbnail CALL subquery so the multi-hop walk only
+    # fires on rows we actually return (mirrors AnatomyExpressedIn).
+    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
+    main_cypher = base_cypher + direction_filter + f"""
+        WITH DISTINCT oi, down, up
+        OPTIONAL MATCH (oi)-[:INSTANCEOF]->(typ:Class)
+        WITH oi, down, up,
+             apoc.text.join(
+                 collect(DISTINCT coalesce(typ.label, '')),
+                 '; '
+             ) AS type
+        ORDER BY oi.label
+        {limit_clause}
+        CALL {{
+            WITH oi
+            OPTIONAL MATCH (oi)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+            WITH channel, template, template_anat, technique, irw
+            LIMIT 1
+            RETURN channel, template, template_anat, technique, irw
+        }}
+        RETURN
             oi.short_form AS id,
-            oi.label AS label,
+            apoc.text.format("[%s](%s)", [oi.label, oi.short_form]) AS label,
+            type,
             coalesce(down.weight[0], 0) AS outputs,
             coalesce(up.weight[0], 0) AS inputs,
-            oi.uniqueFacets AS tags
-        RETURN count(*) AS total_count
-        """
+            apoc.text.join(coalesce(oi.uniqueFacets, []), '|') AS tags,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(oi.symbol[0], coalesce(oi.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(oi.symbol[0], coalesce(oi.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form + "," + oi.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+    """
+
+    results = vc.nc.commit_list([main_cypher])
+    rows = get_dict_cursor()(results)
+
+    if limit != -1:
         count_results = vc.nc.commit_list([count_query])
         count_rows = get_dict_cursor()(count_results)
         total_count = count_rows[0].get('total_count', 0) if count_rows else 0
     else:
         total_count = len(rows)
-    
-    # No need to filter by direction, it's done in the query
 
-    # Format output
     if return_dataframe:
         df = pd.DataFrame(rows)
+        if not df.empty:
+            df = encode_markdown_links(df, ['label', 'template', 'thumbnail'])
         return df
-    
-    headers = {
-        'id': {'title': 'Neuron ID', 'type': 'selection_id', 'order': -1},
-        'label': {'title': 'Partner Neuron', 'type': 'markdown', 'order': 0},
-        'outputs': {'title': 'Outputs', 'type': 'number', 'order': 1},
-        'inputs': {'title': 'Inputs', 'type': 'number', 'order': 2},
-        'tags': {'title': 'Neuron Types', 'type': 'list', 'order': 3},
-    }
+
     return {
-        'headers': headers,
-        'rows': rows,
-        'count': total_count
+        'headers': {
+            'id':        {'title': 'Neuron ID',         'type': 'selection_id', 'order': -1},
+            'label':     {'title': 'Partner Neuron',    'type': 'markdown',     'order':  0},
+            'type':      {'title': 'Type',              'type': 'text',         'order':  1},
+            'outputs':   {'title': 'Outputs',           'type': 'number',       'order':  2},
+            'inputs':    {'title': 'Inputs',            'type': 'number',       'order':  3},
+            'template':  {'title': 'Template',          'type': 'markdown',     'order':  4},
+            'technique': {'title': 'Imaging Technique', 'type': 'text',         'order':  5},
+            'tags':      {'title': 'Tags',              'type': 'tags',         'order':  6},
+            'thumbnail': {'title': 'Thumbnail',         'type': 'markdown',     'order':  9},
+        },
+        'rows': [
+            {k: row.get(k) for k in ['id', 'label', 'type', 'outputs', 'inputs', 'template', 'technique', 'tags', 'thumbnail']}
+            for row in rows
+        ],
+        'count': total_count,
     }
 
 

@@ -2842,7 +2842,11 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
                        AND coalesce(p.label, p.short_form) IS NOT NULL
                        AND coalesce(p.label, p.short_form) <> ''
                        AND coalesce(p.label, p.short_form) <> 'Unattributed'
-            RETURN apoc.text.join(collect(DISTINCT coalesce(p.label, p.short_form)), '; ') AS pubs
+            RETURN apoc.text.join(
+                collect(DISTINCT apoc.text.format("[%s](%s)",
+                                                   [coalesce(p.label, p.short_form), p.short_form])),
+                '; '
+            ) AS pubs
         }}
         CALL {{
             WITH anonis
@@ -2874,7 +2878,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     if not df.empty:
-        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+        df = encode_markdown_links(df, ['name', 'pubs', 'template', 'thumbnail'])
 
     if return_dataframe:
         return df
@@ -2883,7 +2887,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
         "headers": {
             "id":        {"title": "ID",                "type": "selection_id", "order": -1},
             "name":      {"title": "Anatomy",           "type": "markdown",     "order":  0},
-            "pubs":      {"title": "Publications",      "type": "metadata",     "order":  1},
+            "pubs":      {"title": "Publications",      "type": "markdown",     "order":  1},
             "tags":      {"title": "Tags",              "type": "tags",         "order":  2},
             "stages":    {"title": "Stage",             "type": "text",         "order":  3},
             "template":  {"title": "Template",          "type": "markdown",     "order":  4},

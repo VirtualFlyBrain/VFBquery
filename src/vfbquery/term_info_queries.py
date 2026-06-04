@@ -935,19 +935,19 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
                     if "obj" in temp_data:
                         if "_man" in temp_data:
                             download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
-                            download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+                            download_data.append({"obj": {"url": get_secure_data_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
                         else:
                             download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
-                            download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
+                            download_data.append({"obj": {"url": get_secure_data_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
 
                     # Download - NRRD stack
                     temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
                     if "nrrd" in temp_data:
                         download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
-                        download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
+                        download_data.append({"nrrd": {"url": get_secure_data_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
                         bibtex_local = template + "/RequiredCitations(BIBTEX)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").bibtex"
                         download_files.append(get_link(variable.getId() + ".bibtex", get_secure_data_url(temp_data)))
-                        download_data.append({"bibtex": {"url": get_secure_data_v2_url(temp_data), "local": bibtex_local}})
+                        download_data.append({"bibtex": {"url": get_secure_data_url(temp_data), "local": bibtex_local}})
                         data["downloads"] = download_files
                         data["filemeta"] = download_data
             else:
@@ -961,36 +961,36 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
                     if "_man" in temp_data:
                         download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
                         download_data.append(
-                            {"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+                            {"obj": {"url": get_secure_data_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
                     else:
                         download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
                         download_data.append(
-                            {"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
+                            {"obj": {"url": get_secure_data_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/"}})
 
                 # SWC - 3D mesh
                 temp_data = vfb_term.get_image_file2(alignment, "volume.swc")
                 if "swc" in temp_data:
                     download_files.append(get_link(variable.getId() + ".swc", get_secure_data_url(temp_data)))
                     download_data.append(
-                        {"swc": {"url": get_secure_data_v2_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
+                        {"swc": {"url": get_secure_data_url(temp_data), "local": template + "/MeshFiles(OBJ)/"}})
 
                 # Slices - 3D slice viewer
                 temp_data = vfb_term.get_image_file2(alignment, "volume.wlz")
                 if "wlz" in temp_data:
                     download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
                     download_data.append(
-                        {"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/"}})
+                        {"wlz": {"url": get_secure_data_url(temp_data), "local": template + "/Slices(WOOLZ)/"}})
 
                 # Download - NRRD stack
                 temp_data = vfb_term.get_image_file2(alignment, "volume.nrrd")
                 if "nrrd" in temp_data:
                     download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
                     download_data.append(
-                        {"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
+                        {"nrrd": {"url": get_secure_data_url(temp_data), "local": template + "/SignalFiles(NRRD)/"}})
                     temp_data = vfb_term.get_image_file2(alignment, "citations.bibtex")
                     if temp_data:
                         download_files.append(get_link(variable.getId() + ".bibtex", get_secure_data_url(temp_data)))
-                        download_data.append({"bibtex": {"url": get_secure_data_v2_url(temp_data),
+                        download_data.append({"bibtex": {"url": get_secure_data_url(temp_data),
                                                          "local": template + "/RequiredCitations(BIBTEX)/"}})
                     data["downloads"] = download_files
                     data["filemeta"] = download_data
@@ -1011,24 +1011,24 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
         if "obj" in temp_data:
             if "_man" in temp_data:
                 download_files.append(get_link(variable.getId() + "_mesh.obj", get_secure_data_url(temp_data)))
-                download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data),
+                download_data.append({"obj": {"url": get_secure_data_url(temp_data),
                                   "local": template + "/MeshFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
             else:
                 download_files.append(get_link(variable.getId() + "_pointCloud.obj", get_secure_data_url(temp_data)))
-                download_data.append({"obj": {"url": get_secure_data_v2_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
+                download_data.append({"obj": {"url": get_secure_data_url(temp_data), "local": template + "/PointCloudFiles(OBJ)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").obj"}})
 
         # Slices - 3D slice viewer
         temp_data = vfb_term.template_channel.image_wlz
         if "wlz" in temp_data:
             download_files.append(get_link(variable.getId() + ".wlz", get_secure_data_url(temp_data)))
-            download_data.append({"wlz": {"url": get_secure_data_v2_url(temp_data), "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
+            download_data.append({"wlz": {"url": get_secure_data_url(temp_data), "local": template + "/Slices(WOOLZ)/" + variable.getId() + "_(" + variable.getName().replace(" ", "_") + ").wlz"}})
 
         # Download - NRRD stack
         temp_data = vfb_term.template_channel.image_nrrd
         if "nrrd" in temp_data:
             download_files.append(get_link(variable.getId() + ".nrrd", get_secure_data_url(temp_data)))
             data["downloads"] = download_files
-            download_data.append({"nrrd": {"url": get_secure_data_v2_url(temp_data), "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
+            download_data.append({"nrrd": {"url": get_secure_data_url(temp_data), "local": template + "/SignalFiles(NRRD)/" + variable.getId() + "_(" + variable.getName().replace(" ","_") + ").nrrd"}})
             data["filemeta"] = download_data
 
     # examples
@@ -1067,7 +1067,7 @@ def get_secure_data_url(data_url: str) -> str:
     return data_url.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
 
 
-def get_secure_data_v2_url(data_url: str) -> str:
+def get_secure_data_url(data_url: str) -> str:
     """
     Generates a secure, canonical data url from the given url: forces https and
     rewrites the www data host to the environment-independent virtualflybrain.org

@@ -64,6 +64,29 @@ vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_
 # Replace VfbConnect with SimpleVFBConnect
 vc = SimpleVFBConnect()
 
+# ---------------------------------------------------------------------------
+# Canonical VFB term link
+# ---------------------------------------------------------------------------
+# Public, environment-independent permalink base for a VFB term. This resolves
+# to the term's report page outside the app and is recognised as an internal
+# link by the v2 query-results table (MarkdownLinkComponent parses the
+# short_form out of the `/reports/<id>` path). Never hard-code an app URL such
+# as https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=<id> into
+# query output -- that pins results to one deployment. Build every VFB term
+# link from here (or via the helpers below) so the form is defined in one place.
+VFB_REPORT_BASE = "https://virtualflybrain.org/reports/"
+
+
+def vfb_report_url(short_form: str) -> str:
+    """Public permalink for a VFB term id, e.g. .../reports/VFB_00101567."""
+    return f"{VFB_REPORT_BASE}{short_form}"
+
+
+def vfb_term_link(label: str, short_form: str) -> str:
+    """Markdown link for a VFB term: [label](https://virtualflybrain.org/reports/<id>)."""
+    return f"[{label}]({vfb_report_url(short_form)})"
+
+
 def initialize_vfb_connect():
     """
     Initialize VFB_connect by triggering the lazy load of the vfb and nc properties.
@@ -4777,7 +4800,7 @@ def get_similar_morphology(neuron_short_form: str, return_dataframe=True, limit:
         }}) END AS types, primary, channel_image, nblast
         RETURN
             primary.short_form AS id,
-            '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+            '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
             nblast.NBLAST_score[0] AS score,
             types,
@@ -4835,7 +4858,7 @@ def get_similar_morphology_part_of(neuron_short_form: str, return_dataframe=True
         WITH primary, nblast, channel, ri, templ, technique
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
         RETURN primary.short_form AS id,
-               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                nblast.NBLAST_score[0] AS score,
                types,
@@ -4866,7 +4889,7 @@ def get_similar_morphology_part_of_exp(expression_short_form: str, return_datafr
         WITH primary, nblast, channel, ri, templ, technique
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
         RETURN primary.short_form AS id,
-               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                nblast.NBLAST_score[0] AS score,
                types,
@@ -4897,7 +4920,7 @@ def get_similar_morphology_nb(neuron_short_form: str, return_dataframe=True, lim
         WITH primary, nblast, channel, ri, templ, technique
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class) WITH CASE WHEN typ IS NULL THEN [] ELSE collect({{short_form: typ.short_form, label: coalesce(typ.label, ''), iri: typ.iri, types: labels(typ), symbol: coalesce(typ.symbol[0], '')}}) END AS types, primary, nblast, channel, ri, templ, technique
         RETURN primary.short_form AS id,
-               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                nblast.neuronbridge_score[0] AS score,
                types,
@@ -4943,7 +4966,7 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
             RETURN ri, templ, technique
         }}
         RETURN primary.short_form AS id,
-               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                nblast.neuronbridge_score[0] AS score,
                type,
@@ -4989,7 +5012,7 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
     
     main_query = f"""MATCH (n:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[r:in_register_with]-(dc:Individual)-[:depicts]->(di:Individual)-[:INSTANCEOF]->(d:Class) WHERE EXISTS(r.index)
-        RETURN DISTINCT di.short_form AS id, '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name, coalesce(di.description[0], d.description[0]) AS description, COLLECT(DISTINCT d.label) AS type, replace(r.folder[0],'http:','https:') + '/thumbnailT.png' AS thumbnail"""
+        RETURN DISTINCT di.short_form AS id, '[' + di.label + ']({VFB_REPORT_BASE}' + di.short_form + ')' AS name, coalesce(di.description[0], d.description[0]) AS description, COLLECT(DISTINCT d.label) AS type, replace(r.folder[0],'http:','https:') + '/thumbnailT.png' AS thumbnail"""
     if limit != -1: main_query += f" LIMIT {limit}"
     
     results = vc.nc.commit_list([main_query])
@@ -5143,7 +5166,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     def _node_summary_md(class_id, class_label, painted_list, parent_label):
         parts = [
             f"**{class_label or class_id}** "
-            f"([{class_id}](http://virtualflybrain.org/reports/{class_id}))",
+            f"({vfb_term_link(class_id, class_id)})",
             "",
         ]
         if parent_label:
@@ -5151,8 +5174,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             parts.append("")
         if painted_list:
             ind_lines = [
-                f"[{p.get('individual_label') or p.get('individual_id')}]"
-                f"(http://virtualflybrain.org/reports/{p.get('individual_id')})"
+                vfb_term_link(p.get('individual_label') or p.get('individual_id'), p.get('individual_id'))
                 for p in painted_list if p.get('individual_id')
             ]
             if ind_lines:
@@ -5190,7 +5212,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     summary_md = (
         f"## ROI tree for **{template_label}**\n\n"
         f"Anatomy root: "
-        f"[{root_label or root_id}](http://virtualflybrain.org/reports/{root_id}) "
+        f"{vfb_term_link(root_label or root_id, root_id)} "
         f"({root_id}).\n\n"
         f"{painted_class_count} painted region"
         f"{'s' if painted_class_count != 1 else ''} "
@@ -5260,7 +5282,7 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
         OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
         RETURN primary.short_form AS id,
-               '[' + primary.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + primary.short_form + ')' AS name,
+               '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
                typ.label AS type,
                REPLACE(apoc.text.format("[%s](%s)",[COALESCE(template.symbol[0],template.label),template.short_form]), '[null](null)', '') AS template,
@@ -5286,7 +5308,7 @@ def get_all_aligned_images(template_short_form: str, return_dataframe=True, limi
         OPTIONAL MATCH (di)-[:INSTANCEOF]->(typ:Class)
         OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
         RETURN DISTINCT di.short_form AS id,
-               '[' + di.label + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + di.short_form + ')' AS name,
+               '[' + di.label + ']({VFB_REPORT_BASE}' + di.short_form + ')' AS name,
                apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags,
                typ.label AS type,
                REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
@@ -5358,7 +5380,7 @@ def _dataset_return_clause(ds_var: str = "ds") -> str:
     return f"""
         RETURN
             {ds_var}.short_form AS id,
-            '[' + coalesce({ds_var}.label, {ds_var}.short_form) + '](https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=' + {ds_var}.short_form + ')' AS name,
+            '[' + coalesce({ds_var}.label, {ds_var}.short_form) + ']({VFB_REPORT_BASE}' + {ds_var}.short_form + ')' AS name,
             pubs,
             apoc.text.join(coalesce({ds_var}.uniqueFacets, []), '|') AS tags,
             license,
@@ -6288,7 +6310,7 @@ SELECT DISTINCT ?ancestor ?ancestorLabel ?parent ?parentLabel WHERE {{
     # Render display text and HTML
     # ------------------------------------------------------------------
 
-    VFB_BASE = 'https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id='
+    VFB_BASE = VFB_REPORT_BASE
     DEFAULT_MAX_SIBLINGS = 10  # truncate large sibling groups in text display
 
     def _text_tree(node, prefix='', is_last=True, is_root=True, max_siblings=DEFAULT_MAX_SIBLINGS):

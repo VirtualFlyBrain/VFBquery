@@ -4160,17 +4160,42 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                         technique_label_raw = technique_info.get('label', '')
                         technique = unquote(technique_label_raw) if technique_label_raw else ''
 
-                    # Thumbnail — canonical `[![alt](url 'alt')](ref)` form.
-                    thumbnail_url = image_info.get('image_thumbnail', '')
-                    if thumbnail_url:
-                        # Convert to HTTPS and use non-transparent version
-                        thumbnail_url = thumbnail_url.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
-
-                        # Format thumbnail with proper markdown link (matching Neo4j behavior)
-                        if template_label:
-                            anatomy_label = unquote(anatomy_label_for_alt)
-                            alt_text = f"{anatomy_label} aligned to {template_label}"
-                            thumbnail = f"[![{alt_text}]({thumbnail_url} '{alt_text}')]({class_short_form})"
+                    # Thumbnail(s) -- emit EVERY example image for this term so the
+                    # V2 Images column carousels them. The Java
+                    # VFBqueryJsonProcessor.imageMarkdownToVariableJson builds a
+                    # multi-image carousel Variable from a '; '-joined list of
+                    # `[![alt](url 'alt')](ref)` items. Template_Space and
+                    # Imaging_Technique above stay single (the representative
+                    # first image).
+                    if anatomy_images and len(anatomy_images) > 0:
+                        image_wrappers = anatomy_images
+                    else:
+                        image_wrappers = []
+                        for entry in field_data.get('channel_image', []) or []:
+                            if isinstance(entry, dict) and 'image' in entry:
+                                image_wrappers.append({'channel_image': entry, 'anatomy': None})
+                            elif isinstance(entry, dict):
+                                image_wrappers.append({'channel_image': entry.get('channel_image', {}) or {}, 'anatomy': None})
+                    thumbnail_items = []
+                    for wrapper in image_wrappers:
+                        wci = wrapper.get('channel_image', {}) or {}
+                        wimg = wci.get('image', {}) or {}
+                        wurl = wimg.get('image_thumbnail', '')
+                        if not wurl:
+                            continue
+                        wurl = wurl.replace('http://', 'https://').replace('thumbnailT.png', 'thumbnail.png')
+                        wtmpl = wimg.get('template_anatomy', {}) or {}
+                        wtmpl_raw = (wtmpl.get('symbol') or wtmpl.get('label', '')) if wtmpl else ''
+                        wtmpl_label = unquote(wtmpl_raw) if wtmpl_raw else ''
+                        if not wtmpl_label:
+                            continue
+                        wanat = wrapper.get('anatomy') or {}
+                        wlabel_raw = wanat.get('label') if isinstance(wanat, dict) and wanat.get('label') else anatomy_label_for_alt
+                        wlabel = unquote(wlabel_raw) if wlabel_raw else ''
+                        wref = wanat.get('short_form') if isinstance(wanat, dict) and wanat.get('short_form') else class_short_form
+                        walt = f"{wlabel} aligned to {wtmpl_label}"
+                        thumbnail_items.append(f"[![{walt}]({wurl} '{walt}')]({wref})")
+                    thumbnail = "; ".join(thumbnail_items)
 
                 # Build row
                 row = {

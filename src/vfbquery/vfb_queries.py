@@ -2594,7 +2594,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             CALL {{
                 WITH n2
                 OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
-                RETURN apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
+                RETURN apoc.text.join([x IN collect(DISTINCT CASE WHEN typ.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [coalesce(typ.symbol[0], typ.label), typ.short_form]) END) WHERE x IS NOT NULL], '; ') AS type
             }}
             CALL {{
                 WITH n2
@@ -3192,7 +3192,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
         OPTIONAL MATCH (oi)-[:INSTANCEOF]->(typ:Class)
         WITH oi, down, up,
              apoc.text.join(
-                 collect(DISTINCT coalesce(typ.label, '')),
+                 [x IN collect(DISTINCT CASE WHEN typ.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [coalesce(typ.symbol[0], typ.label), typ.short_form]) END) WHERE x IS NOT NULL],
                  '; '
              ) AS type
         ORDER BY oi.label
@@ -3283,7 +3283,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
         OPTIONAL MATCH (target)-[:INSTANCEOF]->(typ:Class)
         WITH target, synapse_counts,
              apoc.text.join(
-                 collect(DISTINCT coalesce(typ.label, '')),
+                 [x IN collect(DISTINCT CASE WHEN typ.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [coalesce(typ.symbol[0], typ.label), typ.short_form]) END) WHERE x IS NOT NULL],
                  '; '
              ) AS type
         ORDER BY target.label
@@ -4956,7 +4956,7 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
         CALL {{
             WITH primary
             OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
-            RETURN apoc.text.join([l IN collect(DISTINCT typ.label) WHERE l IS NOT NULL AND l <> ''], '|') AS type
+            RETURN apoc.text.join([x IN collect(DISTINCT CASE WHEN typ.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [coalesce(typ.symbol[0], typ.label), typ.short_form]) END) WHERE x IS NOT NULL], '; ') AS type
         }}
         CALL {{
             WITH primary
@@ -5284,10 +5284,10 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
         RETURN primary.short_form AS id,
                '[' + primary.label + ']({VFB_REPORT_BASE}' + primary.short_form + ')' AS name,
                apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
-               typ.label AS type,
-               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(template.symbol[0],template.label),template.short_form]), '[null](null)', '') AS template,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(typ.symbol[0],typ.label),typ.short_form]), '[null](null)', '') AS type,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(template_anat.symbol[0],template_anat.label),template_anat.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template.symbol[0],template.label), REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template.symbol[0],template.label), template.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template_anat.symbol[0],template_anat.label), REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(primary.symbol[0],primary.label) + " aligned to " + COALESCE(template_anat.symbol[0],template_anat.label), template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
@@ -5310,7 +5310,7 @@ def get_all_aligned_images(template_short_form: str, return_dataframe=True, limi
         RETURN DISTINCT di.short_form AS id,
                '[' + di.label + ']({VFB_REPORT_BASE}' + di.short_form + ')' AS name,
                apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags,
-               typ.label AS type,
+               REPLACE(apoc.text.format("[%s](%s)",[COALESCE(typ.symbol[0],typ.label),typ.short_form]), '[null](null)', '') AS type,
                REPLACE(apoc.text.format("[%s](%s)",[COALESCE(templ.symbol[0],templ.label),templ.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
                REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[COALESCE(di.symbol[0],di.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), COALESCE(di.symbol[0],di.label) + " aligned to " + COALESCE(templ.symbol[0],templ.label), templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
@@ -5523,7 +5523,7 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
             primary.short_form AS id,
             apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
-            coalesce(typ.label, '') AS type,
+            REPLACE(apoc.text.format("[%s](%s)", [COALESCE(typ.symbol[0], typ.label), typ.short_form]), '[null](null)', '') AS type,
             REPLACE(apoc.text.format("[%s](%s)", [COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [COALESCE(primary.symbol[0], coalesce(primary.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), COALESCE(primary.symbol[0], coalesce(primary.label, 'image')) + " aligned to " + COALESCE(template_anat.symbol[0], template_anat.label), template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail

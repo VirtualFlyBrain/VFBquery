@@ -2882,9 +2882,22 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
             WITH anat
             OPTIONAL MATCH (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH i, template, template_anat, channel, technique, irw
-            LIMIT 1
-            RETURN i, template, template_anat, channel, technique, irw
+            WITH anat, i, template_anat, technique, irw
+            WHERE i IS NOT NULL
+            WITH anat, i, template_anat, technique, irw LIMIT 5
+            WITH anat, collect({{i: i, template_anat: template_anat, technique: technique, irw: irw}}) AS imgs
+            WITH anat, imgs, head(imgs) AS rep
+            RETURN
+                rep.template_anat AS template_anat,
+                rep.technique AS technique,
+                apoc.text.join([x IN imgs |
+                    REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
+                        [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.template_anat.symbol[0] <> '' THEN x.template_anat.symbol[0] ELSE x.template_anat.label END,
+                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.template_anat.symbol[0] <> '' THEN x.template_anat.symbol[0] ELSE x.template_anat.label END,
+                         x.template_anat.short_form + "," + coalesce(x.i.short_form, anat.short_form)]),
+                    "[![null]( 'null')](null)", "")
+                ], ' | ') AS thumbnail
         }}
         RETURN
             anat.short_form AS id,
@@ -2894,7 +2907,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
             stages,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(i.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(i.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + coalesce(i.short_form, anat.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail
+            thumbnail
     """
 
     results = vc.nc.commit_list([main_query])
@@ -5356,8 +5369,12 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
       pubs        — "; "-joined per-pub `[label](short_form)` markdown so the
                     Reference column links each publication (FBrf)
       license     — `[label](short_form)` markdown link
-      template/technique/thumbnail — one representative channel-image
-                    (matches prod's `apoc.cypher.run('… LIMIT 5')` shape)
+      template/technique — taken from a representative channel-image
+      thumbnail   — up to 5 example channel-images as `' | '`-joined
+                    `[![alt](url 'title')](ref)` markdown, so the Images
+                    cell carousels (matches prod's `… LIMIT 5` shape).
+                    The V2 imageMarkdownToVariableJson splits the joined
+                    markdown into a SlideshowImageComponent.
       image_count — DISTINCT count of individuals sourced to the dataset
 
     Each branch is wrapped in its own CALL so the outer carrier row stays
@@ -5379,8 +5396,22 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
             WITH {ds_var}
             OPTIONAL MATCH ({ds_var})<-[:has_source]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH i, templ, technique, irw, channel LIMIT 1
-            RETURN i, templ, technique, irw
+            WITH {ds_var}, i, templ, technique, irw
+            WHERE i IS NOT NULL
+            WITH {ds_var}, i, templ, technique, irw LIMIT 5
+            WITH {ds_var}, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
+            WITH {ds_var}, imgs, head(imgs) AS rep
+            RETURN
+                rep.templ AS templ,
+                rep.technique AS technique,
+                apoc.text.join([x IN imgs |
+                    REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
+                        [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
+                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
+                         x.templ.short_form + "," + coalesce(x.i.short_form, {ds_var}.short_form)]),
+                    "[![null]( 'null')](null)", "")
+                ], ' | ') AS thumbnail
         }}
         CALL {{
             WITH {ds_var}
@@ -5412,7 +5443,7 @@ def _dataset_return_clause(ds_var: str = "ds") -> str:
             license,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(i.label, 'image') + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(i.label, 'image') + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + coalesce(i.short_form, {ds_var}.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail,
+            thumbnail,
             image_count
     """
 
@@ -5716,8 +5747,22 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             WITH ep
             OPTIONAL MATCH (ep)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH i, templ, technique, irw LIMIT 1
-            RETURN i, templ, technique, irw
+            WITH ep, i, templ, technique, irw
+            WHERE i IS NOT NULL
+            WITH ep, i, templ, technique, irw LIMIT 5
+            WITH ep, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
+            WITH ep, imgs, head(imgs) AS rep
+            RETURN
+                rep.templ AS templ,
+                rep.technique AS technique,
+                apoc.text.join([x IN imgs |
+                    REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
+                        [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
+                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
+                         x.templ.short_form + "," + coalesce(x.i.short_form, ep.short_form)]),
+                    "[![null]( 'null')](null)", "")
+                ], ' | ') AS thumbnail
         }}
         RETURN
             ep.short_form AS id,
@@ -5727,7 +5772,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             pubs,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(i.label, 'image') + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(i.label, 'image') + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + coalesce(i.short_form, ep.short_form)]), "[![null]( 'null')](null)", "") AS thumbnail
+            thumbnail
     """
 
     results = vc.nc.commit_list([main_query])

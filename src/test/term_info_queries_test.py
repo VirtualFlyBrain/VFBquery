@@ -487,13 +487,13 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
-                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
+                                  'url': 'https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj'}},
                          serialized["filemeta"][0])
         self.assertEqual({'wlz': {'local': '/Slices(WOOLZ)/my_id_(my_name).wlz',
-                                  'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
+                                  'url': 'https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz'}},
                          serialized["filemeta"][1])
         self.assertEqual({'nrrd': {'local': '/SignalFiles(NRRD)/my_id_(my_name).nrrd',
-                                   'url': 'https://v2.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
+                                   'url': 'https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd'}},
                          serialized["filemeta"][2])
         self.assertTrue("template" in serialized)
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])

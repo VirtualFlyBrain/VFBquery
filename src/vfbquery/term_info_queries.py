@@ -1069,12 +1069,14 @@ def get_secure_data_url(data_url: str) -> str:
 
 def get_secure_data_v2_url(data_url: str) -> str:
     """
-    Generates a secure data v2 url from the given url
+    Generates a secure, canonical data url from the given url: forces https and
+    rewrites the www data host to the environment-independent virtualflybrain.org
+    host, consistent with VFB term permalinks.
     :param data_url: data url to secure
-    :return: secured v2 url
+    :return: secured data url
     """
     return data_url.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/",
-                                                           "https://v2.virtualflybrain.org/data/")
+                                                           "https://virtualflybrain.org/data/")
 
 
 def serialize_term_info_to_json(vfb_term: VfbTerminfo, show_types=False) -> str:

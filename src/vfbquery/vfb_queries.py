@@ -5353,7 +5353,8 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
     """Return CALL subqueries that, given a DataSet bound as ``ds_var``,
     aggregate the columns v2 prod surfaces from SOLR:
 
-      pubs        — "; "-joined `core.label` (matches v2's Reference column)
+      pubs        — "; "-joined per-pub `[label](short_form)` markdown so the
+                    Reference column links each publication (FBrf)
       license     — `[label](short_form)` markdown link
       template/technique/thumbnail — one representative channel-image
                     (matches prod's `apoc.cypher.run('… LIMIT 5')` shape)
@@ -5366,7 +5367,7 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
         CALL {{
             WITH {ds_var}
             OPTIONAL MATCH ({ds_var})-[:has_reference]->(p:pub)
-            RETURN apoc.text.join([l IN collect(DISTINCT coalesce(p.label, p.short_form)) WHERE l IS NOT NULL AND l <> ''], '; ') AS pubs
+            RETURN apoc.text.join([x IN collect(DISTINCT CASE WHEN p.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [coalesce(p.label, p.short_form), p.short_form]) END) WHERE x IS NOT NULL], '; ') AS pubs
         }}
         CALL {{
             WITH {ds_var}

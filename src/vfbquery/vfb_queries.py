@@ -1860,7 +1860,7 @@ def clusterExpression_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "name", "tags", "expression_level", "expression_extent"]
+    preview_columns = ["id", "name", "tags", "expression_level", "expression_extent", "function"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -4507,7 +4507,8 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
                  iri: g.iri,
                  types: labels(g),
                  unique_facets: apoc.coll.sort(coalesce(g.uniqueFacets, [])),
-                 symbol: coalesce(([]+g.symbol)[0], '')
+                 symbol: coalesce(([]+g.symbol)[0], ''),
+                 function: apoc.coll.sort([l IN labels(g) WHERE NOT l IN ['Entity','Class','Individual','Gene','Feature'] AND NOT l STARTS WITH 'has'])
              }} AS gene,
              primary
         MATCH (a:Anatomy)<-[:composed_primarily_of]-(primary)
@@ -4525,6 +4526,7 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
             apoc.text.join(gene.unique_facets, '|') AS tags,
             expression_level,
             expression_extent,
+            apoc.text.join(coalesce(gene.function, []), '; ') AS function,
             apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy
         ORDER BY expression_level DESC, gene.label
     """
@@ -4551,10 +4553,11 @@ def get_cluster_expression(cluster_short_form: str, return_dataframe=True, limit
                 "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
                 "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
                 "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
-                "tags": {"title": "Tags", "type": "tags", "order": 4}
+                "tags": {"title": "Tags", "type": "tags", "order": 4},
+                "function": {"title": "Function", "type": "text", "order": 5}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "anatomy", "expression_level", "expression_extent", "tags"]}
+                {key: row[key] for key in ["id", "name", "anatomy", "expression_level", "expression_extent", "tags", "function"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count

@@ -26,6 +26,91 @@ VFBquery uses a single-layer caching approach with SOLR:
 3. **Cache persistence**: Survives Python restarts and server reboots
 4. **Automatic expiration**: 3-month TTL matches VFB_connect behavior
 
+## Cache coverage (v1.19.0)
+
+As of v1.19.0 every query-result function reachable from the HA API handlers
+(`ha_api.py`) is served by the persistent SOLR cache, except a small set that
+are deliberately excluded (see below). Coverage is verified by a static sweep
+that traces each handler entry point through the `QUERY_TYPE_MAP` dispatch and
+the FlyBase/connectivity/hierarchy handlers — see `coverage_sweep.py`.
+
+Caching is applied in one of two layers, both of which the handler path goes
+through (`handler -> vfbquery.<fn> (patched to *_cached) -> _original`):
+
+- `@with_solr_cache('<bucket>')` on the original in `vfb_queries.py` (most
+  hierarchy / neuron-in-region / connectivity / image queries), or
+- `@with_solr_cache('<bucket>')` on the `*_cached` wrapper in
+  `cached_functions.py` (term_info, similarity, transcriptomics, datasets).
+
+A function counts as cached if either layer carries the decorator; do not add
+the decorator at both layers for the same function (double round-trips).
+
+New buckets added in v1.19.0: `cluster_expression`, `expression_cluster`,
+`scrnaseq_dataset_data`, `individual_neuron_inputs`, `similar_morphology`,
+`similar_morphology_part_of`, `similar_morphology_part_of_exp`,
+`similar_morphology_nb`, `similar_morphology_nb_exp`, `dataset_images`,
+`all_aligned_images`, `all_datasets`, `transgene_expression_here`,
+`related_anatomy`. The five genuinely new buckets (`dataset_images`,
+`all_aligned_images`, `all_datasets`, `transgene_expression_here`,
+`related_anatomy`) are also listed in the wrapper's `expensive_query_types`
+and `dataframe_query_types`, so a limited request computes the full result
+once, caches it, and serves later limited requests by slicing the cached full
+result.
+
+### Cross-dataset connectivity (`query_connectivity`)
+
+`query_connectivity` takes five parameters (`upstream_type`,
+`downstream_type`, `weight`, `group_by_class`, `exclude_dbs`), so the default
+single-id `@with_solr_cache` key does not fit. It is persisted directly in
+`vfb_connectivity.py` under a composite key
+(`query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}`,
+hashed for a Solr-safe document id). The in-memory `ResultCache` and request
+coalescer in `ha_api.py` sit in front; this SOLR layer sits behind so a cold
+miss survives restarts and reaches the other containers. Graph
+post-processing (`post_fn`) stays in the handler and is never part of the
+cached payload. `force_refresh=true` on `/query_connectivity` drops both the
+in-memory entry and the SOLR document and recomputes.
+
+### Deliberately not cached
+
+- `get_similar_morphology_userdata` — keyed on a per-session user upload id;
+  the result is user/session-specific, so it is left to the in-memory L1
+  cache only.
+- `get_flybase_stocks`, `get_flybase_combo_pubs`, `find_stocks`,
+  `find_combo_publications` — backed by the FlyBase RDBMS, not Neo4j/Owlery;
+  out of scope for this offload.
+- `resolve_entity`, `resolve_combination` — thin resolvers over the already
+  cached `term_info`.
+- `list_connectome_datasets` — tiny static list; L1 cache is sufficient.
+- `get_hierarchy` — delegates its heavy work to the SOLR-cached
+  `get_parts_of` / `get_subclasses_of` and relies on Owlery's own
+  server-side cache, with the handler holding an in-memory composite-key
+  entry; persistent composite caching is a sensible follow-up but was left
+  out to keep this change focused.
+
+### Cache server
+
+The cache reads and writes `cache_url`, which defaults to the dedicated
+query-cache Solr:
+
+```
+http://vfbquerycache.virtualflybrain.org:80/solr/vfb_json
+```
+
+(`SolrResultCache.DEFAULT_CACHE_URL`). This is a separate, lightly-loaded host
+from the ontology Solr (`solr.virtualflybrain.org`); it is reached on port 80
+because the Solr native port is firewalled externally. Override with the
+`VFBQUERY_SOLR_URL` environment variable (e.g. to point at a staging core for
+testing):
+
+```bash
+export VFBQUERY_SOLR_URL=http://localhost:8983/solr/vfb_json
+```
+
+Note: data reads in `vfb_queries.py` (term_info, painted domains, ontology
+label lookups, etc.) still go to `solr.virtualflybrain.org` — only the result
+*cache* moved. The two are independent.
+
 ## Runtime Configuration
 
 Control caching behavior:

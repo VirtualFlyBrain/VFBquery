@@ -84,19 +84,45 @@ def list_connectome_datasets():
     return [{"label": r["c.label"], "symbol": r["c.symbol[0]"]} for r in dc]
 
 
+def _connectivity_cache_key(upstream_type, downstream_type, weight,
+                            group_by_class, exclude_dbs):
+    """Build a stable, Solr-safe cache key for a query_connectivity call.
+
+    The default ``@with_solr_cache`` decorator keys on a single id, which does
+    not fit this five-parameter signature, so the key is built here from all
+    of the inputs (mirroring the in-memory key in ``ha_api`` —
+    ``query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}``)
+    and hashed so it is safe to embed in a Solr document id.
+    """
+    import hashlib
+    raw = (
+        f"query_connectivity:{upstream_type}:{downstream_type}:"
+        f"{weight}:{group_by_class}:{exclude_dbs}"
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
 def query_connectivity(upstream_type=None, downstream_type=None, weight=5,
-                       group_by_class=False, exclude_dbs=None):
+                       group_by_class=False, exclude_dbs=None, force_refresh=False):
     """Query synaptic connections between neuron types.
 
     At least one of upstream_type or downstream_type must be provided.
     Parameters are neuron type labels (e.g. "Kenyon cell") which are
     resolved to VFB IDs internally.
 
+    Results are persisted in the SOLR result cache under a composite key
+    (see :func:`_connectivity_cache_key`) so a cold miss survives restarts
+    and reaches the other API containers. The in-memory ResultCache and
+    request coalescer in ``ha_api`` sit in front of this layer; the graph
+    post-processing (``post_fn``) stays in the handler, so it is never part
+    of the cached payload.
+
     :param upstream_type: Presynaptic neuron type label (optional)
     :param downstream_type: Postsynaptic neuron type label (optional)
     :param weight: Minimum synapse count threshold (default 5)
     :param group_by_class: Aggregate by neuron class (default False)
     :param exclude_dbs: Dataset symbols to exclude (default ["hb", "fafb"])
+    :param force_refresh: Bypass the SOLR cache and recompute (default False)
     :return: dict with 'connections' (list of dicts), 'warnings' (list), 'count' (int)
     """
     if exclude_dbs is None:
@@ -104,6 +130,43 @@ def query_connectivity(upstream_type=None, downstream_type=None, weight=5,
 
     if upstream_type is None and downstream_type is None:
         raise ValueError("At least one of upstream_type or downstream_type must be specified")
+
+    # Persistent SOLR cache (composite key) sitting behind the in-memory cache.
+    from .solr_result_cache import get_solr_cache
+    cache = get_solr_cache()
+    cache_key = _connectivity_cache_key(
+        upstream_type, downstream_type, weight, group_by_class, exclude_dbs
+    )
+    if force_refresh:
+        cache.clear_cache_entry('query_connectivity', cache_key)
+    else:
+        cached = cache.get_cached_result('query_connectivity', cache_key)
+        if cached is not None:
+            return cached
+
+    result = _query_connectivity_uncached(
+        upstream_type, downstream_type, weight, group_by_class, exclude_dbs
+    )
+
+    # Cache deterministic, non-error results (count >= 0). Best-effort: a Solr
+    # write failure must never break the query path.
+    try:
+        if isinstance(result, dict) and result.get('count', -1) >= 0:
+            cache.cache_result('query_connectivity', cache_key, result)
+    except Exception:
+        pass
+    return result
+
+
+def _query_connectivity_uncached(upstream_type=None, downstream_type=None, weight=5,
+                                 group_by_class=False, exclude_dbs=None):
+    """Compute connectivity directly from Neo4j (no caching).
+
+    Split out from :func:`query_connectivity` so the SOLR cache wraps a single
+    pure function. Callers should go through ``query_connectivity``.
+    """
+    if exclude_dbs is None:
+        exclude_dbs = ["hb", "fafb"]
 
     nc = _get_nc()
     warnings = []

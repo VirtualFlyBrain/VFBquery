@@ -425,7 +425,7 @@ def _run_list_connectome_datasets():
 
 
 def _run_query_connectivity(upstream_type, downstream_type, weight,
-                            group_by_class, exclude_dbs):
+                            group_by_class, exclude_dbs, force_refresh=False):
     """Execute query_connectivity in a worker process."""
     return _vfb.query_connectivity(
         upstream_type=upstream_type,
@@ -433,6 +433,7 @@ def _run_query_connectivity(upstream_type, downstream_type, weight,
         weight=weight,
         group_by_class=group_by_class,
         exclude_dbs=exclude_dbs,
+        force_refresh=force_refresh,
     )
 
 
@@ -962,6 +963,7 @@ async def handle_query_connectivity(request):
     else:
         exclude_dbs = ["hb", "fafb"]
     include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
+    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
 
     post_fn = None
     if include_graph:
@@ -978,9 +980,13 @@ async def handle_query_connectivity(request):
             return result
 
     key = f"query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}"
+    # force_refresh=true drops the in-memory L1 entry so the recomputed result
+    # replaces it; the SOLR layer is invalidated inside query_connectivity.
+    if force_refresh:
+        request.app["result_cache"].invalidate(key)
     return await _dispatch_to_pool(
         request, key, _run_query_connectivity,
-        upstream, downstream, weight, group_by_class, exclude_dbs,
+        upstream, downstream, weight, group_by_class, exclude_dbs, force_refresh,
         post_fn=post_fn,
     )
 

@@ -138,6 +138,7 @@ def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_d
     """
     return _original_get_similar_neurons(neuron=neuron, similarity_score=similarity_score, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('similar_morphology')
 def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology with SOLR caching.
@@ -153,6 +154,7 @@ def get_similar_morphology_cached(neuron_short_form: str, return_dataframe=True,
     """
     return _original_get_similar_morphology(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('similar_morphology_part_of')
 def get_similar_morphology_part_of_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology_part_of with SOLR caching.
@@ -168,6 +170,7 @@ def get_similar_morphology_part_of_cached(neuron_short_form: str, return_datafra
     """
     return _original_get_similar_morphology_part_of(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('similar_morphology_part_of_exp')
 def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology_part_of_exp with SOLR caching.
@@ -183,6 +186,7 @@ def get_similar_morphology_part_of_exp_cached(expression_short_form: str, return
     """
     return _original_get_similar_morphology_part_of_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('similar_morphology_nb')
 def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology_nb with SOLR caching.
@@ -197,6 +201,7 @@ def get_similar_morphology_nb_cached(neuron_short_form: str, return_dataframe=Tr
     """
     return _original_get_similar_morphology_nb(neuron_short_form=neuron_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('similar_morphology_nb_exp')
 def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology_nb_exp with SOLR caching.
@@ -211,6 +216,9 @@ def get_similar_morphology_nb_exp_cached(expression_short_form: str, return_data
     """
     return _original_get_similar_morphology_nb_exp(expression_short_form=expression_short_form, return_dataframe=return_dataframe, limit=limit)
 
+# Deliberately not @with_solr_cache: the key is a per-session user upload id,
+# so the result is user/session-specific and not safe to share via the
+# persistent cache. Left to recompute (and to the in-memory L1 cache only).
 def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_similar_morphology_userdata with SOLR caching.
@@ -295,6 +303,7 @@ def get_templates_cached(limit: int = -1, return_dataframe: bool = False, force_
     """
     return _original_get_templates(limit=limit, return_dataframe=return_dataframe, force_refresh=force_refresh)
 
+@with_solr_cache('related_anatomy')
 def get_related_anatomy_cached(template_short_form: str, limit: int = -1, return_dataframe: bool = False, force_refresh: bool = False):
     """
     Enhanced get_related_anatomy with SOLR caching.
@@ -348,6 +357,7 @@ def get_template_roi_tree_cached(template_short_form: str, return_dataframe: boo
     """
     return _original_get_template_roi_tree(template_short_form=template_short_form, return_dataframe=return_dataframe)
 
+@with_solr_cache('dataset_images')
 def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_dataset_images with SOLR caching.
@@ -362,6 +372,7 @@ def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, li
     """
     return _original_get_dataset_images(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('all_aligned_images')
 def get_all_aligned_images_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_all_aligned_images with SOLR caching.
@@ -391,6 +402,7 @@ def get_aligned_datasets_cached(template_short_form: str, return_dataframe=True,
     """
     return _original_get_aligned_datasets(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('all_datasets')
 def get_all_datasets_cached(return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_all_datasets with SOLR caching.
@@ -404,9 +416,15 @@ def get_all_datasets_cached(return_dataframe=True, limit: int = -1, force_refres
     """
     return _original_get_all_datasets(return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('individual_neuron_inputs')
 def get_individual_neuron_inputs_cached(neuron_short_form: str, return_dataframe=True, limit: int = -1, summary_mode: bool = False, force_refresh: bool = False):
     """
     Enhanced get_individual_neuron_inputs with SOLR caching.
+
+    Note: the SOLR cache keys on the neuron id (and return_dataframe). The
+    REST path always calls with summary_mode=False, so the default key is
+    safe there; a non-default summary_mode is not part of the cache key, so
+    direct library callers that vary it should pass force_refresh.
 
     Args:
         neuron_short_form: Neuron short form
@@ -484,6 +502,7 @@ def get_anatomy_scrnaseq_cached(anatomy_short_form: str, return_dataframe=True, 
     """
     return _original_get_anatomy_scrnaseq(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('cluster_expression')
 def get_cluster_expression_cached(cluster_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_cluster_expression with SOLR caching.
@@ -498,6 +517,7 @@ def get_cluster_expression_cached(cluster_short_form: str, return_dataframe=True
     """
     return _original_get_cluster_expression(cluster_short_form=cluster_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('expression_cluster')
 def get_expression_cluster_cached(gene_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_expression_cluster with SOLR caching.
@@ -512,6 +532,7 @@ def get_expression_cluster_cached(gene_short_form: str, return_dataframe=True, l
     """
     return _original_get_expression_cluster(gene_short_form=gene_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('scrnaseq_dataset_data')
 def get_scrnaseq_dataset_data_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_scrnaseq_dataset_data with SOLR caching.
@@ -526,6 +547,7 @@ def get_scrnaseq_dataset_data_cached(dataset_short_form: str, return_dataframe=T
     """
     return _original_get_scrnaseq_dataset_data(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit)
 
+@with_solr_cache('transgene_expression_here')
 def get_transgene_expression_here_cached(anatomy_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
     Enhanced get_transgene_expression_here with SOLR caching.

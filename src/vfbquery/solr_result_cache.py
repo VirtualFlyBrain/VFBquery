@@ -60,18 +60,26 @@ class SolrResultCache:
     will periodically probe Solr and re-enable itself when the service recovers.
     """
     
-    def __init__(self, 
-                 cache_url: str = "https://solr.virtualflybrain.org/solr/vfb_json",
+    # Dedicated query-cache Solr, reachable on port 80 (the ontology Solr's
+    # native port is firewalled externally, so the cache must use this host).
+    DEFAULT_CACHE_URL = "http://vfbquerycache.virtualflybrain.org:80/solr/vfb_json"
+
+    def __init__(self,
+                 cache_url: str = None,
                  ttl_hours: int = 2160,  # 3 months like VFB_connect
                  max_result_size_mb: int = 10):
         """
         Initialize SOLR result cache
-        
+
         Args:
-            cache_url: SOLR collection URL for caching
+            cache_url: SOLR collection URL for caching. Defaults to the
+                VFBQUERY_SOLR_URL env var if set, otherwise the dedicated
+                query-cache Solr (DEFAULT_CACHE_URL).
             ttl_hours: Time-to-live for cache entries in hours
             max_result_size_mb: Maximum result size to cache in MB
         """
+        if cache_url is None:
+            cache_url = os.getenv('VFBQUERY_SOLR_URL', self.DEFAULT_CACHE_URL)
         self.cache_url = cache_url
         self.ttl_hours = ttl_hours
         self.max_result_size_mb = max_result_size_mb
@@ -777,14 +785,19 @@ def with_solr_cache(query_type: str):
             
             # For expensive queries, we still only cache full results, but we handle limited requests
             # by slicing from cached full results
-            expensive_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of', 
-                                   'similar_morphology_part_of_exp', 'similar_morphology_nb', 
+            expensive_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of',
+                                   'similar_morphology_part_of_exp', 'similar_morphology_nb',
                                    'similar_morphology_nb_exp', 'similar_morphology_userdata',
-                                   'neurons_part_here', 'neurons_synaptic', 
+                                   'neurons_part_here', 'neurons_synaptic',
                                    'neurons_presynaptic', 'neurons_postsynaptic',
                                    'expression_overlaps_here', 'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub',
                                    'individual_neuron_inputs', 'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data',
-                                   'painted_domains', 'downstream_class_connectivity_query', 'upstream_class_connectivity_query']
+                                   'painted_domains', 'downstream_class_connectivity_query', 'upstream_class_connectivity_query',
+                                   # New buckets (v1.19.0): large, limit-sliced results — listing them here
+                                   # means a limited request computes the full result once, caches it, and
+                                   # serves later limited requests by slicing the cached full result.
+                                   'dataset_images', 'all_aligned_images', 'all_datasets',
+                                   'transgene_expression_here', 'related_anatomy']
             
             # For neuron_neuron_connectivity_query, only cache when all parameters are defaults
             if query_type == 'neuron_neuron_connectivity_query':
@@ -795,11 +808,16 @@ def with_solr_cache(query_type: str):
             # Extract term_id from first argument or kwargs
             term_id = args[0] if args else kwargs.get('short_form') or kwargs.get('term_id')
             
-            # For functions like get_templates that don't have a term_id, use query_type as cache key
+            # For functions that don't have a term_id, use a fixed cache key
+            # tied to the query_type (the result is a single global list).
             if not term_id:
                 if query_type == 'templates':
                     # Use a fixed cache key for templates since it doesn't take a term_id
                     term_id = 'all_templates'
+                elif query_type == 'all_datasets':
+                    # get_all_datasets has no id argument; the result is the full
+                    # dataset catalogue, so a single fixed key is correct.
+                    term_id = 'all_datasets'
                 else:
                     logger.warning(f"No term_id found for caching {query_type}")
                     return func(*args, **kwargs)
@@ -823,7 +841,10 @@ def with_solr_cache(query_type: str):
                                    'images_that_develop_from', 'expression_pattern_fragments', 'expression_overlaps_here',
                                    'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub', 'individual_neuron_inputs',
                                    'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data', 'painted_domains',
-                                   'downstream_class_connectivity_query', 'upstream_class_connectivity_query']
+                                   'downstream_class_connectivity_query', 'upstream_class_connectivity_query',
+                                   # New buckets (v1.19.0) — see expensive_query_types above.
+                                   'dataset_images', 'all_aligned_images', 'all_datasets',
+                                   'transgene_expression_here', 'related_anatomy']
             if query_type in dataframe_query_types:
                 return_dataframe = kwargs.get('return_dataframe', True)  # Default is True
                 cache_term_id = f"{cache_term_id}_dataframe_{return_dataframe}"

@@ -1971,7 +1971,7 @@ def AllDatasets_to_schema(name, take_default):
 
 def TermsForPub_to_schema(name, take_default):
     """Schema for TermsForPub query."""
-    return Query(query="TermsForPub", label=f"Terms referencing {name}", function="get_terms_for_pub", takes={"short_form": {"$and": ["Individual", "pub"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "tags", "type"])
+    return Query(query="TermsForPub", label=f"Terms referencing {name}", function="get_terms_for_pub", takes={"short_form": {"$and": ["Individual", "pub"]}, "default": take_default}, preview=10, preview_columns=["id", "name", "reference_type", "tags", "type"])
 
 
 def TransgeneExpressionHere_to_schema(name, take_default):
@@ -5551,27 +5551,30 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
     these cells empty — matches v2 prod which shows the columns blank
     on dataset rows (e.g. Wolff2018).
     """
-    count_query = f"MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual) RETURN count(DISTINCT primary) AS count"
-    count_results = vc.nc.commit_list([count_query])
-    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+    # A publication is cited two different ways in the graph, and the legacy
+    # TermsForPub only saw the first:
+    #   1. Reference  — a term has a direct (:term)-[:has_reference]->(:pub)
+    #                   edge (datasets, images, anatomy the paper is the
+    #                   source/citation for).
+    #   2. Expression — the pub is recorded as a `pub` array PROPERTY on an
+    #                   overlaps/part_of relationship of an expression-pattern
+    #                   individual (the same model AnatomyExpressedIn /
+    #                   TransgeneExpressionHere read via `r.pub`). Expression-
+    #                   data papers (e.g. FBrf0232433, VT-GAL4 lines) have NO
+    #                   has_reference edges at all, so the old query returned
+    #                   nothing despite thousands of referenced patterns.
+    # We surface both and add a "Reference type" column so users can tell why
+    # each term is listed. NB: the Expression branch scans overlaps/part_of by
+    # the relationship `pub` property (no node path exists — the pub node has
+    # no edges), so it is the expensive leg; the whole query is cached.
 
-    # Apply LIMIT before the CALL subquery fires so the multi-hop walk
-    # only runs on the rows we actually return — same pattern as
-    # AnatomyExpressedIn / TransgeneExpressionHere.
-    limit_clause = f"LIMIT {limit}" if limit != -1 else ""
-    main_query = f"""
+    # Source 1: direct has_reference terms, with image enrichment for
+    # channel-image primaries (one representative image via the CALL).
+    ref_query = f"""
         MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual)
         OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
         WITH DISTINCT primary, typ
-        ORDER BY primary.label
-        {limit_clause}
         CALL {{
-            // primary is the channel itself when it's a channel_image —
-            // walk to its template alignment + imaging technique.
-            // For non-image primaries (dataset, EP, anatomy) these
-            // OPTIONAL MATCHes return null and the row's
-            // template / technique / thumbnail cells render empty,
-            // matching v2 prod's behaviour on dataset rows.
             WITH primary
             OPTIONAL MATCH (primary)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (primary)-[:is_specified_output_of]->(technique:Class)
@@ -5584,13 +5587,51 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
             apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)", [typ.label, typ.short_form]), '[null](null)', '') AS type,
+            'Reference' AS reference_type,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
     """
 
-    results = vc.nc.commit_list([main_query])
-    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    # Source 2: expression patterns whose overlaps/part_of edges cite this pub.
+    exp_query = f"""
+        MATCH (:Individual)-[r:overlaps|part_of]->(b:Class:Expression_pattern)
+        WHERE '{pub_short_form}' IN r.pub
+        WITH DISTINCT b
+        RETURN
+            b.short_form AS id,
+            apoc.text.format("[%s](%s)", [b.label, b.short_form]) AS name,
+            apoc.text.join(coalesce(b.uniqueFacets, []), '|') AS tags,
+            '' AS type,
+            'Expression' AS reference_type,
+            '' AS template,
+            '' AS technique,
+            '' AS thumbnail
+    """
+
+    df_ref = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([ref_query])))
+    df_exp = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([exp_query])))
+    df = pd.concat([df_ref, df_exp], ignore_index=True, sort=False)
+
+    if not df.empty:
+        # A term could be cited both ways — collapse to one row per term and
+        # join its reference types (e.g. "Expression; Reference").
+        df = (df.groupby('id', as_index=False, sort=False)
+                .agg({
+                    'name': 'first',
+                    'tags': 'first',
+                    'type': 'first',
+                    'reference_type': lambda s: '; '.join(sorted({x for x in s if x})),
+                    'template': 'first',
+                    'technique': 'first',
+                    'thumbnail': 'first',
+                }))
+        df = df.sort_values('name', kind='stable').reset_index(drop=True)
+
+    total_count = len(df)
+    if limit != -1:
+        df = df.head(limit)
+
     if not df.empty:
         df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
 
@@ -5599,16 +5640,17 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
 
     return {
         "headers": {
-            "id":        {"title": "ID",                "type": "selection_id", "order": -1},
-            "name":      {"title": "Term",              "type": "markdown",     "order":  0},
-            "tags":      {"title": "Tags",              "type": "tags",         "order":  1},
-            "type":      {"title": "Type",              "type": "text",         "order":  2},
-            "template":  {"title": "Template",          "type": "markdown",     "order":  3},
-            "technique": {"title": "Imaging Technique", "type": "text",         "order":  4},
-            "thumbnail": {"title": "Thumbnail",         "type": "markdown",     "order":  9},
+            "id":             {"title": "ID",                "type": "selection_id", "order": -1},
+            "name":           {"title": "Term",              "type": "markdown",     "order":  0},
+            "reference_type": {"title": "Reference type",    "type": "text",         "order":  1},
+            "tags":           {"title": "Tags",              "type": "tags",         "order":  2},
+            "type":           {"title": "Type",              "type": "text",         "order":  3},
+            "template":       {"title": "Template",          "type": "markdown",     "order":  4},
+            "technique":      {"title": "Imaging Technique", "type": "text",         "order":  5},
+            "thumbnail":      {"title": "Thumbnail",         "type": "markdown",     "order":  9},
         },
         "rows": [
-            {k: row[k] for k in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]}
+            {k: row[k] for k in ["id", "name", "reference_type", "tags", "type", "template", "technique", "thumbnail"]}
             for row in safe_to_dict(df, sort_by_id=False)
         ],
         "count": total_count,

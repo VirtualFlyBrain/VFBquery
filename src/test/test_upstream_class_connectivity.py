@@ -39,8 +39,9 @@ class TestUpstreamClassConnectivityDict:
         assert result["rows"], "Expected at least one row"
         row = result["rows"][0]
         expected_keys = {
-            "id", "upstream_class", "total_n", "connected_n",
-            "percent_connected", "pairwise_connections", "total_weight", "avg_weight",
+            "id", "query_id", "upstream_class", "downstream_class",
+            "total_n", "connected_n", "percent_connected",
+            "pairwise_connections", "total_weight", "avg_weight",
         }
         assert expected_keys.issubset(row.keys())
 
@@ -87,8 +88,9 @@ class TestUpstreamClassConnectivityDataFrame:
             TEST_CLASS, return_dataframe=True, limit=1, force_refresh=True
         )
         expected_cols = {
-            "id", "upstream_class", "total_n", "connected_n",
-            "percent_connected", "pairwise_connections", "total_weight", "avg_weight",
+            "id", "query_id", "upstream_class", "downstream_class",
+            "total_n", "connected_n", "percent_connected",
+            "pairwise_connections", "total_weight", "avg_weight",
         }
         assert expected_cols.issubset(set(df.columns))
 
@@ -126,10 +128,13 @@ class TestUpstreamClassConnectivityHierarchyRollup:
         """A row keyed on a parent class should have connected_n at least as
         large as any of its descendant rows (set-union semantics) and at most
         the sum of descendant connected_n.
+
+        Restricted to the input term's own block so partner rows are not mixed
+        across queried (sub)classes.
         """
         from vfbquery.vfb_queries import vc, get_dict_cursor
 
-        rows = result["rows"]
+        rows = [r for r in result["rows"] if r["query_id"] == TEST_CLASS]
         ids = [r["id"] for r in rows]
         assert ids, "Expected at least one row to test against"
 
@@ -166,17 +171,68 @@ class TestUpstreamClassConnectivityHierarchyRollup:
         )
 
     @pytest.mark.integration
-    def test_total_n_is_constant_across_rows(self, result):
-        """`total_n` is the queried-side instance count and must be the same
-        for every output row.
+    def test_total_n_is_per_partner(self, result):
+        """In the upstream direction the presynaptic side is the partner, so
+        (matching VFB_connect's normalization) `total_n` describes the partner
+        (`upstream_class`): it must be constant across every row referencing the
+        same partner id, regardless of which queried (sub)class block it is in,
+        and `connected_n` must never exceed it.
         """
+        from collections import defaultdict
+
         rows = result["rows"]
         assert rows, "Expected at least one row"
-        total_ns = {r["total_n"] for r in rows}
-        assert len(total_ns) == 1, (
-            f"Expected total_n to be constant across rows, got: {total_ns}"
+        by_partner = defaultdict(set)
+        for r in rows:
+            assert r["connected_n"] <= r["total_n"], (
+                f"connected_n={r['connected_n']} > total_n={r['total_n']} "
+                f"for {r['id']}"
+            )
+            by_partner[r["id"]].add(r["total_n"])
+        for pid, totals in by_partner.items():
+            assert len(totals) == 1, (
+                f"total_n varies for partner {pid}: {totals}"
+            )
+            assert next(iter(totals)) > 0
+
+    @pytest.mark.integration
+    def test_includes_subclass_breakdown(self, result):
+        """The result should contain the input term's own rows plus a block of
+        rows for each subclass that has connectivity instances. Any non-input
+        query_id must be a genuine subclass of the input term.
+        """
+        from vfbquery.vfb_queries import vc, get_dict_cursor
+
+        rows = result["rows"]
+        query_ids = {r["query_id"] for r in rows}
+        assert TEST_CLASS in query_ids, "Expected the input term's own rows"
+
+        # Full subclass closure (incl. the input term itself).
+        q = (
+            "MATCH (sub:Class)-[:SUBCLASSOF*0..]->(:Class {short_form: '%s'}) "
+            "RETURN collect(DISTINCT sub.short_form) AS ids" % TEST_CLASS
         )
-        assert next(iter(total_ns)) > 0
+        subtree_rows = get_dict_cursor()(vc.nc.commit_list([q]))
+        subtree = set(subtree_rows[0]["ids"]) if subtree_rows else set()
+        offenders = [q for q in query_ids if q not in subtree]
+        assert not offenders, (
+            f"query_id(s) not in the input term's subclass closure: {offenders}"
+        )
+
+        # Subclasses of the input term that have connectivity instances.
+        sub_q = (
+            "MATCH (sub:Class)-[:SUBCLASSOF*1..]->(:Class {short_form: '%s'}) "
+            "WHERE (sub)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-"
+            "(:Individual:has_neuron_connectivity) "
+            "RETURN collect(DISTINCT sub.short_form) AS ids" % TEST_CLASS
+        )
+        sub_rows = get_dict_cursor()(vc.nc.commit_list([sub_q]))
+        connected_subclasses = set(sub_rows[0]["ids"]) if sub_rows else set()
+        if not connected_subclasses:
+            pytest.skip("Input term has no connectivity-bearing subclasses")
+        assert query_ids & connected_subclasses, (
+            "Expected subclass breakdown rows but none were present"
+        )
 
     @pytest.mark.integration
     def test_no_rows_above_neuron_root(self, result):

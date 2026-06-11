@@ -13,7 +13,11 @@ jobs:
   performance:
     name: "Performance Test"
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Set a timeout to prevent jobs from running indefinitely
+    # Raised from 60: the job runs the performance, legacy-performance and
+    # connectivity suites back-to-back, each hitting live VFB infra (Neo4j /
+    # SOLR / Owlery) with an auto-retry on first failure, so a cold/loaded run
+    # legitimately exceeds an hour. Still bounded to stop a genuinely hung run.
+    timeout-minutes: 120  # Set a timeout to prevent jobs from running indefinitely
     defaults:
       run:
         # pipefail so `python -m unittest ... | tee` propagates unittest's exit

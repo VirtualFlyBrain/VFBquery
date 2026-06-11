@@ -1060,15 +1060,6 @@ def serialize_term_info_to_dict(vfb_term: VfbTerminfo, variable, loaded_template
 
 def get_secure_data_url(data_url: str) -> str:
     """
-    Generates a secure data url from the given url
-    :param data_url: data url to secure
-    :return: secured url
-    """
-    return data_url.replace("http://", "https://").replace("https://www.virtualflybrain.org/data/", "/data/")
-
-
-def get_secure_data_url(data_url: str) -> str:
-    """
     Generates a secure, canonical data url from the given url: forces https and
     rewrites the www data host to the environment-independent virtualflybrain.org
     host, consistent with VFB term permalinks.

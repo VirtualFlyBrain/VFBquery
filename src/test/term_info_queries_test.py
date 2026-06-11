@@ -481,9 +481,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("downloads_label" in serialized)
         self.assertTrue("downloads" in serialized)
         self.assertEqual(3, len(serialized["downloads"]))
-        self.assertEqual("[my_id_mesh.obj](/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
-        self.assertEqual("[my_id.wlz](/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
-        self.assertEqual("[my_id.nrrd](/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
+        self.assertEqual("[my_id_mesh.obj](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
+        self.assertEqual("[my_id.wlz](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
+        self.assertEqual("[my_id.nrrd](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',

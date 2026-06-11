@@ -39,8 +39,9 @@ class TestDownstreamClassConnectivityDict:
         assert result["rows"], "Expected at least one row"
         row = result["rows"][0]
         expected_keys = {
-            "id", "downstream_class", "total_n", "connected_n",
-            "percent_connected", "pairwise_connections", "total_weight", "avg_weight",
+            "id", "query_id", "upstream_class", "downstream_class",
+            "total_n", "connected_n", "percent_connected",
+            "pairwise_connections", "total_weight", "avg_weight",
         }
         assert expected_keys.issubset(row.keys())
 
@@ -87,8 +88,9 @@ class TestDownstreamClassConnectivityDataFrame:
             TEST_CLASS, return_dataframe=True, limit=1, force_refresh=True
         )
         expected_cols = {
-            "id", "downstream_class", "total_n", "connected_n",
-            "percent_connected", "pairwise_connections", "total_weight", "avg_weight",
+            "id", "query_id", "upstream_class", "downstream_class",
+            "total_n", "connected_n", "percent_connected",
+            "pairwise_connections", "total_weight", "avg_weight",
         }
         assert expected_cols.issubset(set(df.columns))
 
@@ -129,7 +131,7 @@ class TestDownstreamClassConnectivityHierarchyRollup:
         """
         from vfbquery.vfb_queries import vc, get_dict_cursor
 
-        rows = result["rows"]
+        rows = [r for r in result["rows"] if r["query_id"] == TEST_CLASS]
         ids = [r["id"] for r in rows]
         assert ids, "Expected at least one row to test against"
 
@@ -147,7 +149,7 @@ class TestDownstreamClassConnectivityHierarchyRollup:
         parent_id = pairs[0]["parent"]
         child_id = pairs[0]["child"]
         parent_row = next(r for r in rows if r["id"] == parent_id)
-        # Sum connected_n across all descendant rows (not just the one returned).
+        # Sum connected_n across all descendant rows.
         desc_q = (
             "MATCH (p:Class {short_form: '%s'})<-[:SUBCLASSOF*1..]-(c:Class) "
             "WHERE c.short_form IN %s "
@@ -169,18 +171,67 @@ class TestDownstreamClassConnectivityHierarchyRollup:
         )
 
     @pytest.mark.integration
-    def test_total_n_is_constant_across_rows(self, result):
-        """`total_n` is the queried-side instance count and must be the same
-        for every output row (regression for the previous summed-across-
-        subclasses value).
+    def test_total_n_constant_within_each_query_class(self, result):
+        """In the downstream direction the presynaptic side is the queried
+        class, so (matching VFB_connect's normalization) `total_n` is the
+        queried (sub)class instance count: constant within each query block (it
+        varies between blocks), and `connected_n` never exceeds it.
         """
+        from collections import defaultdict
+
         rows = result["rows"]
         assert rows, "Expected at least one row"
-        total_ns = {r["total_n"] for r in rows}
-        assert len(total_ns) == 1, (
-            f"Expected total_n to be constant across rows, got: {total_ns}"
+        by_query = defaultdict(set)
+        for r in rows:
+            assert r["connected_n"] <= r["total_n"], (
+                f"connected_n={r['connected_n']} > total_n={r['total_n']} "
+                f"for {r['id']}"
+            )
+            by_query[r["query_id"]].add(r["total_n"])
+        for qid, totals in by_query.items():
+            assert len(totals) == 1, (
+                f"Expected total_n constant within block {qid}, got: {totals}"
+            )
+            assert next(iter(totals)) > 0
+
+    @pytest.mark.integration
+    def test_includes_subclass_breakdown(self, result):
+        """The result should contain the input term's own rows plus a block of
+        rows for each subclass that has connectivity instances. Any non-input
+        query_id must be a genuine subclass of the input term.
+        """
+        from vfbquery.vfb_queries import vc, get_dict_cursor
+
+        rows = result["rows"]
+        query_ids = {r["query_id"] for r in rows}
+        assert TEST_CLASS in query_ids, "Expected the input term's own rows"
+
+        # Full subclass closure (incl. the input term itself).
+        q = (
+            "MATCH (sub:Class)-[:SUBCLASSOF*0..]->(:Class {short_form: '%s'}) "
+            "RETURN collect(DISTINCT sub.short_form) AS ids" % TEST_CLASS
         )
-        assert next(iter(total_ns)) > 0
+        subtree_rows = get_dict_cursor()(vc.nc.commit_list([q]))
+        subtree = set(subtree_rows[0]["ids"]) if subtree_rows else set()
+        offenders = [q for q in query_ids if q not in subtree]
+        assert not offenders, (
+            f"query_id(s) not in the input term's subclass closure: {offenders}"
+        )
+
+        # Subclasses of the input term that have connectivity instances.
+        sub_q = (
+            "MATCH (sub:Class)-[:SUBCLASSOF*1..]->(:Class {short_form: '%s'}) "
+            "WHERE (sub)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-"
+            "(:Individual:has_neuron_connectivity) "
+            "RETURN collect(DISTINCT sub.short_form) AS ids" % TEST_CLASS
+        )
+        sub_rows = get_dict_cursor()(vc.nc.commit_list([sub_q]))
+        connected_subclasses = set(sub_rows[0]["ids"]) if sub_rows else set()
+        if not connected_subclasses:
+            pytest.skip("Input term has no connectivity-bearing subclasses")
+        assert query_ids & connected_subclasses, (
+            "Expected subclass breakdown rows but none were present"
+        )
 
     @pytest.mark.integration
     def test_no_rows_above_neuron_root(self, result):

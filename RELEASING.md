@@ -38,6 +38,21 @@ That's it — the `Publish 🐍 📦 to PyPI` workflow
 So after a release, **`main` reflects the released version** too — you don't have
 to bump it by hand.
 
+## Cache warming after a release
+
+A minor/major bump invalidates the previous version's cache entries
+(see [CACHING.md](CACHING.md#cache-versioning-and-invalidation)), so they're
+refilled with the new version's output. That happens two ways, with no dedicated
+release-triggered step:
+
+- **Lazily**, by the deployed production service as it serves traffic (the
+  primary path — each query refreshes on first read).
+- **By the `performance-test` workflow on `main`** — its perf steps are writable
+  on push-to-`main` and scheduled (daily) runs (read-only only on PRs), so they
+  recompute and re-cache the perf-test query set under the current `main`
+  version. The daily schedule guarantees the new version's entries are warmed
+  within a day of a release, so later PR runs read a warm cache.
+
 ### Notes & guarantees
 
 - The commit-back step runs **only after a successful publish** and only for

@@ -190,18 +190,25 @@ suppresses every **mutation** — no writes, no force-refresh clears, and no
 version/expiry purges (`solr_caching_readonly()`, gating `cache_result`,
 `clear_cache_entry` and `_clear_expired_cache_document`).
 
-This is used by the **performance-test workflow's perf-timing steps**: they need
-warm reads for representative timings, but a PR check must never write the
-branch's results into — or purge entries from — the shared production cache.
-Combined with `VFBQUERY_CACHE_ENABLED=false` on the result-asserting steps, **no
-PR run can modify the production cache**.
+This is used by the **performance-test workflow's perf-timing steps**, but only
+on **pull requests** — `VFBQUERY_CACHE_READONLY` is set from
+`github.event_name == 'pull_request'`. So:
 
-Note: because a PR can't warm the cache in read-only mode, a PR that bumps the
-**minor/major** version (whose entries aren't in the cache yet — see version
-invalidation below) will run those perf queries cold; same-version PRs read the
-already-warm production entries. If you want PR checks to read *and* write a
-cache without touching production, point them at a separate collection with
-`VFBQUERY_SOLR_URL` instead.
+- **On PRs** the perf steps read warm entries for representative timings but
+  never write or purge. Combined with `VFBQUERY_CACHE_ENABLED=false` on the
+  result-asserting steps, **no PR run can modify the production cache**.
+- **On push-to-`main` and scheduled runs** those perf steps are *writable*, so
+  they refresh/warm the cache under the current `main` version.
+
+That post-merge + daily-scheduled warming (plus lazy refresh by production
+traffic) is what keeps the cache populated for the version on `main`, including
+after a release bumps it. There's no dedicated release-triggered warm.
+
+Caveat: a PR that bumps the **minor/major** version reads cold in read-only mode
+(its version's entries don't exist yet — see version invalidation below);
+same-version PRs read the already-warm production entries. If you'd rather PR
+checks read *and* write a cache without touching production, point them at a
+separate collection with `VFBQUERY_SOLR_URL` instead.
 
 ## Performance Benefits
 

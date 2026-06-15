@@ -25,22 +25,22 @@ jobs:
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     # Mirror what publish_to_pypi.yaml does so the docker image and the
-    # PyPI wheel never disagree about their own version.
-    - name: Sync setup.py / __init__.py version to tag
+    # PyPI wheel never disagree about their own version. The version lives in a
+    # single source file (src/vfbquery/_version.py); setup.py reads it at build
+    # time and __init__.py imports it, so only _version.py is bumped here.
+    - name: Sync version to tag
       id: version
       run: |
         if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "Tag build detected: syncing __version__ to $VERSION"
-          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" setup.py
-          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" src/vfbquery/__init__.py
+          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" src/vfbquery/_version.py
         else
-          VERSION=$(grep '^__version__' setup.py | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(grep '^__version__' src/vfbquery/_version.py | sed 's/.*"\(.*\)".*/\1/')
           echo "Branch / dev build: using committed version $VERSION"
         fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "  setup.py:    $(grep ^__version__ setup.py)"
-        echo "  __init__.py: $(grep ^__version__ src/vfbquery/__init__.py)"
+        echo "  _version.py: $(grep ^__version__ src/vfbquery/_version.py)"
 
     - name: Build test Docker image
       run: docker build --no-cache . --file Dockerfile --tag test-image

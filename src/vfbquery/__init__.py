@@ -98,5 +98,5 @@ try:
 except ImportError:
     __solr_caching_available__ = False
 
-# Version information
-__version__ = "1.12.1"
+# Version information (single source of truth — see _version.py)
+from ._version import __version__

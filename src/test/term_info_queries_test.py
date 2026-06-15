@@ -481,9 +481,9 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("downloads_label" in serialized)
         self.assertTrue("downloads" in serialized)
         self.assertEqual(3, len(serialized["downloads"]))
-        self.assertEqual("[my_id_mesh.obj](/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
-        self.assertEqual("[my_id.wlz](/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
-        self.assertEqual("[my_id.nrrd](/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
+        self.assertEqual("[my_id_mesh.obj](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj)", serialized["downloads"][0])
+        self.assertEqual("[my_id.wlz](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz)", serialized["downloads"][1])
+        self.assertEqual("[my_id.nrrd](https://virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd)", serialized["downloads"][2])
         self.assertTrue("filemeta" in serialized)
         self.assertEqual(3, len(serialized["filemeta"]))
         self.assertEqual({'obj': {'local': '/MeshFiles(OBJ)/my_id_(my_name).obj',
@@ -583,21 +583,23 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result_1, "FBbt_00003748 query returned None")
         self.assertIsNotNone(result_2, "VFB_00101567 query returned None")
         
-        # Performance assertions - fail if queries take too long.
+        # Performance assertions - fail only if queries take pathologically long.
         # Thresholds depend on whether SOLR result caching is enabled. When
         # VFBQUERY_CACHE_ENABLED=false (CI sets this in python-test.yml so the
         # test exercises the live path), every call is a fresh Neo4j round-trip
         # rather than a cache hit, so timings are roughly an order of magnitude
-        # higher. The cache-disabled budget below matches the observed
-        # uncached latency on healthy infra (~10-20s per query for FBbt_00003748
-        # which has a large neighbourhood).
+        # higher AND highly variable on shared CI runners hitting live infra.
+        # FBbt_00003748 (mushroom body) has a large neighbourhood and has been
+        # observed up to ~45s uncached on loaded infra, so the cache-disabled
+        # budget is generous — it guards against true hangs / runaway queries
+        # rather than enforcing a tight latency SLA on the live path.
         cache_enabled = os.environ.get("VFBQUERY_CACHE_ENABLED", "true").lower() != "false"
         if cache_enabled:
             max_single_query_time = 10.0
             max_total_time = 10.0
         else:
-            max_single_query_time = 30.0
-            max_total_time = 45.0
+            max_single_query_time = 60.0
+            max_total_time = 90.0
 
         self.assertLess(duration_1, max_single_query_time,
                        f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold "

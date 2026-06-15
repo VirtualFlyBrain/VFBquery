@@ -28,6 +28,11 @@ result2 = vfb.get_term_info('FBbt_00003748')  # 54,000x faster!
 similar = vfb.get_similar_neurons('VFB_jrchk00s')  # Fast after first run
 ```
 
+📚 See [CACHING.md](CACHING.md) for cache configuration, the `VFBQUERY_CACHE_ENABLED`
+bypass (used by the tests), and version-based invalidation; and
+[RELEASING.md](RELEASING.md) for how the single-source version (`_version.py`) is
+bumped from the release tag.
+
 To get term info for a term:
 get_term_info(ID)
 

@@ -111,6 +111,35 @@ Note: data reads in `vfb_queries.py` (term_info, painted domains, ontology
 label lookups, etc.) still go to `solr.virtualflybrain.org` — only the result
 *cache* moved. The two are independent.
 
+## Cache versioning and invalidation
+
+Every cache entry is stamped with the VFBquery package version (major.minor) that
+wrote it, so results from an old code version aren't served after an upgrade.
+
+The **running** version is resolved (in `solr_result_cache.py`) as:
+
+1. the `VFBQUERY_VERSION` environment variable if set, otherwise
+2. the installed package version (`importlib.metadata.version('vfbquery')`),
+
+normalized to **major.minor**. That value comes from the single source of truth,
+`src/vfbquery/_version.py` (see [RELEASING.md](RELEASING.md)).
+
+On read, if an entry's stamp differs from the running version, invalidation is
+**monotonic** — it only discards entries written by an *older* version:
+
+- **Older (or unversioned) entry** → invalidated, deleted, and recomputed by the
+  current code.
+- **Newer entry** (seen by a stale/older install, or by an older deploy running
+  alongside a newer one) → treated as a miss but **not deleted**. An older client
+  must never purge a fresher entry; the previous `!=` check did, which let
+  downgrades wipe live entries and made concurrent versions thrash each other.
+
+Consequences for the major.minor namespace:
+
+- **Patch bumps** (`1.20.0 → 1.20.3`) share the cache — no invalidation.
+- **Minor/major bumps** (`1.20 → 1.21`) invalidate older entries on read, so a
+  release that changes query output naturally refreshes the cache.
+
 ## Runtime Configuration
 
 Control caching behavior:
@@ -132,6 +161,23 @@ Disable caching globally if needed:
 ```bash
 export VFBQUERY_CACHE_ENABLED=false
 ```
+
+When disabled, the cache layer is **fully bypassed** — every query runs live
+against Neo4j/Owlery/Solr with **no read, no write, no version-invalidation, and
+no contact with the cache server** (`solr_caching_disabled()` in
+`solr_result_cache.py`; mirrored in `vfb_connectivity.query_connectivity`).
+
+This is how the **integration tests** run in CI. The test steps that assert on
+query *results* (`test_neuron_neuron_connectivity`, `test_neuron_region_connectivity`,
+`test_vfb_connectivity`, the unit tests in `python-test.yml`, and `examples.yml`)
+set `VFBQUERY_CACHE_ENABLED=false` so they:
+
+- validate the **live** query for the branch under test, not a (possibly stale)
+  cached result, and
+- never write a PR/branch's output back into the **shared production cache**.
+
+The performance workflow's perf-timing steps keep caching enabled on purpose
+(they measure warm-cache latency); only the result-asserting steps disable it.
 
 ## Performance Benefits
 

@@ -504,6 +504,11 @@ def graph_from_downstream_class(rows, primary_id, primary_label=None):
     :param primary_id: short_form of the query neuron class
     :param primary_label: fallback label
     """
+    # Class connectivity now returns one block of rows per queried (sub)class;
+    # the graph reflects only the queried class itself, so keep the input-term
+    # block (query_id == primary_id). ``None`` tolerates older cached rows that
+    # predate the query_id field.
+    rows = [r for r in rows if r.get("query_id") in (None, primary_id)]
     if not rows:
         return None
 
@@ -574,6 +579,11 @@ def graph_from_upstream_class(rows, primary_id, primary_label=None):
     :param primary_id: short_form of the query neuron class
     :param primary_label: fallback label
     """
+    # Class connectivity now returns one block of rows per queried (sub)class;
+    # the graph reflects only the queried class itself, so keep the input-term
+    # block (query_id == primary_id). ``None`` tolerates older cached rows that
+    # predate the query_id field.
+    rows = [r for r in rows if r.get("query_id") in (None, primary_id)]
     if not rows:
         return None
 

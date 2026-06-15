@@ -295,6 +295,32 @@ class TestGraphFromDownstreamClass:
         _mock_batch_lookup(monkeypatch)
         assert graph_from_downstream_class([], "FBbt_x") is None
 
+    def test_filters_to_input_term_block(self, monkeypatch):
+        """Per-subclass result blocks are filtered to the queried class itself
+        (query_id == primary_id); rows tagged with a subclass query_id are
+        excluded so the same partner isn't duplicated / its edge conflated
+        across (sub)class blocks."""
+        _mock_batch_lookup(monkeypatch)
+        rows = [
+            # input-term block (query_id == primary)
+            {"id": "FBbt_d1", "query_id": "FBbt_primary",
+             "upstream_class": "[KC](FBbt_primary)", "downstream_class": "[MBON-01](FBbt_d1)",
+             "total_n": 100, "connected_n": 50, "percent_connected": 50,
+             "pairwise_connections": 200, "total_weight": 5000, "avg_weight": 25},
+            # subclass block — SAME partner, must be excluded from the graph
+            {"id": "FBbt_d1", "query_id": "FBbt_sub1",
+             "upstream_class": "[KC subtype](FBbt_sub1)", "downstream_class": "[MBON-01](FBbt_d1)",
+             "total_n": 10, "connected_n": 5, "percent_connected": 50,
+             "pairwise_connections": 20, "total_weight": 500, "avg_weight": 25},
+        ]
+        g = graph_from_downstream_class(rows, "FBbt_primary", "KC")
+        assert g is not None
+        assert len(g["nodes"]) == 2          # primary + the one input-term partner
+        assert len(g["edges"]) == 1
+        assert g["edges"][0]["source"] == "FBbt_primary"
+        assert g["edges"][0]["target"] == "FBbt_d1"
+        assert g["edges"][0]["weight"] == 5000  # input-term block, not the subclass's 500
+
 
 class TestGraphFromUpstreamClass:
     def test_basic(self, monkeypatch):
@@ -315,6 +341,30 @@ class TestGraphFromUpstreamClass:
     def test_empty(self, monkeypatch):
         _mock_batch_lookup(monkeypatch)
         assert graph_from_upstream_class([], "FBbt_x") is None
+
+    def test_filters_to_input_term_block(self, monkeypatch):
+        """Only the queried class's own block (query_id == primary_id) feeds the
+        graph; subclass blocks are excluded so partners aren't duplicated /
+        edges conflated across (sub)classes."""
+        _mock_batch_lookup(monkeypatch)
+        rows = [
+            {"id": "FBbt_u1", "query_id": "FBbt_primary",
+             "upstream_class": "[PN1](FBbt_u1)", "downstream_class": "[KC](FBbt_primary)",
+             "total_n": 60, "connected_n": 30, "percent_connected": 50,
+             "pairwise_connections": 150, "total_weight": 3000, "avg_weight": 20},
+            # subclass block — SAME partner, must be excluded
+            {"id": "FBbt_u1", "query_id": "FBbt_sub1",
+             "upstream_class": "[PN1](FBbt_u1)", "downstream_class": "[KC subtype](FBbt_sub1)",
+             "total_n": 12, "connected_n": 6, "percent_connected": 50,
+             "pairwise_connections": 30, "total_weight": 600, "avg_weight": 20},
+        ]
+        g = graph_from_upstream_class(rows, "FBbt_primary", "KC")
+        assert g is not None
+        assert len(g["nodes"]) == 2          # primary + the one input-term partner
+        assert len(g["edges"]) == 1
+        assert g["edges"][0]["source"] == "FBbt_u1"
+        assert g["edges"][0]["target"] == "FBbt_primary"
+        assert g["edges"][0]["weight"] == 3000  # input-term block, not the subclass's 600
 
 
 # ---------------------------------------------------------------------------

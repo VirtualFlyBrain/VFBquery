@@ -3,7 +3,12 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-__version__ = "1.20.0"
+# Single source of truth: read __version__ from src/vfbquery/_version.py without
+# importing the package (which would pull in runtime dependencies at build time).
+_version_ns = {}
+with open(path.join(here, "src", "vfbquery", "_version.py")) as _vf:
+    exec(_vf.read(), _version_ns)
+__version__ = _version_ns["__version__"]
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:

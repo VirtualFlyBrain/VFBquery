@@ -131,8 +131,16 @@ def query_connectivity(upstream_type=None, downstream_type=None, weight=5,
     if upstream_type is None and downstream_type is None:
         raise ValueError("At least one of upstream_type or downstream_type must be specified")
 
+    # Fully bypass the cache when disabled (VFBQUERY_CACHE_ENABLED=false): run
+    # the live query directly without reading stale data or writing to the
+    # shared production cache. Mirrors the @with_solr_cache decorator's bypass.
+    from .solr_result_cache import get_solr_cache, solr_caching_disabled
+    if solr_caching_disabled():
+        return _query_connectivity_uncached(
+            upstream_type, downstream_type, weight, group_by_class, exclude_dbs
+        )
+
     # Persistent SOLR cache (composite key) sitting behind the in-memory cache.
-    from .solr_result_cache import get_solr_cache
     cache = get_solr_cache()
     cache_key = _connectivity_cache_key(
         upstream_type, downstream_type, weight, group_by_class, exclude_dbs

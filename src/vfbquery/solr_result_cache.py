@@ -139,6 +139,18 @@ class SolrResultCache:
         minor = match.group(2) or '0'
         return f"{major}.{minor}"
 
+    def _version_tuple(self, normalized_version: Optional[str]):
+        """Return a numeric ``(major, minor)`` tuple for a normalized version
+        string, or ``None`` if it can't be parsed. Used for ordered comparison
+        (string compare is wrong: ``'1.8' > '1.20'`` lexicographically)."""
+        if not normalized_version:
+            return None
+        try:
+            major, minor = normalized_version.split('.')
+            return (int(major), int(minor))
+        except (ValueError, AttributeError):
+            return None
+
     def _get_package_version(self) -> Optional[str]:
         """Return the VFBquery package version for cache validation."""
         if hasattr(self, '_package_version') and self._package_version is not None:
@@ -257,15 +269,36 @@ class SolrResultCache:
             # Parse the cached metadata and result
             cached_data = json.loads(cached_field)
             
-            # Check package version before anything else so stale cache is rejected early
+            # Check package version before anything else so stale cache is rejected early.
+            # Only invalidate when the cached entry is OLDER than the current code
+            # (compared numerically by major.minor) or carries no parseable version,
+            # so newer code repopulates stale entries. A NEWER cached entry — seen by
+            # a stale/older install, or by an older deploy running concurrently — is
+            # treated as a miss but NOT deleted: an older client must never purge a
+            # fresher entry (the previous `!=` check did, causing cross-version
+            # cache thrashing and letting downgrades wipe live entries).
             current_version = self._get_cache_package_version()
             cached_version = self._normalize_version(cached_data.get("package_version") or cached_data.get("version"))
             if current_version and cached_version != current_version:
-                logger.info(
-                    f"Cache invalidated for {query_type}({term_id}) because package major.minor version changed "
-                    f"(cached={cached_version}, current={current_version})"
+                cached_t = self._version_tuple(cached_version)
+                current_t = self._version_tuple(current_version)
+                cached_is_older = (
+                    current_t is None      # current unparseable -> be conservative
+                    or cached_t is None    # legacy/unversioned entry
+                    or cached_t < current_t
                 )
-                self._clear_expired_cache_document(cache_doc_id)
+                if cached_is_older:
+                    logger.info(
+                        f"Cache invalidated for {query_type}({term_id}): cached version "
+                        f"{cached_version} older than current {current_version}"
+                    )
+                    self._clear_expired_cache_document(cache_doc_id)
+                else:
+                    logger.info(
+                        f"Cache miss for {query_type}({term_id}): cached version "
+                        f"{cached_version} newer than current {current_version}; "
+                        f"not serving or deleting it"
+                    )
                 return None
 
             # Check expiration (3-month max age)
@@ -360,6 +393,10 @@ class SolrResultCache:
         Returns:
             True if successfully cached, False otherwise
         """
+        if solr_caching_readonly():
+            # Read-only mode: never write to the shared cache (e.g. PR checks).
+            return False
+
         if not result:
             logger.debug("Empty result, not caching")
             return False
@@ -420,6 +457,9 @@ class SolrResultCache:
 
     def _clear_expired_cache_document(self, cache_doc_id: str):
         """Delete expired cache document from SOLR"""
+        if solr_caching_readonly():
+            # Read-only mode: never delete/purge entries (e.g. PR checks).
+            return
         if not self._solr_available():
             return
         try:
@@ -444,6 +484,9 @@ class SolrResultCache:
         Returns:
             True if successfully cleared, False otherwise
         """
+        if solr_caching_readonly():
+            # Read-only mode: never delete/purge entries (e.g. PR checks).
+            return False
         if not self._solr_available():
             return False
         try:
@@ -762,15 +805,38 @@ def get_solr_cache() -> SolrResultCache:
         _solr_cache = SolrResultCache()
     return _solr_cache
 
+def solr_caching_disabled() -> bool:
+    """True when the SOLR result cache is disabled via VFBQUERY_CACHE_ENABLED.
+
+    Matches the check in __init__.py. When disabled, the cache layer is fully
+    bypassed — no read, no write, no contact with the cache server — so callers
+    (notably the test suite) exercise the live query and never mutate the
+    shared production cache. Evaluated per-call so tests can toggle it via env.
+    """
+    return os.getenv('VFBQUERY_CACHE_ENABLED', 'true').lower() in ('false', '0', 'no', 'off')
+
+
+def solr_caching_readonly() -> bool:
+    """True when the SOLR result cache is read-only via VFBQUERY_CACHE_READONLY.
+
+    In read-only mode entries may still be *read* (so warm results are served —
+    e.g. the perf tests keep their fast timings), but all *mutations* are
+    suppressed: no writes, no force-refresh clears, and no version/expiry purges.
+    This lets PR checks read the shared production cache without ever modifying
+    it. Evaluated per-call so CI can toggle it via env.
+    """
+    return os.getenv('VFBQUERY_CACHE_READONLY', 'false').lower() in ('true', '1', 'yes', 'on')
+
+
 def with_solr_cache(query_type: str):
     """
     Decorator to add SOLR caching to query functions
-    
+
     Usage:
         @with_solr_cache('term_info')
         def get_term_info(short_form, force_refresh=False, **kwargs):
             # ... existing implementation
-    
+
     The decorated function can accept a 'force_refresh' parameter to bypass cache.
     """
     def decorator(func):
@@ -778,7 +844,14 @@ def with_solr_cache(query_type: str):
         def wrapper(*args, **kwargs):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
-            
+
+            # Fully bypass the cache when disabled (VFBQUERY_CACHE_ENABLED=false):
+            # run the live query directly, never reading stale data nor writing
+            # to the shared production cache. This is what the test suite relies
+            # on so a PR's queries are validated live without poisoning the cache.
+            if solr_caching_disabled():
+                return func(*args, **kwargs)
+
             # Check if limit is applied - only cache full results (limit=-1)
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)

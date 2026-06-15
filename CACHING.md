@@ -179,6 +179,30 @@ set `VFBQUERY_CACHE_ENABLED=false` so they:
 The performance workflow's perf-timing steps keep caching enabled on purpose
 (they measure warm-cache latency); only the result-asserting steps disable it.
 
+#### Read-only mode
+
+```bash
+export VFBQUERY_CACHE_READONLY=true
+```
+
+Read-only mode still **reads** the cache (warm results are served), but
+suppresses every **mutation** — no writes, no force-refresh clears, and no
+version/expiry purges (`solr_caching_readonly()`, gating `cache_result`,
+`clear_cache_entry` and `_clear_expired_cache_document`).
+
+This is used by the **performance-test workflow's perf-timing steps**: they need
+warm reads for representative timings, but a PR check must never write the
+branch's results into — or purge entries from — the shared production cache.
+Combined with `VFBQUERY_CACHE_ENABLED=false` on the result-asserting steps, **no
+PR run can modify the production cache**.
+
+Note: because a PR can't warm the cache in read-only mode, a PR that bumps the
+**minor/major** version (whose entries aren't in the cache yet — see version
+invalidation below) will run those perf queries cold; same-version PRs read the
+already-warm production entries. If you want PR checks to read *and* write a
+cache without touching production, point them at a separate collection with
+`VFBQUERY_SOLR_URL` instead.
+
 ## Performance Benefits
 
 VFBquery SOLR caching provides significant performance improvements:

@@ -21,14 +21,19 @@ def test_decode_handles_legacy_plain_json_and_list_shape():
     assert _decode_cache_field([enc]) == legacy
 
 
-def test_cap_is_on_compressed_size():
-    c = SolrResultCache(max_result_size_mb=100)
-    assert c.max_result_size_bytes == 100 * 1024 * 1024
-    big = {"result": {"rows": [{"id": i, "name": "n"} for i in range(300000)]},
-           "cached_at": "2026-01-01T00:00:00+00:00",
-           "expires_at": "2026-04-01T00:00:00+00:00", "result_size": 0}
-    enc = _encode_cache_field(json.dumps(big))
-    assert len(enc.encode("utf-8")) < c.max_result_size_bytes
+def test_cap_is_enforced_on_compressed_not_raw_size():
+    # Small cap + a highly compressible payload: the RAW JSON must exceed the cap
+    # while the gzip+base64 form stays under it, proving the cap is on the stored
+    # (compressed) size, not the raw size. Kept fast/memory-light via repetition.
+    cap_mb = 1
+    c = SolrResultCache(max_result_size_mb=cap_mb)
+    cap = cap_mb * 1024 * 1024
+    assert c.max_result_size_bytes == cap
+    payload = json.dumps({"result": {"rows": ["x" * 100] * 50000}})  # ~5 MB raw, compresses hard
+    raw = len(payload.encode("utf-8"))
+    compressed = len(_encode_cache_field(payload).encode("utf-8"))
+    assert raw > cap, f"raw {raw} should exceed cap {cap}"
+    assert compressed < cap, f"compressed {compressed} should be under cap {cap}"
 
 
 def test_env_override(monkeypatch):

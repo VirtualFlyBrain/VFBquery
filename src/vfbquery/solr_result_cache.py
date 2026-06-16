@@ -64,8 +64,15 @@ def _decode_cache_field(cached_field) -> str:
     if isinstance(cached_field, list):
         cached_field = cached_field[0] if cached_field else ""
     if isinstance(cached_field, str) and cached_field.startswith(_CACHE_GZIP_PREFIX):
-        blob = base64.b64decode(cached_field[len(_CACHE_GZIP_PREFIX):])
-        return gzip.decompress(blob).decode("utf-8")
+        try:
+            blob = base64.b64decode(cached_field[len(_CACHE_GZIP_PREFIX):])
+            return gzip.decompress(blob).decode("utf-8")
+        except Exception:
+            # Corrupt/truncated gz payload: return the raw string so callers'
+            # json.loads fails and the entry is treated as invalid (and purged),
+            # rather than raising an un-caught error that aborts cleanup/stats.
+            logger.warning("Failed to decode compressed cache payload; treating as invalid")
+            return cached_field
     return cached_field
 
 

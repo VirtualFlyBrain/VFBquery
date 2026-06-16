@@ -125,7 +125,12 @@ class SolrResultCache:
         self.cache_url = cache_url
         self.ttl_hours = ttl_hours
         if max_result_size_mb is None:
-            max_result_size_mb = int(os.getenv('VFBQUERY_MAX_RESULT_MB', '100'))
+            raw = os.getenv("VFBQUERY_MAX_RESULT_MB", "100")
+            try:
+                max_result_size_mb = int(raw)
+            except ValueError:
+                logger.warning("Invalid VFBQUERY_MAX_RESULT_MB=%r; falling back to 100", raw)
+                max_result_size_mb = 100
         self.max_result_size_mb = max_result_size_mb
         # The cap is enforced on the COMPRESSED (gzip+base64) payload that is
         # actually stored, so 100 MB here corresponds to ~1-1.5 GB of raw JSON.

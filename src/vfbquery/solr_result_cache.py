@@ -72,7 +72,7 @@ def _decode_cache_field(cached_field) -> str:
             # raising an uncaught error that would abort cleanup/stats runs. The
             # caller's json.loads then fails, so the entry is treated as invalid
             # JSON (get_cached_result purges it; other callers skip it).
-            logger.warning("Failed to decode compressed cache payload; treating as invalid")
+            logger.warning("Failed to decode compressed cache payload; treating as invalid", exc_info=True)
             return cached_field
     return cached_field
 

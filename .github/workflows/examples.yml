@@ -1,7 +1,9 @@
 name: Test VFBquery Examples
 on:
   push:
+    branches: [ main, dev ]  # avoid a duplicate run on PR-branch pushes (the pull_request event already covers those)
   pull_request:
+    branches: [ main, dev ]
   workflow_dispatch:  # Enables manual triggering
   schedule:
     - cron: '0 0 1 * *'  # Runs at 00:00 UTC on the 1st day of every month

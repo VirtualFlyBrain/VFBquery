@@ -16,6 +16,8 @@ import os
 import re
 import requests
 import hashlib
+import gzip
+import base64
 import time
 import threading
 from datetime import datetime, timedelta
@@ -35,6 +37,37 @@ except ImportError:
         PackageNotFoundError = Exception
 
 logger = logging.getLogger(__name__)
+
+# --- Compressed cache payloads ---------------------------------------------
+# Large query results (e.g. AllAlignedImages for whole-brain templates) serialise
+# to hundreds of MB of JSON. Stored raw, they blew past the cache size cap, were
+# never cached (so recomputed every call), and bloated the Solr index. We gzip the
+# serialised envelope and base64-encode it so it still fits the text cache_data
+# field. The marker prefix lets readers transparently handle both legacy
+# plain-JSON entries and compressed ones, and shrinks the on-the-wire payload
+# ~10-15x on every read.
+_CACHE_GZIP_PREFIX = "gz:"
+
+
+def _encode_cache_field(envelope_json: str) -> str:
+    """Compress a serialised cache envelope for storage in the cache_data field."""
+    packed = gzip.compress(envelope_json.encode("utf-8"), 6)
+    return _CACHE_GZIP_PREFIX + base64.b64encode(packed).decode("ascii")
+
+
+def _decode_cache_field(cached_field) -> str:
+    """Return the serialised cache envelope from a stored cache_data value.
+
+    Handles the Solr list-or-string shape and both payload formats: legacy plain
+    JSON (returned unchanged) and ``gz:``-prefixed base64 gzip blobs.
+    """
+    if isinstance(cached_field, list):
+        cached_field = cached_field[0] if cached_field else ""
+    if isinstance(cached_field, str) and cached_field.startswith(_CACHE_GZIP_PREFIX):
+        blob = base64.b64decode(cached_field[len(_CACHE_GZIP_PREFIX):])
+        return gzip.decompress(blob).decode("utf-8")
+    return cached_field
+
 
 @dataclass 
 class CacheMetadata:
@@ -67,7 +100,7 @@ class SolrResultCache:
     def __init__(self,
                  cache_url: str = None,
                  ttl_hours: int = 2160,  # 3 months like VFB_connect
-                 max_result_size_mb: int = 10):
+                 max_result_size_mb: int = None):
         """
         Initialize SOLR result cache
 
@@ -76,13 +109,18 @@ class SolrResultCache:
                 VFBQUERY_SOLR_URL env var if set, otherwise the dedicated
                 query-cache Solr (DEFAULT_CACHE_URL).
             ttl_hours: Time-to-live for cache entries in hours
-            max_result_size_mb: Maximum result size to cache in MB
+            max_result_size_mb: Maximum *compressed* result size to cache in MB
+                (default 100; override with the VFBQUERY_MAX_RESULT_MB env var)
         """
         if cache_url is None:
             cache_url = os.getenv('VFBQUERY_SOLR_URL', self.DEFAULT_CACHE_URL)
         self.cache_url = cache_url
         self.ttl_hours = ttl_hours
+        if max_result_size_mb is None:
+            max_result_size_mb = int(os.getenv('VFBQUERY_MAX_RESULT_MB', '100'))
         self.max_result_size_mb = max_result_size_mb
+        # The cap is enforced on the COMPRESSED (gzip+base64) payload that is
+        # actually stored, so 100 MB here corresponds to ~1-1.5 GB of raw JSON.
         self.max_result_size_bytes = max_result_size_mb * 1024 * 1024
 
         # When Solr is unreachable, disable caching for a period (backoff).
@@ -108,10 +146,8 @@ class SolrResultCache:
         serialized_result = json.dumps(result, cls=NumpyEncoder)
         result_size = len(serialized_result.encode('utf-8'))
         
-        # Don't cache if result is too large
-        if result_size > self.max_result_size_bytes:
-            logger.warning(f"Result too large to cache: {result_size/1024/1024:.2f}MB > {self.max_result_size_mb}MB")
-            return None
+        # The size cap is enforced on the compressed payload in cache_result();
+        # result_size here is the raw size, kept for metadata and monitoring only.
             
         now = datetime.now().astimezone()
         expires_at = now + timedelta(hours=self.ttl_hours)  # 2160 hours = 90 days = 3 months
@@ -267,7 +303,7 @@ class SolrResultCache:
                 cached_field = cached_field[0]
             
             # Parse the cached metadata and result
-            cached_data = json.loads(cached_field)
+            cached_data = json.loads(_decode_cache_field(cached_field))
             
             # Check package version before anything else so stale cache is rejected early.
             # Only invalidate when the cached entry is OLDER than the current code
@@ -415,11 +451,24 @@ class SolrResultCache:
             # This ensures different query types for the same term have separate cache entries
             cache_doc_id = f"vfb_query_{query_type}_{term_id}"
             
+            # Serialise then gzip the envelope. The size cap is enforced here, on
+            # the compressed payload that is actually stored.
+            cache_field = _encode_cache_field(json.dumps(cached_data, cls=NumpyEncoder))
+            stored_size = len(cache_field.encode('utf-8'))
+            if stored_size > self.max_result_size_bytes:
+                logger.warning(
+                    f"Compressed result too large to cache: "
+                    f"{stored_size/1024/1024:.2f}MB > {self.max_result_size_mb}MB "
+                    f"(raw {cached_data.get('result_size', 0)/1024/1024:.1f}MB) "
+                    f"for {query_type}({term_id})"
+                )
+                return False
+
             cache_doc = {
                 "id": cache_doc_id,
                 "original_term_id": term_id,
                 "query_type": query_type,
-                "cache_data": json.dumps(cached_data, cls=NumpyEncoder),
+                "cache_data": cache_field,
                 "cached_at": cached_data["cached_at"],
                 "expires_at": cached_data["expires_at"]
             }
@@ -430,11 +479,11 @@ class SolrResultCache:
                 data=json.dumps([cache_doc]),
                 headers={"Content-Type": "application/json"},
                 params={"commit": "true"},  # Immediate commit for availability
-                timeout=int(os.getenv('VFBQUERY_SOLR_WRITE_TIMEOUT', '30'))
+                timeout=int(os.getenv('VFBQUERY_SOLR_WRITE_TIMEOUT', '60'))
             )
             
             if response.status_code == 200:
-                logger.info(f"Cached {query_type} for {term_id} as {cache_doc_id}, size: {cached_data['result_size']/1024:.1f}KB")
+                logger.info(f"Cached {query_type} for {term_id} as {cache_doc_id}, raw {cached_data['result_size']/1024:.1f}KB, stored {stored_size/1024:.1f}KB")
                 return True
             else:
                 logger.error(f"Failed to cache result: HTTP {response.status_code} - {response.text}")
@@ -564,7 +613,7 @@ class SolrResultCache:
                         if isinstance(cached_field, list):
                             cached_field = cached_field[0]
                         
-                        cached_data = json.loads(cached_field)
+                        cached_data = json.loads(_decode_cache_field(cached_field))
                         
                         cached_at = datetime.fromisoformat(cached_data["cached_at"].replace('Z', '+00:00'))
                         expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
@@ -635,7 +684,7 @@ class SolrResultCache:
                             cached_field = doc["cache_data"]
                             if isinstance(cached_field, list):
                                 cached_field = cached_field[0]
-                            cached_data = json.loads(cached_field)
+                            cached_data = json.loads(_decode_cache_field(cached_field))
                             expires_at = datetime.fromisoformat(cached_data["expires_at"].replace('Z', '+00:00'))
                         
                         if expires_at and now > expires_at:
@@ -716,7 +765,7 @@ class SolrResultCache:
                             if isinstance(cached_field, list):
                                 cached_field = cached_field[0]
                             
-                            cached_data = json.loads(cached_field)
+                            cached_data = json.loads(_decode_cache_field(cached_field))
                             total_size += len(cached_field)
                             
                             # Get timestamps from document fields or cache_data

@@ -13,6 +13,13 @@ def test_roundtrip_compresses_and_restores():
     assert _decode_cache_field(enc) == env
 
 
+def test_decode_returns_raw_string_on_corrupt_gz_payload():
+    # A gz:-prefixed but undecodable value must not raise; it returns the raw
+    # string so the caller's json.loads fails and the entry is treated as invalid.
+    for bad in (_CACHE_GZIP_PREFIX + "!!!not-base64!!!", _CACHE_GZIP_PREFIX + "AAAA"):
+        assert _decode_cache_field(bad) == bad
+
+
 def test_decode_handles_legacy_plain_json_and_list_shape():
     legacy = json.dumps({"result": 1})
     assert _decode_cache_field(legacy) == legacy

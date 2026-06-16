@@ -68,9 +68,10 @@ def _decode_cache_field(cached_field) -> str:
             blob = base64.b64decode(cached_field[len(_CACHE_GZIP_PREFIX):])
             return gzip.decompress(blob).decode("utf-8")
         except Exception:
-            # Corrupt/truncated gz payload: return the raw string so callers'
-            # json.loads fails and the entry is treated as invalid (and purged),
-            # rather than raising an un-caught error that aborts cleanup/stats.
+            # Corrupt/truncated gz payload: return the raw string rather than
+            # raising an uncaught error that would abort cleanup/stats runs. The
+            # caller's json.loads then fails, so the entry is treated as invalid
+            # JSON (get_cached_result purges it; other callers skip it).
             logger.warning("Failed to decode compressed cache payload; treating as invalid")
             return cached_field
     return cached_field
@@ -309,8 +310,15 @@ class SolrResultCache:
             if isinstance(cached_field, list):
                 cached_field = cached_field[0]
             
-            # Parse the cached metadata and result
-            cached_data = json.loads(_decode_cache_field(cached_field))
+            # Parse the cached metadata and result. A corrupt/undecodable entry
+            # (e.g. a truncated gz: payload) raises here; purge it so the next
+            # call repopulates, rather than leaving a permanent cache miss.
+            try:
+                cached_data = json.loads(_decode_cache_field(cached_field))
+            except (ValueError, TypeError):
+                logger.warning(f"Corrupt cache entry for {query_type}({term_id}); clearing it")
+                self._clear_expired_cache_document(cache_doc_id)
+                return None
             
             # Check package version before anything else so stale cache is rejected early.
             # Only invalidate when the cached entry is OLDER than the current code

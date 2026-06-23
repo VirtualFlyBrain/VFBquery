@@ -331,6 +331,12 @@ class TermInfoOutputSchema(Schema):
     Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False)
     Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
     Technique = fields.List(fields.String(), required=False, allow_none=True)
+    # External DB cross-references (site label + accession link + icon), rendered
+    # as the panel's xrefs section. TargetingSplits/TargetingNeurons: splits that
+    # target this neuron / neurons a split targets, each their own panel section.
+    Xrefs = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
+    TargetingSplits = fields.List(fields.String(), required=False, allow_none=True)
+    TargetingNeurons = fields.List(fields.String(), required=False, allow_none=True)
 
     @post_load
     def make_term_info(self, data, **kwargs):
@@ -1307,6 +1313,71 @@ def term_info_parse_object(results, short_form):
                     if synonym["label"] not in existing_labels:
                         termInfo["Synonyms"].append(synonym)
                         existing_labels.add(synonym["label"])
+
+        # External database cross-references (xrefs). Rendered today as the
+        # panel's xrefs link section (VFBProcessTermInfoCachedJson.java:1536):
+        # site label, icon and the external accession link. Previously dropped
+        # by this parser (e.g. medulla's Insect Brain DB link).
+        if getattr(vfbTerm, 'xrefs', None):
+            xrefs_out = []
+            for x in vfbTerm.xrefs:
+                site = getattr(x, 'site', None)
+                label = getattr(site, 'label', '') if site else ''
+                acc = x.accession if getattr(x, 'accession', None) and x.accession != "None" else ''
+                if acc:
+                    link = (x.link_base or '') + acc + (x.link_postfix or '')
+                elif getattr(x, 'homepage', None):
+                    link = x.homepage
+                else:
+                    link = getattr(site, 'iri', '') if site else ''
+                entry = {"label": label, "accession": acc, "link": link}
+                if getattr(x, 'icon', None):
+                    entry["icon"] = x.icon
+                xrefs_out.append(entry)
+            if xrefs_out:
+                termInfo["Xrefs"] = xrefs_out
+
+        # Related individuals — same Rel shape as relationships, rendered as its
+        # own panel section (VFBProcessTermInfoCachedJson.java:1529). Kept as a
+        # Meta string so it travels with the other Meta rows.
+        if getattr(vfbTerm, 'related_individuals', None):
+            grouped_ri = {}
+            for rel in vfbTerm.related_individuals:
+                if not (hasattr(rel, 'relation') and hasattr(rel.relation, 'label')):
+                    continue
+                if not (hasattr(rel, 'object') and hasattr(rel.object, 'label')):
+                    continue
+                rid = getattr(rel.relation, 'short_form', None) or rel.relation.label
+                key = (rel.relation.label, rid)
+                obj = (rel.object.label, getattr(rel.object, 'short_form', ''))
+                grouped_ri.setdefault(key, set()).add(obj)
+            related = []
+            for (rlabel, rid), objs in sorted(grouped_ri.items()):
+                objlinks = ", ".join("[%s](%s)" % (encode_brackets(o[0]), o[1]) for o in sorted(objs))
+                related.append("[%s](%s): %s" % (encode_brackets(rlabel), rid, objlinks))
+            if related:
+                termInfo["Meta"]["RelatedIndividuals"] = "; ".join(related)
+
+        # Splits that target this neuron / neurons a split targets — each its own
+        # panel section (VFBProcessTermInfoCachedJson.java:1827 / :1835).
+        if getattr(vfbTerm, 'targeting_splits', None):
+            ts, seen = [], set()
+            for s in vfbTerm.targeting_splits:
+                sf = getattr(s, 'short_form', None)
+                if sf and sf not in seen:
+                    ts.append("[%s](%s)" % (encode_brackets(s.label or sf), sf))
+                    seen.add(sf)
+            if ts:
+                termInfo["TargetingSplits"] = ts
+        if getattr(vfbTerm, 'target_neurons', None):
+            tn, seen = [], set()
+            for n in vfbTerm.target_neurons:
+                sf = getattr(n, 'short_form', None)
+                if sf and sf not in seen:
+                    tn.append("[%s](%s)" % (encode_brackets(n.label or sf), sf))
+                    seen.add(sf)
+            if tn:
+                termInfo["TargetingNeurons"] = tn
 
         # Add the queries to the term info
         termInfo["Queries"] = queries

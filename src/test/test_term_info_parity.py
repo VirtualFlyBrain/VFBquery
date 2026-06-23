@@ -91,6 +91,27 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertIn("FBrf0242477", refs, "FlyBase ref missing")
         self.assertIn("10.7554/eLife.43079", refs, "DOI missing")
 
+    # --- Coverage: external xref links (genes, anatomy) --------------------
+    def test_xrefs_surface_as_links(self):
+        ti = self._parse("FBbt_00003748")  # medulla -> Insect Brain DB
+        xr = ti.get("Xrefs") or []
+        self.assertTrue(xr, "Xrefs dropped for medulla")
+        ibdb = [x for x in xr if x.get("label") == "Insect Brain DB"]
+        self.assertTrue(ibdb, "Insect Brain DB xref missing")
+        self.assertIn("insectbraindb.org/app/structures/38", ibdb[0].get("link", ""))
+
+    def test_gene_xref_flybase(self):
+        ti = self._parse("FBgn0051882")  # a gene with a FlyBase xref
+        links = " ".join(x.get("link", "") for x in (ti.get("Xrefs") or []))
+        self.assertIn("flybase.org/reports/FBgn0051882", links, "gene FlyBase xref missing")
+
+    # --- Coverage: related_individuals -------------------------------------
+    def test_related_individuals_surface(self):
+        ti = self._parse("FBbt_00000058")  # FBbt class carrying related_individuals
+        ri = ti.get("Meta", {}).get("RelatedIndividuals", "")
+        self.assertTrue(ri, "related_individuals dropped")
+        self.assertIn("FBbt_00000057", ri, "related individual target id missing")
+
     # --- Gap D: License term must not 5xx / return None --------------------
     def test_license_term_info_does_not_5xx(self):
         # preview=False avoids the per-query count calls; License has no

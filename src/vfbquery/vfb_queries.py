@@ -515,6 +515,18 @@ def term_info_parse_object(results, short_form):
             termInfo["Meta"]["Description"] = "%s"%("".join(vfbTerm.term.description))
         except (NameError, AttributeError):
             pass
+        # Append class definition references (def_pubs) inline to the description
+        # as markdown microref links, matching how the panel renders them today
+        # (legacy VFBProcessTermInfoCachedJson definition() + "(<microrefs>)").
+        # Kept inline rather than as a separate Publications entry so the display
+        # is identical and no new panel section is introduced.
+        if getattr(vfbTerm, 'def_pubs', None):
+            def_refs = [p.get_microref() for p in vfbTerm.def_pubs
+                        if hasattr(p, 'get_miniref') and p.get_miniref()
+                        and hasattr(p, 'get_microref') and p.get_microref()]
+            if def_refs:
+                existing_desc = termInfo["Meta"].get("Description", "")
+                termInfo["Meta"]["Description"] = (existing_desc + "\n(" + ", ".join(def_refs) + ")") if existing_desc else ("(" + ", ".join(def_refs) + ")")
         try:
             # Retrieve comment from the term's comment attribute
             termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
@@ -1190,7 +1202,7 @@ def term_info_parse_object(results, short_form):
                     publication["title"] = pub.core.label if pub.core.label else ""
                     publication["short_form"] = pub.core.short_form if pub.core.short_form else ""
                     publication["microref"] = pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else ""
-                    
+
                     # Add external references
                     refs = []
                     if hasattr(pub, 'PubMed') and pub.PubMed:
@@ -1199,14 +1211,16 @@ def term_info_parse_object(results, short_form):
                         refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
                     if hasattr(pub, 'DOI') and pub.DOI:
                         refs.append(f"https://doi.org/{pub.DOI}")
-                    
+
                     publication["refs"] = refs
                     publications.append(publication)
-            
+
             termInfo["Publications"] = publications
 
-        # Add Synonyms for Class entities
-        if termInfo["SuperTypes"] and "Class" in termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
+        # Add Synonyms from pub_syn. Not gated on Class: Individual terms also
+        # carry pub_syn (parity gap B — Individual synonyms were dropped when
+        # this was Class-only).
+        if termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
             synonyms = []
             for syn in vfbTerm.pub_syn:
                 if hasattr(syn, 'synonym') and syn.synonym:
@@ -1260,8 +1274,10 @@ def term_info_parse_object(results, short_form):
             if synonyms and "Synonyms" not in termInfo:
                 termInfo["Synonyms"] = synonyms
 
-        # Special handling for Publication entities
-        if termInfo["SuperTypes"] and "Publication" in termInfo["SuperTypes"] and vfbTerm.pub_specific_content:
+        # Special handling for Publication entities. The SOLR SuperType marker is
+        # the lowercase "pub" (parity gap C — gating on "Publication" meant the
+        # block never fired, dropping pub title/PubMed/DOI/FlyBase links).
+        if termInfo["SuperTypes"] and ("pub" in termInfo["SuperTypes"] or "Publication" in termInfo["SuperTypes"]) and vfbTerm.pub_specific_content:
             publication = {}
             publication["title"] = vfbTerm.pub_specific_content.title if hasattr(vfbTerm.pub_specific_content, 'title') else ""
             publication["short_form"] = vfbTerm.term.core.short_form
@@ -6098,22 +6114,38 @@ def fill_query_results(term_info, force_refresh: bool = False):
                     result_count = result['count']
                     # If limit was applied, the count in dict may be wrong, get correct count
                     if query['preview'] > 0 and result_count == len(result['rows']):
-                        try:
-                            full_kwargs = {'return_dataframe': False, 'limit': -1}
-                            if supports_force_refresh:
-                                full_kwargs['force_refresh'] = force_refresh
-                            if function_args and takes_short_form:
-                                short_form_value = list(function_args.values())[0]
-                                full_dict = function(short_form_value, **full_kwargs)
-                            else:
-                                full_dict = function(**full_kwargs)
-                            result_count = full_dict['count']
-                        except Exception as e:
-                            print(f"Error getting full count for {query['function']}: {e}")
-                            result_count = result['count']  # Keep as is
+                        # Skip the full limit=-1 re-run when the preview was not
+                        # saturated: fewer returned rows than the preview cap means
+                        # the preview already holds the entire result set, so the
+                        # count is exactly the number of preview rows. This avoids
+                        # materialising every row purely to length-check it — the
+                        # main driver of cold term-info latency on SuperTypes that
+                        # offer many queries (expression pattern, scRNAseq cluster),
+                        # and a no-op win for zero/low-count queries (grey-out path).
+                        if len(result['rows']) < query['preview']:
+                            result_count = len(result['rows'])
+                        else:
+                          try:
+                              full_kwargs = {'return_dataframe': False, 'limit': -1}
+                              if supports_force_refresh:
+                                  full_kwargs['force_refresh'] = force_refresh
+                              if function_args and takes_short_form:
+                                  short_form_value = list(function_args.values())[0]
+                                  full_dict = function(short_form_value, **full_kwargs)
+                              else:
+                                  full_dict = function(**full_kwargs)
+                              result_count = full_dict['count']
+                          except Exception as e:
+                              print(f"Error getting full count for {query['function']}: {e}")
+                              result_count = result['count']  # Keep as is
                 elif isinstance(result, pd.DataFrame):
-                    # For DataFrame results, we need the full count even when preview is limited
-                    try:
+                    # For DataFrame results, we need the full count even when preview is limited.
+                    # But skip the full limit=-1 re-run when the preview was not saturated
+                    # (fewer rows than the cap means the preview already holds every row).
+                    if query['preview'] > 0 and len(result) < query['preview']:
+                        result_count = len(result)
+                    else:
+                      try:
                         full_kwargs = {'return_dataframe': True, 'limit': -1}
                         if supports_force_refresh:
                             full_kwargs['force_refresh'] = force_refresh
@@ -6123,7 +6155,7 @@ def fill_query_results(term_info, force_refresh: bool = False):
                         else:
                             full_result = function(**full_kwargs)
                         result_count = len(full_result)
-                    except Exception as e:
+                      except Exception as e:
                         print(f"Error getting full count for {query['function']}: {e}")
                         result_count = len(result)  # Fallback to limited count
                 else:

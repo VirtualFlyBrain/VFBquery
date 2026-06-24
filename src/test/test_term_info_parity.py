@@ -118,6 +118,28 @@ class TermInfoParityTest(unittest.TestCase):
         link = ti.get("Meta", {}).get("Link", "")
         self.assertIn("flybase.org/reports/FBrf0221438", link, "DataSet link dropped")
 
+    # --- Targeting queries (splits<->neurons) as live query types ----------
+    def test_neuron_class_offers_splits_targeting(self):
+        ti = self._parse("FBbt_00100243")  # MBON neuron class with split drivers
+        self.assertTrue(any(x.get("query") == "SplitsTargeting" for x in ti.get("Queries", [])),
+                        "SplitsTargeting not offered on neuron class")
+
+    def test_split_class_offers_target_neurons(self):
+        ti = self._parse("VFBexp_FBtp0129935FBtp0129968")  # a split class
+        self.assertTrue(any(x.get("query") == "TargetNeurons" for x in ti.get("Queries", [])),
+                        "TargetNeurons not offered on split class")
+
+    def test_splits_targeting_returns_count_and_rows(self):
+        r = q.get_splits_targeting("FBbt_00100243", return_dataframe=False, limit=5)
+        self.assertIsInstance(r, dict)
+        self.assertGreater(r.get("count", 0), 0, "expected splits targeting MBON")
+        self.assertTrue(r.get("rows"), "no preview rows")
+        self.assertTrue(all(k in r["rows"][0] for k in ("id", "label", "tags", "thumbnail")))
+
+    def test_neurons_targeted_by_split_returns_count(self):
+        r = q.get_neurons_targeted_by_split("VFBexp_FBtp0129935FBtp0129968", return_dataframe=False, limit=5)
+        self.assertGreater(r.get("count", 0), 0, "expected neurons targeted by split")
+
     # --- Gap D: License term must not 5xx / return None --------------------
     def test_license_term_info_does_not_5xx(self):
         # preview=False avoids the per-query count calls; License has no

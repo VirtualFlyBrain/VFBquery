@@ -824,6 +824,17 @@ def term_info_parse_object(results, short_form):
                 sorted_images = {int(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
                 termInfo["Domains"] = sorted_images
 
+        # SplitsTargeting — splits (intersectional expression patterns) that
+        # target this neuron class. TargetNeurons — neurons a split class targets.
+        # Live Neo4j queries (indexer neuron_split / split_neuron clauses),
+        # surfaced as queries with a count badge rather than static fields.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Neuron"]):
+            q = SplitsTargeting_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Split"]):
+            q = TargetNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
@@ -1605,6 +1616,24 @@ def SubclassesOf_to_schema(name, take_default):
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def SplitsTargeting_to_schema(name, take_default):
+    """Schema for SplitsTargeting query: splits that target a neuron class.
+    Matching criteria: Class + Neuron (mirrors the indexer neuron_split clause)."""
+    return Query(query="SplitsTargeting", label=f"Splits targeting {name}",
+                 function="get_splits_targeting",
+                 takes={"short_form": {"$and": ["Class", "Neuron"]}, "default": take_default},
+                 preview=5, preview_columns=["id", "label", "tags", "thumbnail"])
+
+
+def TargetNeurons_to_schema(name, take_default):
+    """Schema for TargetNeurons query: neurons targeted by a split class.
+    Matching criteria: Class + Split (mirrors the indexer split_neuron clause)."""
+    return Query(query="TargetNeurons", label=f"Neurons targeted by {name}",
+                 function="get_neurons_targeted_by_split",
+                 takes={"short_form": {"$and": ["Class", "Split"]}, "default": take_default},
+                 preview=5, preview_columns=["id", "label", "tags", "thumbnail"])
 
 
 def NeuronClassesFasciculatingHere_to_schema(name, take_default):
@@ -3170,6 +3199,76 @@ def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
     # Use angle brackets for IRI conversion, not quotes
     owl_query = f"<{short_form}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
+
+def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
+    """Shared runner for the split<->neuron targeting queries.
+
+    base_match must bind the result class to ``var`` for the given ``short_form``.
+    Returns the standard class-row table (id/label/tags/thumbnail) + true count,
+    so fill_query_results gets the real count without a re-run.
+    """
+    count_query = base_match + f" RETURN count(DISTINCT {var}) AS total_count"
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([count_query])))
+    total_count = int(count_df['total_count'][0]) if not count_df.empty else 0
+
+    main_query = base_match + (
+        f" WITH DISTINCT {var} "
+        f"CALL {{ WITH {var} OPTIONAL MATCH ({var})<-[:INSTANCEOF]-(:Individual)<-[:depicts]-"
+        "(:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template) "
+        "RETURN irw, templ LIMIT 1 } "
+        f"RETURN {var}.short_form AS id, "
+        f"apoc.text.format(\"[%s](%s)\",[{var}.label, {var}.short_form]) AS label, "
+        f"apoc.text.join(coalesce({var}.uniqueFacets,[]),'|') AS tags, "
+        f"REPLACE(apoc.text.format(\"[![%s](%s '%s')](%s)\",[{var}.label, "
+        "REPLACE(COALESCE(irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'), "
+        f"{var}.label, templ.short_form + ',' + {var}.short_form]), "
+        "\"[![null]( 'null')](null)\", \"\") AS thumbnail "
+        "ORDER BY label"
+    )
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([main_query])))
+    df = encode_markdown_links(df, ['label', 'thumbnail'])
+    if return_dataframe:
+        return df
+    return {
+        "headers": _get_standard_query_headers(),
+        "rows": [{k: row.get(k) for k in ["id", "label", "tags", "thumbnail"]}
+                 for row in safe_to_dict(df, sort_by_id=False)],
+        "count": total_count,
+    }
+
+
+@with_solr_cache('splits_targeting')
+def get_splits_targeting(short_form: str, return_dataframe=True, limit: int = -1):
+    """Splits (intersectional expression patterns) that target the given neuron class.
+
+    Live Neo4j query mirroring the indexer's neuron_split clause
+    (VFB_json_schema_indexer query_roller.neuron_split) — surfaced as a query
+    with a preview + count badge rather than a static term-info field.
+    """
+    base = (
+        "MATCH (:Class {label:'intersectional expression pattern'})"
+        "<-[:SUBCLASSOF]-(ep:Class)<-[:part_of]-(:Individual)"
+        f"-[:INSTANCEOF]->(primary:Class {{short_form:'{short_form}'}})"
+    )
+    return _targeting_rows(base, "ep", short_form, return_dataframe, limit)
+
+
+@with_solr_cache('neurons_targeted_by_split')
+def get_neurons_targeted_by_split(short_form: str, return_dataframe=True, limit: int = -1):
+    """Neurons targeted by the given split class.
+
+    Live Neo4j query mirroring the indexer's split_neuron clause
+    (VFB_json_schema_indexer query_roller.split_neuron).
+    """
+    base = (
+        "MATCH (:Class {label:'intersectional expression pattern'})"
+        f"<-[:SUBCLASSOF]-(primary:Class {{short_form:'{short_form}'}})"
+        "<-[:part_of]-(:Individual)-[:INSTANCEOF]->(n:Neuron)"
+    )
+    return _targeting_rows(base, "n", short_form, return_dataframe, limit)
 
 
 @with_solr_cache('neuron_classes_fasciculating_here')

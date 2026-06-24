@@ -85,7 +85,11 @@ from .vfb_queries import (
     get_transgene_expression_here as _original_get_transgene_expression_here,
 )
 
-@with_solr_cache('term_info')
+# Deliberately NOT @with_solr_cache here: the underlying get_term_info
+# (_original_get_term_info) is already decorated with @with_solr_cache('term_info').
+# Decorating again ran the cache layer twice per request — two Solr reads and two
+# writes for the same key (visible as duplicated "Cached term_info" log lines).
+# Delegate to the cached original; force_refresh is forwarded below.
 def get_term_info_cached(short_form: str, preview: bool = True, force_refresh: bool = False):
     """
     Enhanced get_term_info with SOLR caching.
@@ -334,7 +338,10 @@ def get_painted_domains_cached(template_short_form: str, return_dataframe=True, 
     """
     return _original_get_painted_domains(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache('template_roi_tree')
+# Deliberately NOT @with_solr_cache here: _original_get_template_roi_tree is
+# already decorated with @with_solr_cache('template_roi_tree'); decorating again
+# double-ran the cache layer. Delegate to the cached original and forward
+# force_refresh (previously the outer decorator consumed it).
 def get_template_roi_tree_cached(template_short_form: str, return_dataframe: bool = False, force_refresh: bool = False):
     """
     Enhanced get_template_roi_tree with SOLR caching.
@@ -355,7 +362,7 @@ def get_template_roi_tree_cached(template_short_form: str, return_dataframe: boo
     Returns:
         ROI tree dict — see get_template_roi_tree docstring for shape.
     """
-    return _original_get_template_roi_tree(template_short_form=template_short_form, return_dataframe=return_dataframe)
+    return _original_get_template_roi_tree(template_short_form=template_short_form, return_dataframe=return_dataframe, force_refresh=force_refresh)
 
 @with_solr_cache('dataset_images')
 def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):

@@ -332,11 +332,8 @@ class TermInfoOutputSchema(Schema):
     Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
     Technique = fields.List(fields.String(), required=False, allow_none=True)
     # External DB cross-references (site label + accession link + icon), rendered
-    # as the panel's xrefs section. TargetingSplits/TargetingNeurons: splits that
-    # target this neuron / neurons a split targets, each their own panel section.
+    # as the panel's xrefs section.
     Xrefs = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
-    TargetingSplits = fields.List(fields.String(), required=False, allow_none=True)
-    TargetingNeurons = fields.List(fields.String(), required=False, allow_none=True)
 
     @post_load
     def make_term_info(self, data, **kwargs):
@@ -537,6 +534,21 @@ def term_info_parse_object(results, short_form):
             # Retrieve comment from the term's comment attribute
             termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
         except (NameError, AttributeError):
+            pass
+        # External homepage link + logo (e.g. a DataSet's FlyBase/project link and
+        # icon). Rendered as the panel's link / logo rows
+        # (VFBProcessTermInfoCachedJson.java:1456 / :1449). Previously dropped.
+        try:
+            _link = vfbTerm.term.get_link() if hasattr(vfbTerm.term, 'get_link') else ""
+            if _link:
+                termInfo["Meta"]["Link"] = _link
+        except (AttributeError, TypeError):
+            pass
+        try:
+            _logo = vfbTerm.term.get_logo() if hasattr(vfbTerm.term, 'get_logo') else ""
+            if _logo:
+                termInfo["Meta"]["Logo"] = _logo
+        except (AttributeError, TypeError):
             pass
         
         if hasattr(vfbTerm, 'parents') and vfbTerm.parents and len(vfbTerm.parents) > 0:
@@ -1358,26 +1370,6 @@ def term_info_parse_object(results, short_form):
             if related:
                 termInfo["Meta"]["RelatedIndividuals"] = "; ".join(related)
 
-        # Splits that target this neuron / neurons a split targets — each its own
-        # panel section (VFBProcessTermInfoCachedJson.java:1827 / :1835).
-        if getattr(vfbTerm, 'targeting_splits', None):
-            ts, seen = [], set()
-            for s in vfbTerm.targeting_splits:
-                sf = getattr(s, 'short_form', None)
-                if sf and sf not in seen:
-                    ts.append("[%s](%s)" % (encode_brackets(s.label or sf), sf))
-                    seen.add(sf)
-            if ts:
-                termInfo["TargetingSplits"] = ts
-        if getattr(vfbTerm, 'target_neurons', None):
-            tn, seen = [], set()
-            for n in vfbTerm.target_neurons:
-                sf = getattr(n, 'short_form', None)
-                if sf and sf not in seen:
-                    tn.append("[%s](%s)" % (encode_brackets(n.label or sf), sf))
-                    seen.add(sf)
-            if tn:
-                termInfo["TargetingNeurons"] = tn
 
         # Add the queries to the term info
         termInfo["Queries"] = queries

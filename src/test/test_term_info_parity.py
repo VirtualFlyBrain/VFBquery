@@ -112,6 +112,12 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertTrue(ri, "related_individuals dropped")
         self.assertIn("FBbt_00000057", ri, "related individual target id missing")
 
+    # --- Coverage: DataSet external link -----------------------------------
+    def test_dataset_link_present(self):
+        ti = self._parse("Ito2013")
+        link = ti.get("Meta", {}).get("Link", "")
+        self.assertIn("flybase.org/reports/FBrf0221438", link, "DataSet link dropped")
+
     # --- Gap D: License term must not 5xx / return None --------------------
     def test_license_term_info_does_not_5xx(self):
         # preview=False avoids the per-query count calls; License has no

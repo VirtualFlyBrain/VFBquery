@@ -2263,7 +2263,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
               (i)-[:has_source]->(ds:DataSet)
         WHERE p.short_form IN {class_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
-        OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+        OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN i.short_form as id,
                apoc.text.format("[%s](%s)",[i.label,i.short_form]) AS label,
                apoc.text.join(i.uniqueFacets, '|') AS tags,

@@ -1345,6 +1345,9 @@ def term_info_parse_object(results, short_form):
             xrefs_out = []
             for x in vfbTerm.xrefs:
                 site = getattr(x, 'site', None)
+                # never build a link to a deprecated site
+                if site is not None and getattr(site, 'is_deprecated', None) and site.is_deprecated():
+                    continue
                 label = getattr(site, 'label', '') if site else ''
                 acc = x.accession if getattr(x, 'accession', None) and x.accession != "None" else ''
                 if acc:
@@ -2268,8 +2271,9 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
                apoc.text.format("[%s](%s)",[i.label,i.short_form]) AS label,
                apoc.text.join(i.uniqueFacets, '|') AS tags,
                apoc.text.format("[%s](%s)",[p.label,p.short_form]) AS parent,
-               REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') AS source,
-               REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
+               // Deprecated sites: show the source/accession text but no link.
+               CASE WHEN site:Deprecated THEN COALESCE(site.label,'') ELSE REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') END AS source,
+               CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') END AS source_id,
                apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]) AS template,
                apoc.text.format("[%s](%s)",[ds.label,ds.short_form]) AS dataset,
                REPLACE(apoc.text.format("[%s](%s)",[lic.label,lic.short_form]), '[null](null)', '') AS license,
@@ -2727,8 +2731,8 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             r.{similarity_score}[0] AS score,
             apoc.text.join(coalesce(n2.uniqueFacets, []), '|') AS tags,
             type,
-            REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') AS source,
-            REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id,
+            CASE WHEN site:Deprecated THEN COALESCE(site.label,'') ELSE REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') END AS source,
+            CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') END AS source_id,
             REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail
@@ -4560,15 +4564,19 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                         for xref in xrefs:
                             if xref.get('is_data_source', False):
                                 site_info = xref.get('site', {})
+                                # Deprecated sites: show the source/accession
+                                # text but never build a link to them.
+                                site_tags = (site_info.get('types') or []) + (site_info.get('unique_facets') or [])
+                                is_deprecated = 'Deprecated' in site_tags
                                 site_label = site_info.get('symbol') or site_info.get('label', '')
                                 site_short_form = site_info.get('short_form', '')
-                                if site_label and site_short_form:
-                                    source = f"[{site_label}]({site_short_form})"
-                                
+                                if site_label:
+                                    source = site_label if (is_deprecated or not site_short_form) else f"[{site_label}]({site_short_form})"
+
                                 accession = xref.get('accession', '')
                                 link_base = xref.get('link_base', '')
-                                if accession and link_base:
-                                    source_id = f"[{accession}]({link_base}{accession})"
+                                if accession:
+                                    source_id = accession if (is_deprecated or not link_base) else f"[{accession}]({link_base}{accession})"
                                 break
                     row['source'] = source
                     row['source_id'] = source_id

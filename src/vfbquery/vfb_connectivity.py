@@ -242,6 +242,8 @@ def _build_connectivity_cypher(upstream_id, downstream_id, weight,
         "-[r:synapsed_to]->"
         "(n2:Individual:Neuron:has_neuron_connectivity)-[:INSTANCEOF]->(c2)"
         f"\nWHERE r.weight[0] >= {weight}"
+        # deprecated neurons are obsolete and must not appear in connectivity
+        "\nAND NOT n1:Deprecated AND NOT n2:Deprecated"
     )
 
     # Database filtering
@@ -256,6 +258,10 @@ def _build_connectivity_cypher(upstream_id, downstream_id, weight,
 
     if not group_by_class:
         # Per-neuron results
+        # Show the source site + accession as plain text even when the site is
+        # deprecated (these columns are passed through to the results table and
+        # are not rendered as links downstream); deprecated *neurons* are still
+        # excluded above.
         clauses.append(
             "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->"
             "(s1:Individual:Site {is_data_source:[True]})"
@@ -291,6 +297,8 @@ def _build_connectivity_cypher(upstream_id, downstream_id, weight,
         # Count total upstream neurons (with optional db filtering)
         total_match = (
             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:Individual:has_neuron_connectivity)"
+            # keep the percent_connected denominator consistent: exclude deprecated neurons
+            "\nWHERE NOT all_n1:Deprecated"
         )
         if exclude_dbs:
             db_list = str(exclude_dbs)

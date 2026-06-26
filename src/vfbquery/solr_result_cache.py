@@ -493,12 +493,24 @@ class SolrResultCache:
                 "expires_at": cached_data["expires_at"]
             }
             
-            # Store cache document 
+            # Store cache document.
+            # Use a soft (deferred) commit by default: a hard per-write
+            # ``commit=true`` flush blocks the request until the IndexWriter
+            # completes, and on a wedged writer (e.g. the soft-NFS write.lock
+            # EIO failure mode) that stall propagates up — a cold-miss term
+            # such as a License individual then hangs and saturates the ha_api
+            # worker queue, surfacing as HTTP 503. Relying on the core's
+            # autoSoftCommit (as the sibling write paths in this module already
+            # do) keeps the write fast and non-blocking; the 3-month cache
+            # tolerates a few seconds' visibility delay. Override with
+            # VFBQUERY_SOLR_WRITE_COMMIT=true if an immediate commit is needed.
+            commit_flag = os.getenv('VFBQUERY_SOLR_WRITE_COMMIT', 'false').lower() \
+                in ('1', 'true', 'yes')
             response = requests.post(
                 f"{self.cache_url}/update",
                 data=json.dumps([cache_doc]),
                 headers={"Content-Type": "application/json"},
-                params={"commit": "true"},  # Immediate commit for availability
+                params={"commit": "true" if commit_flag else "false"},
                 timeout=int(os.getenv('VFBQUERY_SOLR_WRITE_TIMEOUT', '60'))
             )
             

@@ -266,6 +266,8 @@ QUERY_TYPE_MAP = {
     "PartsOf":                      "get_parts_of",
     "ComponentsOf":                 "get_components_of",
     "SubclassesOf":                 "get_subclasses_of",
+    "SplitsTargeting":              "get_splits_targeting",
+    "TargetNeurons":                "get_neurons_targeted_by_split",
 
     # Neurons in region
     "NeuronsPartHere":              "get_neurons_with_part_in",

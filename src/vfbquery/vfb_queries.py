@@ -331,6 +331,9 @@ class TermInfoOutputSchema(Schema):
     Publications = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False)
     Synonyms = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
     Technique = fields.List(fields.String(), required=False, allow_none=True)
+    # External DB cross-references (site label + accession link + icon), rendered
+    # as the panel's xrefs section.
+    Xrefs = fields.List(fields.Dict(keys=fields.String(), values=fields.Raw()), required=False, allow_none=True)
 
     @post_load
     def make_term_info(self, data, **kwargs):
@@ -515,10 +518,37 @@ def term_info_parse_object(results, short_form):
             termInfo["Meta"]["Description"] = "%s"%("".join(vfbTerm.term.description))
         except (NameError, AttributeError):
             pass
+        # Append class definition references (def_pubs) inline to the description
+        # as markdown microref links, matching how the panel renders them today
+        # (legacy VFBProcessTermInfoCachedJson definition() + "(<microrefs>)").
+        # Kept inline rather than as a separate Publications entry so the display
+        # is identical and no new panel section is introduced.
+        if getattr(vfbTerm, 'def_pubs', None):
+            def_refs = [p.get_microref() for p in vfbTerm.def_pubs
+                        if hasattr(p, 'get_miniref') and p.get_miniref()
+                        and hasattr(p, 'get_microref') and p.get_microref()]
+            if def_refs:
+                existing_desc = termInfo["Meta"].get("Description", "")
+                termInfo["Meta"]["Description"] = (existing_desc + "\n(" + ", ".join(def_refs) + ")") if existing_desc else ("(" + ", ".join(def_refs) + ")")
         try:
             # Retrieve comment from the term's comment attribute
             termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
         except (NameError, AttributeError):
+            pass
+        # External homepage link + logo (e.g. a DataSet's FlyBase/project link and
+        # icon). Rendered as the panel's link / logo rows
+        # (VFBProcessTermInfoCachedJson.java:1456 / :1449). Previously dropped.
+        try:
+            _link = vfbTerm.term.get_link() if hasattr(vfbTerm.term, 'get_link') else ""
+            if _link:
+                termInfo["Meta"]["Link"] = _link
+        except (AttributeError, TypeError):
+            pass
+        try:
+            _logo = vfbTerm.term.get_logo() if hasattr(vfbTerm.term, 'get_logo') else ""
+            if _logo:
+                termInfo["Meta"]["Logo"] = _logo
+        except (AttributeError, TypeError):
             pass
         
         if hasattr(vfbTerm, 'parents') and vfbTerm.parents and len(vfbTerm.parents) > 0:
@@ -793,6 +823,17 @@ def term_info_parse_object(results, short_form):
                 # Sort the domains by their index and add them to the term info
                 sorted_images = {int(key): value for key, value in sorted(images.items(), key=lambda x: x[0])}
                 termInfo["Domains"] = sorted_images
+
+        # SplitsTargeting — splits (intersectional expression patterns) that
+        # target this neuron class. TargetNeurons — neurons a split class targets.
+        # Live Neo4j queries (indexer neuron_split / split_neuron clauses),
+        # surfaced as queries with a count badge rather than static fields.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Neuron"]):
+            q = SplitsTargeting_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Split"]):
+            q = TargetNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
 
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
@@ -1190,7 +1231,7 @@ def term_info_parse_object(results, short_form):
                     publication["title"] = pub.core.label if pub.core.label else ""
                     publication["short_form"] = pub.core.short_form if pub.core.short_form else ""
                     publication["microref"] = pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else ""
-                    
+
                     # Add external references
                     refs = []
                     if hasattr(pub, 'PubMed') and pub.PubMed:
@@ -1199,10 +1240,10 @@ def term_info_parse_object(results, short_form):
                         refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
                     if hasattr(pub, 'DOI') and pub.DOI:
                         refs.append(f"https://doi.org/{pub.DOI}")
-                    
+
                     publication["refs"] = refs
                     publications.append(publication)
-            
+
             termInfo["Publications"] = publications
 
         # Add Synonyms for Class entities. pub_syn holds one entry per
@@ -1240,8 +1281,10 @@ def term_info_parse_object(results, short_form):
             if synonyms and "Synonyms" not in termInfo:
                 termInfo["Synonyms"] = synonyms
 
-        # Special handling for Publication entities
-        if termInfo["SuperTypes"] and "Publication" in termInfo["SuperTypes"] and vfbTerm.pub_specific_content:
+        # Special handling for Publication entities. The SOLR SuperType marker is
+        # the lowercase "pub" (parity gap C — gating on "Publication" meant the
+        # block never fired, dropping pub title/PubMed/DOI/FlyBase links).
+        if termInfo["SuperTypes"] and ("pub" in termInfo["SuperTypes"] or "Publication" in termInfo["SuperTypes"]) and vfbTerm.pub_specific_content:
             publication = {}
             publication["title"] = vfbTerm.pub_specific_content.title if hasattr(vfbTerm.pub_specific_content, 'title') else ""
             publication["short_form"] = vfbTerm.term.core.short_form
@@ -1271,6 +1314,54 @@ def term_info_parse_object(results, short_form):
                     if synonym["label"] not in existing_labels:
                         termInfo["Synonyms"].append(synonym)
                         existing_labels.add(synonym["label"])
+
+        # External database cross-references (xrefs). Rendered today as the
+        # panel's xrefs link section (VFBProcessTermInfoCachedJson.java:1536):
+        # site label, icon and the external accession link. Previously dropped
+        # by this parser (e.g. medulla's Insect Brain DB link).
+        if getattr(vfbTerm, 'xrefs', None):
+            xrefs_out = []
+            for x in vfbTerm.xrefs:
+                site = getattr(x, 'site', None)
+                # never build a link to a deprecated site
+                if site is not None and getattr(site, 'is_deprecated', None) and site.is_deprecated():
+                    continue
+                label = getattr(site, 'label', '') if site else ''
+                acc = x.accession if getattr(x, 'accession', None) and x.accession != "None" else ''
+                if acc:
+                    link = (x.link_base or '') + acc + (x.link_postfix or '')
+                elif getattr(x, 'homepage', None):
+                    link = x.homepage
+                else:
+                    link = getattr(site, 'iri', '') if site else ''
+                entry = {"label": label, "accession": acc, "link": link}
+                if getattr(x, 'icon', None):
+                    entry["icon"] = x.icon
+                xrefs_out.append(entry)
+            if xrefs_out:
+                termInfo["Xrefs"] = xrefs_out
+
+        # Related individuals — same Rel shape as relationships, rendered as its
+        # own panel section (VFBProcessTermInfoCachedJson.java:1529). Kept as a
+        # Meta string so it travels with the other Meta rows.
+        if getattr(vfbTerm, 'related_individuals', None):
+            grouped_ri = {}
+            for rel in vfbTerm.related_individuals:
+                if not (hasattr(rel, 'relation') and hasattr(rel.relation, 'label')):
+                    continue
+                if not (hasattr(rel, 'object') and hasattr(rel.object, 'label')):
+                    continue
+                rid = getattr(rel.relation, 'short_form', None) or rel.relation.label
+                key = (rel.relation.label, rid)
+                obj = (rel.object.label, getattr(rel.object, 'short_form', ''))
+                grouped_ri.setdefault(key, set()).add(obj)
+            related = []
+            for (rlabel, rid), objs in sorted(grouped_ri.items()):
+                objlinks = ", ".join("[%s](%s)" % (encode_brackets(o[0]), o[1]) for o in sorted(objs))
+                related.append("[%s](%s): %s" % (encode_brackets(rlabel), rid, objlinks))
+            if related:
+                termInfo["Meta"]["RelatedIndividuals"] = "; ".join(related)
+
 
         # Add the queries to the term info
         termInfo["Queries"] = queries
@@ -1506,6 +1597,24 @@ def SubclassesOf_to_schema(name, take_default):
     preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def SplitsTargeting_to_schema(name, take_default):
+    """Schema for SplitsTargeting query: splits that target a neuron class.
+    Matching criteria: Class + Neuron (mirrors the indexer neuron_split clause)."""
+    return Query(query="SplitsTargeting", label=f"Splits targeting {name}",
+                 function="get_splits_targeting",
+                 takes={"short_form": {"$and": ["Class", "Neuron"]}, "default": take_default},
+                 preview=5, preview_columns=["id", "label", "tags", "thumbnail"])
+
+
+def TargetNeurons_to_schema(name, take_default):
+    """Schema for TargetNeurons query: neurons targeted by a split class.
+    Matching criteria: Class + Split (mirrors the indexer split_neuron clause)."""
+    return Query(query="TargetNeurons", label=f"Neurons targeted by {name}",
+                 function="get_neurons_targeted_by_split",
+                 takes={"short_form": {"$and": ["Class", "Split"]}, "default": take_default},
+                 preview=5, preview_columns=["id", "label", "tags", "thumbnail"])
 
 
 def NeuronClassesFasciculatingHere_to_schema(name, take_default):
@@ -2135,13 +2244,14 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
               (i)-[:has_source]->(ds:DataSet)
         WHERE p.short_form IN {class_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
-        OPTIONAL MATCH (ds)-[:license|licence]->(lic:License)
+        OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN i.short_form as id,
                apoc.text.format("[%s](%s)",[i.label,i.short_form]) AS label,
                apoc.text.join(i.uniqueFacets, '|') AS tags,
                apoc.text.format("[%s](%s)",[p.label,p.short_form]) AS parent,
-               REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') AS source,
-               REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') AS source_id,
+               // Deprecated sites: show the source/accession text but no link.
+               CASE WHEN site:Deprecated THEN COALESCE(site.label,'') ELSE REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') END AS source,
+               CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0],site.link_base[0] + rx.accession[0]]), '[null](null)', '') END AS source_id,
                apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]) AS template,
                apoc.text.format("[%s](%s)",[ds.label,ds.short_form]) AS dataset,
                REPLACE(apoc.text.format("[%s](%s)",[lic.label,lic.short_form]), '[null](null)', '') AS license,
@@ -2599,8 +2709,8 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             r.{similarity_score}[0] AS score,
             apoc.text.join(coalesce(n2.uniqueFacets, []), '|') AS tags,
             type,
-            REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') AS source,
-            REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') AS source_id,
+            CASE WHEN site:Deprecated THEN COALESCE(site.label,'') ELSE REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') END AS source,
+            CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') END AS source_id,
             REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail
@@ -3071,6 +3181,76 @@ def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
     # Use angle brackets for IRI conversion, not quotes
     owl_query = f"<{short_form}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+
+
+def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
+    """Shared runner for the split<->neuron targeting queries.
+
+    base_match must bind the result class to ``var`` for the given ``short_form``.
+    Returns the standard class-row table (id/label/tags/thumbnail) + true count,
+    so fill_query_results gets the real count without a re-run.
+    """
+    count_query = base_match + f" RETURN count(DISTINCT {var}) AS total_count"
+    count_df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([count_query])))
+    total_count = int(count_df['total_count'][0]) if not count_df.empty else 0
+
+    main_query = base_match + (
+        f" WITH DISTINCT {var} "
+        f"CALL {{ WITH {var} OPTIONAL MATCH ({var})<-[:INSTANCEOF]-(:Individual)<-[:depicts]-"
+        "(:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template) "
+        "RETURN irw, templ LIMIT 1 } "
+        f"RETURN {var}.short_form AS id, "
+        f"apoc.text.format(\"[%s](%s)\",[{var}.label, {var}.short_form]) AS label, "
+        f"apoc.text.join(coalesce({var}.uniqueFacets,[]),'|') AS tags, "
+        f"REPLACE(apoc.text.format(\"[![%s](%s '%s')](%s)\",[{var}.label, "
+        "REPLACE(COALESCE(irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'), "
+        f"{var}.label, templ.short_form + ',' + {var}.short_form]), "
+        "\"[![null]( 'null')](null)\", \"\") AS thumbnail "
+        "ORDER BY label"
+    )
+    if limit != -1:
+        main_query += f" LIMIT {limit}"
+    df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([main_query])))
+    df = encode_markdown_links(df, ['label', 'thumbnail'])
+    if return_dataframe:
+        return df
+    return {
+        "headers": _get_standard_query_headers(),
+        "rows": [{k: row.get(k) for k in ["id", "label", "tags", "thumbnail"]}
+                 for row in safe_to_dict(df, sort_by_id=False)],
+        "count": total_count,
+    }
+
+
+@with_solr_cache('splits_targeting')
+def get_splits_targeting(short_form: str, return_dataframe=True, limit: int = -1):
+    """Splits (intersectional expression patterns) that target the given neuron class.
+
+    Live Neo4j query mirroring the indexer's neuron_split clause
+    (VFB_json_schema_indexer query_roller.neuron_split) — surfaced as a query
+    with a preview + count badge rather than a static term-info field.
+    """
+    base = (
+        "MATCH (:Class {label:'intersectional expression pattern'})"
+        "<-[:SUBCLASSOF]-(ep:Class)<-[:part_of]-(:Individual)"
+        f"-[:INSTANCEOF]->(primary:Class {{short_form:'{short_form}'}})"
+    )
+    return _targeting_rows(base, "ep", short_form, return_dataframe, limit)
+
+
+@with_solr_cache('neurons_targeted_by_split')
+def get_neurons_targeted_by_split(short_form: str, return_dataframe=True, limit: int = -1):
+    """Neurons targeted by the given split class.
+
+    Live Neo4j query mirroring the indexer's split_neuron clause
+    (VFB_json_schema_indexer query_roller.split_neuron).
+    """
+    base = (
+        "MATCH (:Class {label:'intersectional expression pattern'})"
+        f"<-[:SUBCLASSOF]-(primary:Class {{short_form:'{short_form}'}})"
+        "<-[:part_of]-(:Individual)-[:INSTANCEOF]->(n:Neuron)"
+    )
+    return _targeting_rows(base, "n", short_form, return_dataframe, limit)
 
 
 @with_solr_cache('neuron_classes_fasciculating_here')
@@ -4362,15 +4542,19 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
                         for xref in xrefs:
                             if xref.get('is_data_source', False):
                                 site_info = xref.get('site', {})
+                                # Deprecated sites: show the source/accession
+                                # text but never build a link to them.
+                                site_tags = (site_info.get('types') or []) + (site_info.get('unique_facets') or [])
+                                is_deprecated = 'Deprecated' in site_tags
                                 site_label = site_info.get('symbol') or site_info.get('label', '')
                                 site_short_form = site_info.get('short_form', '')
-                                if site_label and site_short_form:
-                                    source = f"[{site_label}]({site_short_form})"
-                                
+                                if site_label:
+                                    source = site_label if (is_deprecated or not site_short_form) else f"[{site_label}]({site_short_form})"
+
                                 accession = xref.get('accession', '')
                                 link_base = xref.get('link_base', '')
-                                if accession and link_base:
-                                    source_id = f"[{accession}]({link_base}{accession})"
+                                if accession:
+                                    source_id = accession if (is_deprecated or not link_base) else f"[{accession}]({link_base}{accession})"
                                 break
                     row['source'] = source
                     row['source_id'] = source_id
@@ -6078,22 +6262,38 @@ def fill_query_results(term_info, force_refresh: bool = False):
                     result_count = result['count']
                     # If limit was applied, the count in dict may be wrong, get correct count
                     if query['preview'] > 0 and result_count == len(result['rows']):
-                        try:
-                            full_kwargs = {'return_dataframe': False, 'limit': -1}
-                            if supports_force_refresh:
-                                full_kwargs['force_refresh'] = force_refresh
-                            if function_args and takes_short_form:
-                                short_form_value = list(function_args.values())[0]
-                                full_dict = function(short_form_value, **full_kwargs)
-                            else:
-                                full_dict = function(**full_kwargs)
-                            result_count = full_dict['count']
-                        except Exception as e:
-                            print(f"Error getting full count for {query['function']}: {e}")
-                            result_count = result['count']  # Keep as is
+                        # Skip the full limit=-1 re-run when the preview was not
+                        # saturated: fewer returned rows than the preview cap means
+                        # the preview already holds the entire result set, so the
+                        # count is exactly the number of preview rows. This avoids
+                        # materialising every row purely to length-check it — the
+                        # main driver of cold term-info latency on SuperTypes that
+                        # offer many queries (expression pattern, scRNAseq cluster),
+                        # and a no-op win for zero/low-count queries (grey-out path).
+                        if len(result['rows']) < query['preview']:
+                            result_count = len(result['rows'])
+                        else:
+                          try:
+                              full_kwargs = {'return_dataframe': False, 'limit': -1}
+                              if supports_force_refresh:
+                                  full_kwargs['force_refresh'] = force_refresh
+                              if function_args and takes_short_form:
+                                  short_form_value = list(function_args.values())[0]
+                                  full_dict = function(short_form_value, **full_kwargs)
+                              else:
+                                  full_dict = function(**full_kwargs)
+                              result_count = full_dict['count']
+                          except Exception as e:
+                              print(f"Error getting full count for {query['function']}: {e}")
+                              result_count = result['count']  # Keep as is
                 elif isinstance(result, pd.DataFrame):
-                    # For DataFrame results, we need the full count even when preview is limited
-                    try:
+                    # For DataFrame results, we need the full count even when preview is limited.
+                    # But skip the full limit=-1 re-run when the preview was not saturated
+                    # (fewer rows than the cap means the preview already holds every row).
+                    if query['preview'] > 0 and len(result) < query['preview']:
+                        result_count = len(result)
+                    else:
+                      try:
                         full_kwargs = {'return_dataframe': True, 'limit': -1}
                         if supports_force_refresh:
                             full_kwargs['force_refresh'] = force_refresh
@@ -6103,7 +6303,7 @@ def fill_query_results(term_info, force_refresh: bool = False):
                         else:
                             full_result = function(**full_kwargs)
                         result_count = len(full_result)
-                    except Exception as e:
+                      except Exception as e:
                         print(f"Error getting full count for {query['function']}: {e}")
                         result_count = len(result)  # Fallback to limited count
                 else:

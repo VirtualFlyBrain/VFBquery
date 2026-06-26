@@ -87,6 +87,11 @@ class MinimalEntityInfo:
     def return_type(self, type_list: List[str]) -> str:
         return " ".join([typ.replace("_", " ") for typ in type_list])
 
+    def is_deprecated(self) -> bool:
+        """True if this entity carries the 'Deprecated' tag (mirrors the
+        Neo4j :Deprecated label) in its types or unique_facets."""
+        return "Deprecated" in (self.types or []) or "Deprecated" in (self.unique_facets or [])
+
 
 @dataclass_json
 @dataclass
@@ -289,6 +294,11 @@ class Xref:
         if self.homepage:
             return self.homepage
         return self.site.iri
+
+    def site_deprecated(self) -> bool:
+        """True if the cross-referenced site is deprecated; such xrefs must not
+        be turned into external links."""
+        return bool(self.site) and self.site.is_deprecated()
 
 
 @dataclass_json
@@ -621,6 +631,9 @@ class VfbTerminfo:
         results = list()
         if self.xrefs:
             for xref in self.xrefs:
+                # never build a link to a deprecated site
+                if xref.site_deprecated():
+                    continue
                 results.append(xref.get_ext_link())
             # sort xrefs alphabetically (by site)
             results = sorted(results, key=lambda d: d['label'])
@@ -694,6 +707,9 @@ class VfbTerminfo:
     def get_cluster_image(self):
         image_array = list()
         try:
+            # don't build an image URL from a deprecated site
+            if self.xrefs[0].site_deprecated():
+                return None
             image_array.append(self.get_image(self.xrefs[0].link_base + self.xrefs[0].accession + "/snapshot.png",
                                               self.term.core.label, self.term.core.short_form))
         except Exception as e:

@@ -1205,31 +1205,11 @@ def term_info_parse_object(results, short_form):
             
             termInfo["Publications"] = publications
 
-        # Add Synonyms for Class entities
+        # Add Synonyms for Class entities. pub_syn holds one entry per
+        # (synonym, pub); get_merged_synonyms() collapses these to one entry per
+        # synonym with the combined refs and drops the Unattributed placeholder.
         if termInfo["SuperTypes"] and "Class" in termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
-            synonyms = []
-            for syn in vfbTerm.pub_syn:
-                if hasattr(syn, 'synonym') and syn.synonym:
-                    synonym = {}
-                    synonym["label"] = syn.synonym.label if hasattr(syn.synonym, 'label') else ""
-                    synonym["scope"] = syn.synonym.scope if hasattr(syn.synonym, 'scope') else "exact"
-                    synonym["type"] = syn.synonym.type if hasattr(syn.synonym, 'type') else "synonym"
-                    
-                    if hasattr(syn, 'pubs') and syn.pubs:
-                        pub_refs = []
-                        for pub in syn.pubs:
-                            if hasattr(pub, 'get_microref') and pub.get_microref():
-                                pub_refs.append(pub.get_microref())
-                        
-                        if pub_refs:
-                            # Join multiple publication references with commas
-                            synonym["publication"] = ", ".join(pub_refs)
-                    # Fallback to single pub if pubs collection not available
-                    elif hasattr(syn, 'pub') and syn.pub and hasattr(syn.pub, 'get_microref'):
-                        synonym["publication"] = syn.pub.get_microref()
-                    
-                    synonyms.append(synonym)
-            
+            synonyms = vfbTerm.get_merged_synonyms()
             # Only add the synonyms if we found any
             if synonyms:
                 termInfo["Synonyms"] = synonyms

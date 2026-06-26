@@ -582,6 +582,82 @@ class VfbTerminfo:
             return [str(syn) for syn in set(self.pub_syn) if syn]
         return list()
 
+    def get_merged_synonyms(self) -> List[dict]:
+        """Merge pub_syn into one entry per (scope, label) with the combined
+        list of refs.
+
+        The same synonym is often asserted by several datasets/papers, so
+        pub_syn holds one entry per (synonym, pub). This collapses them so each
+        synonym is shown once with the combined refs:
+
+        - any pub with a real id/short_form is rendered as a markdown link;
+        - the 'Unattributed' placeholder pub is never linked, but if the entry
+          carries a synonym type (e.g. name_in_banc) that type is shown as a
+          plain-text ref, since it is useful provenance for the user;
+        - a synonym backed only by Unattributed with no type is shown with no
+          ref at all.
+        """
+        def pub_ref(pub):
+            """Markdown ref for an attributed pub, or '' for Unattributed/none."""
+            core = getattr(pub, 'core', None) if pub else None
+            if not core:
+                return ""
+            sf = getattr(core, 'short_form', '') or ""
+            if not sf or sf == "Unattributed":
+                return ""
+            micro = getattr(pub, 'microref', '') or ""
+            label = getattr(core, 'label', '') or ""
+            if micro:
+                text = micro
+            elif label:
+                parts = label.split(",")
+                text = (parts[0] + "," + parts[1]) if len(parts) > 1 else label
+            else:
+                text = sf
+            return get_link(text, sf)
+
+        def type_token(syn):
+            """Readable label for the synonym type, e.g. name_in_banc or
+            'abbreviation' for opaque OMO ids."""
+            return synonym_type_label(getattr(syn.synonym, 'type', '') or "")
+
+        grouped = {}
+        order = []
+        for syn in (self.pub_syn or []):
+            if not (hasattr(syn, 'synonym') and syn.synonym):
+                continue
+            label = getattr(syn.synonym, 'label', "") or ""
+            scope = getattr(syn.synonym, 'scope', "") or "exact"
+            stype = getattr(syn.synonym, 'type', "") or "synonym"
+            key = (scope, label)
+            if key not in grouped:
+                grouped[key] = {"label": label, "scope": scope, "type": stype, "refs": []}
+                order.append(key)
+            entry = grouped[key]
+            entry_pubs = list(getattr(syn, 'pubs', None) or [])
+            if getattr(syn, 'pub', None):
+                entry_pubs.append(syn.pub)
+            real_refs = [r for r in (pub_ref(p) for p in entry_pubs) if r]
+            if real_refs:
+                for ref in real_refs:
+                    if ref not in entry["refs"]:
+                        entry["refs"].append(ref)
+            else:
+                # no attributed pub for this assertion: fall back to the
+                # synonym type as an unlinked ref (e.g. name_in_banc)
+                tok = type_token(syn)
+                if tok and tok not in entry["refs"]:
+                    entry["refs"].append(tok)
+
+        result = []
+        for key in order:
+            entry = grouped[key]
+            synonym = {"label": entry["label"], "scope": entry["scope"], "type": entry["type"]}
+            if entry["refs"]:
+                synonym["publication"] = ", ".join(entry["refs"])
+            result.append(synonym)
+        return result
+
     def get_references(self) -> List[dict]:
         results = list()
         if self.def_pubs:
@@ -739,6 +815,28 @@ class VfbTerminfo:
         image["reference"] = reference
         image["format"] = "PNG"
         return image
+
+
+# Display labels for synonym types whose IRI fragment is an opaque id rather
+# than human-readable text (OMO synonym-type ids). Other synonym types (e.g.
+# fbbt#name_in_banc, ncbitaxon#scientific_name) already read sensibly as their
+# fragment, so are left as-is. Keyed by IRI fragment / short id.
+SYNONYM_TYPE_LABELS = {
+    "OMO_0003000": "abbreviation",
+    "OMO_0003003": "layperson synonym",
+}
+
+
+def synonym_type_label(type_iri: str) -> str:
+    """Human-readable label for a synonym-type IRI.
+
+    Returns the curated label for opaque OMO ids, otherwise the IRI fragment
+    (e.g. name_in_banc, scientific_name). Empty string for no type.
+    """
+    if not type_iri:
+        return ""
+    frag = type_iri.split('#')[-1].split('/')[-1]
+    return SYNONYM_TYPE_LABELS.get(frag, frag)
 
 
 def get_link(text: str, link: str) -> str:

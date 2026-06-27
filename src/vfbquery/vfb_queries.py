@@ -1315,6 +1315,46 @@ def term_info_parse_object(results, short_form):
                         termInfo["Synonyms"].append(synonym)
                         existing_labels.add(synonym["label"])
 
+        # Build the complete References list from the full has_reference set.
+        # has_reference edges are partitioned by `typ` into pubs / def_pubs /
+        # pub_syn; their union is the term's complete reference list. We collect
+        # all three, de-duplicate by short_form (duplicate edges and the
+        # Unattributed placeholder are dropped) and emit full external URLs
+        # (FlyBase / PubMed / DOI) built from the pub node properties. The inline
+        # definition microrefs and the synonym `publication` strings are left
+        # untouched -- only the References row draws from this list.
+        ref_entries = {}
+        for existing in (termInfo.get("Publications") or []):
+            sf = existing.get("short_form", "")
+            if sf and sf != "Unattributed" and sf not in ref_entries:
+                ref_entries[sf] = existing
+        extra_pubs = list(getattr(vfbTerm, 'def_pubs', None) or [])
+        for syn in (getattr(vfbTerm, 'pub_syn', None) or []):
+            if getattr(syn, 'pub', None):
+                extra_pubs.append(syn.pub)
+            for p in (getattr(syn, 'pubs', None) or []):
+                extra_pubs.append(p)
+        for pub in extra_pubs:
+            core = getattr(pub, 'core', None)
+            sf = getattr(core, 'short_form', '') if core else ''
+            if not sf or sf == "Unattributed" or sf in ref_entries:
+                continue
+            refs = []
+            if getattr(pub, 'PubMed', ''):
+                refs.append(f"http://www.ncbi.nlm.nih.gov/pubmed/?term={pub.PubMed}")
+            if getattr(pub, 'FlyBase', ''):
+                refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
+            if getattr(pub, 'DOI', ''):
+                refs.append(f"https://doi.org/{pub.DOI}")
+            ref_entries[sf] = {
+                "title": core.label if core and core.label else "",
+                "short_form": sf,
+                "microref": pub.get_microref() if hasattr(pub, 'get_microref') and pub.get_microref() else (core.label if core else ""),
+                "refs": refs,
+            }
+        if ref_entries:
+            termInfo["Publications"] = list(ref_entries.values())
+
         # External database cross-references (xrefs). Rendered today as the
         # panel's xrefs link section (VFBProcessTermInfoCachedJson.java:1536):
         # site label, icon and the external accession link. Previously dropped

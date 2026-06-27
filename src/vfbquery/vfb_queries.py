@@ -14,6 +14,7 @@ from .solr_result_cache import with_solr_cache
 import time
 import re
 import requests
+import logging
 import inspect
 
 # Custom JSON encoder to handle NumPy and pandas types
@@ -60,6 +61,7 @@ def get_dict_cursor():
 
 # Connect to the VFB SOLR server
 vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
+logger = logging.getLogger(__name__)
 
 # Replace VfbConnect with SimpleVFBConnect
 vc = SimpleVFBConnect()
@@ -463,6 +465,94 @@ def encode_markdown_links(df, columns):
 
     return df
     
+
+# Author-year citation linking ------------------------------------------------
+# Cited publications appear in the definition/comment prose as plain author-year
+# text (e.g. "Wolff et al., 2015"). We hold the id for each via the term's pubs
+# (def_pubs / pub_syn / pubs), so we wrap matching mentions in markdown links the
+# panel renders. Citations with no matching pub id are logged: they should also
+# have appeared in the term's References, so a miss indicates a missing
+# has_reference edge worth investigating.
+_CITATION_RE = re.compile(
+    r"[A-Z][A-Za-z.'\u2019-]+"
+    r"(?:\s+et al\.|\s+and\s+[A-Z][A-Za-z.'\u2019-]+|\s+&\s+[A-Z][A-Za-z.'\u2019-]+)?"
+    r",?\s+\d{4}[a-z]?"
+)
+
+
+def _pub_author_year(pub):
+    """Short author-year microref text for a pub, e.g. 'Wolff et al., 2015'."""
+    core = getattr(pub, 'core', None)
+    if not core:
+        return ""
+    micro = getattr(pub, 'microref', '') or ""
+    if micro:
+        return micro.strip()
+    label = getattr(core, 'label', '') or ""
+    if "," in label:
+        parts = label.split(",")
+        if len(parts) > 1:
+            return (parts[0] + "," + parts[1]).strip()
+    return label.strip()
+
+
+def _collect_term_pub_map(vfbTerm):
+    """{author_year_text: short_form} for every pub the term cites."""
+    pubs = list(getattr(vfbTerm, 'def_pubs', None) or [])
+    for syn in (getattr(vfbTerm, 'pub_syn', None) or []):
+        if getattr(syn, 'pub', None):
+            pubs.append(syn.pub)
+        pubs.extend(getattr(syn, 'pubs', None) or [])
+    pubs.extend(getattr(vfbTerm, 'pubs', None) or [])
+    mapping = {}
+    for p in pubs:
+        core = getattr(p, 'core', None)
+        sf = getattr(core, 'short_form', '') if core else ''
+        if not sf or sf == 'Unattributed':
+            continue
+        ay = _pub_author_year(p)
+        if ay and ay not in mapping:
+            mapping[ay] = sf
+    return mapping
+
+
+def _split_author_year(author_year):
+    """('Wolff et al., 2015') -> ('Wolff et al.', '2015'); handles trailing letter."""
+    m = re.match(r"^(.*?),?\s*\(?(\d{4})[a-z]?\)?$", author_year.strip())
+    return (m.group(1).strip(), m.group(2)) if m else (None, None)
+
+
+def _linkify_citations(text, pub_map, term_id="", field=""):
+    """Wrap known author-year citations (either 'Author, 2015' or 'Author (2015)')
+    in markdown links, normalising to '[Author, 2015](id)'. Logs unmatched ones."""
+    if not text:
+        return text
+    items = []
+    for ay, sf in pub_map.items():
+        author, year = _split_author_year(ay)
+        if author and year:
+            items.append((author, year, sf))
+    # Longest author first so 'Ito and Awasaki' wins over 'Ito et al.' etc.
+    items.sort(key=lambda x: len(x[0]), reverse=True)
+    linked = text
+    for author, year, sf in items:
+        pat = re.compile(r"(?<!\[)" + re.escape(author) + r"(?:,\s*|\s+\(|\s+)" + year + r"\)?(?!\])")
+        linked = pat.sub("[" + author + ", " + year + "](" + sf + ")", linked)
+    # Flag citations in the prose we could not link -- they should also be in References.
+    matched_keys = {(a, y) for a, y, _ in items}
+    missing = []
+    for cite in _CITATION_RE.findall(text):
+        a, y = _split_author_year(cite.strip().rstrip(','))
+        if a and y and (a, y) not in matched_keys:
+            missing.append(a + ", " + y)
+    if missing:
+        logger.warning(
+            "term_info %s %s cites publications with no matching reference id "
+            "(should also appear in References -- investigate missing has_reference): %s",
+            term_id, field, sorted(set(missing)))
+    return linked
+
+
 def term_info_parse_object(results, short_form):
     termInfo = {}
     termInfo["SuperTypes"] = []
@@ -513,9 +603,12 @@ def term_info_parse_object(results, short_form):
         except (NameError, AttributeError):
             # If unique_facets attribute doesn't exist, use the term's types
             termInfo["Tags"] = vfbTerm.term.core.types if hasattr(vfbTerm.term.core, 'types') else []
+        # Map of author-year -> pub id for citation linking in description/comment.
+        _pub_map = _collect_term_pub_map(vfbTerm)
         try:
-            # Retrieve description from the term's description attribute
-            termInfo["Meta"]["Description"] = "%s"%("".join(vfbTerm.term.description))
+            # Retrieve description and link known author-year citations in the prose.
+            _desc_body = "".join(vfbTerm.term.description)
+            termInfo["Meta"]["Description"] = _linkify_citations(_desc_body, _pub_map, termInfo.get("Id", short_form), "description")
         except (NameError, AttributeError):
             pass
         # Append class definition references (def_pubs) inline to the description
@@ -531,8 +624,9 @@ def term_info_parse_object(results, short_form):
                 existing_desc = termInfo["Meta"].get("Description", "")
                 termInfo["Meta"]["Description"] = (existing_desc + "\n(" + ", ".join(def_refs) + ")") if existing_desc else ("(" + ", ".join(def_refs) + ")")
         try:
-            # Retrieve comment from the term's comment attribute
-            termInfo["Meta"]["Comment"] = "%s"%("".join(vfbTerm.term.comment))
+            # Retrieve comment and link known author-year citations.
+            _comment_body = "".join(vfbTerm.term.comment)
+            termInfo["Meta"]["Comment"] = _linkify_citations(_comment_body, _pub_map, termInfo.get("Id", short_form), "comment")
         except (NameError, AttributeError):
             pass
         # External homepage link + logo (e.g. a DataSet's FlyBase/project link and

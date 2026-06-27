@@ -31,6 +31,7 @@ Usage:
 """
 
 import argparse
+import ipaddress
 import json
 import logging
 import os
@@ -231,10 +232,47 @@ ALLOWED_PATHS = frozenset({
 })
 
 
+# Trusted internal networks. Traffic from the Rancher/Canal pod network and
+# loopback is in-cluster (the V3 cache, the frontend backend, the post-release
+# warmup tool) -- never a vulnerability scanner -- so it must not be caught by
+# the scanner-probe block. Override with TRUSTED_NETWORKS (comma-separated CIDRs).
+def _load_trusted_networks():
+    raw = os.environ.get("TRUSTED_NETWORKS", "10.42.0.0/16,127.0.0.0/8,::1/128")
+    nets = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(token, strict=False))
+        except ValueError:
+            log.warning("Ignoring invalid TRUSTED_NETWORKS entry: %s", token)
+    return tuple(nets)
+
+
+TRUSTED_NETWORKS = _load_trusted_networks()
+
+
+def _is_trusted_remote(remote):
+    """True if `remote` (request.remote) falls in a trusted internal network."""
+    if not remote:
+        return False
+    try:
+        ip = ipaddress.ip_address(remote)
+    except ValueError:
+        return False
+    return any(ip in net for net in TRUSTED_NETWORKS)
+
+
 @web.middleware
 async def security_middleware(request, handler):
-    """Reject requests to unknown paths with a minimal 404."""
-    if request.path not in ALLOWED_PATHS:
+    """Reject requests to unknown paths with a minimal 404.
+
+    Trusted in-cluster traffic (TRUSTED_NETWORKS) bypasses the scanner-probe
+    block and is passed to normal routing -- an unknown path still 404s via the
+    router, but is not counted or logged as a probe.
+    """
+    if request.path not in ALLOWED_PATHS and not _is_trusted_remote(request.remote):
         probes = request.app.get("_scanner_probes")
         if probes is None:
             probes = {"count": 0}

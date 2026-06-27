@@ -342,9 +342,14 @@ def _init_worker():
         import vfbquery as _vfb
 
 
-def _run_term_info(short_form):
-    """Execute get_term_info in a worker process. Returns JSON-serialisable dict."""
-    result = _vfb.get_term_info(short_form)
+def _run_term_info(short_form, force_refresh=False):
+    """Execute get_term_info in a worker process. Returns JSON-serialisable dict.
+
+    ``force_refresh`` is forwarded to ``get_term_info`` so the underlying
+    ``@with_solr_cache('term_info')`` entry is recomputed and rewritten rather
+    than served stale.
+    """
+    result = _vfb.get_term_info(short_form, force_refresh=force_refresh)
     return _convert_numpy_types(result)
 
 
@@ -570,15 +575,24 @@ async def handle_get_term_info(request):
             {"error": "Missing required parameter: id"}, status=400
         )
 
+    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
+
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
     key = f"term_info:{short_form}"
 
     # ---- L1: in-memory result cache ----
-    cached = rcache.get(key)
-    if cached is not None:
-        log.info("get_term_info id=%s — cache hit", short_form)
-        return web.json_response(cached)
+    # force_refresh=true skips the cache read AND drops any stale entry so the
+    # recomputed result replaces it; it is also propagated to get_term_info so
+    # the underlying SOLR term_info cache entry is rewritten.
+    if force_refresh:
+        rcache.invalidate(key)
+        log.info("get_term_info id=%s — force_refresh: cache invalidated", short_form)
+    else:
+        cached = rcache.get(key)
+        if cached is not None:
+            log.info("get_term_info id=%s — cache hit", short_form)
+            return web.json_response(cached)
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
@@ -625,7 +639,7 @@ async def handle_get_term_info(request):
         async with sem:
             await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(pool, _run_term_info, short_form)
+            result = await loop.run_in_executor(pool, _run_term_info, short_form, force_refresh)
         log.info("get_term_info id=%s — done", short_form)
         rcache.put(key, result)
         await coalescer.remove(key)

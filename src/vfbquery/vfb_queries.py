@@ -16,6 +16,43 @@ import re
 import requests
 import logging
 import inspect
+import os
+import concurrent.futures
+
+# --- Bounded term-info sub-query execution -------------------------------
+# Generic high-level terms (e.g. a top-level anatomy class with a huge subclass
+# closure) used to hang term-info: a saturated preview triggered an unbounded
+# limit=-1 re-run purely to count rows, materialising every row with full
+# markdown/thumbnail encoding. The cold computation never returned, so the
+# v3-cached proxy never populated either. Two guards make the response always
+# resolve (and therefore cache):
+#   * COUNT_CAP bounds any count re-run; beyond it the exact total is not worth
+#     the cost and we report -1 ("many").
+#   * SUBQUERY_TIMEOUT_S is a per-sub-query wall-clock budget; on overrun we
+#     abandon that sub-query (empty preview, count -1) and carry on.
+SUBQUERY_TIMEOUT_S = int(os.environ.get("VFBQUERY_SUBQUERY_TIMEOUT_S", "600"))
+COUNT_CAP = int(os.environ.get("VFBQUERY_COUNT_CAP", "1000"))
+
+
+def _run_with_timeout(func, args=(), kwargs=None, timeout=None):
+    """Run ``func`` with a wall-clock budget and return its result.
+
+    The call runs in a worker thread; if it overruns ``timeout`` seconds we
+    raise ``concurrent.futures.TimeoutError`` and stop waiting. Python cannot
+    forcibly kill the worker, but we no longer block on it, so a slow
+    Neo4j/Solr/Owlery round-trip cannot stall the whole term-info response; the
+    thread drains in the background when its I/O finally returns.
+    """
+    kwargs = kwargs or {}
+    if timeout is None:
+        timeout = SUBQUERY_TIMEOUT_S
+    ex = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    fut = ex.submit(func, *args, **kwargs)
+    try:
+        return fut.result(timeout=timeout)
+    finally:
+        # Never block on a runaway call; let the pool drain in the background.
+        ex.shutdown(wait=False)
 
 # Custom JSON encoder to handle NumPy and pandas types
 class NumpyEncoder(json.JSONEncoder):
@@ -2280,8 +2317,8 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
                         for query in parsed_object.get('Queries', []):
                             # Set default preview_results structure
                             query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                            # Set count to 0 when we can't get the real count
-                            query['count'] = 0
+                            # Unknown count (-1), not known-empty (0): keep queries live
+                            query['count'] = -1
                         return parsed_object
                 except Exception as e:
                     print(f"Error filling query results (setting default values): {e}")
@@ -2289,8 +2326,8 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
                     for query in parsed_object.get('Queries', []):
                         # Set default preview_results structure
                         query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                        # Set count to 0 when we can't get the real count
-                        query['count'] = 0
+                        # Unknown count (-1), not known-empty (0): keep queries live
+                        query['count'] = -1
                     return parsed_object
             else:
                 # No queries to fill (preview=False) or no queries defined, return parsed object directly
@@ -2393,6 +2430,23 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
                ORDER BY id Desc
         """
 
+        # Cheap true count: aggregate over the SAME MATCH/OPTIONAL grain as the
+        # main query but without the per-row apoc.text.format string building,
+        # thumbnail construction or ORDER BY. This returns the real total even
+        # when the main query is LIMITed for a preview, so fill_query_results
+        # gets an accurate count without re-running the full row materialisation
+        # (the cause of the hang on broad anatomy classes). count(*) over the
+        # identical pattern matches len(df) when unlimited.
+        count_query = f"""
+        MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
+              (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
+              (i)-[:has_source]->(ds:DataSet)
+        WHERE p.short_form IN {class_ids!r}
+        OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
+        OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
+        RETURN count(*) AS total_count
+        """
+
         if limit != -1:
             query += f" LIMIT {limit}"
 
@@ -2405,9 +2459,13 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
         df = encode_markdown_links(df, columns_to_encode)
 
-        # Total count is the row count returned by the Cypher (i.e. instances
-        # of the queried class or any of its Owlery-derived subclasses).
-        total_count = len(df)
+        # When limited, the returned rows are a preview; get the true total from
+        # the cheap aggregation. When unlimited, len(df) already is the total.
+        if limit != -1:
+            count_records = get_dict_cursor()(vc.nc.commit_list([count_query]))
+            total_count = int(count_records[0]['total_count']) if count_records else len(df)
+        else:
+            total_count = len(df)
 
         if return_dataframe:
             return df
@@ -6328,17 +6386,27 @@ def fill_query_results(term_info, force_refresh: bool = False):
                         base_kwargs['force_refresh'] = force_refresh
 
                     # Modify this line to use the correct arguments and pass the default arguments
+                    # Each sub-query runs under a wall-clock budget so one
+                    # pathological generic term cannot stall the whole response.
                     if function_args and takes_short_form:
                         # Pass the short_form as positional argument
                         short_form_value = list(function_args.values())[0]
-                        result = function(short_form_value, **base_kwargs)
+                        result = _run_with_timeout(function, args=(short_form_value,), kwargs=base_kwargs)
                     else:
-                        result = function(**base_kwargs)
+                        result = _run_with_timeout(function, kwargs=base_kwargs)
+                except concurrent.futures.TimeoutError:
+                    print(f"Timeout ({SUBQUERY_TIMEOUT_S}s) on query function {query['function']}; "
+                          f"reporting unknown count (-1) with empty preview")
+                    # Unknown, not empty: keep the query live so the user can run
+                    # it on demand; -1 distinguishes this from a known-empty (0).
+                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
+                    query['count'] = -1
+                    return
                 except Exception as e:
                     print(f"Error executing query function {query['function']}: {e}")
-                    # Set default values for failed query
+                    # Set default values for failed query (unknown count, not empty)
                     query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                    query['count'] = 0
+                    query['count'] = -1
                     return
                 # print(f"Function result: {result}")
                 
@@ -6349,7 +6417,7 @@ def fill_query_results(term_info, force_refresh: bool = False):
                 if result is None:
                     print(f"ERROR: Query function {query['function']} returned None - this indicates a query failure that needs investigation")
                     query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                    query['count'] = 0
+                    query['count'] = -1
                     return
                 
                 if isinstance(result, dict) and 'rows' in result:
@@ -6394,52 +6462,58 @@ def fill_query_results(term_info, force_refresh: bool = False):
                 # Handle count extraction based on result type
                 if isinstance(result, dict) and 'count' in result:
                     result_count = result['count']
-                    # If limit was applied, the count in dict may be wrong, get correct count
+                    # If limit was applied, the function's count may equal the
+                    # number of returned rows (no cheap total available). Decide
+                    # the true count WITHOUT an unbounded re-run.
                     if query['preview'] > 0 and result_count == len(result['rows']):
-                        # Skip the full limit=-1 re-run when the preview was not
-                        # saturated: fewer returned rows than the preview cap means
-                        # the preview already holds the entire result set, so the
-                        # count is exactly the number of preview rows. This avoids
-                        # materialising every row purely to length-check it — the
-                        # main driver of cold term-info latency on SuperTypes that
-                        # offer many queries (expression pattern, scRNAseq cluster),
-                        # and a no-op win for zero/low-count queries (grey-out path).
+                        # Preview not saturated: it already holds the entire
+                        # result set, so the count is exactly the rows returned.
                         if len(result['rows']) < query['preview']:
                             result_count = len(result['rows'])
                         else:
+                          # Saturated: re-run bounded to COUNT_CAP (never -1) so a
+                          # pathological generic term cannot hang the panel. Exact
+                          # total if under the cap, otherwise -1 ("many").
                           try:
-                              full_kwargs = {'return_dataframe': False, 'limit': -1}
+                              full_kwargs = {'return_dataframe': False, 'limit': COUNT_CAP}
                               if supports_force_refresh:
                                   full_kwargs['force_refresh'] = force_refresh
                               if function_args and takes_short_form:
                                   short_form_value = list(function_args.values())[0]
-                                  full_dict = function(short_form_value, **full_kwargs)
+                                  full_dict = _run_with_timeout(function, args=(short_form_value,), kwargs=full_kwargs)
                               else:
-                                  full_dict = function(**full_kwargs)
-                              result_count = full_dict['count']
+                                  full_dict = _run_with_timeout(function, kwargs=full_kwargs)
+                              capped = full_dict.get('count', len(full_dict.get('rows', [])))
+                              result_count = -1 if capped >= COUNT_CAP else capped
+                          except concurrent.futures.TimeoutError:
+                              print(f"Timeout ({SUBQUERY_TIMEOUT_S}s) counting {query['function']}; reporting -1")
+                              result_count = -1
                           except Exception as e:
-                              print(f"Error getting full count for {query['function']}: {e}")
-                              result_count = result['count']  # Keep as is
+                              print(f"Error getting bounded count for {query['function']}: {e}")
+                              result_count = -1
                 elif isinstance(result, pd.DataFrame):
-                    # For DataFrame results, we need the full count even when preview is limited.
-                    # But skip the full limit=-1 re-run when the preview was not saturated
-                    # (fewer rows than the cap means the preview already holds every row).
+                    # For DataFrame results, get the full count when the preview is
+                    # saturated, but bound the re-run to COUNT_CAP (never -1) so a
+                    # broad term cannot hang the panel.
                     if query['preview'] > 0 and len(result) < query['preview']:
                         result_count = len(result)
                     else:
                       try:
-                        full_kwargs = {'return_dataframe': True, 'limit': -1}
+                        full_kwargs = {'return_dataframe': True, 'limit': COUNT_CAP}
                         if supports_force_refresh:
                             full_kwargs['force_refresh'] = force_refresh
                         if function_args and takes_short_form:
                             short_form_value = list(function_args.values())[0]
-                            full_result = function(short_form_value, **full_kwargs)
+                            full_result = _run_with_timeout(function, args=(short_form_value,), kwargs=full_kwargs)
                         else:
-                            full_result = function(**full_kwargs)
-                        result_count = len(full_result)
+                            full_result = _run_with_timeout(function, kwargs=full_kwargs)
+                        result_count = -1 if len(full_result) >= COUNT_CAP else len(full_result)
+                      except concurrent.futures.TimeoutError:
+                        print(f"Timeout ({SUBQUERY_TIMEOUT_S}s) counting {query['function']}; reporting -1")
+                        result_count = -1
                       except Exception as e:
-                        print(f"Error getting full count for {query['function']}: {e}")
-                        result_count = len(result)  # Fallback to limited count
+                        print(f"Error getting bounded count for {query['function']}: {e}")
+                        result_count = -1  # Unknown rather than a wrong (limited) count
                 else:
                     result_count = 0
                 

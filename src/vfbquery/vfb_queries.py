@@ -820,9 +820,14 @@ def term_info_parse_object(results, short_form):
             if termInfo["IsIndividual"] and techniques:
                 termInfo["Technique"].extend(techniques)
                 termInfo["Technique"] = sorted(list(set(termInfo["Technique"])))
-            # add a query to `queries` list for listing all available images
-            q = ListAllAvailableImages_to_schema(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
-            queries.append(q)
+            # add a query for listing all available images -- only for anatomy
+            # Class terms (get_instances expects a Class, per this query's own
+            # Class+Anatomy criteria). DataSets/Individuals that merely have
+            # images must not get it (they use DatasetImages etc.), otherwise a
+            # dataset shows a spurious "List all available images" query.
+            if contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]):
+                q = ListAllAvailableImages_to_schema(termInfo["Name"], {"short_form":vfbTerm.term.core.short_form})
+                queries.append(q)
 
         # If the term has channel images but not anatomy channel images, create thumbnails from channel images.
         if vfbTerm.channel_image and len(vfbTerm.channel_image) > 0:

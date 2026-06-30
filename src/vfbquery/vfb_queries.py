@@ -2461,15 +2461,26 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         # Convert the results to a DataFrame
         df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
-        # The registration MATCH yields one row per (instance, template). Collapse
-        # to one row per instance, joining every alignment's thumbnail into the
-        # "; "-joined multi-image carousel the V2 Images column renders (the
-        # frontend then brings the loaded template's thumbnail to the front). Other
-        # columns take the first (representative) value; the ORDER BY id is kept.
+        # The registration + has_source MATCH yields one row per
+        # (instance, template, dataset). Collapse to one row per instance:
+        #  - thumbnail -> the "; "-joined multi-image carousel the V2 Images column
+        #    renders, DISTINCT (a template's thumbnail is identical across the
+        #    instance's datasets, so it must not repeat), so the frontend can bring
+        #    the loaded template's thumbnail to the front;
+        #  - dataset   -> a distinct ", "-joined list (an image from several
+        #    datasets is one row listing them, not one row per dataset);
+        #  - other columns take the first (representative) value; ORDER BY id kept.
         if not df.empty and 'id' in df.columns and 'thumbnail' in df.columns:
-            other_cols = [c for c in df.columns if c not in ('id', 'thumbnail')]
-            agg = {c: 'first' for c in other_cols}
-            agg['thumbnail'] = lambda s: '; '.join(t for t in s if isinstance(t, str) and t)
+            def _join_distinct(series, sep):
+                seen = []
+                for v in series:
+                    if isinstance(v, str) and v and v not in seen:
+                        seen.append(v)
+                return sep.join(seen)
+            agg = {c: 'first' for c in df.columns if c not in ('id', 'thumbnail', 'dataset')}
+            agg['thumbnail'] = lambda s: _join_distinct(s, '; ')
+            if 'dataset' in df.columns:
+                agg['dataset'] = lambda s: _join_distinct(s, ', ')
             df = df.groupby('id', as_index=False, sort=False).agg(agg)
 
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
@@ -2909,8 +2920,19 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                 WITH n2
                 OPTIONAL MATCH (n2)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
                 OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-                WITH ri, templ, technique LIMIT 1
-                RETURN ri, templ, technique
+                WITH n2, collect({{ri: ri, templ: templ, technique: technique}}) AS aligns
+                WITH n2, [a IN aligns WHERE a.templ IS NOT NULL] AS va
+                RETURN
+                    CASE WHEN size(va)=0 THEN null ELSE head(va).templ END AS templ,
+                    CASE WHEN size(va)=0 THEN null ELSE head(va).technique END AS technique,
+                    apoc.text.join([a IN va |
+                        apoc.text.format("[![%s](%s '%s')](%s)", [
+                            n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
+                            REPLACE(COALESCE(a.ri.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),
+                            n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
+                            a.templ.short_form + "," + n2.short_form
+                        ])
+                    ], '; ') AS thumbnails
             }}
             RETURN n2.short_form as id,
             apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name,
@@ -2921,7 +2943,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
             CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') END AS source_id,
             REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), n2.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + n2.short_form]), "[![null]( 'null')](null)", "") as thumbnail
+            thumbnails as thumbnail
             ORDER BY score DESC"""
 
     if limit != -1:
@@ -3586,9 +3608,19 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
             WITH oi
             OPTIONAL MATCH (oi)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH channel, template, template_anat, technique, irw
-            LIMIT 1
-            RETURN channel, template, template_anat, technique, irw
+            WITH oi, collect({{irw: irw, template_anat: template_anat, technique: technique}}) AS aligns
+            WITH oi, [a IN aligns WHERE a.template_anat IS NOT NULL] AS va
+            RETURN
+                CASE WHEN size(va)=0 THEN null ELSE head(va).template_anat END AS template_anat,
+                CASE WHEN size(va)=0 THEN null ELSE head(va).technique END AS technique,
+                apoc.text.join([a IN va |
+                    apoc.text.format("[![%s](%s '%s')](%s)", [
+                        coalesce(oi.label,'image') + " aligned to " + (CASE WHEN a.template_anat.symbol[0] <> '' THEN a.template_anat.symbol[0] ELSE a.template_anat.label END),
+                        REPLACE(COALESCE(a.irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),
+                        coalesce(oi.label,'image') + " aligned to " + (CASE WHEN a.template_anat.symbol[0] <> '' THEN a.template_anat.symbol[0] ELSE a.template_anat.label END),
+                        a.template_anat.short_form + "," + oi.short_form
+                    ])
+                ], '; ') AS thumbnails
         }}
         RETURN
             oi.short_form AS id,
@@ -3599,7 +3631,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
             apoc.text.join(coalesce(oi.uniqueFacets, []), '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(oi.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(oi.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + oi.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+            thumbnails AS thumbnail
     """
 
     results = vc.nc.commit_list([main_cypher])

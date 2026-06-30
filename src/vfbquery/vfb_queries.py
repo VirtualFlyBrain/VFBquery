@@ -2461,6 +2461,17 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         # Convert the results to a DataFrame
         df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
+        # The registration MATCH yields one row per (instance, template). Collapse
+        # to one row per instance, joining every alignment's thumbnail into the
+        # "; "-joined multi-image carousel the V2 Images column renders (the
+        # frontend then brings the loaded template's thumbnail to the front). Other
+        # columns take the first (representative) value; the ORDER BY id is kept.
+        if not df.empty and 'id' in df.columns and 'thumbnail' in df.columns:
+            other_cols = [c for c in df.columns if c not in ('id', 'thumbnail')]
+            agg = {c: 'first' for c in other_cols}
+            agg['thumbnail'] = lambda s: '; '.join(t for t in s if isinstance(t, str) and t)
+            df = df.groupby('id', as_index=False, sort=False).agg(agg)
+
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
         df = encode_markdown_links(df, columns_to_encode)
 

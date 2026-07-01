@@ -10,8 +10,10 @@ from marshmallow import ValidationError
 import json
 import numpy as np
 from urllib.parse import unquote
-from .solr_result_cache import with_solr_cache
+from .solr_result_cache import with_solr_cache, solr_caching_disabled
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import re
 import requests
 import logging
@@ -2293,6 +2295,63 @@ def serialize_solr_output(results):
     json_string = json_string.replace("\'", '-')
     return json_string 
 
+# ---------------------------------------------------------------------------
+# Background preview warming
+#
+# Rich terms -- painted-domain individuals especially -- carry many connectivity
+# and count preview queries that fill_query_results runs serially. On a cold
+# cache that can take minutes and blocks the caller, which is what stalls the
+# geppetto UI on "Loading ...". To keep term-info responsive we return
+# immediately with the previews left unresolved (count -1) and compute the full
+# previews on a background thread, writing them into the term_info cache via
+# force_refresh so the next open is complete.
+#
+# Self-healing falls out of the existing cache validation: a cached term_info
+# whose queries still have count < 0 is treated as incomplete on read and
+# re-executed, so a blank entry is never served as final -- it just re-triggers
+# this fast path (and the background warm) until the full result lands.
+# ---------------------------------------------------------------------------
+_bg_preview_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="vfb-terminfo-warm")
+_bg_preview_inflight = set()
+_bg_preview_lock = threading.Lock()
+
+
+def _blank_query_previews(term_info):
+    """Return term_info with every query's preview left unresolved (count -1)."""
+    for query in term_info.get('Queries', []):
+        query['preview_results'] = {
+            'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']),
+            'rows': []
+        }
+        # -1 = not yet counted (distinct from a genuine 0), so the UI shows the
+        # query as pending and the cache treats the entry as not-yet-complete.
+        query['count'] = -1
+    return term_info
+
+
+def _schedule_preview_warm(short_form):
+    """Compute the full term-info previews in the background and cache them."""
+    with _bg_preview_lock:
+        if short_form in _bg_preview_inflight:
+            return
+        _bg_preview_inflight.add(short_form)
+
+    def _warm():
+        try:
+            import vfbquery
+            # force_refresh re-runs get_term_info with full (synchronous) preview
+            # execution and overwrites the cached entry, so the next open is fast
+            # AND complete.
+            vfbquery.get_term_info(short_form, preview=True, force_refresh=True)
+        except Exception as e:
+            print(f"Background term_info preview warm failed for {short_form}: {e}")
+        finally:
+            with _bg_preview_lock:
+                _bg_preview_inflight.discard(short_form)
+
+    _bg_preview_executor.submit(_warm)
+
+
 @with_solr_cache('term_info')
 def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = False):
     """
@@ -2312,6 +2371,15 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
         if parsed_object:
             # Only try to fill query results if preview is enabled and there are queries to fill
             if preview and parsed_object.get('Queries') and len(parsed_object['Queries']) > 0:
+                # Two-phase preview loading: on a normal (foreground) cold call,
+                # return immediately with previews unresolved so the caller is not
+                # blocked by slow connectivity/count queries, and warm the full
+                # previews into the cache on a background thread. The background
+                # job (force_refresh=True) and cache-disabled runs (the test suite,
+                # which validates live data) still fill synchronously below.
+                if not force_refresh and not solr_caching_disabled():
+                    _schedule_preview_warm(short_form)
+                    return _blank_query_previews(parsed_object)
                 try:
                     term_info = fill_query_results(parsed_object, force_refresh=force_refresh)
                     if term_info:

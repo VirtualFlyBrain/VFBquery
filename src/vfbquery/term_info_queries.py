@@ -100,6 +100,14 @@ class MinimalEdgeInfo:
     iri: Optional[str] = ""
     label: Optional[str] = ""
     type: Optional[str] = ""
+    # Edge-level enrichment carried in the vfb_json term_info (e.g. neurotransmitter
+    # predictions): confidence_value is a decimal string ("0.84" -> 84%) and
+    # database_cross_reference is a list of "SITE:accession" strings. These were
+    # dropped when the term-info migrated off vfb.xmi; declare them so
+    # dataclass_json stops discarding them and the relationship renderer can show
+    # the confidence and reference linkout again.
+    confidence_value: Optional[str] = ""
+    database_cross_reference: Optional[List[str]] = None
 
 
 @dataclass_json

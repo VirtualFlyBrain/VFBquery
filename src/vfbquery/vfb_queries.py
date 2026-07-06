@@ -592,6 +592,35 @@ def _linkify_citations(text, pub_map, term_id="", field=""):
     return linked
 
 
+def format_edge_xrefs(dxrefs):
+    """Render a relationship edge's database_cross_reference list as markdown
+    linkouts. Entries are 'SITE:accession' (e.g. 'FlyBase:FBrf0259490'); returns
+    a leading-space parenthesised group so it can be appended to a relationship.
+    """
+    if not dxrefs:
+        return ""
+    links = []
+    for x in dxrefs:
+        if not x:
+            continue
+        if ':' in x:
+            site, acc = x.split(':', 1)
+            s = site.lower()
+            if s == 'flybase':
+                links.append("[%s](http://flybase.org/reports/%s)" % (x, acc))
+            elif s == 'doi':
+                links.append("[%s](https://doi.org/%s)" % (x, acc))
+            elif s in ('pmid', 'pubmed'):
+                links.append("[%s](https://www.ncbi.nlm.nih.gov/pubmed/%s)" % (x, acc))
+            else:
+                links.append(x)
+        else:
+            links.append(x)
+    if not links:
+        return ""
+    return " (" + ", ".join(links) + ")"
+
+
 def term_info_parse_object(results, short_form):
     termInfo = {}
     termInfo["SuperTypes"] = []
@@ -701,6 +730,9 @@ def term_info_parse_object(results, short_form):
 
             # Group relationships by relation type and remove duplicates
             grouped_relationships = {}
+            # Edge-level enriched relationships (confidence/reference) are rendered
+            # individually and prepended, so their per-edge data survives grouping.
+            enriched_relationships = []
             for relationship in vfbTerm.relationships:
                 if hasattr(relationship.relation, 'short_form') and relationship.relation.short_form:
                     relation_key = (relationship.relation.label, relationship.relation.short_form)
@@ -750,6 +782,30 @@ def term_info_parse_object(results, short_form):
                             publication["refs"] = refs
                             pubs_from_relationships.append(publication)
                 
+                # Edge-level enrichment (confidence + reference), e.g. neuro-
+                # transmitter predictions. Per-edge, so do NOT collapse into the
+                # grouped/deduped relationships -- render each individually with
+                # its confidence % and reference linkout, matching the pre-VFBquery
+                # (vfb.xmi) term-info.
+                cv = getattr(relationship.relation, 'confidence_value', '') or ''
+                dx = getattr(relationship.relation, 'database_cross_reference', None) or []
+                if cv or dx:
+                    conf = ''
+                    if cv:
+                        try:
+                            conf = str(int(round(float(cv) * 100))) + '% '
+                        except (ValueError, TypeError):
+                            conf = ''
+                    enriched_relationships.append(
+                        '%s[%s](%s): [%s](%s)%s' % (
+                            conf,
+                            encode_brackets(relation_key[0]), relation_key[1],
+                            encode_brackets(object_key[0]), object_key[1],
+                            format_edge_xrefs(dx),
+                        )
+                    )
+                    continue
+
                 if relation_key not in grouped_relationships:
                     grouped_relationships[relation_key] = set()
                 grouped_relationships[relation_key].add(object_key)
@@ -765,7 +821,9 @@ def term_info_parse_object(results, short_form):
                 for object_key in sorted_object_set:
                     relation_objects.append("[%s](%s)" % (encode_brackets(object_key[0]), object_key[1]))
                 relationships.append("[%s](%s): %s" % (encode_brackets(relation_key[0]), relation_key[1], ', '.join(relation_objects)))
-            termInfo["Meta"]["Relationships"] = "; ".join(relationships)
+            # Enriched (confidence/reference) relationships first, then the plain
+            # grouped ones -- so the NT confidence line leads, as it did before.
+            termInfo["Meta"]["Relationships"] = "; ".join(enriched_relationships + relationships)
 
             # New: Add relationship publications to main publications list
             if pubs_from_relationships:

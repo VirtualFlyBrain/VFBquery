@@ -1569,7 +1569,13 @@ def NeuronInputsTo_to_schema(name, take_default):
         "neuron_short_form": {"$and": ["Individual", "Neuron"]},
         "default": take_default,
     }
-    preview = -1
+    # preview MUST be > 0: fill_query_results/process_query only populates the
+    # count badge and ribbon rows when preview > 0 (vfb_queries.py:6192). A
+    # value of -1 caused the query to be skipped entirely, shipping count=-1
+    # and no preview_results to the frontend (broken card). output_format
+    # "ribbon" already makes process_query call the backing function in
+    # summary_mode, so the ribbon shows the neurotransmitter breakdown.
+    preview = 5
     preview_columns = ["Neurotransmitter", "Weight"]
     output_format = "ribbon"
 

@@ -73,8 +73,10 @@ class NeuronInputsTest(unittest.TestCase):
         self.assertIsNotNone(schema, "Schema should not be None")
         self.assertEqual(schema.query, "NeuronInputsTo", "Query name should match")
         self.assertEqual(schema.function, "get_individual_neuron_inputs", "Function name should match")
-        # NeuronInputsTo uses ribbon format with preview=-1 (all results)
-        self.assertEqual(schema.preview, -1, "Preview should show all results (ribbon format)")
+        # NeuronInputsTo uses ribbon format; preview must be > 0 so
+        # fill_query_results populates the count badge and ribbon rows
+        # (preview<=0 is skipped by process_query, vfb_queries.py:6192).
+        self.assertGreater(schema.preview, 0, "Preview must be > 0 for the ribbon to be populated")
         self.assertIn("Neurotransmitter", schema.preview_columns, "Preview should include 'Neurotransmitter' column")
         self.assertIn("Weight", schema.preview_columns, "Preview should include 'Weight' column")
         

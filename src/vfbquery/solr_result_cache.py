@@ -942,7 +942,7 @@ def with_solr_cache(query_type: str):
             expensive_query_types = ['similar_neurons', 'similar_morphology', 'similar_morphology_part_of',
                                    'similar_morphology_part_of_exp', 'similar_morphology_nb',
                                    'similar_morphology_nb_exp', 'similar_morphology_userdata',
-                                   'neurons_part_here', 'neurons_synaptic',
+                                   'neurons_part_here', 'neurons_synaptic', 'neurons_capable_of',
                                    'neurons_presynaptic', 'neurons_postsynaptic',
                                    'expression_overlaps_here', 'anatomy_scrnaseq', 'aligned_datasets', 'terms_for_pub',
                                    'individual_neuron_inputs', 'cluster_expression', 'expression_cluster', 'scrnaseq_dataset_data',
@@ -985,8 +985,8 @@ def with_solr_cache(query_type: str):
             
             # Include return_dataframe parameter in cache key for queries that support it
             # This ensures DataFrame and dict results are cached separately
-            dataframe_query_types = ['neurons_part_here', 'neurons_synaptic', 'neurons_presynaptic', 
-                                   'neurons_postsynaptic', 'similar_neurons', 'similar_morphology', 
+            dataframe_query_types = ['neurons_part_here', 'neurons_synaptic', 'neurons_capable_of', 'neurons_presynaptic',
+                                   'neurons_postsynaptic', 'similar_neurons', 'similar_morphology',
                                    'similar_morphology_part_of', 'similar_morphology_part_of_exp', 
                                    'similar_morphology_nb', 'similar_morphology_nb_exp', 
                                    'similar_morphology_userdata', 'neurons_part_here', 'neurons_synaptic',

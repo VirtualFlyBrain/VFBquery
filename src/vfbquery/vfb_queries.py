@@ -1100,6 +1100,17 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Class"]):
             q = SubclassesOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
+
+        # NeuronsCapableOf query - inverse of a neuron's 'capable of' relationship,
+        # e.g. neurotransmitter-secretion GO terms (neurons capable of ACh/GABA/
+        # serotonin secretion). These GO process terms carry no distinguishing
+        # SuperType facet, so gate on the term being a subclass of GO_0007269
+        # 'neurotransmitter secretion' -- the shared parent of every such process.
+        if vfbTerm.parents and any(
+            getattr(p, 'short_form', None) == "GO_0007269" for p in vfbTerm.parents
+        ):
+            q = NeuronsCapableOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
         
         # NeuronClassesFasciculatingHere query - for tracts/nerves
         # Matches XMI criteria: Class + Tract_or_nerve (VFB uses Neuron_projection_bundle type)
@@ -2020,6 +2031,33 @@ def LineageClonesIn_to_schema(name, take_default):
     }
     preview = 5
     preview_columns = ["id", "label", "tags", "template", "technique", "thumbnail"]
+
+    return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+def NeuronsCapableOf_to_schema(name, take_default):
+    """
+    Schema for NeuronsCapableOf query.
+    Finds individual neurons capable of the specified process (e.g. a
+    neurotransmitter-secretion GO term) -- the inverse of a neuron's
+    'capable of' (RO_0002215) relationship.
+
+    Applicability (gated in term_info_parse_object): the term is a subclass of
+    GO_0007269 'neurotransmitter secretion'. These GO terms carry no
+    distinguishing SuperType facet, so the shared parent is the signal.
+
+    Query chain: Owlery instances query -> process -> SOLR
+    OWL query: 'Neuron' that 'capable of' some '{short_form}' (returns instances)
+    """
+    query = "NeuronsCapableOf"
+    label = f"Neurons capable of {name}"
+    function = "get_neurons_capable_of"
+    takes = {
+        "short_form": {"$and": ["Class"]},
+        "default": take_default,
+    }
+    preview = 5
+    preview_columns = ["id", "label", "tags", "thumbnail"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -4601,6 +4639,29 @@ def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: 
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
+
+
+@with_solr_cache('neurons_capable_of')
+def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Retrieves individual neurons capable of the specified process (e.g. a
+    neurotransmitter-secretion GO term) -- the inverse of a neuron's
+    'capable of' (RO_0002215) relationship.
+
+    Query chain: Owlery instances -> process -> SOLR
+    OWL query: <FBbt_00005106> and <RO_0002215> some <$ID> (instances)
+    Where: FBbt_00005106 = neuron, RO_0002215 = capable of
+
+    Note: returns INSTANCES (individual neurons), like ImagesNeurons.
+
+    :param short_form: short form of the process/GO term (Class)
+    :param return_dataframe: Returns pandas dataframe if true, otherwise formatted dict
+    :param limit: maximum number of results (default -1, all)
+    :return: Individual neurons capable of the specified process
+    """
+    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002215> some <{_short_form_to_iri(short_form)}>"
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit,
                                     solr_field='anat_image_query', query_by_label=False, query_instances=True)
 
 

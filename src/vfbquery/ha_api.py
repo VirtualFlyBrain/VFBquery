@@ -309,6 +309,7 @@ QUERY_TYPE_MAP = {
 
     # Neurons in region
     "NeuronsPartHere":              "get_neurons_with_part_in",
+    "NeuronsCapableOf":             "get_neurons_capable_of",
     "NeuronsSynaptic":              "get_neurons_with_synapses_in",
     "NeuronsPresynapticHere":       "get_neurons_with_presynaptic_terminals_in",
     "NeuronsPostsynapticHere":      "get_neurons_with_postsynaptic_terminals_in",

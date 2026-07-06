@@ -1557,7 +1557,7 @@ def term_info_parse_object(results, short_form):
 
 def NeuronInputsTo_to_schema(name, take_default):
     query = "NeuronInputsTo"
-    label = f"Find neurons with synapses into {name}"
+    label = f"Find neurons presynaptic to {name}"
     function = "get_individual_neuron_inputs"
     takes = {
         "neuron_short_form": {"$and": ["Individual", "Neuron"]},

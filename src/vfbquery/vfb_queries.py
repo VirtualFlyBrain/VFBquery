@@ -1215,11 +1215,20 @@ def term_info_parse_object(results, short_form):
             q = SimilarMorphologyToPartOfexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "neuronbridge"]):
+        # NeuronBridge queries mirror the NBLAST part-of pair above: NB is the
+        # neuron side, NBexp the expression side, gated so they are mutually
+        # exclusive. Without the Neuron gate the broad Individual+neuronbridge
+        # criterion also matches expression patterns, so an EP carrying the
+        # neuronbridge facet fired both and rendered two identical
+        # "NeuronBridge matches" buttons.
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "neuronbridge"]):
             q = SimilarMorphologyToNB_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
-        
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Expression_pattern", "neuronbridge"]):
+
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "neuronbridge"]) and (
+            "Expression_pattern" in termInfo["SuperTypes"] or
+            "Expression_pattern_fragment" in termInfo["SuperTypes"]
+        ):
             q = SimilarMorphologyToNBexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1640,7 +1649,7 @@ def NeuronInputsTo_to_schema(name, take_default):
 
 def SimilarMorphologyTo_to_schema(name, take_default):
     query = "SimilarMorphologyTo"
-    label = f"Find similar neurons to {name}"
+    label = f"Neurons with similar morphology to {name} [NBLAST]"
     function = "get_similar_neurons"
     takes = {
         "short_form": {"$and": ["Individual", "Neuron"]},
@@ -2288,27 +2297,27 @@ def scRNAdatasetData_to_schema(name, take_default):
 
 def SimilarMorphologyToPartOf_to_schema(name, take_default):
     """Schema for SimilarMorphologyToPartOf (NBLASTexp) query."""
-    return Query(query="SimilarMorphologyToPartOf", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of", takes={"short_form": {"$and": ["Individual", "Neuron", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
+    return Query(query="SimilarMorphologyToPartOf", label=f"Expression patterns with similar morphology to part of {name} [NBLAST]", function="get_similar_morphology_part_of", takes={"short_form": {"$and": ["Individual", "Neuron", "NBLASTexp"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToPartOfexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToPartOfexp (reverse NBLASTexp) query."""
-    return Query(query="SimilarMorphologyToPartOfexp", label=f"Similar morphology to part of {name}", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, {"$and": ["Individual", "Expression_pattern_fragment", "NBLASTexp"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
+    return Query(query="SimilarMorphologyToPartOfexp", label=f"Neurons with similar morphology to part of {name} [NBLAST]", function="get_similar_morphology_part_of_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "NBLASTexp"]}, {"$and": ["Individual", "Expression_pattern_fragment", "NBLASTexp"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToNB_to_schema(name, take_default):
     """Schema for SimilarMorphologyToNB (NeuronBridge) query."""
-    return Query(query="SimilarMorphologyToNB", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb", takes={"short_form": {"$and": ["Individual", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
+    return Query(query="SimilarMorphologyToNB", label=f"Expression patterns matching {name} [NeuronBridge]", function="get_similar_morphology_nb", takes={"short_form": {"$and": ["Individual", "Neuron", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToNBexp_to_schema(name, take_default):
     """Schema for SimilarMorphologyToNBexp (NeuronBridge expression) query."""
-    return Query(query="SimilarMorphologyToNBexp", label=f"NeuronBridge matches for {name}", function="get_similar_morphology_nb_exp", takes={"short_form": {"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"])
+    return Query(query="SimilarMorphologyToNBexp", label=f"Neurons matching {name} [NeuronBridge]", function="get_similar_morphology_nb_exp", takes={"short_form": {"$or": [{"$and": ["Individual", "Expression_pattern", "neuronbridge"]}, {"$and": ["Individual", "Expression_pattern_fragment", "neuronbridge"]}]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"])
 
 
 def SimilarMorphologyToUserData_to_schema(name, take_default):
     """Schema for SimilarMorphologyToUserData (user upload NBLAST) query."""
-    return Query(query="SimilarMorphologyToUserData", label=f"NBLAST results for {name}", function="get_similar_morphology_userdata", takes={"short_form": {"$and": ["Individual", "UNBLAST"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score"])
+    return Query(query="SimilarMorphologyToUserData", label=f"Neurons with similar morphology to your upload {name} [NBLAST]", function="get_similar_morphology_userdata", takes={"short_form": {"$and": ["Individual", "UNBLAST"]}, "default": take_default}, preview=5, preview_columns=["id", "name", "score"])
 
 
 def PaintedDomains_to_schema(name, take_default):

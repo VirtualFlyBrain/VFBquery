@@ -1034,10 +1034,16 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
+        # NeuronInputsTo is gated behind the extra "Demo" tag so it does NOT
+        # appear on the current site (no live terms carry "Demo"). Keep it
+        # separate from NeuronNeuronConnectivityQuery below, which should still
+        # show for all connectivity-bearing neurons.
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity", "Demo"]):
             q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
             queries.append(q)
-            # NeuronNeuronConnectivity query - neurons connected to this neuron
+
+        # NeuronNeuronConnectivity query - neurons connected to this neuron
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
             q = NeuronNeuronConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1635,13 +1641,19 @@ def term_info_parse_object(results, short_form):
 
 def NeuronInputsTo_to_schema(name, take_default):
     query = "NeuronInputsTo"
-    label = f"Find neurons with synapses into {name}"
+    label = f"Find neurons presynaptic to {name}"
     function = "get_individual_neuron_inputs"
     takes = {
         "neuron_short_form": {"$and": ["Individual", "Neuron"]},
         "default": take_default,
     }
-    preview = -1
+    # preview MUST be > 0: fill_query_results/process_query only populates the
+    # count badge and ribbon rows when preview > 0 (vfb_queries.py:6192). A
+    # value of -1 caused the query to be skipped entirely, shipping count=-1
+    # and no preview_results to the frontend (broken card). output_format
+    # "ribbon" already makes process_query call the backing function in
+    # summary_mode, so the ribbon shows the neurotransmitter breakdown.
+    preview = 5
     preview_columns = ["Neurotransmitter", "Weight"]
     output_format = "ribbon"
 

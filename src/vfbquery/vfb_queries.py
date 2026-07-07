@@ -1346,104 +1346,62 @@ def term_info_parse_object(results, short_form):
                 "default_args": {"fbco_id": sf},
             })
 
-        # For individuals that are painted domains of anatomical regions, add parent class queries
-        if termInfo["IsIndividual"] and termInfo["Technique"] and any('computer' in t.lower() for t in termInfo["Technique"]):
-            anatomical_classes = []
-            
-            # Check parents
-            if vfbTerm.parents:
-                for parent in vfbTerm.parents:
-                    if parent.types and "Class" in parent.types and "Anatomy" in parent.types:
-                        anatomical_classes.append(parent)
-            
-            # Check relationships for anatomical classes
-            if vfbTerm.relationships:
-                for rel in vfbTerm.relationships:
-                    if hasattr(rel, 'object') and rel.object and hasattr(rel.object, 'types') and rel.object.types:
-                        if "Class" in rel.object.types and "Anatomy" in rel.object.types:
-                            anatomical_classes.append(rel.object)
-            
-            # Remove duplicates based on short_form
-            seen = set()
-            unique_anatomical_classes = []
-            for cls in anatomical_classes:
-                if cls.short_form not in seen:
-                    seen.add(cls.short_form)
-                    unique_anatomical_classes.append(cls)
-            
-            for parent in unique_anatomical_classes:
-                parent_short_form = parent.short_form
-                parent_label = parent.label if parent.label else parent_short_form
-                
-                # Add queries based on parent types
-                if "Anatomy" in parent.types or "Synaptic_neuropil" in parent.types or "Synaptic_neuropil_domain" in parent.types:
-                    # NeuronsPartHere query
-                    q = NeuronsPartHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # NeuronsSynaptic query
-                    q = NeuronsSynaptic_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # NeuronsPresynapticHere query
-                    q = NeuronsPresynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # NeuronsPostsynapticHere query
-                    q = NeuronsPostsynapticHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # TractsNervesInnervatingHere query
-                    q = TractsNervesInnervatingHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # LineageClonesIn query
-                    q = LineageClonesIn_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                    
-                    # ImagesNeurons query
-                    q = ImagesNeurons_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Expression_pattern" in parent.types or "Expression_pattern_fragment" in parent.types:
-                    # AnatomyExpressedIn query — anatomy classes where this
-                    # expression pattern is expressed.
-                    q = AnatomyExpressedIn_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Anatomy" in parent.types and "hasScRNAseq" in parent.types:
-                    # anatScRNAseqQuery query
-                    q = anatScRNAseqQuery_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Neuron_projection_bundle" in parent.types:
-                    # NeuronClassesFasciculatingHere query
-                    q = NeuronClassesFasciculatingHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Neuroblast" in parent.types:
-                    # ImagesThatDevelopFrom query
-                    q = ImagesThatDevelopFrom_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Expression_pattern" in parent.types:
-                    # epFrag query
-                    q = epFrag_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                if "Nervous_system" in parent.types and ("Anatomy" in parent.types or "Neuron" in parent.types):
-                    # TransgeneExpressionHere query
-                    q = TransgeneExpressionHere_to_schema(parent_label, {"short_form": parent_short_form})
-                    queries.append(q)
-                
-                # PartsOf query - for any Class
-                q = PartsOf_to_schema(parent_label, {"short_form": parent_short_form})
-                queries.append(q)
-                
-                # SubclassesOf query - for any Class
-                q = SubclassesOf_to_schema(parent_label, {"short_form": parent_short_form})
-                queries.append(q)
-        
+        # Bring the parent class's query menu down onto selected Individual
+        # instances, reproducing the legacy term-info builder
+        # (VFBProcessTermInfoCachedJson, gate ~line 1757): an Individual of one
+        # of these anatomical / expression-pattern types inherits every
+        # class-anchored query its parent class matches, run on the class (not
+        # the individual). Replaces an earlier Technique == "computer graphic"
+        # gate that only caught painted domains and silently dropped confocal
+        # instances (expression patterns, splits, tracts, muscle).
+        #
+        # The predicate table mirrors the class-menu conditions above; keep the
+        # two in sync (a future refactor should share a single source).
+        inherit_instance_types = (
+            "Painted_domain", "Synaptic_neuropil", "Synaptic_neuropil_domain",
+            "Synaptic_neuropil_subdomain", "Neuron_projection_bundle", "Split",
+            "Expression_pattern", "Muscle",
+        )
+        instance_super_types = termInfo["SuperTypes"] or []
+        if termInfo["IsIndividual"] and any(t in instance_super_types for t in inherit_instance_types):
+            # Legacy anchored on the first parent Class (classVariable = parents[0]).
+            inherit_parent = next(
+                (p for p in (vfbTerm.parents or []) if p.types and "Class" in p.types),
+                None,
+            )
+            if inherit_parent is not None:
+                p_types = set(inherit_parent.types or [])
+                p_ref = {"short_form": inherit_parent.short_form}
+                p_label = inherit_parent.label if inherit_parent.label else inherit_parent.short_form
+                # (schema builder, predicate over the parent class's type set).
+                # Predicates copy the Class-gated conditions used for the term's
+                # own menu above so an instance shows exactly what its class shows.
+                inheritable_class_queries = (
+                    (ListAllAvailableImages_to_schema, lambda p: {"Class", "Anatomy"} <= p),
+                    (NeuronsPartHere_to_schema, lambda p: "Class" in p and "Neuron" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
+                    (NeuronsSynaptic_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
+                    (NeuronsPresynapticHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
+                    (NeuronsPostsynapticHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
+                    (ImagesNeurons_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
+                    (TractsNervesInnervatingHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
+                    (LineageClonesIn_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
+                    (NeuronClassesFasciculatingHere_to_schema, lambda p: "Class" in p and "Neuron_projection_bundle" in p),
+                    (ComponentsOf_to_schema, lambda p: {"Class", "Clone"} <= p),
+                    (ImagesThatDevelopFrom_to_schema, lambda p: {"Class", "Neuroblast"} <= p),
+                    (epFrag_to_schema, lambda p: {"Class", "Expression_pattern"} <= p),
+                    (AnatomyExpressedIn_to_schema, lambda p: "Class" in p and ("Expression_pattern" in p or "Expression_pattern_fragment" in p)),
+                    (anatScRNAseqQuery_to_schema, lambda p: {"Class", "Anatomy", "hasScRNAseq"} <= p),
+                    (TransgeneExpressionHere_to_schema, lambda p: "Class" in p and "Nervous_system" in p and ("Anatomy" in p or "Neuron" in p)),
+                    (TargetNeurons_to_schema, lambda p: {"Class", "Split"} <= p),
+                    (DownstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
+                    (UpstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
+                    (PartsOf_to_schema, lambda p: "Class" in p and "Neuron" not in p),
+                    (SubclassesOf_to_schema, lambda p: "Class" in p),
+                )
+                for schema_fn, predicate in inheritable_class_queries:
+                    if predicate(p_types):
+                        queries.append(schema_fn(p_label, p_ref))
+
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
             publications = []

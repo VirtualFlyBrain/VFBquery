@@ -704,6 +704,39 @@ async def handle_get_term_info(request):
 # Query functions that accept offset/limit paging (id ASC pages, <=10000 rows).
 PAGED_QUERY_FUNCS = {"get_all_aligned_images"}
 
+# Hard safety cap on rows returned to the client for ANY query. Broad terms
+# make many queries huge or unbounded (e.g. AllAlignedImages ~528k, and
+# ListAllAvailableImages / connectivity / SubclassesOf on high-level classes
+# return -1/"unresolved" counts = potentially millions). Returning those in one
+# response is what caused the 430MB serialise-on-the-event-loop + websocket
+# broken-pipe blowup. We always bound the payload here, keep the true total in
+# "count", and flag "capped" so the UI can show "first N - refine". Override the
+# cap with VFBQUERY_RESULT_ROW_CAP (default 10000; 0 disables).
+try:
+    RESULT_ROW_CAP = int(os.getenv("VFBQUERY_RESULT_ROW_CAP", "10000") or "10000")
+except ValueError:
+    RESULT_ROW_CAP = 10000
+
+
+def _cap_result_rows(result, cap=None):
+    """Bound a run_query result dict to `cap` rows; no-op for anything else."""
+    if cap is None:
+        cap = RESULT_ROW_CAP
+    if not cap or not isinstance(result, dict):
+        return result
+    rows = result.get("rows")
+    if not isinstance(rows, list) or len(rows) <= cap:
+        return result
+    total = result.get("count")
+    if not isinstance(total, (int, float)) or total < len(rows):
+        total = len(rows)
+    capped = dict(result)
+    capped["rows"] = rows[:cap]
+    capped["count"] = total
+    capped["limit"] = cap
+    capped["capped"] = True
+    return capped
+
 
 async def handle_run_query(request):
     """GET /run_query?id=<short_form>&query_type=<QueryType>&include_graph=false"""
@@ -765,7 +798,7 @@ async def handle_run_query(request):
             log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
             if include_graph:
                 cached = _maybe_add_graph(cached, func_name, short_form)
-            return web.json_response(cached)
+            return web.json_response(_cap_result_rows(cached))
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
@@ -777,7 +810,7 @@ async def handle_run_query(request):
             result = await fut
             if include_graph:
                 result = _maybe_add_graph(result, func_name, short_form)
-            return web.json_response(result)
+            return web.json_response(_cap_result_rows(result))
         except Exception:
             tb = traceback.format_exc()
             return web.json_response(
@@ -821,6 +854,7 @@ async def handle_run_query(request):
                 pool, _run_query, short_form, func_name, force_refresh, offset, limit
             )
         log.info("run_query id=%s query_type=%s — done", short_form, query_type)
+        result = _cap_result_rows(result)  # bound payload before caching + sending
         rcache.put(key, result)
         await coalescer.remove(key)
         fut.set_result(result)
@@ -916,7 +950,7 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
     if cached is not None:
         if post_fn is not None:
             cached = post_fn(cached)
-        return web.json_response(cached)
+        return web.json_response(_cap_result_rows(cached))
 
     fut, is_owner = await coalescer.get_or_create(cache_key)
     if not is_owner:
@@ -924,7 +958,7 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
             result = await fut
             if post_fn is not None:
                 result = post_fn(result)
-            return web.json_response(result)
+            return web.json_response(_cap_result_rows(result))
         except Exception:
             tb = traceback.format_exc()
             return web.json_response({"error": "Query failed", "detail": tb}, status=500)
@@ -948,6 +982,7 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
             await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(pool, worker_fn, *args)
+        result = _cap_result_rows(result)
         rcache.put(cache_key, result)
         await coalescer.remove(cache_key)
         fut.set_result(result)

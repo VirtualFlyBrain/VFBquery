@@ -6,4 +6,4 @@ this file, so the packaging metadata, ``vfbquery.__version__`` and the SOLR
 cache's version stamp can never drift apart.
 """
 
-__version__ = "1.22.17"
+__version__ = "1.22.18"

@@ -87,7 +87,6 @@ class CacheMetadata:
     expires_at: str         # ISO timestamp  
     result_size: int        # Size in bytes
     version: str            # VFBquery version
-    hit_count: int = 0      # How many times this cache entry was used
 
 class SolrResultCache:
     """
@@ -171,7 +170,6 @@ class SolrResultCache:
             "expires_at": expires_at.isoformat(),
             "result_size": result_size,
             "params": params,  # Store the parameters used for this query
-            "hit_count": 0,
             "cache_version": "1.0",  # For future compatibility
             "package_version": self._get_cache_package_version(),
             "ttl_hours": self.ttl_hours  # Store TTL for debugging
@@ -405,8 +403,13 @@ class SolrResultCache:
                     # For other result types, return as-is (can't slice)
                     logger.debug(f"Cache hit: Returning full cached result (cannot slice type {type(result)})")
             
-            # Increment hit count asynchronously
-            self._increment_cache_hit_count(cache_doc_id, cached_data.get("hit_count", 0))
+            # NB: no hit-count telemetry here. It used to be persisted with a
+            # Solr atomic {"set": ...} update on the payload document, which
+            # reindexes the whole doc; for large cache_data payloads (e.g.
+            # AllAlignedImages, ~62MB) Solr fails to re-store the field and
+            # silently drops it, leaving a payload-less shell that always
+            # misses and forces a recompute. hit_count drove no logic, so it
+            # is no longer tracked.
             
             # Return cached result 
             result = cached_data["result"]
@@ -590,29 +593,6 @@ class SolrResultCache:
             logger.error(f"Error clearing cache entry: {e}")
             return False
     
-    def _increment_cache_hit_count(self, cache_doc_id: str, current_count: int):
-        """Increment hit count for cache document (background operation)"""
-        if not self._solr_available():
-            return
-        try:
-            # Update hit count in cache document
-            new_count = current_count + 1
-            update_doc = {
-                "id": cache_doc_id,
-                "hit_count": {"set": new_count},
-                "last_accessed": {"set": datetime.now().isoformat() + "Z"}
-            }
-            
-            requests.post(
-                f"{self.cache_url}/update",
-                data=json.dumps([update_doc]),
-                headers={"Content-Type": "application/json"},
-                params={"commit": "false"},  # Don't commit immediately for performance
-                timeout=2
-            )
-        except Exception as e:
-            logger.debug(f"Failed to update hit count: {e}")
-    
     def get_cache_age(self, query_type: str, term_id: str, **params) -> Optional[Dict[str, Any]]:
         """
         Get cache age information for a specific cached result
@@ -629,7 +609,7 @@ class SolrResultCache:
             
             response = requests.get(f"{self.cache_url}/select", params={
                 "q": f"id:{cache_doc_id}",
-                "fl": "cache_data,hit_count,last_accessed",
+                "fl": "cache_data",
                 "wt": "json"
             }, timeout=5)
             
@@ -662,9 +642,7 @@ class SolrResultCache:
                             "time_to_expiry_days": time_to_expiry.days,
                             "time_to_expiry_hours": time_to_expiry.total_seconds() / 3600,
                             "is_expired": now > expires_at,
-                            "hit_count": doc.get("hit_count", cached_data.get("hit_count", 0)),
-                            "size_kb": cached_data.get("result_size", 0) / 1024,
-                            "last_accessed": doc.get("last_accessed", ["Never"])[0] if isinstance(doc.get("last_accessed"), list) else doc.get("last_accessed", "Never")
+                            "size_kb": cached_data.get("result_size", 0) / 1024
                         }
         except Exception as e:
             logger.debug(f"Error getting cache age: {e}")
@@ -764,7 +742,7 @@ class SolrResultCache:
             # Get all cache documents
             response = requests.get(f"{self.cache_url}/select", params={
                 "q": "id:vfb_query_*",
-                "fl": "id,query_type,cache_data,hit_count,last_accessed,cached_at,expires_at",
+                "fl": "id,query_type,cache_data,cached_at,expires_at",
                 "rows": "1000",  # Process in batches 
                 "wt": "json"
             }, timeout=30)
@@ -777,7 +755,6 @@ class SolrResultCache:
                 type_stats = {}
                 total_size = 0
                 expired_count = 0
-                total_hits = 0
                 age_buckets = {"0-1d": 0, "1-7d": 0, "7-30d": 0, "30-90d": 0, ">90d": 0}
                 
                 now = datetime.now().astimezone()
@@ -840,11 +817,6 @@ class SolrResultCache:
                                 else:
                                     age_buckets[">90d"] += 1
                             
-                            # Get hit count
-                            hit_count = doc.get("hit_count", cached_data.get("hit_count", 0))
-                            if isinstance(hit_count, list):
-                                hit_count = hit_count[0]
-                            total_hits += int(hit_count) if hit_count else 0
                                     
                     except (json.JSONDecodeError, KeyError, ValueError):
                         # Invalid cache data
@@ -855,7 +827,6 @@ class SolrResultCache:
                     "cache_by_type": type_stats,
                     "expired_documents": expired_count,
                     "age_distribution": age_buckets,
-                    "total_hits": total_hits,
                     "estimated_size_bytes": total_size,
                     "estimated_size_mb": round(total_size / (1024 * 1024), 2),
                     "cache_efficiency": round((total_cache_docs - expired_count) / max(total_cache_docs, 1) * 100, 1)
@@ -869,7 +840,6 @@ class SolrResultCache:
             "cache_by_type": {},
             "expired_documents": 0,
             "age_distribution": {},
-            "total_hits": 0,
             "estimated_size_bytes": 0,
             "estimated_size_mb": 0.0,
             "cache_efficiency": 0.0

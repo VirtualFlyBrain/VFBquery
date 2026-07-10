@@ -79,6 +79,8 @@ from .vfb_queries import (
     get_template_roi_tree as _original_get_template_roi_tree,
     get_dataset_images as _original_get_dataset_images,
     get_all_aligned_images as _original_get_all_aligned_images,
+    get_all_aligned_image_ids as _original_get_all_aligned_image_ids,
+    get_aligned_images_page as _original_get_aligned_images_page,
     get_aligned_datasets as _original_get_aligned_datasets,
     get_all_datasets as _original_get_all_datasets,
     get_terms_for_pub as _original_get_terms_for_pub,
@@ -379,20 +381,33 @@ def get_dataset_images_cached(dataset_short_form: str, return_dataframe=True, li
     """
     return _original_get_dataset_images(dataset_short_form=dataset_short_form, return_dataframe=return_dataframe, limit=limit)
 
-@with_solr_cache('all_aligned_images')
-def get_all_aligned_images_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
-    """
-    Enhanced get_all_aligned_images with SOLR caching.
+@with_solr_cache('all_aligned_image_ids')
+def _get_all_aligned_image_ids_cached(template_short_form: str, force_refresh: bool = False):
+    """Cache only the small ordered ID-list index for AllAlignedImages, keyed by
+    template. Pages hydrate from this list without recomputing the expensive
+    whole-template traversal, and without ever caching the large row payload."""
+    return _original_get_all_aligned_image_ids(template_short_form)
 
-    Args:
-        template_short_form: Template short form
-        return_dataframe: Whether to return DataFrame or list of dicts
-        limit: Maximum number of results (-1 for all)
 
-    Returns:
-        All aligned images data
+def get_all_aligned_images_cached(template_short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
+    """AllAlignedImages via the cached ID-list index + on-demand page hydration.
+
+    Only the ID list is cached (small); each page (<=10000 rows, id ASC) is
+    hydrated on demand, so the multi-hundred-MB full row payload is never cached
+    or serialised in one go. A single page covers everything when count <= 10000;
+    the client pages by ``offset`` only when the returned ``count`` > 10000.
     """
-    return _original_get_all_aligned_images(template_short_form=template_short_form, return_dataframe=return_dataframe, limit=limit)
+    from .vfb_queries import ALL_ALIGNED_IMAGES_MAX_PAGE
+    if limit is None or limit <= 0 or limit > ALL_ALIGNED_IMAGES_MAX_PAGE:
+        limit = ALL_ALIGNED_IMAGES_MAX_PAGE
+    if offset is None or offset < 0:
+        offset = 0
+    ids = _get_all_aligned_image_ids_cached(template_short_form, force_refresh=force_refresh)
+    page_ids = ids[offset:offset + limit]
+    return _original_get_aligned_images_page(
+        template_short_form, page_ids, len(ids),
+        offset=offset, limit=limit, return_dataframe=return_dataframe,
+    )
 
 @with_solr_cache('aligned_datasets')
 def get_aligned_datasets_cached(template_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):

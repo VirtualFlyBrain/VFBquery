@@ -392,7 +392,7 @@ def _run_term_info(short_form, force_refresh=False):
     return _convert_numpy_types(result)
 
 
-def _run_query(short_form, func_name, force_refresh=False):
+def _run_query(short_form, func_name, force_refresh=False, offset=0, limit=0):
     """Execute a named query function in a worker process. Returns JSON-serialisable dict.
 
     ``force_refresh`` is propagated to the underlying ``vfb_queries`` function
@@ -402,6 +402,9 @@ def _run_query(short_form, func_name, force_refresh=False):
     """
     fn = getattr(_vfb, func_name)
     base_kwargs = {"return_dataframe": False}
+    if func_name in PAGED_QUERY_FUNCS:
+        base_kwargs["offset"] = offset
+        base_kwargs["limit"] = limit if (limit and limit > 0) else -1
 
     # Defensive force_refresh forwarding.
     #
@@ -698,6 +701,10 @@ async def handle_get_term_info(request):
         await tracker.finish_work()
 
 
+# Query functions that accept offset/limit paging (id ASC pages, <=10000 rows).
+PAGED_QUERY_FUNCS = {"get_all_aligned_images"}
+
+
 async def handle_run_query(request):
     """GET /run_query?id=<short_form>&query_type=<QueryType>&include_graph=false"""
     short_form = request.query.get("id")
@@ -727,11 +734,22 @@ async def handle_run_query(request):
 
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
+    # Paging params — only consumed by PAGED_QUERY_FUNCS; harmless otherwise.
+    def _int_param(name, default):
+        try:
+            return int(request.query.get(name, default))
+        except (TypeError, ValueError):
+            return default
+    offset = max(0, _int_param("offset", 0))
+    limit = _int_param("limit", 0)  # 0/absent -> function default page size
+
     # Normalize key — AllDatasets ignores the id parameter
     if func_name == "get_all_datasets":
         key = "run_query::AllDatasets"
     else:
         key = f"run_query:{short_form}:{query_type}"
+    if func_name in PAGED_QUERY_FUNCS:
+        key = f"{key}:{offset}:{limit}"
 
     # ---- L1: in-memory result cache ----
     # force_refresh=true skips the cache read AND drops any stale entry so
@@ -800,7 +818,7 @@ async def handle_run_query(request):
             await tracker.leave_queue_start_work()
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                pool, _run_query, short_form, func_name, force_refresh
+                pool, _run_query, short_form, func_name, force_refresh, offset, limit
             )
         log.info("run_query id=%s query_type=%s — done", short_form, query_type)
         rcache.put(key, result)

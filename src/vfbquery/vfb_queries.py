@@ -6062,30 +6062,89 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
     return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
-def get_all_aligned_images(template_short_form: str, return_dataframe=True, limit: int = -1):
-    """List all images aligned to a template."""
-    count_query = f"MATCH (:Template {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template)<-[:in_register_with]-(:Individual)-[:depicts]->(di:Individual) RETURN count(di) AS count"
-    count_results = vc.nc.commit_list([count_query])
-    total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
+ALL_ALIGNED_IMAGES_MAX_PAGE = 10000
+_ALL_ALIGNED_IMAGES_HEADERS = {
+    "id": {"title": "ID", "type": "selection_id", "order": -1},
+    "name": {"title": "Image", "type": "markdown", "order": 0},
+    "tags": {"title": "Tags", "type": "tags", "order": 1},
+    "type": {"title": "Type", "type": "markdown", "order": 2},
+    "template": {"title": "Template", "type": "markdown", "order": 3},
+    "technique": {"title": "Imaging Technique", "type": "text", "order": 4},
+    "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9},
+}
 
-    main_query = f"""MATCH (templ:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)<-[irw:in_register_with]-(channel:Individual)-[:depicts]->(di:Individual)
+
+def get_all_aligned_image_ids(template_short_form: str):
+    """Ordered (id ASC) list of the distinct anatomical individuals aligned to a
+    template. This whole-template traversal is the expensive part; caching just
+    this small list (see cached_functions) lets each page hydrate fast. The
+    ``id ASC`` order is deterministic so a cached index and every offset page are
+    reproducible within a cache generation."""
+    q = (f"MATCH (:Template:Individual {{short_form:'{template_short_form}'}})"
+         "<-[:depicts]-(:Template:Individual)<-[:in_register_with]-(:Individual)"
+         "-[:depicts]->(di:Individual) RETURN DISTINCT di.short_form AS id ORDER BY id ASC")
+    results = vc.nc.commit_list([q])
+    rows = get_dict_cursor()(results) if results else []
+    return [r['id'] for r in rows]
+
+
+def get_aligned_images_page(template_short_form: str, page_ids, total_count, offset=0, limit=ALL_ALIGNED_IMAGES_MAX_PAGE, return_dataframe=True):
+    """Hydrate one page of AllAlignedImages rows.
+
+    One row per anatomical individual; every column that can be multi-valued is
+    returned as an appropriately formatted list. In particular ``thumbnail`` is
+    the ' | '-joined list of ALL of that individual's aligned images (the same
+    individual aligned to different templates) — the frontend orders the loaded
+    template's variant first. Rows are ordered by id ASC to match the cached
+    index page."""
+    if not page_ids:
+        empty = {"headers": _ALL_ALIGNED_IMAGES_HEADERS, "rows": [], "count": total_count, "offset": offset, "limit": limit}
+        return pd.DataFrame(columns=list(_ALL_ALIGNED_IMAGES_HEADERS.keys())) if return_dataframe else empty
+
+    hydrate_query = f"""MATCH (di:Individual) WHERE di.short_form IN {list(page_ids)!r}
+        OPTIONAL MATCH (di)<-[:depicts]-(ch:Individual)-[irw:in_register_with]->(:Template:Individual)-[:depicts]->(templ:Template:Individual)
         OPTIONAL MATCH (di)-[:INSTANCEOF]->(typ:Class)
-        OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-        RETURN DISTINCT di.short_form AS id,
+        OPTIONAL MATCH (ch)-[:is_specified_output_of]->(technique:Class)
+        WITH di,
+             collect(DISTINCT REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form]), '[null](null)', '')) AS templates,
+             collect(DISTINCT REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "")) AS thumbnails,
+             collect(DISTINCT REPLACE(apoc.text.format("[%s](%s)",[typ.label,typ.short_form]), '[null](null)', '')) AS types,
+             collect(DISTINCT technique.label) AS techniques
+        RETURN di.short_form AS id,
                '[' + di.label + ']({VFB_REPORT_BASE}' + di.short_form + ')' AS name,
                apoc.text.join(coalesce(di.uniqueFacets, []), '|') AS tags,
-               REPLACE(apoc.text.format("[%s](%s)",[typ.label,typ.short_form]), '[null](null)', '') AS type,
-               REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
-               technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
-    if limit != -1: main_query += f" LIMIT {limit}"
+               apoc.text.join([x IN types WHERE x <> ''], ' | ') AS type,
+               apoc.text.join([x IN templates WHERE x <> ''], ' | ') AS template,
+               apoc.text.join([x IN techniques WHERE x IS NOT NULL], ', ') AS technique,
+               apoc.text.join([x IN thumbnails WHERE x <> ''], ' | ') AS thumbnail"""
 
-    results = vc.nc.commit_list([main_query])
+    results = vc.nc.commit_list([hydrate_query])
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
-    if not df.empty: df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+    if not df.empty:
+        df = encode_markdown_links(df, ['name', 'template', 'thumbnail'])
+        df = df.sort_values('id').reset_index(drop=True)
 
-    if return_dataframe: return df
-    return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
+    if return_dataframe:
+        return df
+    rows = [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)]
+    return {"headers": _ALL_ALIGNED_IMAGES_HEADERS, "rows": rows, "count": total_count, "offset": offset, "limit": limit}
+
+
+def get_all_aligned_images(template_short_form: str, return_dataframe=True, limit: int = ALL_ALIGNED_IMAGES_MAX_PAGE, offset: int = 0):
+    """Images aligned to a template, one row per anatomical individual, paged.
+
+    ``limit`` is capped at 10000 (ALL_ALIGNED_IMAGES_MAX_PAGE); a single response
+    covers everything when the total ``count`` <= 10000, so the client only pages
+    when count > 10000. Rows are ordered by id ASC. This raw path recomputes the
+    id list each call; the cached path (get_all_aligned_images_cached) caches the
+    id list and reuses it across pages."""
+    if limit is None or limit <= 0 or limit > ALL_ALIGNED_IMAGES_MAX_PAGE:
+        limit = ALL_ALIGNED_IMAGES_MAX_PAGE
+    if offset is None or offset < 0:
+        offset = 0
+    ids = get_all_aligned_image_ids(template_short_form)
+    page_ids = ids[offset:offset + limit]
+    return get_aligned_images_page(template_short_form, page_ids, len(ids), offset=offset, limit=limit, return_dataframe=return_dataframe)
 
 
 def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:

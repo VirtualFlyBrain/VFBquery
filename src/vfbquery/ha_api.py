@@ -738,6 +738,77 @@ def _cap_result_rows(result, cap=None):
     return capped
 
 
+# Ceiling for GENERIC (non-AllAlignedImages) paging. Non-paged query functions
+# already return their full row set (they run with the default limit=-1); we
+# cache that full set once and hand back the requested page slice, so any query
+# whose count exceeds one page can be walked to completion by the client. Beyond
+# this ceiling the full set is too large to hold/serve, so we truncate + flag.
+# AllAlignedImages keeps its dedicated id-index paging (it is far bigger than
+# this) and is excluded via PAGED_QUERY_FUNCS.
+try:
+    PAGING_CEILING = int(os.getenv("VFBQUERY_PAGING_CEILING", "50000") or "50000")
+except ValueError:
+    PAGING_CEILING = 50000
+
+
+def _prepare_full_for_cache(result):
+    """Cache the FULL processed row set for generic paging; truncate if huge.
+
+    Non-paged functions return every row, so the cached full set lets the
+    handler serve any offset slice without recompute. If the set exceeds the
+    ceiling we keep the first PAGING_CEILING rows and flag ``truncated`` so the
+    slicer reports the true total and stops cleanly.
+    """
+    if not isinstance(result, dict):
+        return result
+    rows = result.get("rows")
+    if not isinstance(rows, list) or len(rows) <= PAGING_CEILING:
+        return result
+    total = result.get("count")
+    if not isinstance(total, (int, float)) or total < len(rows):
+        total = len(rows)
+    trunc = dict(result)
+    trunc["rows"] = rows[:PAGING_CEILING]
+    trunc["count"] = total
+    trunc["truncated"] = True
+    return trunc
+
+
+def _slice_page(result, offset=0, page_size=None):
+    """Return the [offset, offset+page_size) slice of a cached full result.
+
+    The authoritative total is ``len(rows)`` of the cached full set — so the
+    count the client shows always matches the rows it can actually load. Only a
+    ceiling-truncated result keeps its stored (larger, true) count.
+    """
+    page_size = page_size if (page_size and page_size > 0) else RESULT_ROW_CAP
+    if not isinstance(result, dict):
+        return result
+    rows = result.get("rows")
+    if not isinstance(rows, list):
+        return result
+    if result.get("truncated") and isinstance(result.get("count"), (int, float)):
+        total = result["count"]
+    else:
+        total = len(rows)
+    page_rows = rows[offset:offset + page_size]
+    page = dict(result)
+    page["rows"] = page_rows
+    page["count"] = total
+    page["offset"] = offset
+    page["limit"] = page_size
+    page["capped"] = (offset + len(page_rows)) < len(rows) or len(rows) < total
+    return page
+
+
+def _page_out(result, func_name, offset=0, page_size=None):
+    """Finalise a result for sending: AllAlignedImages is already a single
+    server page (just bound it); everything else is sliced from its full set."""
+    if func_name in PAGED_QUERY_FUNCS:
+        return _cap_result_rows(result)
+    return _slice_page(result, offset, page_size)
+
+
 async def handle_run_query(request):
     """GET /run_query?id=<short_form>&query_type=<QueryType>&include_graph=false"""
     short_form = request.query.get("id")
@@ -775,6 +846,7 @@ async def handle_run_query(request):
             return default
     offset = max(0, _int_param("offset", 0))
     limit = _int_param("limit", 0)  # 0/absent -> function default page size
+    page_size = limit if (limit and limit > 0) else RESULT_ROW_CAP
 
     # Normalize key — AllDatasets ignores the id parameter
     if func_name == "get_all_datasets":
@@ -798,7 +870,7 @@ async def handle_run_query(request):
             log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
             if include_graph:
                 cached = _maybe_add_graph(cached, func_name, short_form)
-            return web.json_response(_cap_result_rows(cached))
+            return web.json_response(_page_out(cached, func_name, offset, page_size))
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
@@ -810,7 +882,7 @@ async def handle_run_query(request):
             result = await fut
             if include_graph:
                 result = _maybe_add_graph(result, func_name, short_form)
-            return web.json_response(_cap_result_rows(result))
+            return web.json_response(_page_out(result, func_name, offset, page_size))
         except Exception:
             tb = traceback.format_exc()
             return web.json_response(
@@ -854,13 +926,20 @@ async def handle_run_query(request):
                 pool, _run_query, short_form, func_name, force_refresh, offset, limit
             )
         log.info("run_query id=%s query_type=%s — done", short_form, query_type)
-        result = _cap_result_rows(result)  # bound payload before caching + sending
-        rcache.put(key, result)
+        # Bound/prepare for cache + coalesced sharing. AllAlignedImages caches a
+        # single server page; every other query caches its FULL set so any offset
+        # slice can be served (and later pages need no recompute).
+        if func_name in PAGED_QUERY_FUNCS:
+            cached_result = _cap_result_rows(result)
+        else:
+            cached_result = _prepare_full_for_cache(result)
+        rcache.put(key, cached_result)
         await coalescer.remove(key)
-        fut.set_result(result)
+        fut.set_result(cached_result)  # coalesced waiters slice their own page
+        out = _page_out(cached_result, func_name, offset, page_size)
         if include_graph:
-            result = _maybe_add_graph(result, func_name, short_form)
-        return web.json_response(result)
+            out = _maybe_add_graph(out, func_name, short_form)
+        return web.json_response(out)
     except Exception as exc:
         tb = traceback.format_exc()
         log.error(

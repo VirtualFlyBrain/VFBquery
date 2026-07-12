@@ -702,7 +702,7 @@ async def handle_get_term_info(request):
 
 
 # Query functions that accept offset/limit paging (id ASC pages, <=10000 rows).
-PAGED_QUERY_FUNCS = {"get_all_aligned_images"}
+PAGED_QUERY_FUNCS = {"get_all_aligned_images", "get_images_neurons"}
 
 # Hard safety cap on rows returned to the client for ANY query. Broad terms
 # make many queries huge or unbounded (e.g. AllAlignedImages ~528k, and

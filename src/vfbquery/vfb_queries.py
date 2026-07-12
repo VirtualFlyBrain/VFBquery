@@ -10,6 +10,7 @@ from marshmallow import ValidationError
 import json
 import numpy as np
 from urllib.parse import unquote
+import hashlib
 from .solr_result_cache import with_solr_cache, solr_caching_disabled
 import time
 import threading
@@ -4576,7 +4577,7 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
 
 
 @with_solr_cache('images_neurons')
-def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
+def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves individual neuron images with parts in the specified synaptic neuropil.
     
@@ -4595,7 +4596,7 @@ def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1):
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
-                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 
 
 @with_solr_cache('images_that_develop_from')
@@ -4737,10 +4738,26 @@ def _get_standard_query_headers():
     }
 
 
+@with_solr_cache('owlery_ids')
+def _owlery_ids_cached(owl_key: str, owl_query_string: str, query_instances: bool = False, query_by_label: bool = True, force_refresh: bool = False):
+    """Cached Owlery id-list (the natural index for owlery-based queries).
+
+    The Owlery reasoner call is the expensive part; caching just this small
+    ordered id list lets each offset page hydrate from SOLR without re-querying
+    Owlery, and lets the true total (len of this list) be reported even when a
+    page is limited — so no 50k ceiling truncation for these queries.
+    """
+    if query_instances:
+        ids = vc.vfb.oc.get_instances(query=owl_query_string, query_by_label=query_by_label, verbose=False)
+    else:
+        ids = vc.vfb.oc.get_subclasses(query=owl_query_string, query_by_label=query_by_label, verbose=False)
+    return list(ids or [])
+
+
 def _owlery_query_to_results(owl_query_string: str, short_form: str, return_dataframe: bool = True, 
                               limit: int = -1, solr_field: str = 'anat_query', 
                               include_source: bool = False, query_by_label: bool = True,
-                              query_instances: bool = False):
+                              query_instances: bool = False, offset: int = 0):
     """
     Unified helper function for Owlery-based queries.
     
@@ -4760,21 +4777,10 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
     :return: Query results
     """
     try:
-        # Step 1: Query Owlery for classes or instances matching the OWL pattern
-        if query_instances:
-            result_ids = vc.vfb.oc.get_instances(
-                query=owl_query_string,
-                query_by_label=query_by_label,
-                verbose=False
-            )
-        else:
-            result_ids = vc.vfb.oc.get_subclasses(
-                query=owl_query_string,
-                query_by_label=query_by_label,
-                verbose=False
-            )
-        
-        class_ids = result_ids  # Keep variable name for compatibility
+        # Step 1: Owlery id list (cached) — the natural index for paging. Cache
+        # key is short_form + a hash of the OWL query (clean, unique doc id).
+        owl_key = f"{short_form}_{'i' if query_instances else 'c'}_{hashlib.md5(owl_query_string.encode()).hexdigest()[:10]}"
+        class_ids = _owlery_ids_cached(owl_key, owl_query_string, query_instances=query_instances, query_by_label=query_by_label)
         
         if not class_ids:
             # No results found - return empty
@@ -4788,9 +4794,12 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         
         total_count = len(class_ids)
         
-        # Apply limit if specified (before SOLR query to save processing)
-        if limit != -1 and limit > 0:
-            class_ids = class_ids[:limit]
+        # Page the id list: hydrate only [offset, offset+limit). total_count above
+        # is the TRUE total, so the client pages through everything (no ceiling).
+        if limit is not None and limit > 0:
+            class_ids = class_ids[offset:offset + limit]
+        elif offset and offset > 0:
+            class_ids = class_ids[offset:]
         
         # Step 2: Query SOLR for ALL classes in a single batch query
         # Use the {!terms f=id} syntax from XMI to fetch all results efficiently

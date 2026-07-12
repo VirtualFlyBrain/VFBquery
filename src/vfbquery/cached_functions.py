@@ -668,7 +668,7 @@ def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: 
     """
     return _original_get_lineage_clones_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
-def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_images_neurons with SOLR caching.
 
@@ -680,7 +680,7 @@ def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int
     Returns:
         Images of the specified neuron
     """
-    return _original_get_images_neurons(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_images_neurons(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """

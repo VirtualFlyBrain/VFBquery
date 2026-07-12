@@ -6062,7 +6062,7 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
     return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Image", "type": "markdown", "order": 0}, "tags": {"title": "Tags", "type": "tags", "order": 1}, "type": {"title": "Type", "type": "text", "order": 2}, "template": {"title": "Template", "type": "markdown", "order": 3}, "technique": {"title": "Imaging Technique", "type": "text", "order": 4}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
-ALL_ALIGNED_IMAGES_MAX_PAGE = 10000
+ALL_ALIGNED_IMAGES_MAX_PAGE = 25000
 _ALL_ALIGNED_IMAGES_HEADERS = {
     "id": {"title": "ID", "type": "selection_id", "order": -1},
     "name": {"title": "Image", "type": "markdown", "order": 0},

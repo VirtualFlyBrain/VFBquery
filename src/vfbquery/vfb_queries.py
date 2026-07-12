@@ -2561,7 +2561,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
-        WHERE p.short_form IN {class_ids!r}
+        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN i.short_form as id,
@@ -2589,7 +2589,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
-        WHERE p.short_form IN {class_ids!r}
+        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN count(*) AS total_count
@@ -6082,7 +6082,7 @@ def get_all_aligned_image_ids(template_short_form: str):
     reproducible within a cache generation."""
     q = (f"MATCH (:Template:Individual {{short_form:'{template_short_form}'}})"
          "<-[:depicts]-(:Template:Individual)<-[:in_register_with]-(:Individual)"
-         "-[:depicts]->(di:Individual) RETURN DISTINCT di.short_form AS id ORDER BY id ASC")
+         "-[:depicts]->(di:Individual) WHERE NOT di:Deprecated RETURN DISTINCT di.short_form AS id ORDER BY id ASC")
     results = vc.nc.commit_list([q])
     rows = get_dict_cursor()(results) if results else []
     return [r['id'] for r in rows]

@@ -108,7 +108,7 @@ def get_term_info_cached(short_form: str, preview: bool = True, force_refresh: b
     """
     return _original_get_term_info(short_form=short_form, preview=preview, force_refresh=force_refresh)
 
-def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_instances with SOLR caching.
     
@@ -123,7 +123,7 @@ def get_instances_cached(short_form: str, return_dataframe=True, limit: int = -1
     Returns:
         Instances data (DataFrame or formatted dict based on return_dataframe)
     """
-    return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_instances(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 @with_solr_cache('similar_neurons')
 def get_similar_neurons_cached(neuron, similarity_score='NBLAST_score', return_dataframe=True, limit: int = -1, force_refresh: bool = False):

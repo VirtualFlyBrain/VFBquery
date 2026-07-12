@@ -718,6 +718,7 @@ PAGED_QUERY_FUNCS = {
     "get_images_that_develop_from",
     "get_neurons_capable_of",
     "get_expression_pattern_fragments",
+    "get_instances",
 }
 
 # Hard safety cap on rows returned to the client for ANY query. Broad terms

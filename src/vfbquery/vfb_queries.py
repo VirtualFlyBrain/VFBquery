@@ -2505,8 +2505,31 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
         print(f"Unexpected error when retrieving term info: {type(e).__name__}: {e}")
         return parsed_object
 
+INSTANCES_MAX_PAGE = 25000
+
+
+@with_solr_cache('instance_index')
+def _get_instance_index(short_form: str, force_refresh: bool = False):
+    """Owlery subclass closure + ordered DISTINCT instance id list for
+    get_instances. Cached (small) so each page hydrates without re-running the
+    Owlery closure or the whole-corpus scan; len(ids) is the TRUE total, so
+    ListAllAvailableImages reports the real count and pages with no 50k ceiling."""
+    owl_query = f"<{_short_form_to_iri(short_form)}>"
+    subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
+    class_ids = list({short_form, *subclass_ids})
+    id_query = f"""
+    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
+          (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
+          (i)-[:has_source]->(ds:DataSet)
+    WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
+    RETURN DISTINCT i.short_form AS id ORDER BY id DESC
+    """
+    recs = get_dict_cursor()(vc.nc.commit_list([id_query]))
+    return {"class_ids": class_ids, "ids": [r['id'] for r in recs]}
+
+
 @with_solr_cache('instances')
-def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
+def get_instances(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves available image-bearing instances for the given class short form.
 
@@ -2549,10 +2572,21 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         # FBbt_00007484, whose individuals are typed Kenyon cell etc.)
         # the query returned 0 even though SOLR had dozens of image rows
         # on file.
-        owl_query = f"<{_short_form_to_iri(short_form)}>"
-        subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
-        # Always include the queried class itself so leaf classes still match.
-        class_ids = list({short_form, *subclass_ids})
+        # id-index: Owlery closure + ordered DISTINCT instance id list are cached
+        # (small); we hydrate only the requested page, so ListAllAvailableImages
+        # loads fully with the TRUE total and no 50k ceiling.
+        index = _get_instance_index(short_form)
+        class_ids = index["class_ids"]
+        all_ids = index["ids"]
+        total_ids = len(all_ids)
+        if limit is None or limit <= 0 or limit > INSTANCES_MAX_PAGE:
+            limit = INSTANCES_MAX_PAGE
+        if offset is None or offset < 0:
+            offset = 0
+        page_ids = all_ids[offset:offset + limit]
+        if not page_ids:
+            empty = {"headers": _get_instances_headers(), "rows": [], "count": total_ids, "offset": offset, "limit": limit}
+            return pd.DataFrame() if return_dataframe else empty
 
         # Step 2: fetch image metadata for instances of any of those
         # classes from Neo4j. The `parent` column reports the actual class
@@ -2562,7 +2596,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
-        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
+        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated AND i.short_form IN {page_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN i.short_form as id,
@@ -2596,9 +2630,6 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         RETURN count(*) AS total_count
         """
 
-        if limit != -1:
-            query += f" LIMIT {limit}"
-
         # Run the query using VFB_connect
         results = vc.nc.commit_list([query])
         
@@ -2630,13 +2661,8 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
         df = encode_markdown_links(df, columns_to_encode)
 
-        # When limited, the returned rows are a preview; get the true total from
-        # the cheap aggregation. When unlimited, len(df) already is the total.
-        if limit != -1:
-            count_records = get_dict_cursor()(vc.nc.commit_list([count_query]))
-            total_count = int(count_records[0]['total_count']) if count_records else len(df)
-        else:
-            total_count = len(df)
+        # True total is the length of the cached id list.
+        total_count = total_ids
 
         if return_dataframe:
             return df

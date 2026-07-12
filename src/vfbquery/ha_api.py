@@ -713,7 +713,7 @@ PAGED_QUERY_FUNCS = {"get_all_aligned_images"}
 # "count", and flag "capped" so the UI can show "first N - refine". Override the
 # cap with VFBQUERY_RESULT_ROW_CAP (default 10000; 0 disables).
 try:
-    RESULT_ROW_CAP = int(os.getenv("VFBQUERY_RESULT_ROW_CAP", "10000") or "10000")
+    RESULT_ROW_CAP = int(os.getenv("VFBQUERY_RESULT_ROW_CAP", "25000") or "25000")
 except ValueError:
     RESULT_ROW_CAP = 10000
 

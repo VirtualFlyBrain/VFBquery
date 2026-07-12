@@ -239,7 +239,7 @@ def get_similar_morphology_userdata_cached(upload_id: str, return_dataframe=True
     """
     return _original_get_similar_morphology_userdata(upload_id=upload_id, return_dataframe=return_dataframe, limit=limit)
 
-def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_neurons_with_part_in with SOLR caching.
     
@@ -251,7 +251,7 @@ def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limi
     Returns:
         Neurons with part in the specified anatomical structure
     """
-    return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
     """
@@ -267,7 +267,7 @@ def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, 
     """
     return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
 
-def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_neurons_with_presynaptic_terminals_in with SOLR caching.
     
@@ -279,9 +279,9 @@ def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dat
     Returns:
         Neurons with presynaptic terminals in the specified anatomical structure
     """
-    return _original_get_neurons_with_presynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_neurons_with_presynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_neurons_with_postsynaptic_terminals_in with SOLR caching.
     
@@ -293,7 +293,7 @@ def get_neurons_with_postsynaptic_terminals_in_cached(short_form: str, return_da
     Returns:
         Neurons with postsynaptic terminals in the specified anatomical structure
     """
-    return _original_get_neurons_with_postsynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_neurons_with_postsynaptic_terminals_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 def get_templates_cached(limit: int = -1, return_dataframe: bool = False, force_refresh: bool = False):
     """
@@ -584,7 +584,7 @@ def get_transgene_expression_here_cached(anatomy_short_form: str, return_datafra
     """
     return _original_get_transgene_expression_here(anatomy_short_form=anatomy_short_form, return_dataframe=return_dataframe, limit=limit)
 
-def get_components_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_components_of_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_components_of with SOLR caching.
 
@@ -596,9 +596,9 @@ def get_components_of_cached(short_form: str, return_dataframe=True, limit: int 
     Returns:
         Components of the specified anatomical structure
     """
-    return _original_get_components_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_components_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_parts_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_parts_of_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_parts_of with SOLR caching.
 
@@ -610,9 +610,9 @@ def get_parts_of_cached(short_form: str, return_dataframe=True, limit: int = -1,
     Returns:
         Parts of the specified anatomical structure
     """
-    return _original_get_parts_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_parts_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_subclasses_of_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_subclasses_of_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_subclasses_of with SOLR caching.
 
@@ -624,9 +624,9 @@ def get_subclasses_of_cached(short_form: str, return_dataframe=True, limit: int 
     Returns:
         Subclasses of the specified class
     """
-    return _original_get_subclasses_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_subclasses_of(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_neuron_classes_fasciculating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_neuron_classes_fasciculating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_neuron_classes_fasciculating_here with SOLR caching.
 
@@ -638,9 +638,9 @@ def get_neuron_classes_fasciculating_here_cached(short_form: str, return_datafra
     Returns:
         Neuron classes fasciculating in the specified anatomical structure
     """
-    return _original_get_neuron_classes_fasciculating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_neuron_classes_fasciculating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_tracts_nerves_innervating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_tracts_nerves_innervating_here_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_tracts_nerves_innervating_here with SOLR caching.
 
@@ -652,9 +652,9 @@ def get_tracts_nerves_innervating_here_cached(short_form: str, return_dataframe=
     Returns:
         Tracts and nerves innervating the specified anatomical structure
     """
-    return _original_get_tracts_nerves_innervating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_tracts_nerves_innervating_here(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_lineage_clones_in with SOLR caching.
 
@@ -666,7 +666,7 @@ def get_lineage_clones_in_cached(short_form: str, return_dataframe=True, limit: 
     Returns:
         Lineage clones in the specified anatomical structure
     """
-    return _original_get_lineage_clones_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_lineage_clones_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
@@ -682,7 +682,7 @@ def get_images_neurons_cached(short_form: str, return_dataframe=True, limit: int
     """
     return _original_get_images_neurons(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_images_that_develop_from with SOLR caching.
 
@@ -694,9 +694,9 @@ def get_images_that_develop_from_cached(short_form: str, return_dataframe=True, 
     Returns:
         Images that develop from the specified anatomical structure
     """
-    return _original_get_images_that_develop_from(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_images_that_develop_from(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_expression_pattern_fragments with SOLR caching.
 
@@ -708,7 +708,7 @@ def get_expression_pattern_fragments_cached(short_form: str, return_dataframe=Tr
     Returns:
         Expression pattern fragments data
     """
-    return _original_get_expression_pattern_fragments(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_expression_pattern_fragments(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 @with_solr_cache('terms_for_pub')
 def get_terms_for_pub_cached(pub_short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):

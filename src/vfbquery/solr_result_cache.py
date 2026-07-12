@@ -906,6 +906,7 @@ def with_solr_cache(query_type: str):
             # Check if limit is applied - only cache full results (limit=-1)
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
+            offset = kwargs.get('offset', 0) or 0  # page start for slicing cached FULL results (0 keeps the cached full set complete)
             
             # For expensive queries, we still only cache full results, but we handle limited requests
             # by slicing from cached full results
@@ -988,6 +989,7 @@ def with_solr_cache(query_type: str):
                 # Try to get cached full result (limit=-1)
                 full_params = kwargs.copy()
                 full_params['limit'] = -1
+                full_params['offset'] = 0
                 # print(f"DEBUG: Attempting cache lookup for {query_type}({cache_term_id}) with full results")
                 cached_result = cache.get_cached_result(query_type, cache_term_id, **full_params)
                 # print(f"DEBUG: Cache lookup result: {cached_result is not None}")
@@ -996,16 +998,16 @@ def with_solr_cache(query_type: str):
                 if cached_result is not None and limit != -1:
                     if isinstance(cached_result, (list, pd.DataFrame)):
                         if isinstance(cached_result, list):
-                            cached_result = cached_result[:limit]
+                            cached_result = cached_result[offset:offset + limit]
                         elif isinstance(cached_result, pd.DataFrame):
-                            cached_result = cached_result.head(limit)
+                            cached_result = cached_result.iloc[offset:offset + limit]
                         # print(f"DEBUG: Sliced cached result to {limit} items")
                     elif isinstance(cached_result, dict):
                         # Handle dict results with 'rows' (e.g., get_instances)
                         if 'rows' in cached_result:
                             cached_result = {
                                 'headers': cached_result.get('headers', {}),
-                                'rows': cached_result['rows'][:limit],
+                                'rows': cached_result['rows'][offset:offset + limit],
                                 'count': cached_result.get('count', len(cached_result.get('rows', [])))
                             }
                             # print(f"DEBUG: Sliced cached dict result to {limit} rows")
@@ -1026,6 +1028,7 @@ def with_solr_cache(query_type: str):
                     # For limited queries, try to get full cached results instead
                     full_kwargs = kwargs.copy()
                     full_kwargs['limit'] = -1  # Get full results
+                    full_kwargs['offset'] = 0
                     cached_result = cache.get_cached_result(query_type, cache_term_id, **full_kwargs)
                     
                     # If we got full cached results, extract the limited portion
@@ -1036,13 +1039,13 @@ def with_solr_cache(query_type: str):
                         if isinstance(cached_result, dict) and 'rows' in cached_result:
                             cached_result = {
                                 'headers': cached_result.get('headers', {}),
-                                'rows': cached_result['rows'][:limit],
+                                'rows': cached_result['rows'][offset:offset + limit],
                                 'count': cached_result.get('count', len(cached_result.get('rows', [])))
                             }
                         elif isinstance(cached_result, pd.DataFrame):
                             # Keep the full count but limit the rows
                             original_count = len(cached_result)
-                            cached_result = cached_result.head(limit)
+                            cached_result = cached_result.iloc[offset:offset + limit]
                             # Add count attribute if possible
                             if hasattr(cached_result, '_metadata'):
                                 cached_result._metadata['count'] = original_count
@@ -1106,6 +1109,7 @@ def with_solr_cache(query_type: str):
                     # do one full call, cache it, then slice for return.
                     full_kwargs = kwargs.copy()
                     full_kwargs['limit'] = -1
+                    full_kwargs['offset'] = 0
                     full_result = func(*args, **full_kwargs)
                 else:
                     full_result = func(*args, **kwargs)
@@ -1129,6 +1133,7 @@ def with_solr_cache(query_type: str):
                     try:
                         full_kwargs_for_cache = kwargs.copy()
                         full_kwargs_for_cache['limit'] = -1
+                        full_kwargs_for_cache['offset'] = 0
                         cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
                         logger.debug(f"Cached full result for {query_type}({term_id})")
                     except Exception as e:
@@ -1143,13 +1148,13 @@ def with_solr_cache(query_type: str):
                     result = full_result
                     if limit > 0:
                         if isinstance(result, list):
-                            result = result[:limit]
+                            result = result[offset:offset + limit]
                         elif hasattr(result, 'head'):  # DataFrame
-                            result = result.head(limit)
+                            result = result.iloc[offset:offset + limit]
                         elif isinstance(result, dict) and 'rows' in result:
                             result = {
                                 'headers': result.get('headers', {}),
-                                'rows': result['rows'][:limit],
+                                'rows': result['rows'][offset:offset + limit],
                                 'count': result.get('count', len(result.get('rows', []))),
                             }
             else:
@@ -1161,6 +1166,7 @@ def with_solr_cache(query_type: str):
                     import inspect
                     if 'limit' in inspect.signature(func).parameters:
                         full_kwargs['limit'] = -1
+                        full_kwargs['offset'] = 0
                     # print(f"DEBUG: Executing {query_type} with full results for caching")
                     full_result = func(*args, **full_kwargs)
                     result = full_result
@@ -1169,9 +1175,9 @@ def with_solr_cache(query_type: str):
                     if limit != -1 and result is not None:
                         if isinstance(result, (list, pd.DataFrame)):
                             if isinstance(result, list):
-                                result = result[:limit]
+                                result = result[offset:offset + limit]
                             elif isinstance(result, pd.DataFrame):
-                                result = result.head(limit)
+                                result = result.iloc[offset:offset + limit]
                             # print(f"DEBUG: Sliced result to {limit} items for return")
                 else:
                     # Execute with original parameters (no caching)
@@ -1250,6 +1256,7 @@ def with_solr_cache(query_type: str):
                                 # Cache the full result with full parameters (limit=-1)
                                 full_kwargs_for_cache = kwargs.copy()
                                 full_kwargs_for_cache['limit'] = -1
+                                full_kwargs_for_cache['offset'] = 0
                                 cache.cache_result(query_type, cache_term_id, full_result, **full_kwargs_for_cache)
                                 logger.debug(f"Cached complete full result for {term_id}")
                             except Exception as e:

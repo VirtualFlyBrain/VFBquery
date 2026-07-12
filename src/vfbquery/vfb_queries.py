@@ -2505,8 +2505,31 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
         print(f"Unexpected error when retrieving term info: {type(e).__name__}: {e}")
         return parsed_object
 
+INSTANCES_MAX_PAGE = 25000
+
+
+@with_solr_cache('instance_index')
+def _get_instance_index(short_form: str, force_refresh: bool = False):
+    """Owlery subclass closure + ordered DISTINCT instance id list for
+    get_instances. Cached (small) so each page hydrates without re-running the
+    Owlery closure or the whole-corpus scan; len(ids) is the TRUE total, so
+    ListAllAvailableImages reports the real count and pages with no 50k ceiling."""
+    owl_query = f"<{_short_form_to_iri(short_form)}>"
+    subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
+    class_ids = list({short_form, *subclass_ids})
+    id_query = f"""
+    MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
+          (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
+          (i)-[:has_source]->(ds:DataSet)
+    WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
+    RETURN DISTINCT i.short_form AS id ORDER BY id DESC
+    """
+    recs = get_dict_cursor()(vc.nc.commit_list([id_query]))
+    return {"class_ids": class_ids, "ids": [r['id'] for r in recs]}
+
+
 @with_solr_cache('instances')
-def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
+def get_instances(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves available image-bearing instances for the given class short form.
 
@@ -2549,10 +2572,21 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         # FBbt_00007484, whose individuals are typed Kenyon cell etc.)
         # the query returned 0 even though SOLR had dozens of image rows
         # on file.
-        owl_query = f"<{_short_form_to_iri(short_form)}>"
-        subclass_ids = vc.vfb.oc.get_subclasses(query=owl_query, query_by_label=False)
-        # Always include the queried class itself so leaf classes still match.
-        class_ids = list({short_form, *subclass_ids})
+        # id-index: Owlery closure + ordered DISTINCT instance id list are cached
+        # (small); we hydrate only the requested page, so ListAllAvailableImages
+        # loads fully with the TRUE total and no 50k ceiling.
+        index = _get_instance_index(short_form)
+        class_ids = index["class_ids"]
+        all_ids = index["ids"]
+        total_ids = len(all_ids)
+        if limit is None or limit <= 0 or limit > INSTANCES_MAX_PAGE:
+            limit = INSTANCES_MAX_PAGE
+        if offset is None or offset < 0:
+            offset = 0
+        page_ids = all_ids[offset:offset + limit]
+        if not page_ids:
+            empty = {"headers": _get_instances_headers(), "rows": [], "count": total_ids, "offset": offset, "limit": limit}
+            return pd.DataFrame() if return_dataframe else empty
 
         # Step 2: fetch image metadata for instances of any of those
         # classes from Neo4j. The `parent` column reports the actual class
@@ -2562,7 +2596,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         MATCH (i:Individual:has_image)-[:INSTANCEOF]->(p:Class),
               (i)<-[:depicts]-(tc:Individual)-[r:in_register_with]->(tct:Template)-[:depicts]->(templ:Template),
               (i)-[:has_source]->(ds:DataSet)
-        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated
+        WHERE p.short_form IN {class_ids!r} AND NOT i:Deprecated AND i.short_form IN {page_ids!r}
         OPTIONAL MATCH (i)-[rx:database_cross_reference]->(site:Site)
         OPTIONAL MATCH (ds)-[:has_license|license]->(lic:License)
         RETURN i.short_form as id,
@@ -2596,9 +2630,6 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         RETURN count(*) AS total_count
         """
 
-        if limit != -1:
-            query += f" LIMIT {limit}"
-
         # Run the query using VFB_connect
         results = vc.nc.commit_list([query])
         
@@ -2630,13 +2661,8 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1):
         columns_to_encode = ['label', 'parent', 'source', 'source_id', 'template', 'dataset', 'license', 'thumbnail']
         df = encode_markdown_links(df, columns_to_encode)
 
-        # When limited, the returned rows are a preview; get the true total from
-        # the cheap aggregation. When unlimited, len(df) already is the total.
-        if limit != -1:
-            count_records = get_dict_cursor()(vc.nc.commit_list([count_query]))
-            total_count = int(count_records[0]['total_count']) if count_records else len(df)
-        else:
-            total_count = len(df)
+        # True total is the length of the cached id list.
+        total_count = total_ids
 
         if return_dataframe:
             return df
@@ -3276,7 +3302,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
     return results
 
 
-def get_expression_overlaps_here(expression_pattern_short_form: str, return_dataframe=True, limit: int = -1):
+def get_expression_overlaps_here(expression_pattern_short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """Anatomy classes overlapped by the specified expression pattern.
 
     INVERSE direction of TransgeneExpressionHere — given an expression
@@ -3417,7 +3443,7 @@ def contains_all_tags(lst: List[str], tags: List[str]) -> bool:
     return all(tag in lst for tag in tags)
 
 @with_solr_cache('neurons_part_here')
-def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves neuron classes that have some part overlapping with the specified anatomical region.
     
@@ -3433,11 +3459,11 @@ def get_neurons_with_part_in(short_form: str, return_dataframe=True, limit: int 
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
-                                    solr_field='anat_query', include_source=True, query_by_label=False)
+                                    solr_field='anat_query', include_source=True, query_by_label=False, offset=offset)
 
 
 @with_solr_cache('neurons_synaptic')
-def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves neuron classes that have synaptic terminals in the specified anatomical region.
     
@@ -3453,11 +3479,11 @@ def get_neurons_with_synapses_in(short_form: str, return_dataframe=True, limit: 
     :return: Neuron classes with synaptic terminals in the specified region
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002130> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('neurons_presynaptic')
-def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves neuron classes that have presynaptic terminals in the specified anatomical region.
     
@@ -3473,11 +3499,11 @@ def get_neurons_with_presynaptic_terminals_in(short_form: str, return_dataframe=
     :return: Neuron classes with presynaptic terminals in the specified region
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002113> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('neurons_postsynaptic')
-def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves neuron classes that have postsynaptic terminals in the specified anatomical region.
     
@@ -3493,11 +3519,11 @@ def get_neurons_with_postsynaptic_terminals_in(short_form: str, return_dataframe
     :return: Neuron classes with postsynaptic terminals in the specified region
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002110> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('components_of')
-def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
+def get_components_of(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves components (parts) of the specified anatomical class.
     
@@ -3513,11 +3539,11 @@ def get_components_of(short_form: str, return_dataframe=True, limit: int = -1):
     :return: Components of the specified class
     """
     owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('parts_of')
-def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
+def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves parts of the specified anatomical class.
     
@@ -3533,11 +3559,11 @@ def get_parts_of(short_form: str, return_dataframe=True, limit: int = -1):
     :return: Parts of the specified class
     """
     owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('subclasses_of')
-def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
+def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves subclasses of the specified class.
     
@@ -3554,7 +3580,7 @@ def get_subclasses_of(short_form: str, return_dataframe=True, limit: int = -1):
     # For subclasses, we query the class itself (Owlery subclasses endpoint handles this)
     # Use angle brackets for IRI conversion, not quotes
     owl_query = f"<{short_form}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
@@ -3597,7 +3623,7 @@ def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
 
 
 @with_solr_cache('splits_targeting')
-def get_splits_targeting(short_form: str, return_dataframe=True, limit: int = -1):
+def get_splits_targeting(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """Splits (intersectional expression patterns) that target the given neuron class.
 
     Live Neo4j query mirroring the indexer's neuron_split clause
@@ -3613,7 +3639,7 @@ def get_splits_targeting(short_form: str, return_dataframe=True, limit: int = -1
 
 
 @with_solr_cache('neurons_targeted_by_split')
-def get_neurons_targeted_by_split(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_targeted_by_split(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """Neurons targeted by the given split class.
 
     Live Neo4j query mirroring the indexer's split_neuron clause
@@ -3628,7 +3654,7 @@ def get_neurons_targeted_by_split(short_form: str, return_dataframe=True, limit:
 
 
 @with_solr_cache('neuron_classes_fasciculating_here')
-def get_neuron_classes_fasciculating_here(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neuron_classes_fasciculating_here(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves neuron classes that fasciculate with (run along) the specified tract or nerve.
     
@@ -3644,11 +3670,11 @@ def get_neuron_classes_fasciculating_here(short_form: str, return_dataframe=True
     :return: Neuron classes that fasciculate with the specified tract or nerve
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002101> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('tracts_nerves_innervating_here')
-def get_tracts_nerves_innervating_here(short_form: str, return_dataframe=True, limit: int = -1):
+def get_tracts_nerves_innervating_here(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves tracts and nerves that innervate the specified synaptic neuropil.
     
@@ -3664,11 +3690,11 @@ def get_tracts_nerves_innervating_here(short_form: str, return_dataframe=True, l
     :return: Tracts and nerves that innervate the specified neuropil
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005099> and <http://purl.obolibrary.org/obo/RO_0002134> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('lineage_clones_in')
-def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -1):
+def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves lineage clones that overlap with the specified synaptic neuropil.
     
@@ -3684,7 +3710,7 @@ def get_lineage_clones_in(short_form: str, return_dataframe=True, limit: int = -
     :return: Lineage clones that overlap with the specified neuropil
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00007683> and <http://purl.obolibrary.org/obo/RO_0002131> some <{_short_form_to_iri(short_form)}>"
-    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False)
+    return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, solr_field='anat_query', query_by_label=False, offset=offset)
 
 
 @with_solr_cache('neuron_neuron_connectivity_query')
@@ -4600,7 +4626,7 @@ def get_images_neurons(short_form: str, return_dataframe=True, limit: int = -1, 
 
 
 @with_solr_cache('images_that_develop_from')
-def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: int = -1):
+def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves individual neuron images that develop from the specified neuroblast.
     
@@ -4619,11 +4645,11 @@ def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: 
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002202> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
-                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 
 
 @with_solr_cache('neurons_capable_of')
-def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = -1):
+def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves individual neurons capable of the specified process (e.g. a
     neurotransmitter-secretion GO term) -- the inverse of a neuron's
@@ -4642,7 +4668,7 @@ def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = 
     """
     owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002215> some <{_short_form_to_iri(short_form)}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit,
-                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 
 
 def _short_form_to_iri(short_form: str) -> str:
@@ -4687,7 +4713,7 @@ def _short_form_to_iri(short_form: str) -> str:
 
 
 @with_solr_cache('expression_pattern_fragments')
-def get_expression_pattern_fragments(short_form: str, return_dataframe=True, limit: int = -1):
+def get_expression_pattern_fragments(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
     Retrieves individual expression pattern fragment images that are part of an expression pattern.
     
@@ -4709,7 +4735,7 @@ def get_expression_pattern_fragments(short_form: str, return_dataframe=True, lim
     iri = _short_form_to_iri(short_form)
     owl_query = f"<http://purl.obolibrary.org/obo/BFO_0000050> some <{iri}>"
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit, 
-                                    solr_field='anat_image_query', query_by_label=False, query_instances=True)
+                                    solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 
 
 def _get_neurons_part_here_headers():

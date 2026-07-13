@@ -1623,7 +1623,11 @@ def SimilarMorphologyTo_to_schema(name, take_default):
     label = f"Neurons with similar morphology to {name} [NBLAST]"
     function = "get_similar_neurons"
     takes = {
-        "short_form": {"$and": ["Individual", "Neuron"]},
+        # Require the NBLAST facet: the query is backed by has_similar_morphology_to
+        # edges carrying an NBLAST_score, which only NBLAST-tagged neurons have.
+        # Without this, every individual neuron (incl. MaleCNS/BANC with no NBLAST
+        # computed) was offered the query and it returned 0 rows.
+        "short_form": {"$and": ["Individual", "Neuron", "NBLAST"]},
         "default": take_default,
     }
     preview = 5
@@ -2609,7 +2613,7 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1, offse
                apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]) AS template,
                apoc.text.format("[%s](%s)",[ds.label,ds.short_form]) AS dataset,
                REPLACE(apoc.text.format("[%s](%s)",[lic.label,lic.short_form]), '[null](null)', '') AS license,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[i.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), i.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + i.short_form]), "[![null]( 'null')](null)", "") as thumbnail
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[i.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), i.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + i.short_form]), "[![null]( 'null')](null)", "") as thumbnail
                ORDER BY id Desc
         """
 
@@ -2940,7 +2944,7 @@ def get_templates(limit: int = -1, return_dataframe: bool = False):
            apoc.text.join(t.uniqueFacets, '|') AS tags,
            apoc.text.join([ds IN datasets | apoc.text.format("[%s](%s)",[ds.label,ds.short_form])], ', ') AS dataset,
            apoc.text.join([lic IN licenses | REPLACE(apoc.text.format("[%s](%s)",[lic.label,lic.short_form]), '[null](null)', '')], ', ') AS license,
-           COALESCE(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[t.label, REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), t.label, t.short_form]), "[![null]( 'null')](null)", ""), "") as thumbnail,
+           COALESCE(REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[t.label, REPLACE(REPLACE(COALESCE(r.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), t.label, t.short_form]), "[![null]( 'null')](null)", ""), "") as thumbnail,
            99 as order
            ORDER BY id DESC
     """
@@ -3098,7 +3102,7 @@ def get_similar_neurons(neuron, similarity_score='NBLAST_score', return_datafram
                     apoc.text.join([a IN va |
                         apoc.text.format("[![%s](%s '%s')](%s)", [
                             n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
-                            REPLACE(COALESCE(a.ri.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),
+                            REPLACE(REPLACE(COALESCE(a.ri.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),'http://','https://'),
                             n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
                             a.templ.short_form + "," + n2.short_form
                         ])
@@ -3214,7 +3218,7 @@ def get_individual_neuron_inputs(neuron_short_form: str, return_dataframe=True, 
         apoc.text.join(b.uniqueFacets, '|') as Gross_Type,
         apoc.text.join(collect(DISTINCT apoc.text.format("[%s](%s)", [templ.label, templ.short_form])), ', ') as Template_Space,
         apoc.text.format("[%s](%s)", [imagingTechnique.label, imagingTechnique.short_form]) as Imaging_Technique,
-        apoc.text.join(collect(DISTINCT REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[b.label + " aligned to " + (CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END), REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), b.label + " aligned to " + (CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END), templ.short_form + "," + b.short_form]), "[![null]( 'null')](null)", "")), '; ') as Images
+        apoc.text.join(collect(DISTINCT REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[b.label + " aligned to " + (CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END), REPLACE(REPLACE(COALESCE(image.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), b.label + " aligned to " + (CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END), templ.short_form + "," + b.short_form]), "[![null]( 'null')](null)", "")), '; ') as Images
     ORDER BY Weight Desc
     """
 
@@ -3387,7 +3391,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
                 apoc.text.join([x IN imgs |
                     REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
                         [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.template_anat.symbol[0] <> '' THEN x.template_anat.symbol[0] ELSE x.template_anat.label END,
-                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         REPLACE(REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'),
                          coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.template_anat.symbol[0] <> '' THEN x.template_anat.symbol[0] ELSE x.template_anat.label END,
                          x.template_anat.short_form + "," + coalesce(x.i.short_form, anat.short_form)]),
                     "[![null]( 'null')](null)", "")
@@ -3603,7 +3607,7 @@ def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
         f"apoc.text.format(\"[%s](%s)\",[{var}.label, {var}.short_form]) AS label, "
         f"apoc.text.join(coalesce({var}.uniqueFacets,[]),'|') AS tags, "
         f"REPLACE(apoc.text.format(\"[![%s](%s '%s')](%s)\",[{var}.label, "
-        "REPLACE(COALESCE(irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'), "
+        "REPLACE(REPLACE(COALESCE(irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),'http://','https://'), "
         f"{var}.label, templ.short_form + ',' + {var}.short_form]), "
         "\"[![null]( 'null')](null)\", \"\") AS thumbnail "
         "ORDER BY label"
@@ -3786,7 +3790,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
                 apoc.text.join([a IN va |
                     apoc.text.format("[![%s](%s '%s')](%s)", [
                         coalesce(oi.label,'image') + " aligned to " + (CASE WHEN a.template_anat.symbol[0] <> '' THEN a.template_anat.symbol[0] ELSE a.template_anat.label END),
-                        REPLACE(COALESCE(a.irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),
+                        REPLACE(REPLACE(COALESCE(a.irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),'http://','https://'),
                         coalesce(oi.label,'image') + " aligned to " + (CASE WHEN a.template_anat.symbol[0] <> '' THEN a.template_anat.symbol[0] ELSE a.template_anat.label END),
                         a.template_anat.short_form + "," + oi.short_form
                     ])
@@ -3892,7 +3896,7 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
             apoc.text.join(coalesce(target.uniqueFacets, []), '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(target.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(target.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + target.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(target.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'), coalesce(target.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + target.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
     """
 
     results = vc.nc.commit_list([cypher])
@@ -5663,7 +5667,7 @@ def get_similar_morphology_part_of(neuron_short_form: str, return_dataframe=True
                types,
                REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
         ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
@@ -5694,7 +5698,7 @@ def get_similar_morphology_part_of_exp(expression_short_form: str, return_datafr
                types,
                REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
         ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
@@ -5725,7 +5729,7 @@ def get_similar_morphology_nb(neuron_short_form: str, return_dataframe=True, lim
                types,
                REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
         ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
@@ -5771,7 +5775,7 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
                type,
                REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
                coalesce(technique.label, '') AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(ri.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), primary.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
         ORDER BY score DESC"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
@@ -6086,7 +6090,7 @@ def get_dataset_images(dataset_short_form: str, return_dataframe=True, limit: in
                REPLACE(apoc.text.format("[%s](%s)",[typ.label,typ.short_form]), '[null](null)', '') AS type,
                REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END,template_anat.short_form]), '[null](null)', '') AS template,
                technique.label AS technique,
-               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), primary.label + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
+               REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[primary.label + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), primary.label + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail"""
     if limit != -1: main_query += f" LIMIT {limit}"
 
     results = vc.nc.commit_list([main_query])
@@ -6142,7 +6146,7 @@ def get_aligned_images_page(template_short_form: str, page_ids, total_count, off
         OPTIONAL MATCH (ch)-[:is_specified_output_of]->(technique:Class)
         WITH di,
              collect(DISTINCT REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form]), '[null](null)', '')) AS templates,
-             collect(DISTINCT REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"), di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "")) AS thumbnails,
+             collect(DISTINCT REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",[di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, REPLACE(REPLACE(COALESCE(irw.thumbnail[0],""),"thumbnailT.png","thumbnail.png"),'http://','https://'), di.label + " aligned to " + CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END, templ.short_form + "," + di.short_form]), "[![null]( 'null')](null)", "")) AS thumbnails,
              collect(DISTINCT REPLACE(apoc.text.format("[%s](%s)",[typ.label,typ.short_form]), '[null](null)', '')) AS types,
              collect(DISTINCT technique.label) AS techniques
         RETURN di.short_form AS id,
@@ -6227,7 +6231,7 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
                 apoc.text.join([x IN imgs |
                     REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
                         [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
-                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         REPLACE(REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'),
                          coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
                          x.templ.short_form + "," + coalesce(x.i.short_form, {ds_var}.short_form)]),
                     "[![null]( 'null')](null)", "")
@@ -6407,7 +6411,7 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
             'Reference' AS reference_type,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
-            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'), coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
+            REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'), coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
     """
 
     # Source 2: expression patterns whose overlaps/part_of edges cite this pub.
@@ -6620,7 +6624,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
                 apoc.text.join([x IN imgs |
                     REPLACE(apoc.text.format("[![%s](%s '%s')](%s)",
                         [coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
-                         REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),
+                         REPLACE(REPLACE(COALESCE(x.irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'),
                          coalesce(x.i.label, 'image') + " aligned to " + CASE WHEN x.templ.symbol[0] <> '' THEN x.templ.symbol[0] ELSE x.templ.label END,
                          x.templ.short_form + "," + coalesce(x.i.short_form, ep.short_form)]),
                     "[![null]( 'null')](null)", "")

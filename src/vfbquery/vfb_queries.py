@@ -1032,7 +1032,11 @@ def term_info_parse_object(results, short_form):
             q = TargetNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron"]):
+        # Require the NBLAST facet: SimilarMorphologyTo is backed by
+        # has_similar_morphology_to edges carrying an NBLAST_score, which only
+        # NBLAST-tagged neurons have. Without it the query was attached to every
+        # individual neuron's menu (incl. MaleCNS/BANC) and returned 0 rows.
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLAST"]):
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
         # NeuronInputsTo is gated behind the extra "Demo" tag so it does NOT

@@ -907,6 +907,18 @@ def with_solr_cache(query_type: str):
             limit = kwargs.get('limit', -1)
             should_cache = (limit == -1)  # Only cache when getting all results (limit=-1)
             offset = kwargs.get('offset', 0) or 0  # page start for slicing cached FULL results (0 keeps the cached full set complete)
+            # The wrapper does all offset slicing itself (via the `offset` local
+            # above); the wrapped func only ever computes the FULL result. Some
+            # funcs declare `offset` (native SKIP paging), most do not. Never leak
+            # `offset` into a func that can't accept it, or a cold cache miss 500s
+            # (e.g. get_similar_neurons: 'unexpected keyword argument offset').
+            try:
+                import inspect as _inspect_off
+                _func_takes_offset = 'offset' in _inspect_off.signature(func).parameters
+            except (ValueError, TypeError):
+                _func_takes_offset = False
+            if not _func_takes_offset:
+                kwargs.pop('offset', None)
             
             # For expensive queries, we still only cache full results, but we handle limited requests
             # by slicing from cached full results
@@ -1109,7 +1121,8 @@ def with_solr_cache(query_type: str):
                     # do one full call, cache it, then slice for return.
                     full_kwargs = kwargs.copy()
                     full_kwargs['limit'] = -1
-                    full_kwargs['offset'] = 0
+                    if _func_takes_offset:
+                        full_kwargs['offset'] = 0
                     full_result = func(*args, **full_kwargs)
                 else:
                     full_result = func(*args, **kwargs)
@@ -1166,7 +1179,8 @@ def with_solr_cache(query_type: str):
                     import inspect
                     if 'limit' in inspect.signature(func).parameters:
                         full_kwargs['limit'] = -1
-                        full_kwargs['offset'] = 0
+                        if _func_takes_offset:
+                            full_kwargs['offset'] = 0
                     # print(f"DEBUG: Executing {query_type} with full results for caching")
                     full_result = func(*args, **full_kwargs)
                     result = full_result

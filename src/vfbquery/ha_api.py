@@ -422,9 +422,22 @@ def _run_query(short_form, func_name, force_refresh=False, offset=0, limit=0):
     # inner function ever gets force_refresh as an unexpected kwarg.
     def _call(extra=None):
         kw = {**base_kwargs, **(extra or {})}
-        if func_name == "get_all_datasets":
-            return fn(**kw)
-        return fn(short_form, **kw)
+        def _invoke(kwargs):
+            if func_name == "get_all_datasets":
+                return fn(**kwargs)
+            return fn(short_form, **kwargs)
+        try:
+            return _invoke(kw)
+        except TypeError as e:
+            # Belt-and-braces: a target that does not declare offset/limit (e.g.
+            # a cached wrapper not yet updated) must not 500 -- drop the paging
+            # kwargs and retry once. Real paging targets never hit this.
+            msg = str(e)
+            if ("offset" in msg or "limit" in msg) and ("offset" in kw or "limit" in kw):
+                stripped = {k: v for k, v in kw.items() if k not in ("offset", "limit")}
+                log.warning("_run_query: %s does not accept paging kwargs (%s); retrying without offset/limit.", func_name, e)
+                return _invoke(stripped)
+            raise
 
     if force_refresh:
         try:

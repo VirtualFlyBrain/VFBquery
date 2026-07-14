@@ -1064,31 +1064,19 @@ def term_info_parse_object(results, short_form):
         
         # NeuronsSynaptic query - for synaptic neuropils and visual systems
         # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
-            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
-            "Visual_system" in termInfo["SuperTypes"] or
-            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
-        ):
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsSynaptic_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
         # NeuronsPresynapticHere query - for synaptic neuropils and visual systems
         # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
-            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
-            "Visual_system" in termInfo["SuperTypes"] or
-            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
-        ):
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsPresynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
         # NeuronsPostsynapticHere query - for synaptic neuropils and visual systems
         # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
-            "Synaptic_neuropil" in termInfo["SuperTypes"] or 
-            "Visual_system" in termInfo["SuperTypes"] or
-            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
-        ):
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsPostsynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1157,9 +1145,9 @@ def term_info_parse_object(results, short_form):
         # ImagesNeurons query - for synaptic neuropils
         # Matches XMI criteria: Class + (Synaptic_neuropil OR Synaptic_neuropil_domain)
         # Returns individual neuron images (instances) rather than neuron classes
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and (
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and (
             "Synaptic_neuropil" in termInfo["SuperTypes"] or
-            "Synaptic_neuropil_domain" in termInfo["SuperTypes"]
+            "Anatomy" in termInfo["SuperTypes"]
         ):
             q = ImagesNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)

@@ -253,7 +253,7 @@ def get_neurons_with_part_in_cached(short_form: str, return_dataframe=True, limi
     """
     return _original_get_neurons_with_part_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
-def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, limit: int = -1, force_refresh: bool = False):
+def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """
     Enhanced get_neurons_with_synapses_in with SOLR caching.
     
@@ -265,7 +265,7 @@ def get_neurons_with_synapses_in_cached(short_form: str, return_dataframe=True, 
     Returns:
         Neurons with synapses in the specified anatomical structure
     """
-    return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, force_refresh=force_refresh)
+    return _original_get_neurons_with_synapses_in(short_form=short_form, return_dataframe=return_dataframe, limit=limit, offset=offset, force_refresh=force_refresh)
 
 def get_neurons_with_presynaptic_terminals_in_cached(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0, force_refresh: bool = False):
     """

@@ -1052,31 +1052,32 @@ def term_info_parse_object(results, short_form):
             q = NeuronNeuronConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # NeuronsPartHere query - for Class+Anatomy terms (synaptic neuropils, etc.)
-        # Matches XMI criteria: Class + Synaptic_neuropil, or other anatomical regions
-        # Excluded for neuron classes: "neurons with some part in <a neuron>" is not a meaningful query
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and (
+        # NeuronsPartHere query - for anatomical regions (neuropils, ganglia, etc.)
+        # Gate: Class + (Synaptic_neuropil OR Anatomy), but NOT Cell.
+        # Excluded for cell classes (neurons, glia, neuroblasts): "neurons with some
+        # part in <a cell>" is not a meaningful query. Cell subsumes Neuron.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and (
             "Synaptic_neuropil" in termInfo["SuperTypes"] or
             "Anatomy" in termInfo["SuperTypes"]
         ):
             q = NeuronsPartHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # NeuronsSynaptic query - for synaptic neuropils and visual systems
-        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
+        # NeuronsSynaptic query - for neural regions (neuropils, ganglia, visual system, etc.)
+        # Gate: Class + Nervous_system, but NOT Cell (excludes neurons, glia, neuroblasts).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsSynaptic_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # NeuronsPresynapticHere query - for synaptic neuropils and visual systems
-        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
+        # NeuronsPresynapticHere query - for neural regions (neuropils, ganglia, visual system, etc.)
+        # Gate: Class + Nervous_system, but NOT Cell (excludes neurons, glia, neuroblasts).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsPresynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # NeuronsPostsynapticHere query - for synaptic neuropils and visual systems
-        # Matches XMI criteria: Class + (Synaptic_neuropil OR Visual_system OR Synaptic_neuropil_domain)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
+        # NeuronsPostsynapticHere query - for neural regions (neuropils, ganglia, visual system, etc.)
+        # Gate: Class + Nervous_system, but NOT Cell (excludes neurons, glia, neuroblasts).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and "Nervous_system" in termInfo["SuperTypes"]:
             q = NeuronsPostsynapticHere_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1086,11 +1087,18 @@ def term_info_parse_object(results, short_form):
             q = ComponentsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # PartsOf query - for any Class except neuron classes
-        # Matches XMI criteria: Class (any)
-        # Excluded for neuron classes: anatomical sub-parts of a neuron type are not modelled
-        # in the ontology in a way that makes this query useful at the class level.
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"]:
+        # PartsOf query - for anatomical classes that are not individual cells
+        # Gate: Class + Anatomy, but NOT Cell.
+        # - Anatomy: "part of" is only meaningful for anatomical structures; it
+        #   excludes non-anatomy classes (genes, features, GO process terms,
+        #   deprecated/stage classes, and data-less expression patterns lacking
+        #   the Anatomy tag).
+        # - NOT Cell: excludes individual cell types (neurons, glia, neuroblasts),
+        #   whose anatomical sub-parts are not modelled usefully at the class
+        #   level. Cell subsumes Neuron, so this also keeps neuron classes out.
+        # Retains neuropils, tracts/nerves, clones, ganglia, whole regions, and
+        # imaged expression patterns/splits (all Anatomy, not Cell).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]) and "Cell" not in termInfo["SuperTypes"]:
             q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1135,10 +1143,10 @@ def term_info_parse_object(results, short_form):
             q = LineageClonesIn_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # ImagesNeurons query - for synaptic neuropils
-        # Matches XMI criteria: Class + (Synaptic_neuropil OR Synaptic_neuropil_domain)
+        # ImagesNeurons query - for anatomical regions (mirrors NeuronsPartHere)
+        # Gate: Class + (Synaptic_neuropil OR Anatomy), but NOT Cell.
         # Returns individual neuron images (instances) rather than neuron classes
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"] and (
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and (
             "Synaptic_neuropil" in termInfo["SuperTypes"] or
             "Anatomy" in termInfo["SuperTypes"]
         ):
@@ -1345,12 +1353,29 @@ def term_info_parse_object(results, short_form):
         )
         instance_super_types = termInfo["SuperTypes"] or []
         if termInfo["IsIndividual"] and any(t in instance_super_types for t in inherit_instance_types):
-            # Legacy anchored on the first parent Class (classVariable = parents[0]).
-            inherit_parent = next(
-                (p for p in (vfbTerm.parents or []) if p.types and "Class" in p.types),
-                None,
-            )
-            if inherit_parent is not None:
+            # Choose the parent class(es) that best represent the instance's
+            # inherited type. Exclude the generic preferred_root (e.g.
+            # 'anatomical entity'): it is a direct parent of many instances but
+            # would anchor broad queries like "Subclasses of anatomical entity"
+            # on the instance. Among the remaining direct Class parents, keep
+            # those whose type set overlaps inherit_instance_types the most (the
+            # "closest match"); ties are all kept so an instance typed by several
+            # equally-specific classes inherits each class's queries, anchored on
+            # that class. Every gated instance has such a parent in the data, so
+            # best_overlap is >= 1 (best_overlap == 0 -> inherit nothing, since no
+            # parent is a valid target for the facet-specific queries).
+            inherit_set = set(inherit_instance_types)
+            candidates = [
+                p for p in (vfbTerm.parents or [])
+                if p.types and "Class" in p.types and "preferred_root" not in p.types
+            ]
+            best_overlap = max((len(set(p.types) & inherit_set) for p in candidates), default=0)
+            inherit_parents = [
+                p for p in candidates
+                if best_overlap > 0 and len(set(p.types) & inherit_set) == best_overlap
+            ]
+            seen = set()
+            for inherit_parent in inherit_parents:
                 p_types = set(inherit_parent.types or [])
                 p_ref = {"short_form": inherit_parent.short_form}
                 p_label = inherit_parent.label if inherit_parent.label else inherit_parent.short_form
@@ -1359,11 +1384,11 @@ def term_info_parse_object(results, short_form):
                 # own menu above so an instance shows exactly what its class shows.
                 inheritable_class_queries = (
                     (ListAllAvailableImages_to_schema, lambda p: {"Class", "Anatomy"} <= p),
-                    (NeuronsPartHere_to_schema, lambda p: "Class" in p and "Neuron" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
-                    (NeuronsSynaptic_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
-                    (NeuronsPresynapticHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
-                    (NeuronsPostsynapticHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Visual_system" in p or "Synaptic_neuropil_domain" in p)),
-                    (ImagesNeurons_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
+                    (NeuronsPartHere_to_schema, lambda p: "Class" in p and "Cell" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
+                    (NeuronsSynaptic_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
+                    (NeuronsPresynapticHere_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
+                    (NeuronsPostsynapticHere_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
+                    (ImagesNeurons_to_schema, lambda p: "Class" in p and "Cell" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
                     (TractsNervesInnervatingHere_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
                     (LineageClonesIn_to_schema, lambda p: "Class" in p and ("Synaptic_neuropil" in p or "Synaptic_neuropil_domain" in p)),
                     (NeuronClassesFasciculatingHere_to_schema, lambda p: "Class" in p and "Neuron_projection_bundle" in p),
@@ -1376,12 +1401,16 @@ def term_info_parse_object(results, short_form):
                     (TargetNeurons_to_schema, lambda p: {"Class", "Split"} <= p),
                     (DownstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
                     (UpstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
-                    (PartsOf_to_schema, lambda p: "Class" in p and "Neuron" not in p),
+                    (PartsOf_to_schema, lambda p: {"Class", "Anatomy"} <= p and "Cell" not in p),
                     (SubclassesOf_to_schema, lambda p: "Class" in p),
                 )
                 for schema_fn, predicate in inheritable_class_queries:
                     if predicate(p_types):
-                        queries.append(schema_fn(p_label, p_ref))
+                        q = schema_fn(p_label, p_ref)
+                        key = (q.query, inherit_parent.short_form)
+                        if key not in seen:
+                            seen.add(key)
+                            queries.append(q)
 
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:
@@ -1766,10 +1795,14 @@ def PartsOf_to_schema(name, take_default):
     """
     Schema for PartsOf query.
     Finds parts of the specified anatomical class.
-    
-    Matching criteria from XMI:
-    - Class (any)
-    
+
+    Matching criteria:
+    - Class + Anatomy, but NOT Cell (gated in term_info_parse_object).
+
+    Note: `takes` can only express positive facets (Class + Anatomy); the
+    "NOT Cell" exclusion lives in the Python gate, since the $and/$or grammar
+    has no negation operator.
+
     Query chain: Owlery part_of query → process → SOLR
     OWL query: "part_of some $ID"
     """
@@ -1777,7 +1810,7 @@ def PartsOf_to_schema(name, take_default):
     label = f"Parts of {name}"
     function = "get_parts_of"
     takes = {
-        "short_form": {"$and": ["Class"]},
+        "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
     preview = 5

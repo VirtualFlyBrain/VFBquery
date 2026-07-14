@@ -1098,11 +1098,18 @@ def term_info_parse_object(results, short_form):
             q = ComponentsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # PartsOf query - for any Class except neuron classes
-        # Matches XMI criteria: Class (any)
-        # Excluded for neuron classes: anatomical sub-parts of a neuron type are not modelled
-        # in the ontology in a way that makes this query useful at the class level.
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Neuron" not in termInfo["SuperTypes"]:
+        # PartsOf query - for anatomical classes that are not individual cells
+        # Gate: Class + Anatomy, but NOT Cell.
+        # - Anatomy: "part of" is only meaningful for anatomical structures; it
+        #   excludes non-anatomy classes (genes, features, GO process terms,
+        #   deprecated/stage classes, and data-less expression patterns lacking
+        #   the Anatomy tag).
+        # - NOT Cell: excludes individual cell types (neurons, glia, neuroblasts),
+        #   whose anatomical sub-parts are not modelled usefully at the class
+        #   level. Cell subsumes Neuron, so this also keeps neuron classes out.
+        # Retains neuropils, tracts/nerves, clones, ganglia, whole regions, and
+        # imaged expression patterns/splits (all Anatomy, not Cell).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]) and "Cell" not in termInfo["SuperTypes"]:
             q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1400,7 +1407,7 @@ def term_info_parse_object(results, short_form):
                     (TargetNeurons_to_schema, lambda p: {"Class", "Split"} <= p),
                     (DownstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
                     (UpstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
-                    (PartsOf_to_schema, lambda p: "Class" in p and "Neuron" not in p),
+                    (PartsOf_to_schema, lambda p: {"Class", "Anatomy"} <= p and "Cell" not in p),
                     (SubclassesOf_to_schema, lambda p: "Class" in p),
                 )
                 for schema_fn, predicate in inheritable_class_queries:
@@ -1790,10 +1797,14 @@ def PartsOf_to_schema(name, take_default):
     """
     Schema for PartsOf query.
     Finds parts of the specified anatomical class.
-    
-    Matching criteria from XMI:
-    - Class (any)
-    
+
+    Matching criteria:
+    - Class + Anatomy, but NOT Cell (gated in term_info_parse_object).
+
+    Note: `takes` can only express positive facets (Class + Anatomy); the
+    "NOT Cell" exclusion lives in the Python gate, since the $and/$or grammar
+    has no negation operator.
+
     Query chain: Owlery part_of query → process → SOLR
     OWL query: "part_of some $ID"
     """
@@ -1801,7 +1812,7 @@ def PartsOf_to_schema(name, take_default):
     label = f"Parts of {name}"
     function = "get_parts_of"
     takes = {
-        "short_form": {"$and": ["Class"]},
+        "short_form": {"$and": ["Class", "Anatomy"]},
         "default": take_default,
     }
     preview = 5

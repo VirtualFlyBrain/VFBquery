@@ -1364,12 +1364,29 @@ def term_info_parse_object(results, short_form):
         )
         instance_super_types = termInfo["SuperTypes"] or []
         if termInfo["IsIndividual"] and any(t in instance_super_types for t in inherit_instance_types):
-            # Legacy anchored on the first parent Class (classVariable = parents[0]).
-            inherit_parent = next(
-                (p for p in (vfbTerm.parents or []) if p.types and "Class" in p.types),
-                None,
-            )
-            if inherit_parent is not None:
+            # Choose the parent class(es) that best represent the instance's
+            # inherited type. Exclude the generic preferred_root (e.g.
+            # 'anatomical entity'): it is a direct parent of many instances but
+            # would anchor broad queries like "Subclasses of anatomical entity"
+            # on the instance. Among the remaining direct Class parents, keep
+            # those whose type set overlaps inherit_instance_types the most (the
+            # "closest match"); ties are all kept so an instance typed by several
+            # equally-specific classes inherits each class's queries, anchored on
+            # that class. Every gated instance has such a parent in the data, so
+            # best_overlap is >= 1 (best_overlap == 0 -> inherit nothing, since no
+            # parent is a valid target for the facet-specific queries).
+            inherit_set = set(inherit_instance_types)
+            candidates = [
+                p for p in (vfbTerm.parents or [])
+                if p.types and "Class" in p.types and "preferred_root" not in p.types
+            ]
+            best_overlap = max((len(set(p.types) & inherit_set) for p in candidates), default=0)
+            inherit_parents = [
+                p for p in candidates
+                if best_overlap > 0 and len(set(p.types) & inherit_set) == best_overlap
+            ]
+            seen = set()
+            for inherit_parent in inherit_parents:
                 p_types = set(inherit_parent.types or [])
                 p_ref = {"short_form": inherit_parent.short_form}
                 p_label = inherit_parent.label if inherit_parent.label else inherit_parent.short_form
@@ -1400,7 +1417,11 @@ def term_info_parse_object(results, short_form):
                 )
                 for schema_fn, predicate in inheritable_class_queries:
                     if predicate(p_types):
-                        queries.append(schema_fn(p_label, p_ref))
+                        q = schema_fn(p_label, p_ref)
+                        key = (q.query, inherit_parent.short_form)
+                        if key not in seen:
+                            seen.add(key)
+                            queries.append(q)
 
         # Add Publications to the termInfo object
         if vfbTerm.pubs and len(vfbTerm.pubs) > 0:

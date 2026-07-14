@@ -1317,27 +1317,15 @@ def term_info_parse_object(results, short_form):
         if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")):
             q = FindStocks_to_schema(termInfo["Name"], {"short_form": sf})
             queries.append(q)
-            # Also surface the dedicated find_stocks MCP tool, which exposes
-            # the optional collection_filter parameter (Bloomington, Kyoto,
-            # VDRC, etc.) that the run_query/FindStocks path does not.
-            termInfo["RelatedTools"].append({
-                "tool": "find_stocks",
-                "label": f"Find fly stocks for {termInfo['Name']} (with optional stock-centre filter)",
-                "default_args": {"feature_id": sf},
-            })
+            # FindStocks is offered as a run_query query_type above (in Queries);
+            # the dedicated find_stocks MCP tool was retired, so no RelatedTools entry.
 
         # FlyBase combination publications — for FBco terms
         if sf.startswith("FBco"):
             q = FindComboPublications_to_schema(termInfo["Name"], {"short_form": sf})
             queries.append(q)
-            # Also surface the dedicated find_combo_publications MCP tool,
-            # which returns full per-publication metadata (DOI, PMID, miniref,
-            # year) ready for citation rendering.
-            termInfo["RelatedTools"].append({
-                "tool": "find_combo_publications",
-                "label": f"Find publications for {termInfo['Name']} (with full citation metadata)",
-                "default_args": {"fbco_id": sf},
-            })
+            # FindComboPublications is offered as a run_query query_type above;
+            # the dedicated find_combo_publications MCP tool was retired.
 
         # Bring the parent class's query menu down onto selected Individual
         # instances, reproducing the legacy term-info builder

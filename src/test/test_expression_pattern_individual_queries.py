@@ -67,8 +67,11 @@ class TestExpressionPatternIndividualQueries(unittest.TestCase):
         if not self.ind:
             self.skipTest("term_info unavailable (no live VFB backend)")
         ind_menu = _menu(self.ind)
+        # SubclassesOf is intentionally NOT expected: it is gated on has_subClass,
+        # and this expression-pattern class is a leaf (no subclasses), so the query
+        # would only ever return empty.
         for qid in ("AnatomyExpressedIn", "epFrag", "ListAllAvailableImages",
-                    "NeuronsPartHere", "PartsOf", "SubclassesOf"):
+                    "NeuronsPartHere", "PartsOf"):
             self.assertIn(qid, ind_menu, f"expected {qid} inherited onto the EP instance")
             self.assertEqual(ind_menu[qid], self.EP_CLASS)
 

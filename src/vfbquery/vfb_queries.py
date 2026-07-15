@@ -1102,9 +1102,14 @@ def term_info_parse_object(results, short_form):
             q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        # SubclassesOf query - for any Class
-        # Matches XMI criteria: Class (any)
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]):
+        # SubclassesOf query - for classes that actually have subclasses.
+        # Gate: Class + has_subClass. The has_subClass label is the KB's "has
+        # direct children" flag; ~93% of classes are leaves (no subclasses), so
+        # gating on it both drops the empty query from leaf pages and avoids the
+        # guaranteed-empty Owlery call that fill_query_results would otherwise
+        # run for the preview. The label is already in SuperTypes, so the check
+        # is free.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "has_subClass"]):
             q = SubclassesOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
@@ -1414,7 +1419,7 @@ def term_info_parse_object(results, short_form):
                     (DownstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
                     (UpstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
                     (PartsOf_to_schema, lambda p: {"Class", "Anatomy"} <= p and "Cell" not in p),
-                    (SubclassesOf_to_schema, lambda p: "Class" in p),
+                    (SubclassesOf_to_schema, lambda p: {"Class", "has_subClass"} <= p),
                 )
                 for schema_fn, predicate in inheritable_class_queries:
                     if predicate(p_types):
@@ -1835,10 +1840,11 @@ def SubclassesOf_to_schema(name, take_default):
     """
     Schema for SubclassesOf query.
     Finds subclasses of the specified class.
-    
-    Matching criteria from XMI:
-    - Class (any)
-    
+
+    Matching criteria:
+    - Class + has_subClass (only classes that actually have subclasses; gated
+      in term_info_parse_object).
+
     Query chain: Owlery subclasses query → process → SOLR
     OWL query: Direct subclasses of $ID
     """
@@ -1846,7 +1852,7 @@ def SubclassesOf_to_schema(name, take_default):
     label = f"Subclasses of {name}"
     function = "get_subclasses_of"
     takes = {
-        "short_form": {"$and": ["Class"]},
+        "short_form": {"$and": ["Class", "has_subClass"]},
         "default": take_default,
     }
     preview = 5

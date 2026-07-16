@@ -29,8 +29,16 @@ class TermInfoQueriesTest(unittest.TestCase):
           "short_form": "VFB_jrchk0e3", "unique_facets": ["Adult"],
           "label": "MBON01(y5β\\'2a)_L"}, "description": [], "comment": []},
           "query": "Get JSON for Individual", "version": "t", "parents": [],
-          "relationships": [], "xrefs": [], "anatomy_channel_image": [],
-          "pub_syn": [], "def_pubs": []}
+          "relationships": [{"relation": {"iri": "i", "label": "is part\\'of",
+            "type": "part_of"}, "object": {"symbol": "", "iri": "i",
+            "types": ["Class"], "short_form": "FBbt_1", "unique_facets": [],
+            "label": "adult brain"}}],
+          "xrefs": [], "anatomy_channel_image": [],
+          "pub_syn": [{"synonym": {"scope": "has_exact_synonym",
+            "label": "MBON01(y5β\\'2a)_syn", "type": ""},
+            "pub": {"core": {"symbol": "", "iri": "i", "types": ["pub"],
+            "short_form": "Unattributed", "unique_facets": ["pub"], "label": ""},
+            "FlyBase": "", "PubMed": "", "DOI": ""}}], "def_pubs": []}
         '''
         terminfo = deserialize_term_info(terminfo_json)
         # backslash stripped, apostrophe and Greek beta preserved
@@ -38,6 +46,10 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertNotIn("\\", terminfo.term.core.label)
         # and it flows clean into the internal link (used for Name/Meta rendering)
         self.assertNotIn("\\", terminfo.term.core.get_int_link())
+        # synonyms and relationship (edge) labels are cleaned too
+        self.assertEqual("MBON01(y5β'2a)_syn", terminfo.pub_syn[0].synonym.label)
+        self.assertNotIn("\\", terminfo.pub_syn[0].synonym.label)
+        self.assertNotIn("\\", terminfo.relationships[0].relation.label)
 
     def test_term_info_deserialization(self):
         terminfo_json = """

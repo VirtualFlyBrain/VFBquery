@@ -23,6 +23,23 @@ from typing import List, Optional, Any
 from dacite import from_dict
 
 
+# Stray backslash-escaping of quotes/apostrophes leaks in from upstream
+# Cypher / string-literal escaping (e.g. a label stored as "y5β\\'2a"
+# arrives as  y5β\'2a  -- a literal backslash before the apostrophe).
+# A backslash before a quote/apostrophe is never legitimate in a display
+# label, and if it survives into a downstream request target it triggers
+# Tomcat "Invalid character found in the request target" 400s. Strip it at
+# ingestion so every consumer (Name, Meta, links, synonyms) sees the clean
+# value. Idempotent and safe to call on already-clean text.
+_STRAY_QUOTE_ESCAPE = re.compile(r"\\(['\"])")
+
+
+def clean_label(text):
+    if not isinstance(text, str) or "\\" not in text:
+        return text
+    return _STRAY_QUOTE_ESCAPE.sub(r"\1", text)
+
+
 @dataclass_json
 @dataclass
 class Coordinates:
@@ -67,9 +84,16 @@ class MinimalEntityInfo:
     unique_facets: Optional[List[str]] = None
     symbol: Optional[str] = ""
 
+    def __post_init__(self):
+        # Clean stray escaping at ingestion so Name/Meta/links/symbol are all
+        # consistent (the top-level termInfo["Name"] reads self.label/self.symbol
+        # directly and previously kept the backslash).
+        self.label = clean_label(self.label)
+        self.symbol = clean_label(self.symbol)
+
     def get_int_link(self, show_types=False) -> str:
         if self.label:
-            result = get_link(self.label.replace("\\'", "'"), self.short_form) + " " + self.get_types_str(show_types)
+            result = get_link(self.label, self.short_form) + " " + self.get_types_str(show_types)
         else:
             result = get_link(self.short_form, self.short_form) + " " + self.get_types_str(show_types)
         return result.strip()

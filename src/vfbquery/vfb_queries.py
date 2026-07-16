@@ -420,6 +420,15 @@ _RE_IMAGE_URL = re.compile(
 # markdown parser.
 _RE_MD_LINK = re.compile(r'\[([^\]]+)\]\(([^\)]+)\)')
 
+# Stray backslash-before-quote artifact (e.g. y5B\'2a -> y5B'2a). The source
+# label data carries a spurious backslash before apostrophes/quotes; it must be
+# stripped before it reaches a display cell (and, for link cells, before it can
+# leak into an HTTP request target where a backslash is illegal). Mirrors
+# term_info_queries.clean_label so a term's own labels and the labels embedded
+# in query preview-row markdown (name / thumbnail / label cells, built here from
+# raw Neo4j labels via apoc.text.format) are cleaned identically.
+_STRAY_QUOTE_ESCAPE = re.compile(r"\\(['\"])")
+
 
 def _encode_image_url(match: 're.Match') -> str:
     """Repl callback for image-markdown cells — secure URL, preserve rest."""
@@ -478,6 +487,17 @@ def encode_markdown_links(df, columns):
         if not notnull_mask.any():
             continue
         non_null = s.where(notnull_mask, '').astype(str)
+
+        # Strip stray backslash-before-quote artifacts from every cell first, so
+        # embedded labels (link text, image alt text, titles) are cleaned in
+        # both the image-markdown and label-shape branches below. PR #80 cleaned
+        # the term's own labels via term_info_queries.clean_label, but query
+        # preview rows are assembled here from raw Neo4j labels and never passed
+        # through that path, so the escape survived into name/thumbnail cells.
+        # Vectorised + guarded on a cheap literal-backslash check so it stays
+        # essentially free on the large frames this function was tuned for.
+        if non_null.str.contains('\\', regex=False, na=False).any():
+            non_null = non_null.str.replace(_STRAY_QUOTE_ESCAPE, r"\1", regex=True)
 
         # Branch on shape using a vectorised prefix check — this is a single
         # C-loop over the column, far cheaper than re-detecting per row.

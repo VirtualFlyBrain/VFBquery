@@ -997,6 +997,16 @@ def term_info_parse_object(results, short_form):
                 images = {}
                 termInfo["IsTemplate"] = True
                 for image in vfbTerm.template_domains:
+                    # Skip degenerate/placeholder domains. Templates that carry no
+                    # painted anatomical domains (e.g. VFB_00050000, the L1EM larval
+                    # template) still emit a single empty domain from the pipeline
+                    # (index: [], null anatomical_individual). Without this guard the
+                    # int(image.index[0]) below raised IndexError, which propagated to
+                    # get_term_info's `except IndexError` and was mis-reported as a SOLR
+                    # access failure, returning null for the whole term. Mirrors the
+                    # `if len(image.index) > 0` guard already used for template_channel.
+                    if not image.index or len(image.index) == 0:
+                        continue
                     record = {}
                     record["id"] = image.anatomical_individual.short_form
                     label = image.anatomical_individual.label

@@ -133,6 +133,9 @@ class MinimalEdgeInfo:
     confidence_value: Optional[str] = ""
     database_cross_reference: Optional[List[str]] = None
 
+    def __post_init__(self):
+        self.label = clean_label(self.label)
+
 
 @dataclass_json
 @dataclass
@@ -140,6 +143,11 @@ class Synonym:
     label: Optional[str] = ""
     scope: Optional[str] = ""
     type: Optional[str] = ""
+
+    def __post_init__(self):
+        # Synonyms carry the same over-escaping artifact as labels (e.g. a
+        # synonym "y5B\\'2a"); clean at ingestion so search/term-info render clean.
+        self.label = clean_label(self.label)
 
     def __str__(self):
         if self.scope:

@@ -53,14 +53,22 @@ HTTP-served**.
 
 ## 3. Changes to make
 
-### C1 — `/search` endpoint  *(effort: S)*
-Expose the same Solr `edismax` term-search the MCP `search_terms` already runs (label/synonym/
-autosuggest qf, exact-match-to-top, dataset/type/NT filters).
-- **File:** `ha_api.py` — add `handle_search` + `app.router.add_get("/search", …)`; query
-  `solr.virtualflybrain.org/solr/vfb_json/select`.
-- **Shape:** `GET /search?query=DA1&rows=50&filters=…` → JSON rows `{short_form,label,types,…}`.
-- **Cache/coalesce:** reuse the existing wrappers, key `search:{query}:{filters}`.
-- **Accept:** `search=DA1 lPN` returns `FBbt_00067363` in the top hits.
+### C1 — `/search` endpoint  *(effort: S — expose existing, don't build)*
+This is **not new search logic.** The free-text search already exists as the MCP `search_terms`
+tool: an `edismax` query against the Solr **`ontology`** core (VFBquery already has `_ont_solr`
+pointed there). C1 just exposes that same query as a cached REST route so the client uses one
+canonical implementation.
+- **NOT `resolve_entity`:** that is FlyBase-Chado exact resolution (tiered exact→synonym→broad for
+  FlyBase features) and is documented as the *wrong* tool for ontology term lookup — it returns
+  `NOT_FOUND` on partial/fuzzy anatomy names (verified). Discovery needs `search_terms`.
+- **File:** `ha_api.py` — add `handle_search` + `app.router.add_get("/search", …)` calling the
+  **`ontology`** core (`_ont_solr`), reusing the exact `search_terms` params:
+  `q = "<q> OR <q>* OR *<q>*"`, `mm=45%`, `qf=label^110 synonym^100 …autosuggest`, `bq` boosts,
+  `fq` VFB/FB filter, plus `filter_types` / `exclude_types` / `boost_types`.
+  See `docs/draft_search_xref_endpoints.py` for the drafted handler.
+- **Single source of truth:** factor the query config so it isn't a 3rd/4th copy (website
+  `searchConfiguration.js`, MCP `search_terms`, here). Ideally share one config module.
+- **Accept:** `search=DA1 lPN` returns `FBbt_00067363` as the top hit (verified live).
 
 ### C2 — typed-column → DataFrame adapter  *(effort: S, client-side)*
 Query schemas return typed columns; a few cells are pipe-joined multi-values or HTML links/thumbnails.

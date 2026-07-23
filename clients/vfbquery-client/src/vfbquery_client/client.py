@@ -20,6 +20,11 @@ import pandas as pd
 import requests
 
 DEFAULT_BASE_URL = "https://v3-cached.virtualflybrain.org"
+# Free-text term search = the same edismax query the MCP `search_terms` tool runs,
+# against the Solr *ontology* core (NOT vfb_json — the autosuggest fields live here).
+# resolve_entity is deliberately NOT used: it is FlyBase-Chado exact resolution and is
+# documented as the wrong tool for ontology term lookup.
+DEFAULT_SEARCH_URL = "https://solr.virtualflybrain.org/solr/ontology/select"
 
 # Anything that looks like a VFB / FlyBase style short_form is treated as an id
 # rather than a free-text name.
@@ -38,8 +43,13 @@ class VfbError(RuntimeError):
 
 class VfbClient:
     def __init__(self, base_url: str = DEFAULT_BASE_URL, timeout: int = 60,
-                 session: Optional[requests.Session] = None):
+                 session: Optional[requests.Session] = None,
+                 search_url: str = DEFAULT_SEARCH_URL):
         self.base_url = base_url.rstrip("/")
+        # Point search_url at a future v3-cached `/search` once it ships, to keep the
+        # edismax config server-side (single source of truth). Until then this hits the
+        # ontology core directly with the same query search_terms uses.
+        self.search_url = search_url
         self.timeout = timeout
         self.session = session or requests.Session()
 
@@ -71,20 +81,18 @@ class VfbClient:
         return df
 
     def _resolve_to_id(self, query: str) -> str:
-        """Return a short_form for a name/symbol, or pass an id straight through."""
+        """Return a short_form for a name/symbol via search_terms, or pass an id through.
+
+        Uses the edismax term search (search_terms), NOT resolve_entity — the latter is
+        FlyBase-Chado resolution and won't resolve ontology/anatomy term names.
+        """
         if _ID_RE.match(query):
             return query
-        # Prefer /search (C1). Fall back to /resolve_entity which exists today.
-        try:
-            hits = self.search(query, rows=1)
-            if len(hits):
-                return hits.iloc[0].get("short_form") or hits.iloc[0].get("id")
-        except requests.HTTPError:
-            pass
-        res = self._get("resolve_entity", query=query)
-        if isinstance(res, dict):
-            return res.get("short_form") or res.get("id") or query
-        return query
+        hits = self.search(query, rows=1)
+        if len(hits):
+            row = hits.iloc[0]
+            return row.get("short_form") or row.get("id") or query
+        raise VfbError(f"No term matched {query!r}.")
 
     # ---- term info -------------------------------------------------------
     def term(self, term: str) -> dict:
@@ -95,9 +103,33 @@ class VfbClient:
         return [self.term(t) for t in terms]
 
     # ---- discovery -------------------------------------------------------
-    def search(self, query: str, rows: int = 50, filters: Optional[str] = None) -> pd.DataFrame:
-        """Free-text term search.  [NEW /search — plan C1]"""
-        return self._to_df(self._get("search", query=query, rows=rows, filters=filters))
+    def search(self, query: str, rows: int = 50,
+               filter_types: Optional[Iterable[str]] = None,
+               exclude_types: Optional[Iterable[str]] = None) -> pd.DataFrame:
+        """Free-text term search — the same edismax query as the MCP `search_terms`.
+
+        Ranked, fuzzy, synonym/autosuggest-aware (e.g. 'DA1 lPN', 'kenyon', partials).
+        This is the discovery entry point; see class docstring on why not resolve_entity.
+        """
+        fq = ["(short_form:VFB* OR short_form:FB* OR facets_annotation:DataSet "
+              "OR facets_annotation:pub) AND NOT short_form:VFBc_*"]
+        for ft in filter_types or []:
+            fq.append(f"facets_annotation:{ft}")
+        if exclude_types:
+            fq.append("NOT (" + " OR ".join(f"facets_annotation:{et}" for et in exclude_types) + ")")
+        params = {
+            "q": f"{query} OR {query}* OR *{query}*",
+            "q.op": "OR", "defType": "edismax", "mm": "45%",
+            "qf": "label^110 synonym^100 label_autosuggest synonym_autosuggest shortform_autosuggest",
+            "pf": "true",
+            "bq": ("short_form:VFBexp*^10.0 short_form:VFB*^100.0 short_form:FBbt*^100.0 "
+                   "short_form:FBbt_00003982^2 facets_annotation:Deprecated^0.001"),
+            "fl": "short_form,label,synonym,id,facets_annotation,unique_facets",
+            "rows": str(min(rows, 1000)), "wt": "json", "fq": fq,
+        }
+        r = self.session.get(self.search_url, params=params, timeout=self.timeout)
+        r.raise_for_status()
+        return self._to_df(r.json().get("response", {}).get("docs", []))
 
     def get_instances(self, class_expression: str) -> pd.DataFrame:
         """Individuals of a type across all datasets (run_query ListAllAvailableImages)."""

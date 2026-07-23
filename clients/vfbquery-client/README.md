@@ -44,11 +44,14 @@ vfb.get_vfb_link(["VFB_jrchjtdb", "VFB_fw035286"]) # shareable 3D-scene link
 | `get_transcriptomic_profile` | `/run_query anatScRNAseqQuery` | ✅ |
 | `list_connectome_datasets` | `/list_connectome_datasets` | ✅ |
 | `get_vfb_link` | client-side | ✅ |
-| `search` | `/search` | ⏳ needs server endpoint (plan C1) |
+| `search` | `search_terms` edismax (Solr `ontology` core) | ✅ works today; repoint to `/search` once it ships |
 | `xref` | `/xref` | ⏳ needs server endpoint (plan C3) |
 
-Name→id resolution in `get_instances`/`get_transcriptomic_profile` uses `/search` when available and
-falls back to `/resolve_entity`; passing a short_form id always works.
+`search` runs the **same** `edismax` query as the MCP `search_terms` (ranked / fuzzy / synonym-aware),
+so name→id resolution in `get_instances` etc. uses that — **not** `resolve_entity`, which is
+FlyBase-Chado exact resolution and won't resolve ontology term names. Passing a short_form id always
+works directly. `search_url` in the constructor can be pointed at a future cached `/search` route to
+keep the query config server-side.
 
 ## Licence
 

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vfbquery-client"
+version = "0.1.0.dev0"
+description = "Lightweight HTTP client for the Virtual Fly Brain query API (v3-cached). Pure requests + pandas — no navis, installs in seconds."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GPL-2.0-or-later" }
+authors = [{ name = "Virtual Fly Brain" }]
+dependencies = [
+    "requests>=2.25",
+    "pandas>=1.2",
+]
+
+[project.urls]
+Homepage = "https://virtualflybrain.org"
+Source = "https://github.com/VirtualFlyBrain/VFBquery"
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

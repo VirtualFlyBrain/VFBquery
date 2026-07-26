@@ -53,21 +53,28 @@ HTTP-served**.
 
 ## 3. Changes to make
 
-### C1 — `/search` endpoint  *(effort: S — expose existing, don't build)*
-This is **not new search logic.** The free-text search already exists as the MCP `search_terms`
-tool: an `edismax` query against the Solr **`ontology`** core (VFBquery already has `_ont_solr`
-pointed there). C1 just exposes that same query as a cached REST route so the client uses one
-canonical implementation.
+### C1 — `/search` endpoint  ✅ **shipped** — `ec2307f`
+The original estimate here was *"S — expose existing, don't build"*, on the assumption that the MCP
+`search_terms` query **was** the search. It is not: the search is three stages, and the query is only
+the first. The other two — synonym explosion (`refineResults`) and a ~370-line comparator — are what
+decide the order a user actually sees, and they lived only in the website's JS. `search_config.py`
+ports all three; `/search` serves them.
+
+Everything below the first bullet is the original analysis, kept because it is the evidence for the
+decision, with corrections marked.
 - **NOT `resolve_entity`:** that is FlyBase-Chado exact resolution (tiered exact→synonym→broad for
   FlyBase features) and is documented as the *wrong* tool for ontology term lookup — it returns
   `NOT_FOUND` on partial/fuzzy anatomy names (verified). Discovery needs `search_terms`.
-- **File:** `ha_api.py` — add `handle_search` + `app.router.add_get("/search", …)` calling the
-  **`ontology`** core (`_ont_solr`), reusing the exact `search_terms` params:
-  `q = "<q> OR <q>* OR *<q>*"`, `mm=45%`, `qf=label^110 synonym^100 …autosuggest`, `bq` boosts,
-  `fq` VFB/FB filter, plus `filter_types` / `exclude_types` / `boost_types`.
-  See `docs/draft_search_xref_endpoints.py` for the drafted handler.
+- **As shipped:** `ha_api.py` `handle_search` + `app.router.add_get("/search", …)` against the
+  **`ontology`** core, with all query construction, filtering, boosting, refining and ranking in
+  `src/vfbquery/search_config.py`. Params: `query`, `rows` (candidate depth, default 500),
+  `limit` (page size), `filter_types` / `exclude_types` (hard `fq`), `boost_types` / `demote_types`
+  (soft `bq`, matching the website's filter chips). Runs on its own concurrency budget with bounded
+  queueing rather than availability-only shedding — see §7 for the measured numbers.
+  `docs/draft_search_xref_endpoints.py` is the superseded draft; it queries but does not rank.
 - **Single source of truth:** factor the query config so it isn't a 3rd/4th copy. Checked
-  `geppetto-vfb`: there are **five** live copies, and the website's is **not** the same query as
+  `geppetto-vfb`: there are **six** live copies (the sixth, VFBCircuitBrowser, was found later and
+  has its own web-worker sorter and no Class boost), and the website's is **not** the same query as
   `search_terms` — see [`docs/search-config-comparison.md`](search-config-comparison.md). Summary:
   - website ANDs a wildcard OR-group **per token**; `search_terms` wildcards the whole phrase and
     leans on `mm=45%`. Live: `DA1 lPN` → 51 hits vs 718; `MBON-a2` → 39 vs 1585.
@@ -76,13 +83,19 @@ canonical implementation.
     `DataSet^500` / `pub^100`; MCP flattens these — hence MCP leading with individuals for `MBON-a2`.
   - factor isolated: for a bare hemibrain bodyId (`1734350908`) MCP's top hit is the **wrong** neuron,
     and the fix is the website's hard `NOT Deprecated` **`fq`**, not the tokenisation.
-  - website then explodes synonyms into separate rows and re-ranks with a ~350-line custom JS
-    `sorter` — **the order a website user sees is not Solr's order**.
-  - two of the five copies (spotlight, geppetto-client default) still use the pre-migration schema
+  - website then explodes synonyms into separate rows and re-ranks with a ~370-line custom JS
+    `sorter` — **the order a website user sees is not Solr's order**. This is the stage the original
+    estimate missed, and it is also why any "top hit" comparison done at the Solr level — including
+    earlier revisions of the comparison doc — described something no user experiences.
+  - *(correction)* the website's client also appends an exact-phrase boost
+    `label:"<input>"^3000 synonym:"<input>"^1500` to `bq` **at request time**, so it appears in no
+    config file. `pf`, which looks like it should be doing that job, is inert everywhere: `pf=true`
+    is a silent no-op and even a real field list never fires against the wildcard-expanded `q`.
+    Both measured — `python3 docs/compare_search_configs.py --check-pf`.
+  - two of the six copies (spotlight, geppetto-client default) still use the pre-migration schema
     (`type:class`, `ontology_name`, `is_defining_ontology`, `is_obsolete`) and one points at
     **solr-dev**; confirm whether they are dead code.
-  **Decision needed before wiring:** serve the website's construction + boosts (recommended — more
-  precise, fixes the bodyId case) and port the sorter server-side, or serve `search_terms` as-is.
+  **Decided:** serve the website's construction + boosts and port the sorter server-side. See §6.
   Then have website / MCP / client all call `/search` rather than Solr directly.
 - **Accept:** `search=DA1 lPN` returns `FBbt_00067363` as the top hit (verified live — true of *both*
   configs, so it does not discriminate between them; use the `MBON-a2` and bodyId cases for that).
@@ -153,10 +166,22 @@ coalescing + the 5-min result cache collapse them to ~1 backend hit each. Theref
 - **Client wrapper home** → **new lightweight package** `vfbquery-client` (requests + pandas only, no
   navis / no `setuptools<58`), scaffolded in this branch under `clients/vfbquery-client/`.
 
+- **Canonical search config** *(was open question 0)* → **the website's**: its `q` construction, `fq`,
+  `bq` boosts, runtime phrase boost, `refineResults` synonym explosion and comparator, all ported into
+  `src/vfbquery/search_config.py` and served by `/search`. Rationale: it is the ranking every VFB user
+  is already used to, it is measurably more precise, and it fixes the bodyId-resolves-to-a-deprecated-
+  term bug. This collapses six configs to one and puts the cache in front of Solr.
+  - The client no longer has any Solr configuration at all, so `q_mode` is gone rather than defaulted.
+  - **Consequence, and the remaining work is outside this repo:** the website's
+    `datasourceConfiguration` and the MCP's `search_terms` should now call `/search` too. Until they
+    do, this is a *fourth* consumer agreeing with the website rather than a genuine single source.
+  - **Known bug inherited deliberately:** the config cannot retrieve some exact labels. `neuron`
+    (FBbt_00005106) is absent from all 1370 ranked rows, and `bq` pushes it *down* (99th by score with
+    `bq=""`, 705th with the boosts). The port is faithful; the config has the bug. Fixing it —
+    probably `label_autosuggest_e:"<input>"^<big>` rather than `label:"<phrase>"` — is a change to VFB
+    search behaviour and wants sign-off, not a quiet fix inside a port. See comparison doc §5.
+
 **Still open:**
-0. **Canonical search config** — website construction/boosts (+ port its sorter) vs `search_terms`
-   as-is. See C1 and `docs/search-config-comparison.md`. Blocks wiring `/search`; the client ships
-   with `q_mode="phrase"` (MCP parity) and `q_mode="tokens"` (website) so nothing is pre-empted.
 3. **Deploy target** — extend the `ha_api` image/replica, or a sibling service sharing the Solr cache?
 4. **Auth / rate-limit policy** for a public endpoint (per-IP is probably enough for a workshop).
 5. **Scene feature scope** — link-only for now, or commit to server-side render?
@@ -168,3 +193,31 @@ Reuse the existing `test_ha_api_validation.py` pattern: unit tests per new endpo
 adapter round-trip tests (schema → DataFrame parity with `vfb_connect` outputs on DA1 lPN), and a load
 test at **80 concurrent** hitting a shared query to confirm coalescing + cache hold the backend to ~1
 hit and the 503 backpressure behaves.
+
+### Done for `/search`
+
+**Ranking parity with the real website JS.** `docs/search-parity/` runs the actual
+`refineResults` + `sorter` under Node against the Python port on the same Solr response:
+`python3 docs/search-parity/check_parity.py`. All 22 hand-picked cases and 78 queries identical.
+Re-run it after touching `search_config.py` §3 (refine) or §4 (sort) — the comparator is
+non-transitive, so both TimSorts *tend* to agree but are not guaranteed to, which makes this a
+measurement and not a proof.
+
+**No drift from the HTTP layer.** 15 cases through `/search` match module-level `search()`
+byte-for-byte on rows and counts.
+
+**Load, measured against the 80-at-peak target.** Two things the reading did not tell me:
+
+| case | result |
+|---|---|
+| 80 concurrent *distinct* queries (worst case: nothing cacheable, nothing coalescable) | all 200; p50 2445 ms, max 3522 ms |
+| 160 concurrent distinct | all 200; max 3941 ms |
+| realistic workshop shape (a room on the same handful of exercise queries) | p50 31 ms, >1000 req/s |
+| same query cold → warm | 611 ms → 1 ms |
+| 8 identical concurrent | 1 Solr fetch, 7 coalesced |
+| genuine saturation (`--search-queue-wait 0.5`) | sheds with 503 + `Retry-After` |
+
+The first row is why the queueing is bounded-wait rather than availability-only: the first
+implementation refused the moment the semaphore was full and returned `{503: 40, 200: 40}` at 80
+concurrent — half the room seeing an error to avoid a recoverable few seconds of queueing. That was
+found by running it, not by reading it.

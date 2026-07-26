@@ -31,6 +31,21 @@ VFBJSON_SOLR = "https://solr.virtualflybrain.org/solr/vfb_json/select"
 #      resolution and won't resolve ontology term names.
 #      TODO on wiring: factor the query config into ONE shared place with the MCP /
 #      website (searchConfiguration.js) so it can't drift into a 3rd/4th copy.
+#      IMPORTANT — the website is NOT sending this exact query. Verified in geppetto-vfb:
+#        * q: website ANDs a wildcard OR-group PER TOKEN
+#              "(t1 OR t1* OR *t1 OR *t1*) AND (t2 OR ...)"
+#          (geppetto-client search/datasources/SOLRclient.tsx getResultsSOLR), vs the
+#          whole-phrase form below. Much more precise: DA1 lPN 51 hits vs 718.
+#        * fq: website adds a hard "NOT facets_annotation:Deprecated".
+#        * bq: website floats types over individuals and floats datasets/pubs:
+#              short_form:VFBexp*^10.0 short_form:VFB*^50.0 facets_annotation:Class^200.0
+#              short_form:FBbt*^150.0 short_form:FBbt_00003982^2
+#              facets_annotation:Deprecated^0.001 facets_annotation:DataSet^500.0
+#              facets_annotation:pub^100.0
+#        * post-processing: website explodes synonyms into separate rows and re-ranks with a
+#          ~350-line custom sorter, so users never see raw Solr order. Serving "what the
+#          website does" means porting that too.
+#      Decide which is canonical before wiring — see docs/search-config-comparison.md.
 # --------------------------------------------------------------------------- #
 def _solr_search(query: str, rows: int = 50,
                  filter_types=None, exclude_types=None, boost_types=None) -> list:

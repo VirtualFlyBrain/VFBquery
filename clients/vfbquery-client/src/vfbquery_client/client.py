@@ -41,11 +41,36 @@ class VfbError(RuntimeError):
     pass
 
 
+def _build_q(query: str, mode: str = "phrase") -> str:
+    """Build the edismax ``q`` string.
+
+    ``phrase`` (default) — what the MCP ``search_terms`` tool sends: the whole input as
+    one string with prefix/infix wildcards, leaving ``mm=45%`` to decide how many words
+    must hit.
+
+    ``tokens`` — what the *website* sends (geppetto-client ``getResultsSOLR``): normalise
+    ``- + _`` to spaces, split on whitespace, and AND one wildcard OR-group per token.
+    Measurably more precise (e.g. ``DA1 lPN`` 51 hits vs 718; a bare hemibrain bodyId
+    resolves to the right neuron) — see docs/search-config-comparison.md. Kept opt-in
+    until the canonical config for the planned ``/search`` route is agreed.
+    """
+    if mode == "phrase":
+        return f"{query} OR {query}* OR *{query}*"
+    if mode == "tokens":
+        cleaned = query.replace("-", " ").replace("+", " ").replace("_", " ").strip()
+        groups = [f"({t} OR {t}* OR *{t} OR *{t}*)" for t in cleaned.split() if t]
+        return " AND ".join(groups) or query
+    raise ValueError(f"q_mode must be 'phrase' or 'tokens', got {mode!r}")
+
+
 class VfbClient:
     def __init__(self, base_url: str = DEFAULT_BASE_URL, timeout: int = 60,
                  session: Optional[requests.Session] = None,
-                 search_url: str = DEFAULT_SEARCH_URL):
+                 search_url: str = DEFAULT_SEARCH_URL,
+                 q_mode: str = "phrase"):
         self.base_url = base_url.rstrip("/")
+        # 'phrase' = MCP search_terms parity (default); 'tokens' = website behaviour.
+        self.q_mode = q_mode
         # Point search_url at a future v3-cached `/search` once it ships, to keep the
         # edismax config server-side (single source of truth). Until then this hits the
         # ontology core directly with the same query search_terms uses.
@@ -110,6 +135,11 @@ class VfbClient:
 
         Ranked, fuzzy, synonym/autosuggest-aware (e.g. 'DA1 lPN', 'kenyon', partials).
         This is the discovery entry point; see class docstring on why not resolve_entity.
+
+        NB the website's search is *not* byte-identical to this: it ANDs per-token wildcard
+        groups, hard-excludes Deprecated, boosts Class/DataSet/pub, and re-ranks client-side.
+        `VfbClient(q_mode="tokens")` matches its query construction; the boosts and its
+        custom sorter are not replicated here. See docs/search-config-comparison.md.
         """
         fq = ["(short_form:VFB* OR short_form:FB* OR facets_annotation:DataSet "
               "OR facets_annotation:pub) AND NOT short_form:VFBc_*"]
@@ -118,7 +148,7 @@ class VfbClient:
         if exclude_types:
             fq.append("NOT (" + " OR ".join(f"facets_annotation:{et}" for et in exclude_types) + ")")
         params = {
-            "q": f"{query} OR {query}* OR *{query}*",
+            "q": _build_q(query, self.q_mode),
             "q.op": "OR", "defType": "edismax", "mm": "45%",
             "qf": "label^110 synonym^100 label_autosuggest synonym_autosuggest shortform_autosuggest",
             "pf": "true",

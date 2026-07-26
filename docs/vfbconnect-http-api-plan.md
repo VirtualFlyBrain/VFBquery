@@ -66,9 +66,26 @@ canonical implementation.
   `q = "<q> OR <q>* OR *<q>*"`, `mm=45%`, `qf=label^110 synonym^100 …autosuggest`, `bq` boosts,
   `fq` VFB/FB filter, plus `filter_types` / `exclude_types` / `boost_types`.
   See `docs/draft_search_xref_endpoints.py` for the drafted handler.
-- **Single source of truth:** factor the query config so it isn't a 3rd/4th copy (website
-  `searchConfiguration.js`, MCP `search_terms`, here). Ideally share one config module.
-- **Accept:** `search=DA1 lPN` returns `FBbt_00067363` as the top hit (verified live).
+- **Single source of truth:** factor the query config so it isn't a 3rd/4th copy. Checked
+  `geppetto-vfb`: there are **five** live copies, and the website's is **not** the same query as
+  `search_terms` — see [`docs/search-config-comparison.md`](search-config-comparison.md). Summary:
+  - website ANDs a wildcard OR-group **per token**; `search_terms` wildcards the whole phrase and
+    leans on `mm=45%`. Live: `DA1 lPN` → 51 hits vs 718; `MBON-a2` → 39 vs 1585.
+  - website hard-excludes `facets_annotation:Deprecated` (`fq`); MCP only demotes it (`bq`).
+  - website `bq` floats **types over individuals** (`Class^200`, `FBbt*^150` vs `VFB*^50`) and floats
+    `DataSet^500` / `pub^100`; MCP flattens these — hence MCP leading with individuals for `MBON-a2`.
+  - factor isolated: for a bare hemibrain bodyId (`1734350908`) MCP's top hit is the **wrong** neuron,
+    and the fix is the website's hard `NOT Deprecated` **`fq`**, not the tokenisation.
+  - website then explodes synonyms into separate rows and re-ranks with a ~350-line custom JS
+    `sorter` — **the order a website user sees is not Solr's order**.
+  - two of the five copies (spotlight, geppetto-client default) still use the pre-migration schema
+    (`type:class`, `ontology_name`, `is_defining_ontology`, `is_obsolete`) and one points at
+    **solr-dev**; confirm whether they are dead code.
+  **Decision needed before wiring:** serve the website's construction + boosts (recommended — more
+  precise, fixes the bodyId case) and port the sorter server-side, or serve `search_terms` as-is.
+  Then have website / MCP / client all call `/search` rather than Solr directly.
+- **Accept:** `search=DA1 lPN` returns `FBbt_00067363` as the top hit (verified live — true of *both*
+  configs, so it does not discriminate between them; use the `MBON-a2` and bodyId cases for that).
 
 ### C2 — typed-column → DataFrame adapter  *(effort: S, client-side)*
 Query schemas return typed columns; a few cells are pipe-joined multi-values or HTML links/thumbnails.
@@ -137,6 +154,9 @@ coalescing + the 5-min result cache collapse them to ~1 backend hit each. Theref
   navis / no `setuptools<58`), scaffolded in this branch under `clients/vfbquery-client/`.
 
 **Still open:**
+0. **Canonical search config** — website construction/boosts (+ port its sorter) vs `search_terms`
+   as-is. See C1 and `docs/search-config-comparison.md`. Blocks wiring `/search`; the client ships
+   with `q_mode="phrase"` (MCP parity) and `q_mode="tokens"` (website) so nothing is pre-empted.
 3. **Deploy target** — extend the `ha_api` image/replica, or a sibling service sharing the Solr cache?
 4. **Auth / rate-limit policy** for a public endpoint (per-IP is probably enough for a workshop).
 5. **Scene feature scope** — link-only for now, or commit to server-side render?

@@ -187,23 +187,75 @@ are worth fixing at the source.
 
 **Exact single-token terms can be unreachable.** Searching `neuron` never surfaces the term *neuron*
 (`FBbt_00005106`). It passes the `fq` (`numFound=1` when queried alone) but ranks **705th** by Solr
-score — outside `rows=500`, so the sorter never sees it and cannot promote it. Cause: the runtime
-phrase boost from §2d, `label:"neuron"^3000`, boosts *every* document containing the token, so a
-one-word query lifts the whole field and the exact term gains nothing relative to longer labels
-(`developing neuron` scores ~10062 against its 7411.6). Confirmed by removing `bq` entirely, which
-moves the exact term to **99th** — the boost actively pushes it *down*.
+score — outside `rows=500`, so the sorter never sees it and cannot promote it. This is a *retrieval*
+failure, not a ranking one: the sorter promotes exact matches correctly whenever it is handed them,
+which is also why the parity gate is blind to it (§6).
 
-Measured exact-label recall through `/search`:
+The cause is the runtime phrase boost from §2d — but not in the way an earlier revision of this
+document guessed. Isolating its two halves for `neuron` / `FBbt_00005106` at `rows=1000`:
 
-| Query | Exact term | Rank |
-|---|---|---|
-| `medulla`, `mushroom body`, `antennal lobe`, `fan-shaped body` | present | 0 |
-| `kenyon cell` | `FBbt_00003686` | 5 (below four `alpha/beta …` variants) |
-| `neuron` | `FBbt_00005106` | **absent from 1370 ranked rows** |
+| `bq` | score-rank of the exact term |
+|---|---|
+| `label:"neuron"^3000 synonym:"neuron"^1500` (shipped) | 705 |
+| `label:"neuron"^3000` alone | **0** |
+| `synonym:"neuron"^1500` alone | not in top 1000 |
+| `BQ_BASE` only, no phrase boost | 106 |
+| no `bq` at all | 99 |
 
-A phrase boost on `label` cannot fix this, because it is not selective. The schema has no `label_s`
-string field, but it does have **`label_autosuggest_e`**, which looks like the intended
-exact-label field — worth testing `label_autosuggest_e:"<input>"^<big>` as the boost instead.
+The label half alone gets it exactly right. It is the *sum* that breaks it, because the two halves are
+additive and competitors collect both: `dopaminergic neuron` has synonyms `dopamine neuron` /
+`DA neuron`, `developing neuron` has `immature neuron` / `differentiating neuron`, so each earns
+3000 + 1500 = 4500. `FBbt_00005106`'s only synonym is `nerve cell`, which does not contain the token,
+so the term whose label *is* the query earns 3000 alone. **The exact match is penalised for lacking a
+redundant synonym.** The boost is not unselective; it is selective on the wrong thing.
+
+Two claims in the earlier revision of this section were wrong, and measurement killed both:
+
+* *"The schema has no `label_s` string field."* It has `label_str` — `copyField label -> label_str`,
+  with `dynamicField *_str` as `type=strings, docValues=true, indexed=false, stored=false`. Genuinely
+  whole-field exact, though case-sensitive, and queryable via docValues rather than the inverted index.
+* *"`label_autosuggest_e` looks like the intended exact-label field."* It is not. It is
+  `text_general`, tokenized identically to `label`, and unpopulated for `FBbt_00005106` — so it can
+  neither express an exact match nor match this document at all.
+
+**Scope, measured rather than assumed.** `docs/search-parity/check_recall.py` samples real labels from
+the live index, bucketed by token count, with deprecated terms excluded (the `fq` hides them on
+purpose, so counting them as misses would invent a bug and then flatter any variant that appeared to
+fix it). Baseline over a 43-label corpus (14 of them single-token): **42/43** retrieve their own term
+at all, **41/43** at rank 0, worst rank when found 5. The single miss is `neuron`. A separate 70-label
+single-token sweep found **zero** further failures.
+
+So `neuron` is the only term a user can reach for and miss — one bug, not a systemic one. But two
+latent near-misses sit just inside the window: `adult` at score-rank 424 of 500, `cell` at 137. The
+same defect is one indexing change away from breaking terms that work today.
+
+**Candidate fixes, measured against that corpus.** Churn is positions moved in the top 10 of ten
+ordinary queries with no exact-label intent — i.e. collateral damage:
+
+| variant | recall | rank 0 | churn | cost |
+|---|---|---|---|---|
+| `rows=1000` (more candidate depth) | +1 | +1 | 2 positions (on `PN`) | 1.0× requests |
+| second exact lookup merged into the candidate set | +1 | +1 | 0 | 2.0× requests |
+| …same, gated to ≤2-token queries | +1 | +1 | 0 | 1.8× requests |
+| **`label_str:"<term>"^6000` appended to `bq`** | **+1** | **+1** | **0** | **1.0× requests** |
+
+The last is the recommendation. `^6000` has to beat the *combined* 3000 + 1500, because that
+combination is precisely what the exact term loses to. Unlike the label and synonym halves, this
+clause cannot be earned by a longer label that merely *contains* the query, so it lifts the exact term
+and nothing else — which is why the churn is zero rather than merely small.
+
+Verified before recommending it: `adult` 424 → 0, `cell` 137 → 0, `neuron` miss → 0, `brain`
+unchanged; synonym search unaffected (`nerve cell`, `DA neuron`, `KC`, `MB neuron` rank 0 both before
+and after); latency differences within run-to-run noise. `kenyon cell` stays at rank 5 either way —
+that one is the comparator faithfully preferring the `alpha/beta …` variants, not retrieval.
+
+Known limitation: `label_str` is case-sensitive, so the clause enumerates four capitalisations
+(as-typed, lower, capitalised, title-case) and unusual casing will still miss. Because the clause is
+purely additive, a miss means no improvement — never a regression.
+
+**Not shipped.** `search_config.py` is unchanged; the candidate exists only in the harness, as
+`variant_exact_boost`. Changing retrieval changes what every consumer of `/search` sees, and the
+parity gate cannot catch a regression in it, so this wants a decision rather than a commit.
 
 **`MBON-a2`'s top hit is an individual, and that is correct.** Earlier revisions of this document
 claimed the website leads with the class `larval mushroom body output neuron a2`. It does not, and
@@ -220,7 +272,18 @@ python3 docs/compare_search_configs.py --check-pf  # the two pf measurements fro
 
 git clone https://github.com/VirtualFlyBrain/geppetto-vfb /tmp/gvfb
 GEPPETTO_VFB=/tmp/gvfb python3 docs/search-parity/check_parity.py --fuzz 60
+
+python3 docs/search-parity/check_recall.py                        # the §5 recall table, all variants
+python3 docs/search-parity/check_recall.py --variant exact_boost  # just the recommended one
 ```
+
+`check_recall.py` is deliberately *not* part of the parity gate, and the two measure opposite things.
+The parity harness feeds the **same** Solr response to the JS sorter and the Python port — which is
+what makes it a clean ranking test, and exactly why it cannot see the §5 bug: a term that scores below
+`rows` never reaches either sorter, so both agree perfectly on a candidate set that is already missing
+the right answer. Any change to retrieval is invisible to the parity gate and needs this harness
+instead. It reports recall, rank 0, and top-10 churn on queries with no exact-label intent, and it hits
+live Solr (read-only), so absolute numbers move as the index does.
 
 `docs/search-parity/` is the parity gate: it runs the **real** `sorter` and `refineResults` under Node
 (`sort_under_node.js` requires `searchConfiguration.js` straight out of a geppetto-vfb checkout;

@@ -6,10 +6,15 @@ Design notes
   ``ha_api`` service and returns a tidy ``pandas.DataFrame`` (or a dict for
   term-info).  The shaping in ``_to_df`` is the "typed columns -> DataFrame"
   adapter from the plan (C2).
-* Endpoints marked ``[NEW]`` below (``/search``, ``/xref``) are part of the same
-  plan (C1, C3) and are expected to exist server-side; the client already calls
-  them so it is complete the moment they ship.  Everything else works against
-  the live service today.
+* Endpoints marked ``[NEW]`` below (``/xref``) are part of the same plan (C3)
+  and are expected to exist server-side; the client already calls them so it is
+  complete the moment they ship.  Everything else works against the live service
+  today.
+* There is no Solr query configuration in this file, on purpose.  Search
+  construction, filtering, boosting and ranking all live server-side in
+  ``/search`` (VFBquery ``search_config.py``), which is what the website and the
+  MCP call too — so all three agree on result order by construction rather than
+  by five copies of a config being kept in step by hand.
 """
 from __future__ import annotations
 
@@ -20,11 +25,12 @@ import pandas as pd
 import requests
 
 DEFAULT_BASE_URL = "https://v3-cached.virtualflybrain.org"
-# Free-text term search = the same edismax query the MCP `search_terms` tool runs,
-# against the Solr *ontology* core (NOT vfb_json — the autosuggest fields live here).
-# resolve_entity is deliberately NOT used: it is FlyBase-Chado exact resolution and is
-# documented as the wrong tool for ontology term lookup.
-DEFAULT_SEARCH_URL = "https://solr.virtualflybrain.org/solr/ontology/select"
+
+#: Candidate depth for /search.  This is a *ranking* parameter, not a page size:
+#: the server's comparator can only promote what Solr returned, so asking for
+#: fewer candidates can drop the best answer before ranking ever sees it.  500 is
+#: what the website asks for, so it is what gives website-identical order.
+DEFAULT_SEARCH_ROWS = 500
 
 # Anything that looks like a VFB / FlyBase style short_form is treated as an id
 # rather than a free-text name.
@@ -41,40 +47,10 @@ class VfbError(RuntimeError):
     pass
 
 
-def _build_q(query: str, mode: str = "phrase") -> str:
-    """Build the edismax ``q`` string.
-
-    ``phrase`` (default) — what the MCP ``search_terms`` tool sends: the whole input as
-    one string with prefix/infix wildcards, leaving ``mm=45%`` to decide how many words
-    must hit.
-
-    ``tokens`` — what the *website* sends (geppetto-client ``getResultsSOLR``): normalise
-    ``- + _`` to spaces, split on whitespace, and AND one wildcard OR-group per token.
-    Measurably more precise (e.g. ``DA1 lPN`` 51 hits vs 718; a bare hemibrain bodyId
-    resolves to the right neuron) — see docs/search-config-comparison.md. Kept opt-in
-    until the canonical config for the planned ``/search`` route is agreed.
-    """
-    if mode == "phrase":
-        return f"{query} OR {query}* OR *{query}*"
-    if mode == "tokens":
-        cleaned = query.replace("-", " ").replace("+", " ").replace("_", " ").strip()
-        groups = [f"({t} OR {t}* OR *{t} OR *{t}*)" for t in cleaned.split() if t]
-        return " AND ".join(groups) or query
-    raise ValueError(f"q_mode must be 'phrase' or 'tokens', got {mode!r}")
-
-
 class VfbClient:
     def __init__(self, base_url: str = DEFAULT_BASE_URL, timeout: int = 60,
-                 session: Optional[requests.Session] = None,
-                 search_url: str = DEFAULT_SEARCH_URL,
-                 q_mode: str = "phrase"):
+                 session: Optional[requests.Session] = None):
         self.base_url = base_url.rstrip("/")
-        # 'phrase' = MCP search_terms parity (default); 'tokens' = website behaviour.
-        self.q_mode = q_mode
-        # Point search_url at a future v3-cached `/search` once it ships, to keep the
-        # edismax config server-side (single source of truth). Until then this hits the
-        # ontology core directly with the same query search_terms uses.
-        self.search_url = search_url
         self.timeout = timeout
         self.session = session or requests.Session()
 
@@ -113,7 +89,9 @@ class VfbClient:
         """
         if _ID_RE.match(query):
             return query
-        hits = self.search(query, rows=1)
+        # limit=1, not rows=1: take the top of a fully-ranked list rather than
+        # asking Solr for a single unranked candidate.
+        hits = self.search(query, limit=1)
         if len(hits):
             row = hits.iloc[0]
             return row.get("short_form") or row.get("id") or query
@@ -128,38 +106,42 @@ class VfbClient:
         return [self.term(t) for t in terms]
 
     # ---- discovery -------------------------------------------------------
-    def search(self, query: str, rows: int = 50,
+    def search(self, query: str, limit: Optional[int] = 50,
+               rows: int = DEFAULT_SEARCH_ROWS,
                filter_types: Optional[Iterable[str]] = None,
-               exclude_types: Optional[Iterable[str]] = None) -> pd.DataFrame:
-        """Free-text term search — the same edismax query as the MCP `search_terms`.
+               exclude_types: Optional[Iterable[str]] = None,
+               boost_types: Optional[Iterable[str]] = None,
+               demote_types: Optional[Iterable[str]] = None) -> pd.DataFrame:
+        """Free-text term search (GET /search) — the website's own ranked results.
 
-        Ranked, fuzzy, synonym/autosuggest-aware (e.g. 'DA1 lPN', 'kenyon', partials).
-        This is the discovery entry point; see class docstring on why not resolve_entity.
+        Ranked, fuzzy, synonym/autosuggest-aware ('DA1 lPN', 'kenyon', partials, bare
+        hemibrain bodyIds). This is the discovery entry point; see ``_resolve_to_id``
+        on why not resolve_entity.
 
-        NB the website's search is *not* byte-identical to this: it ANDs per-token wildcard
-        groups, hard-excludes Deprecated, boosts Class/DataSet/pub, and re-ranks client-side.
-        `VfbClient(q_mode="tokens")` matches its query construction; the boosts and its
-        custom sorter are not replicated here. See docs/search-config-comparison.md.
+        Rows come back in the order the website shows them, because the server runs the
+        website's own query construction and comparator — the same endpoint the website
+        and the MCP call. Each row carries ``short_form``, a display ``label``
+        ("synonym (label)" or "label (short_form)"), ``original_label``, ``id``,
+        ``facets_annotation`` and ``unique_facets``.
+
+        Args:
+            limit: how many ranked rows to return (None for all).
+            rows:  how many candidates the server asks Solr for. A *ranking* knob —
+                   lowering it can drop the best answer before ranking sees it.
+            filter_types / exclude_types: keep / drop by facet (e.g. "Class",
+                   "Individual", "Neuron").
+            boost_types / demote_types:   nudge facets up / down the ranking.
         """
-        fq = ["(short_form:VFB* OR short_form:FB* OR facets_annotation:DataSet "
-              "OR facets_annotation:pub) AND NOT short_form:VFBc_*"]
-        for ft in filter_types or []:
-            fq.append(f"facets_annotation:{ft}")
-        if exclude_types:
-            fq.append("NOT (" + " OR ".join(f"facets_annotation:{et}" for et in exclude_types) + ")")
-        params = {
-            "q": _build_q(query, self.q_mode),
-            "q.op": "OR", "defType": "edismax", "mm": "45%",
-            "qf": "label^110 synonym^100 label_autosuggest synonym_autosuggest shortform_autosuggest",
-            "pf": "true",
-            "bq": ("short_form:VFBexp*^10.0 short_form:VFB*^100.0 short_form:FBbt*^100.0 "
-                   "short_form:FBbt_00003982^2 facets_annotation:Deprecated^0.001"),
-            "fl": "short_form,label,synonym,id,facets_annotation,unique_facets",
-            "rows": str(min(rows, 1000)), "wt": "json", "fq": fq,
-        }
-        r = self.session.get(self.search_url, params=params, timeout=self.timeout)
-        r.raise_for_status()
-        return self._to_df(r.json().get("response", {}).get("docs", []))
+        params = {"query": query, "rows": rows}
+        if limit is not None:
+            params["limit"] = limit
+        for name, value in (("filter_types", filter_types),
+                            ("exclude_types", exclude_types),
+                            ("boost_types", boost_types),
+                            ("demote_types", demote_types)):
+            if value:
+                params[name] = ",".join(value)
+        return self._to_df(self._get("search", **params))
 
     def get_instances(self, class_expression: str) -> pd.DataFrame:
         """Individuals of a type across all datasets (run_query ListAllAvailableImages)."""

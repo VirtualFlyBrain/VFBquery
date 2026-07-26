@@ -22,6 +22,7 @@ pip install clients/vfbquery-client
 from vfbquery_client import VfbClient
 vfb = VfbClient()                                  # defaults to https://v3-cached.virtualflybrain.org
 
+vfb.search("DA1 lPN")                              # ranked hits, website order
 vfb.term("FBbt_00067363")                          # TermInfo (dict)
 vfb.get_instances("adult antennal lobe projection neuron DA1 lPN")   # 68-row DataFrame
 vfb.get_connected_neurons_by_type(                 # DA1 lPN -> Kenyon cell, weighted
@@ -44,14 +45,34 @@ vfb.get_vfb_link(["VFB_jrchjtdb", "VFB_fw035286"]) # shareable 3D-scene link
 | `get_transcriptomic_profile` | `/run_query anatScRNAseqQuery` | ✅ |
 | `list_connectome_datasets` | `/list_connectome_datasets` | ✅ |
 | `get_vfb_link` | client-side | ✅ |
-| `search` | `search_terms` edismax (Solr `ontology` core) | ✅ works today; repoint to `/search` once it ships |
+| `search` | `/search` | ✅ |
 | `xref` | `/xref` | ⏳ needs server endpoint (plan C3) |
 
-`search` runs the **same** `edismax` query as the MCP `search_terms` (ranked / fuzzy / synonym-aware),
-so name→id resolution in `get_instances` etc. uses that — **not** `resolve_entity`, which is
-FlyBase-Chado exact resolution and won't resolve ontology term names. Passing a short_form id always
-works directly. `search_url` in the constructor can be pointed at a future cached `/search` route to
-keep the query config server-side.
+### Search
+
+`search` calls `/search`, which returns results **in the order the website shows them** — the server
+runs the website's own query construction, filters, boosts and ~370-line comparator, and the website
+and the MCP call the same endpoint. So there is no Solr configuration in this client, and nothing to
+keep in step by hand.
+
+```python
+vfb.search("DA1 lPN")                              # top 50, ranked
+vfb.search("kenyon cell", limit=None)              # everything (306 rows)
+vfb.search("neuron", limit=10, filter_types=["Class"])
+vfb.search("medulla", limit=10, demote_types=["Individual"])
+```
+
+Rows carry `short_form`, a display `label` (`"synonym (label)"` or `"label (short_form)"`),
+`original_label`, `id`, `facets_annotation` and `unique_facets`.
+
+`limit` is the page size. `rows` (default 500, the website's value) is how many candidates the server
+asks Solr for, so it is a **ranking** knob, not a paging one — lowering it can drop the best answer
+before ranking ever sees it. That is why name→id resolution inside `get_instances` and friends uses
+`limit=1` rather than `rows=1`: rank the full candidate set, then take the top.
+
+Resolution goes through this search, **not** `resolve_entity`, which is FlyBase-Chado exact resolution
+and won't resolve ontology term names. Passing a short_form id always works directly and skips the
+lookup entirely.
 
 ## Licence
 

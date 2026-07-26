@@ -21,6 +21,7 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /find_combo_publications?id=<resolved_fbco_id>
     GET /list_connectome_datasets
     GET /query_connectivity?upstream_type=<name>&downstream_type=<name>
+    GET /search?query=<free_text>                      # canonical website search
     GET /health
     GET /status          — queue depth, cache stats & worker utilisation
 
@@ -40,9 +41,10 @@ import sys
 import asyncio
 import time
 import traceback
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 
+import aiohttp
 from aiohttp import web
 import numpy as np
 
@@ -229,7 +231,12 @@ ALLOWED_PATHS = frozenset({
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
+    "/search",
 })
+# NB /get_hierarchy and /get_hierarchy_html are registered routes but are absent
+# here, so they 404 for any client outside TRUSTED_NETWORKS. That predates this
+# change and may be deliberate (in-cluster only) — left alone rather than
+# silently widening exposure. Worth confirming.
 
 
 # Trusted internal networks. Traffic from the Rancher/Canal pod network and
@@ -1034,6 +1041,15 @@ async def handle_status(request):
         "coalesced_in_flight": coalescer.in_flight_count,
         "scanner_probes_blocked": request.app.get("_scanner_probes", {}).get("count", 0),
         "solr_cache": solr_cache_status,
+        # /search runs on its own budget, so report it separately rather than
+        # folding it into the Neo4j pool numbers above — a busy search is not a
+        # busy worker pool and conflating them would hide both.
+        "search": dict(
+            request.app.get("search_stats", {}),
+            concurrency=request.app.get("search_concurrency"),
+            cpu_threads=request.app.get("search_cpu_threads"),
+            queue_wait=request.app.get("search_queue_wait"),
+        ),
     })
 
 
@@ -1273,11 +1289,232 @@ async def handle_get_hierarchy_html(request):
 
 
 # ---------------------------------------------------------------------------
+# Canonical free-text search  (GET /search)
+# ---------------------------------------------------------------------------
+#
+# This is the single source of truth for VFB free-text search: the same query
+# construction, filters, boosts, synonym expansion and ranking that
+# virtualflybrain.org uses, served once here instead of being reimplemented in
+# the website, the MCP server, the Python client and the circuit browser. See
+# docs/search-config-comparison.md for what those copies had drifted into, and
+# search_config.py for the port and its parity harness.
+#
+# Why this endpoint does NOT go through _dispatch_to_pool like its neighbours:
+# the cost profile is the opposite way round. A search is 150 ms–1.2 s of Solr
+# I/O plus 6–300 ms of pure-Python ranking, and it has no Neo4j leg at all.
+# Occupying one of the (default) 10 Neo4j pool workers for a second of waiting
+# on a socket would cap search at well under the ~4 searches/s a 80-person
+# workshop generates, and — worse — would put every search behind whatever slow
+# connectivity queries happen to be in the queue. Search is the one thing that
+# has to stay responsive while the rest of the box is busy, because it is how
+# people find the IDs they feed to everything else.
+#
+# So: the Solr round trip is awaited on the event loop over a shared keep-alive
+# session, and only the ranking is offloaded — to its own small thread pool, so
+# a burst of broad searches degrades search latency and nothing else. Threads
+# rather than processes because the work is a few hundred ms of comparator
+# bytecode over ~2000 dicts; shipping those dicts to a subprocess would cost
+# more in pickling than the sort costs to run.
+#
+# Cache and request-coalescing are shared with every other endpoint, which is
+# what actually carries workshop load: 80 people working through the same
+# exercises hit the same handful of queries, so almost everything is a cache hit
+# inside the 300 s TTL.
+
+#: Bounds concurrent Solr round trips. Well above expected load — it exists to
+#: stop a scripted client turning this endpoint into a Solr amplifier, not to
+#: ration normal use.
+DEFAULT_SEARCH_CONCURRENCY = 40
+
+#: Threads for refine+sort. Small on purpose: the GIL means extra threads add
+#: contention rather than throughput, and this only needs to keep the ranking
+#: off the event loop.
+DEFAULT_SEARCH_CPU_THREADS = 4
+
+#: How long a request will wait for a concurrency slot before being shed with
+#: 503. Measured: 80 simultaneous *distinct* searches (nothing cacheable, nothing
+#: coalescable — 80 people each looking up their own neuron) saturate Solr at
+#: ~2 s per query, so the 40 that arrive over the limit need ~2–4 s of queueing.
+#: Refusing them outright, which an availability-only check does, turns a
+#: recoverable 4 s into half the room seeing an error. Waiting is bounded so a
+#: genuine overload — or a scripted client — still sheds rather than piling up
+#: an unbounded queue of sockets.
+DEFAULT_SEARCH_QUEUE_WAIT = 10.0
+
+
+def _parse_type_list(raw):
+    """Comma-separated facet list -> list, or None when absent/empty."""
+    if not raw:
+        return None
+    values = [v.strip() for v in raw.split(",") if v.strip()]
+    return values or None
+
+
+def _rank_search_docs(docs, query, limit):
+    """Refine + sort + clean. Runs in a thread; pure CPU, no I/O."""
+    from . import search_config as _sc
+
+    ranked = _sc.sort_results(_sc.refine_results(docs), query)
+    total = len(ranked)
+    if limit is not None:
+        ranked = ranked[:limit]
+    for row in ranked:
+        row["label"] = _sc.clean_label(row.get("label"))
+        row["original_label"] = _sc.clean_label(row.get("original_label"))
+    return ranked, total
+
+
+async def handle_search(request):
+    """GET /search?query=<text>&rows=500&limit=&filter_types=&exclude_types=&boost_types=&demote_types=
+
+    Returns the website's own ranked result list:
+
+        {"query", "rows": [...], "count", "solr_num_found", "rows_fetched"}
+
+    Each row carries ``short_form``, the refined display ``label``
+    ("synonym (label)" or "label (short_form)"), ``original_label``, ``id``,
+    ``facets_annotation`` and ``unique_facets``.
+
+    ``rows`` is how many candidates to ask Solr for and therefore affects
+    *ranking*, not just page size — the comparator can only promote what was
+    retrieved, and 500 is what the website uses. ``limit`` truncates the ranked
+    list afterwards, so ``limit=1`` still gets the answer ranked against the
+    full candidate set.
+    """
+    from . import search_config as _sc
+
+    query = request.query.get("query")
+    if query is None:
+        query = request.query.get("q")
+    if not query or not query.strip():
+        return web.json_response(
+            {"error": "Missing required parameter: query"}, status=400
+        )
+
+    try:
+        rows = int(request.query.get("rows", _sc.DEFAULT_ROWS))
+    except ValueError:
+        return web.json_response({"error": "rows must be an integer"}, status=400)
+    rows = max(1, min(rows, _sc.MAX_ROWS))
+
+    limit_raw = request.query.get("limit")
+    limit = None
+    if limit_raw:
+        try:
+            limit = max(0, int(limit_raw))
+        except ValueError:
+            return web.json_response({"error": "limit must be an integer"}, status=400)
+
+    filter_types = _parse_type_list(request.query.get("filter_types"))
+    exclude_types = _parse_type_list(request.query.get("exclude_types"))
+    boost_types = _parse_type_list(request.query.get("boost_types"))
+    demote_types = _parse_type_list(request.query.get("demote_types"))
+
+    cache_key = "|".join([
+        "search", query, str(rows), str(limit),
+        ",".join(filter_types or []), ",".join(exclude_types or []),
+        ",".join(boost_types or []), ",".join(demote_types or []),
+    ])
+
+    rcache = request.app["result_cache"]
+    coalescer = request.app["coalescer"]
+
+    cached = rcache.get(cache_key)
+    if cached is not None:
+        return web.json_response(_cap_result_rows(cached))
+
+    fut, is_owner = await coalescer.get_or_create(cache_key)
+    if not is_owner:
+        try:
+            return web.json_response(_cap_result_rows(await fut))
+        except Exception:
+            return web.json_response(
+                {"error": "Search failed", "detail": traceback.format_exc()}, status=500
+            )
+
+    stats = request.app["search_stats"]
+    sem = request.app["search_semaphore"]
+
+    # Queue for a slot rather than refusing the moment the limit is reached: a
+    # burst of distinct queries is normal (a room full of people each looking up
+    # a different neuron) and drains in a few seconds, whereas sustained
+    # saturation does not — so wait, but only for a bounded time.
+    if sem.locked():
+        stats["queued"] += 1
+    try:
+        await asyncio.wait_for(
+            sem.acquire(), timeout=request.app["search_queue_wait"]
+        )
+    except asyncio.TimeoutError:
+        stats["shed"] += 1
+        await coalescer.remove(cache_key)
+        return web.json_response(
+            {"error": "Search overloaded, please retry later"},
+            status=503, headers={"Retry-After": "5"},
+        )
+
+    params = _sc.build_params(
+        query, rows=rows,
+        filter_types=filter_types, exclude_types=exclude_types,
+        boost_types=boost_types, demote_types=demote_types,
+    )
+
+    try:
+        stats["in_flight"] += 1
+        try:
+            session = request.app["http"]
+            # aiohttp needs repeated keys as pairs; `fq` is multi-valued.
+            async with session.get(_sc.SOLR_ONTOLOGY_URL,
+                                   params=_sc.params_as_pairs(params)) as resp:
+                resp.raise_for_status()
+                # VFB's Solr answers `wt=json` with Content-Type
+                # text/plain;charset=utf-8, so aiohttp's mimetype check has to be
+                # switched off — `requests` never enforced it, which is why the
+                # module-level client works without this.
+                payload = await resp.json(content_type=None)
+            response_block = payload.get("response", {})
+            docs = response_block.get("docs", [])
+
+            loop = asyncio.get_event_loop()
+            ranked, total = await loop.run_in_executor(
+                request.app["search_cpu"], _rank_search_docs, docs, query, limit
+            )
+        finally:
+            # Hold the slot for exactly the Solr call plus the ranking, then let
+            # the next waiter in — the JSON serialisation below needs no slot.
+            stats["in_flight"] -= 1
+            sem.release()
+
+        result = {
+            "query": query,
+            "rows": ranked,
+            "count": total,
+            "solr_num_found": response_block.get("numFound"),
+            "rows_fetched": len(docs),
+        }
+        result = _cap_result_rows(result)
+        rcache.put(cache_key, result)
+        stats["served"] += 1
+        await coalescer.remove(cache_key)
+        fut.set_result(result)
+        return web.json_response(result)
+    except Exception as exc:
+        tb = traceback.format_exc()
+        log.error("%s — FAILED\n%s", cache_key, tb)
+        stats["failed"] += 1
+        await coalescer.remove(cache_key)
+        if not fut.done():
+            fut.set_exception(exc)
+        return web.json_response({"error": "Search failed", "detail": tb}, status=500)
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 
 def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
-               cache_ttl=None):
+               cache_ttl=None, search_concurrency=None, search_cpu_threads=None,
+               search_queue_wait=None):
     """
     Build the aiohttp Application.
 
@@ -1287,7 +1524,20 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
         max_queue_depth: reject with 503 when waiting queue  (default: 200)
                          exceeds this depth (0 = unlimited)
         cache_ttl:       result cache TTL in seconds         (default: 300)
+        search_concurrency:  concurrent /search Solr calls   (default: 40)
+        search_cpu_threads:  threads ranking /search results (default: 4)
+        search_queue_wait:   seconds a /search waits for a   (default: 10)
+                             slot before 503
     """
+    if search_queue_wait is None:
+        search_queue_wait = float(os.getenv("VFBQUERY_SEARCH_QUEUE_WAIT",
+                                            DEFAULT_SEARCH_QUEUE_WAIT))
+    if search_concurrency is None:
+        search_concurrency = int(os.getenv("VFBQUERY_SEARCH_CONCURRENCY",
+                                           DEFAULT_SEARCH_CONCURRENCY))
+    if search_cpu_threads is None:
+        search_cpu_threads = int(os.getenv("VFBQUERY_SEARCH_CPU_THREADS",
+                                           DEFAULT_SEARCH_CPU_THREADS))
     if max_workers is None:
         max_workers = int(os.getenv("VFBQUERY_WORKERS", DEFAULT_WORKERS))
     if max_concurrent is None:
@@ -1315,10 +1565,16 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/get_hierarchy", handle_get_hierarchy)
     app.router.add_get("/get_hierarchy_html", handle_get_hierarchy_html)
 
+    # Canonical free-text search (website-equivalent ranking)
+    app.router.add_get("/search", handle_search)
+
     # Store config for /status and handlers
     app["max_workers"] = max_workers
     app["max_concurrent"] = max_concurrent
     app["max_queue_depth"] = max_queue_depth or None  # 0 means unlimited
+    app["search_concurrency"] = search_concurrency
+    app["search_cpu_threads"] = search_cpu_threads
+    app["search_queue_wait"] = search_queue_wait
 
     async def _cache_cleanup_loop(app):
         """Periodically evict expired result-cache entries."""
@@ -1346,6 +1602,19 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
         app["tracker"] = QueueTracker()
         app["result_cache"] = ResultCache(ttl_seconds=cache_ttl)
         app["coalescer"] = RequestCoalescer()
+        # /search resources — deliberately separate from the Neo4j pool so that
+        # search latency is independent of connectivity-query load.
+        app["search_semaphore"] = asyncio.Semaphore(search_concurrency)
+        app["search_cpu"] = ThreadPoolExecutor(
+            max_workers=search_cpu_threads, thread_name_prefix="search-rank"
+        )
+        app["http"] = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=60),
+            connector=aiohttp.TCPConnector(limit=search_concurrency),
+        )
+        app["search_stats"] = {
+            "in_flight": 0, "queued": 0, "served": 0, "shed": 0, "failed": 0,
+        }
         # Avoid setting attributes after startup (aiohttp deprecation warning)
         app["_scanner_probes"] = {"count": 0}
         app["_cache_cleanup_task"] = asyncio.ensure_future(_cache_cleanup_loop(app))
@@ -1353,6 +1622,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     async def on_cleanup(app):
         app["_cache_cleanup_task"].cancel()
         await app["_cache_cleanup_task"]
+        await app["http"].close()
+        app["search_cpu"].shutdown(wait=False)
         app["pool"].shutdown(wait=False)
         log.info("Process pool shut down")
 
@@ -1398,6 +1669,21 @@ def main():
         default=None,
         help="Result cache TTL in seconds (default: 300)",
     )
+    parser.add_argument(
+        "--search-concurrency", type=int,
+        default=None,
+        help=f"Max concurrent /search Solr calls (default: {DEFAULT_SEARCH_CONCURRENCY})",
+    )
+    parser.add_argument(
+        "--search-cpu-threads", type=int,
+        default=None,
+        help=f"Threads ranking /search results (default: {DEFAULT_SEARCH_CPU_THREADS})",
+    )
+    parser.add_argument(
+        "--search-queue-wait", type=float,
+        default=None,
+        help=f"Seconds a /search waits for a slot before 503 (default: {DEFAULT_SEARCH_QUEUE_WAIT})",
+    )
     args = parser.parse_args()
 
     app = create_app(
@@ -1405,6 +1691,9 @@ def main():
         max_concurrent=args.max_concurrent,
         max_queue_depth=args.max_queue_depth,
         cache_ttl=args.cache_ttl,
+        search_concurrency=args.search_concurrency,
+        search_cpu_threads=args.search_cpu_threads,
+        search_queue_wait=args.search_queue_wait,
     )
 
     log.info("VFBquery HA API v%s starting on %s:%d", VFBQUERY_VERSION, args.host, args.port)

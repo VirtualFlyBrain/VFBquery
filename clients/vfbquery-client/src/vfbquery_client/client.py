@@ -2,35 +2,64 @@
 
 Design notes
 ------------
-* Every method maps to an existing (or planned) endpoint on the VFBquery
-  ``ha_api`` service and returns a tidy ``pandas.DataFrame`` (or a dict for
-  term-info).  The shaping in ``_to_df`` is the "typed columns -> DataFrame"
-  adapter from the plan (C2).
-* Endpoints marked ``[NEW]`` below (``/xref``) are part of the same plan (C3)
-  and are expected to exist server-side; the client already calls them so it is
-  complete the moment they ship.  Everything else works against the live service
-  today.
+* Every method maps to an endpoint on the VFBquery ``ha_api`` service and
+  returns a tidy ``pandas.DataFrame`` (or a dict for term-info).  The shaping in
+  ``_to_df`` is the "typed columns -> DataFrame" adapter from the plan (C2).
+* Every endpoint called here exists server-side.  ``/search`` and ``/xref`` are
+  new in this branch (plan C1 and C3), so against the public deploy they answer
+  404 until that VFBquery build ships.  That is not confined to ``search`` and
+  ``xref``: ``get_instances``, ``get_subclasses`` and
+  ``get_transcriptomic_profile`` accept a *name*, and resolving one goes through
+  ``_resolve_to_id`` -> ``/search``.  Given an id they work against the service
+  as deployed today; given a name they do not.  ``VFB_API_BASE`` (or
+  ``base_url=``) points the client at a deploy that has them.
 * There is no Solr query configuration in this file, on purpose.  Search
   construction, filtering, boosting and ranking all live server-side in
-  ``/search`` (VFBquery ``search_config.py``), which is what the website and the
-  MCP call too — so all three agree on result order by construction rather than
-  by five copies of a config being kept in step by hand.
+  ``/search`` (VFBquery ``search_config.py``), which is a port of the website's
+  own config — so this client agrees with the website's order by construction
+  rather than by another copy kept in step by hand.  Repointing the website and
+  the MCP at ``/search`` as well is the remaining step and is outside this repo;
+  until then ``/search`` has exactly one consumer — this one — and is a seventh
+  implementation of VFB search rather than a replacement for the six that exist.
+  Three consumers (website, MCP, client) is where "single source of truth"
+  becomes a description.  ``docs/search-config-comparison.md`` §4 has the count.
 """
 from __future__ import annotations
 
+import os
 import re
+import warnings
 from typing import Iterable, Optional, Union
 
 import pandas as pd
 import requests
 
-DEFAULT_BASE_URL = "https://v3-cached.virtualflybrain.org"
+#: The public deploy, overridable from the environment. The env var is what lets
+#: an unmodified script — or this package's own live tests — be pointed at a
+#: staging deploy or a server started from a checkout, which is the only way to
+#: exercise an endpoint that has been written but not yet released.
+PUBLIC_BASE_URL = "https://v3-cached.virtualflybrain.org"
+
+
+def default_base_url() -> str:
+    """Resolved per call, not at import, so setting the variable in a test or a
+    notebook cell takes effect without a reimport."""
+    return os.getenv("VFB_API_BASE", "").strip().rstrip("/") or PUBLIC_BASE_URL
+
+
+#: Kept as a module constant because it was one; it is the public deploy.
+DEFAULT_BASE_URL = PUBLIC_BASE_URL
 
 #: Candidate depth for /search.  This is a *ranking* parameter, not a page size:
 #: the server's comparator can only promote what Solr returned, so asking for
 #: fewer candidates can drop the best answer before ranking ever sees it.  500 is
 #: what the website asks for, so it is what gives website-identical order.
 DEFAULT_SEARCH_ROWS = 500
+
+#: Minimum synapse count for /query_connectivity.  This mirrors the server's own
+#: default rather than 0: the server applies *its* default when the parameter is
+#: omitted, so a client default of "unfiltered" would be a promise it cannot keep.
+DEFAULT_CONNECTIVITY_WEIGHT = 5
 
 # Anything that looks like a VFB / FlyBase style short_form is treated as an id
 # rather than a free-text name.
@@ -48,9 +77,9 @@ class VfbError(RuntimeError):
 
 
 class VfbClient:
-    def __init__(self, base_url: str = DEFAULT_BASE_URL, timeout: int = 60,
+    def __init__(self, base_url: Optional[str] = None, timeout: int = 60,
                  session: Optional[requests.Session] = None):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = (base_url or default_base_url()).rstrip("/")
         self.timeout = timeout
         self.session = session or requests.Session()
 
@@ -62,17 +91,57 @@ class VfbClient:
         if r.status_code == 503:
             raise VfbError("Service busy (queue full) — retry shortly.")
         r.raise_for_status()
-        return r.json()
+        payload = r.json()
+        self._raise_server_warnings(path, payload)
+        return payload
 
     @staticmethod
-    def _to_df(payload) -> pd.DataFrame:
+    def _raise_server_warnings(path: str, payload) -> None:
+        """Re-raise a payload's ``warnings`` as Python warnings.
+
+        The service uses a top-level ``warnings`` list to say that a 200 is
+        *incomplete* — a connectivity type it could not resolve, or an instance
+        list served from the SOLR fallback because Neo4j was down. Nothing in the
+        rows distinguishes those from a genuinely empty or genuinely complete
+        answer, so dropping the list turns a degraded service into a confident
+        wrong result. Handled here rather than per-method: any endpoint can
+        degrade, and one that starts emitting warnings later should not have to
+        remember to opt in.
+
+        ``stacklevel=3`` puts the warning on the ``VfbClient`` method the caller
+        actually invoked (caller -> method -> ``_get`` -> here). Calls that reach
+        the network via ``_resolve_to_id`` are one frame deeper and will point at
+        that helper instead; the message names the endpoint either way.
+
+        A consequence of pointing at the caller worth knowing in a notebook:
+        Python's default ``"default"`` filter shows a given message **once per
+        source location**, so a loop that hits the same degraded endpoint fifty
+        times warns once, and re-running the same cell may not warn at all. The
+        warning means "this answer may be partial", never "this is the only
+        answer that was". ``warnings.simplefilter("always")`` if that matters.
+        """
+        if not isinstance(payload, dict):
+            return
+        for message in payload.get("warnings") or []:
+            warnings.warn(f"{path.lstrip('/')}: {message}", stacklevel=3)
+
+    #: Keys under which an endpoint returns its row list. ``run_query``, ``/search``
+    #: and ``/xref`` all use ``rows``; ``/query_connectivity`` predates them and
+    #: uses ``connections``. Without the second name its envelope falls through to
+    #: the "a dict is one row" branch below and the caller gets a 1x3 frame of
+    #: nested lists instead of the connectivity table.
+    _ROW_KEYS = ("rows", "connections")
+
+    @classmethod
+    def _to_df(cls, payload) -> pd.DataFrame:
         """Normalise a query response into a DataFrame (the C2 adapter)."""
-        if isinstance(payload, dict) and "rows" in payload:
-            rows = payload["rows"]
-        elif isinstance(payload, list):
+        if isinstance(payload, list):
             rows = payload
         elif isinstance(payload, dict):
-            rows = [payload]
+            rows = next((payload[k] for k in cls._ROW_KEYS
+                         if isinstance(payload.get(k), list)), None)
+            if rows is None:
+                rows = [payload]        # a bare object is a single row
         else:
             rows = []
         df = pd.DataFrame(rows)
@@ -82,10 +151,11 @@ class VfbClient:
         return df
 
     def _resolve_to_id(self, query: str) -> str:
-        """Return a short_form for a name/symbol via search_terms, or pass an id through.
+        """Return a short_form for a name/symbol via ``/search``, or pass an id through.
 
-        Uses the edismax term search (search_terms), NOT resolve_entity — the latter is
-        FlyBase-Chado resolution and won't resolve ontology/anatomy term names.
+        Uses the ranked term search (``search()`` -> ``GET /search``), NOT
+        resolve_entity — the latter is FlyBase-Chado resolution and won't resolve
+        ontology/anatomy term names.
         """
         if _ID_RE.match(query):
             return query
@@ -119,8 +189,15 @@ class VfbClient:
         on why not resolve_entity.
 
         Rows come back in the order the website shows them, because the server runs the
-        website's own query construction and comparator — the same endpoint the website
-        and the MCP call. Each row carries ``short_form``, a display ``label``
+        website's own query construction and comparator — with one deliberate
+        difference. ``/search`` always adds an exact-label boost the website has no
+        counterpart for, and there is no parameter to turn it off. It fixes a real
+        website recall bug (searching ``neuron`` does not retrieve *neuron* into the
+        candidate set at all), and it only ever lifts a term whose label **is** the
+        query, so it changes retrieval rather than relative order: the recall gate
+        holds top-10 churn at exactly zero. Treat "website order" as true of every
+        query except one whose exact-label match the website was losing. Each row carries
+        ``short_form``, a display ``label``
         ("synonym (label)" or "label (short_form)"), ``original_label``, ``id``,
         ``facets_annotation`` and ``unique_facets``.
 
@@ -158,14 +235,25 @@ class VfbClient:
 
     # ---- connectivity ----------------------------------------------------
     def get_connected_neurons_by_type(self, upstream_type: str, downstream_type: str,
-                                       weight: int = 0) -> pd.DataFrame:
-        """Type -> type synaptic connections (GET /query_connectivity)."""
-        df = self._to_df(self._get("query_connectivity",
-                                    upstream_type=upstream_type,
-                                    downstream_type=downstream_type))
-        if weight and "weight" in df.columns:
-            df = df[df["weight"] >= weight]
-        return df
+                                       weight: int = DEFAULT_CONNECTIVITY_WEIGHT
+                                       ) -> pd.DataFrame:
+        """Type -> type synaptic connections (GET /query_connectivity).
+
+        ``weight`` is the minimum synapse count and is applied **server-side**;
+        the default matches the server's own so the threshold in the signature is
+        the threshold that ran. Filtering here instead would be a second, weaker
+        filter on top of an unstated one.
+
+        A type the server could not resolve comes back as a warning rather than
+        an error, and an unresolved type is indistinguishable from a genuinely
+        unconnected pair by looking at the rows — so warnings are re-raised as
+        Python warnings instead of being dropped. That happens in ``_get`` for
+        every endpoint, not here.
+        """
+        return self._to_df(self._get("query_connectivity",
+                                     upstream_type=upstream_type,
+                                     downstream_type=downstream_type,
+                                     weight=weight))
 
     def get_neuron_connectivity(self, neuron_id: str) -> pd.DataFrame:
         """Per-individual partners (run_query NeuronNeuronConnectivityQuery)."""
@@ -193,9 +281,23 @@ class VfbClient:
 
     def xref(self, id: Optional[str] = None, accession: Optional[str] = None,
              db: Optional[str] = None) -> pd.DataFrame:
-        """VFB id <-> external accession, both ways.  [NEW /xref — plan C3]"""
-        if not id and not accession:
-            raise ValueError("Provide either id= or accession=(+db=).")
+        """VFB id <-> external accession, both ways (GET /xref).
+
+        Pass exactly one of ``id`` (VFB id -> every accession that term carries)
+        or ``accession`` (external id -> the VFB term that carries it).  ``db``
+        optionally narrows to one site and accepts its symbol ("hb"), short_form
+        ("neuprint_JRC_Hemibrain_1point2point1") or label.
+
+        Columns: ``id``, ``label``, ``db``, ``db_label``, ``site_id``,
+        ``accession``, ``is_data_source``, ``link``.
+
+        The reverse direction is confirmed, not guessed: the server checks each
+        candidate's own xref list and returns a row only on an exact accession
+        match.  An accession that appears nowhere in VFB's indexed text is
+        therefore an empty frame rather than a plausible wrong neuron.
+        """
+        if bool(id) == bool(accession):
+            raise ValueError("Provide exactly one of id= or accession= (+ optional db=).")
         return self._to_df(self._get("xref", id=id, accession=accession, db=db))
 
     # ---- links (client-side, no endpoint) --------------------------------

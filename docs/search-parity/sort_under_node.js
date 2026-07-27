@@ -1,6 +1,16 @@
 /*
- * Runs the REAL website sorter + refineResults under Node, so the Python port in
+ * Runs the website's sorter + refineResults under Node, so the Python port in
  * src/vfbquery/search_config.py can be diffed against it on identical Solr docs.
+ *
+ * The two halves are not sourced the same way, and the difference matters when
+ * reading a green result. The `sorter` is require()d live out of the
+ * geppetto-vfb checkout at $GEPPETTO_VFB, so it is whatever that checkout holds
+ * — update the checkout and the gate re-measures against the new comparator.
+ * `refineResults` is not in the config file at all; it lives in SOLRclient.tsx
+ * in the client package, so ./refine.js is a VERBATIM COPY pinned at
+ * openworm/geppetto-client@VFBv2.3.8.1. That copy will not notice an upstream
+ * change on its own: if refineResults moves, refresh refine.js by hand or this
+ * harness will go on passing against a definition the website no longer uses.
  *
  * Usage:  GEPPETTO_VFB=/path/to/geppetto-vfb node sort_under_node.js docs.json
  *

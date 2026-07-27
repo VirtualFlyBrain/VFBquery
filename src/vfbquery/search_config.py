@@ -1,8 +1,12 @@
-"""Canonical VFB free-text search — the single source of truth (plan C1).
+"""Canonical VFB free-text search — the one config to share (plan C1).
 
 This module is a faithful Python port of what the **website** actually sends and
 does, so that ``/search`` and every client can share one config instead of the
-five divergent copies documented in ``docs/search-config-comparison.md``.
+six divergent copies catalogued in ``docs/search-config-comparison.md`` §1.
+
+"Single source of truth" is the goal, not yet the state: those six still exist,
+and until the website and the MCP call ``/search`` this is a seventh
+implementation with one consumer. See that document's §4 for the count.
 
 Ported from, and kept in step with, two files:
 
@@ -28,16 +32,26 @@ sees on virtualflybrain.org:
    *never* what the website shows, so serving raw Solr order is not "matching
    the website".
 
-There is exactly one deviation from the JavaScript, and it is cosmetic:
-``label_manipulation`` (stripping a stray backslash before a quote) is applied
-**after** sorting, exactly as the website does — it sorts on raw labels and
-manipulates only for display — so ordering is unaffected.
+There are exactly two deviations from the JavaScript, and both are deliberate:
+
+1. *Cosmetic.* ``label_manipulation`` (stripping a stray backslash before a
+   quote) is applied **after** sorting, exactly as the website does — it sorts on
+   raw labels and manipulates only for display — so ordering is unaffected.
+2. *A fix.* ``build_exact_label_boost`` adds ``label_str`` clauses to ``bq`` so
+   that the term whose label **is** the query gets retrieved — one clause per
+   plausible capitalisation of the query (``label_str`` is case-sensitive, so up
+   to four deduped variants are enumerated). The website has
+   a real recall bug here — searching ``neuron`` cannot reach the term *neuron*
+   — diagnosed and measured in ``docs/search-config-comparison.md`` §5. Pass
+   ``exact_label_boost=False`` to ``build_params`` for the unpatched behaviour.
+   This affects *retrieval*, which is upstream of the parity harness, so it is
+   gated by ``docs/search-parity/check_recall.py`` instead.
 
 Everything else is intentionally bug-compatible, including the JS
 ``String.replace(str, str)`` **first-occurrence-only** semantics (hence the
 ``count=1`` calls below) and the empty OR-group a double space produces.
 
-Verified: on 78 queries (16 hand-picked discriminating cases plus a 62-query
+Verified: on 78 queries (22 hand-picked discriminating cases plus a 56-query
 fuzz sample drawn from real labels, synonyms and short_forms, including empty
 input, double spaces, braces and quotes) this module's refine+sort output is
 *byte-identical in order* to running the real ``sorter`` and ``refineResults``
@@ -90,6 +104,11 @@ BQ_BASE = ("short_form:VFBexp*^10.0 short_form:VFB*^50.0 facets_annotation:Class
 
 DEFAULT_ROWS = 500
 MAX_ROWS = 1000
+
+#: Weight for the exact whole-label clause (see ``build_exact_label_boost``).
+#: It has to beat the *combined* ``label^3000 + synonym^1500`` phrase boost,
+#: because that combination is exactly what an exact match loses to.
+EXACT_LABEL_BOOST = 6000
 
 #: The website's own filter chips use these weights (``filter_positive`` /
 #: ``filter_negative`` in searchConfiguration.js) rather than a hard ``fq``.
@@ -167,17 +186,79 @@ def build_phrase_boost(search_string: str) -> str:
     return f' label:"{phrase}"^3000 synonym:"{phrase}"^1500'
 
 
+def build_exact_label_boost(search_string: str) -> str:
+    """Boost the term whose label **is** the query. The one deliberate fix.
+
+    This is the only place ``/search`` scores differently from the website, and
+    it is here because the website has a real recall bug (see
+    ``docs/search-config-comparison.md`` §5). The two halves of
+    ``build_phrase_boost`` are additive, so a competitor carrying the query token
+    in its label *and* in a synonym collects 3000 + 1500, while a term whose
+    label is exactly the query but which has no such synonym collects only 3000.
+    Searching ``neuron`` therefore ranks *neuron* (``FBbt_00005106``, sole
+    synonym ``nerve cell``) 705th by score — past ``rows``, so the sorter never
+    receives it and cannot promote it.
+
+    ``label_str`` is the ``strings`` docValues copy of ``label`` produced by
+    ``copyField label -> label_str``. Unlike ``label``, it matches the *whole*
+    field, so this clause cannot be earned by a longer label that merely
+    contains the query — it lifts the exact term and nothing else. Measured:
+    fixes the miss, moves nothing in the top 10 of unrelated queries, and costs
+    no extra request.
+
+    ``label_str`` is case-sensitive, so plausible capitalisations are
+    enumerated. A casing this misses simply gets no boost — the clause is purely
+    additive, so a miss is never a regression.
+
+    Both the **normalised** and the **raw** query are boosted, and that is not
+    belt-and-braces. ``normalise_search_term`` turns the first ``-``, ``+`` or
+    ``_`` into a space, but ``label_str`` holds the label verbatim — so for the
+    whole hyphenated/underscored half of VFB's naming (``MBON-a2``,
+    ``5-HT1A-F-000001``) the normalised variant matches no label at all and the
+    boost could never fire for exactly the terms whose names are most
+    distinctive. Emitting both costs nothing: whichever form is not a real
+    label simply matches no document, and ``label_str`` is whole-field so
+    neither can be earned by a near miss.
+
+    Set ``exact_label_boost=False`` in :func:`build_params` for the website's
+    unpatched behaviour; ``docs/search-parity/check_recall.py`` uses that to
+    keep measuring the difference.
+    """
+    escaped = escape_braces(search_string).strip()
+    term = normalise_search_term(escape_braces(search_string))
+    if not term and not escaped:
+        return ""
+    seen, out = set(), []
+    for base in (term, escaped):
+        if not base:
+            continue
+        for variant in (base, base.lower(), base.capitalize(), base.title()):
+            if variant in seen:
+                continue
+            seen.add(variant)
+            esc = variant.replace("\\", "\\\\").replace('"', '\\"')
+            out.append(f'label_str:"{esc}"^{EXACT_LABEL_BOOST}')
+    if not out:
+        return ""
+    return " " + " ".join(out)
+
+
 def build_params(query: str, rows: int = DEFAULT_ROWS,
                  filter_types: Optional[Iterable[str]] = None,
                  exclude_types: Optional[Iterable[str]] = None,
                  boost_types: Optional[Iterable[str]] = None,
-                 demote_types: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+                 demote_types: Optional[Iterable[str]] = None,
+                 exact_label_boost: bool = True) -> Dict[str, Any]:
     """Full edismax parameter set for one search.
 
     ``filter_types`` / ``exclude_types`` are hard ``fq`` constraints (the
     semantics the MCP ``search_terms`` tool already exposes).
     ``boost_types`` / ``demote_types`` are soft ``bq`` weights, matching the
     website's own filter chips (``^100`` / ``^0.001``).
+
+    ``exact_label_boost`` is on by default and is the single intentional
+    departure from the website — see :func:`build_exact_label_boost`. Pass
+    ``False`` to reproduce the website's unpatched retrieval exactly.
     """
     fq = [FQ_BASE, FQ_NOT_DEPRECATED]
     for ft in filter_types or []:
@@ -192,6 +273,8 @@ def build_params(query: str, rows: int = DEFAULT_ROWS,
     for dt in demote_types or []:
         bq += f" facets_annotation:{dt}{FILTER_NEGATIVE}"
     bq += build_phrase_boost(query)
+    if exact_label_boost:
+        bq += build_exact_label_boost(query)
 
     return {
         "q": build_q(query),

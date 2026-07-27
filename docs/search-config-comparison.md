@@ -25,8 +25,7 @@ boosts and post-processing.
 | 6 | Website circuit browser | `geppetto-vfb/components/configuration/VFBCircuitBrowser/datasources/SOLRclient.tsx` (`datasourceConfiguration`, ~L461) | Live, current schema, prod Solr, but its own everything: `rows=100`, `pf=true`, `fq` is `has_neuron_connectivity` + `shortform_autosuggest:VFB*|FB*` + hard `NOT Deprecated` (no `VFBc_*` exclusion), `bq` is `VFB*^110 FBbt*^100` with **no Class boost** — so it leads with individuals by design, which for a connectivity picker is arguably right. Has its own sorter, run in a web worker. The `globalConfiguration` at the top of the same file is a dead pre-migration fallback. |
 
 `clients/vfbquery-client` was a seventh copy replicating #5; it now calls `/search`
-(commit "Repoint vfbquery-client search at /search"). `docs/draft_search_xref_endpoints.py` is an
-early sketch, superseded by `search_config.py`.
+(commit "Repoint vfbquery-client search at /search").
 
 ## 2. Website main search (#1) vs MCP `search_terms` (#5)
 
@@ -169,7 +168,14 @@ canonical, serve it from `/search`, and have every consumer call `/search`.** Sh
 
 Still to do, outside this repo: repoint the website's `datasourceConfiguration` and the MCP's
 `search_terms` at `/search`. That is what actually collapses copies 1, 2 and 5 and puts the cache in
-front of Solr; until then `/search` is a faithful third implementation rather than a replacement.
+front of Solr.
+
+Until they do, the arithmetic is worth stating plainly rather than flatteringly. All six copies above
+still exist, so `/search` is a **seventh** implementation of VFB search — a faithful one, and the only
+one anything can be repointed *at*, but for now an addition to the count and not a subtraction from
+it. It has **one** consumer (`clients/vfbquery-client`, which is why the count did not go to eight:
+that client used to be a copy of #5). Three is the target — website, MCP, client — and only at three
+is "single source of truth" a description rather than an intention.
 
 Open, and worth a decision from someone who knows the intent:
 
@@ -253,9 +259,17 @@ Known limitation: `label_str` is case-sensitive, so the clause enumerates four c
 (as-typed, lower, capitalised, title-case) and unusual casing will still miss. Because the clause is
 purely additive, a miss means no improvement — never a regression.
 
-**Not shipped.** `search_config.py` is unchanged; the candidate exists only in the harness, as
-`variant_exact_boost`. Changing retrieval changes what every consumer of `/search` sees, and the
-parity gate cannot catch a regression in it, so this wants a decision rather than a commit.
+**Shipped**, after sign-off, as `build_exact_label_boost` in `search_config.py` (`EXACT_LABEL_BOOST =
+6000`), on by default and disableable per call with `build_params(..., exact_label_boost=False)`. That
+switch is not decoration: `check_recall.py`'s `baseline` variant *uses* it to reconstruct the website's
+unpatched retrieval, so the harness keeps measuring a real before/after instead of quietly comparing
+the fix to itself once the fix is the default. `shipped` calls the same builder production does — a
+disagreement between harness and server is therefore a test failure, not a silent divergence.
+
+Because retrieval changes are invisible to the parity gate, the guard is `check_recall.py --gate`
+(wired into `scripts/check_gates.sh`), which fails unless the shipped config still recalls strictly
+more than the baseline and still moves nothing else. Its thresholds are relative — "no worse than
+measured" — because it hits the live index and absolute ranks drift as the ontology does.
 
 **`MBON-a2`'s top hit is an individual, and that is correct.** Earlier revisions of this document
 claimed the website leads with the class `larval mushroom body output neuron a2`. It does not, and
@@ -266,15 +280,24 @@ be findable as `MBON-a2`, the fix is a synonym in the ontology, not a search cha
 
 ## 6. Reproducing the measurements
 
+Everything this branch has to keep true, in one command:
+
+```bash
+git clone --depth 1 https://github.com/VirtualFlyBrain/geppetto-vfb /tmp/gvfb
+scripts/check_gates.sh          # unit + client + parity + recall; non-zero on any failure
+```
+
+The individual harnesses, for when one of them fails and you want the detail:
+
 ```bash
 python3 docs/compare_search_configs.py             # config-vs-config comparison, read-only GETs
 python3 docs/compare_search_configs.py --check-pf  # the two pf measurements from §2e
 
-git clone https://github.com/VirtualFlyBrain/geppetto-vfb /tmp/gvfb
-GEPPETTO_VFB=/tmp/gvfb python3 docs/search-parity/check_parity.py --fuzz 60
+GEPPETTO_VFB=/tmp/gvfb python3 docs/search-parity/check_parity.py --fuzz 56
 
-python3 docs/search-parity/check_recall.py                        # the §5 recall table, all variants
-python3 docs/search-parity/check_recall.py --variant exact_boost  # just the recommended one
+python3 docs/search-parity/check_recall.py                     # baseline vs shipped, the §5 table
+python3 docs/search-parity/check_recall.py --gate              # same, but exits non-zero on regression
+python3 docs/search-parity/check_recall.py --variant rows1000 --variant augment   # rejected alternatives
 ```
 
 `check_recall.py` is deliberately *not* part of the parity gate, and the two measure opposite things.
@@ -285,13 +308,28 @@ the right answer. Any change to retrieval is invisible to the parity gate and ne
 instead. It reports recall, rank 0, and top-10 churn on queries with no exact-label intent, and it hits
 live Solr (read-only), so absolute numbers move as the index does.
 
-`docs/search-parity/` is the parity gate: it runs the **real** `sorter` and `refineResults` under Node
-(`sort_under_node.js` requires `searchConfiguration.js` straight out of a geppetto-vfb checkout;
-`refine.js` is `refineResults` verbatim from `SOLRclient.tsx`) against the **same** Solr docs the
-Python port is given, and diffs the ordering row by row. It isolates ranking from query construction,
-and exits non-zero on any mismatch.
+`docs/search-parity/` is the parity gate: it runs the website's `sorter` and `refineResults` under
+Node against the **same** Solr docs the Python port is given, and diffs the ordering row by row. It
+isolates ranking from query construction, and exits non-zero on any mismatch — including on a query
+that returns no docs at all, where `[] == []` would otherwise read as a pass.
 
-Current state: **byte-identical ordering on 78 queries** — 22 hand-picked discriminating cases plus a
-56-query fuzz sample drawn from real labels, synonyms and short_forms — including 2432-row result
-sets, empty input, double spaces, braces, quotes and apostrophes. Re-run it after touching anything in
-`search_config.py` sections 3 or 4, or after pulling geppetto-vfb.
+The two JS halves come from different places, which is worth knowing before trusting a green run.
+`sort_under_node.js` `require`s `searchConfiguration.js` **live** out of the geppetto-vfb checkout, so
+the sorter is always whatever that checkout holds. `refineResults` is not in the config file — it
+lives in `SOLRclient.tsx` in the client package — so `refine.js` is a **vendored verbatim copy**
+pinned at `openworm/geppetto-client@VFBv2.3.8.1`. The sorter half therefore tracks upstream by
+itself; the refine half does not, and must be refreshed by hand if `refineResults` changes, or the
+gate will keep passing against a definition the website has stopped using.
+
+The fuzz sample is drawn with `/search`'s own filters (`FQ_BASE` + `FQ_NOT_DEPRECATED`) and from six
+windows at seed-determined random offsets. Both of those are corrections, not decoration. Drawing
+without the `fq` sampled the whole index rather than the 741,035 docs `/search` can return, and under
+`short_form asc` the head of the difference is entirely imported `BFO_`/`CHEBI_`/`CL_`/`ENVO_` terms
+— so 15 of 56 fuzz queries returned zero docs and were scored as passes on `[] == []`. Drawing from
+one window instead of six makes the sample an alphabetical prefix: all FlyBase alleles, never an
+anatomy class, individual, dataset or publication.
+
+Current state: **byte-identical ordering on 78 queries**, none of them vacuous — 22 hand-picked
+discriminating cases plus a 56-query fuzz sample drawn from real labels, synonyms and short_forms —
+including 2432-row result sets, empty input, double spaces, braces, quotes and apostrophes. Re-run it
+after touching anything in `search_config.py` sections 3 or 4, or after pulling geppetto-vfb.

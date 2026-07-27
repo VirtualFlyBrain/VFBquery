@@ -12,7 +12,12 @@ See docs/vfbconnect-http-api-plan.md in the VFBquery repo for the design and the
 endpoints this depends on (some — /search, /xref — are part of the same plan and
 land server-side alongside this client).
 """
-from .client import VfbClient, DEFAULT_BASE_URL
+from .client import (VfbClient, VfbError, DEFAULT_BASE_URL, PUBLIC_BASE_URL,
+                     default_base_url)
 
-__all__ = ["VfbClient", "DEFAULT_BASE_URL"]
+# VfbError is exported because catching it is the documented way to handle the
+# service shedding load (503 -> "retry shortly"), and a caller cannot write that
+# retry loop against an exception they have to reach into a private module for.
+__all__ = ["VfbClient", "VfbError", "DEFAULT_BASE_URL", "PUBLIC_BASE_URL",
+           "default_base_url"]
 __version__ = "0.1.0.dev0"

@@ -20,6 +20,7 @@ import requests
 import logging
 import inspect
 import os
+import warnings
 import concurrent.futures
 
 # --- Bounded term-info sub-query execution -------------------------------
@@ -2747,9 +2748,32 @@ def get_instances(short_form: str, return_dataframe=True, limit: int = -1, offse
         return formatted_results
         
     except Exception as e:
-        # Fallback to SOLR-based implementation when Neo4j is unavailable
-        print(f"Neo4j unavailable ({e}), using SOLR fallback for get_instances")
-        return _get_instances_from_solr(short_form, return_dataframe, limit)
+        # Fallback to SOLR-based implementation when Neo4j is unavailable.
+        #
+        # The fallback answers from the term-info `anatomy_channel_image` array,
+        # which is a *subset* of what the Neo4j query returns: only instances
+        # carrying an aligned image, and with `source`/`source_id`/`dataset`
+        # blank. Measured on FBbt_00067363 during a transient upstream outage it
+        # returned 10 rows where Neo4j returns 68 — a well-formed, plausible,
+        # incomplete answer that the caller had no way to tell from a complete
+        # one. So say so, twice, because the two return paths reach different
+        # audiences: a Python warning for in-process library callers (the
+        # DataFrame path has nowhere else to put it), and a `warnings` key on the
+        # dict payload, which is this repo's existing convention for a partial
+        # answer (`vfb_connectivity.get_connected_neurons_by_type` returns
+        # `{"connections", "warnings", "count"}`) and is the half that survives
+        # the HTTP hop to `/run_query`.
+        message = (
+            f"Neo4j unavailable ({e}); get_instances({short_form}) answered from the SOLR "
+            "anatomy_channel_image fallback, which covers only instances with an aligned "
+            "image and leaves source/dataset blank — this result may be partial."
+        )
+        logger.warning(message)
+        warnings.warn(message, stacklevel=2)
+        result = _get_instances_from_solr(short_form, return_dataframe, limit)
+        if isinstance(result, dict):
+            result.setdefault("warnings", []).append(message)
+        return result
 
 def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int = -1):
     """
@@ -2886,7 +2910,10 @@ def _get_instances_from_solr(short_form: str, return_dataframe=True, limit: int 
         }
         
     except Exception as e:
-        print(f"Error in SOLR fallback for get_instances: {e}")
+        # Reached only from the fallback above, which has already warned that the
+        # answer is degraded; this logs *why* the degraded path then produced
+        # nothing at all, which the bare empty payload does not say.
+        logger.warning("Error in SOLR fallback for get_instances(%s): %s", short_form, e)
         # Return empty results with proper structure
         if return_dataframe:
             return pd.DataFrame()

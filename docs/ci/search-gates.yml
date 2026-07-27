@@ -1,0 +1,150 @@
+# NOT ACTIVE WHERE IT SITS. Move this file to .github/workflows/search-gates.yml
+# to turn it on — GitHub only reads workflows from that directory.
+#
+# It is parked here because the token this branch was pushed with has no
+# `workflow` scope, so any push whose diff touches .github/workflows/ is
+# rejected outright by the server. Rather than drop the CI definition from the
+# branch (leaving the reviewer nothing to review) it is committed intact one
+# directory over. `git mv docs/ci/search-gates.yml .github/workflows/` on a
+# checkout with a workflow-scoped credential is the whole of the remaining work.
+
+name: Search & xref gates
+
+# `scripts/check_gates.sh`, split by what each gate needs: the offline half on
+# pushes to main/dev/feature branches and on PRs into main or dev, the live half
+# on a weekly schedule and on demand.
+#
+# Split deliberately: `client` and `server` are hermetic (fixtures,
+# monkeypatched transport, a loopback aiohttp server, all sub-second), so they
+# gate merges. `parity` needs Node and a geppetto-vfb checkout, and `recall`
+# hits the live Solr index — neither belongs on a merge path where a network
+# blip reads as a code failure. They run on a schedule and on demand instead,
+# which is the right cadence for them anyway: both measure this branch against
+# something that moves on its own (the website JS, the ontology), so a green
+# result has a shelf life.
+#
+# `client` and `server` are separate jobs rather than two steps because they
+# need genuinely different environments. The client package depends on nothing
+# but requests and pandas and declares support back to 3.8; importing
+# `vfbquery` pulls the whole query stack (pysolr, marshmallow, vfb_connect and
+# therefore navis) and is only ever run on the deploy's interpreter. Testing
+# both halves against both extremes would be claiming support neither side
+# actually offers.
+
+on:
+  push:
+    branches: [ main, dev, 'feature/**' ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'      # Mondays 03:00 UTC — catches ontology/website drift
+
+jobs:
+  client:
+    name: "Client gate (request shaping)"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.8 is the floor the client's pyproject declares, 3.11 is a current
+        # deploy. Both, because a gate that only runs on one of them is not
+        # testing the support claim. The 3.8 leg pins its image instead of
+        # riding `ubuntu-latest`: 3.8 has been end-of-life since October 2024
+        # and is progressively dropped from the runner images as they roll
+        # forward, so an unpinned leg will one day fail for want of an
+        # interpreter — a red gate that says nothing about the code. 22.04 is
+        # the pin until the client's declared floor moves off 3.8.
+        include:
+          - { python-version: '3.8',  os: ubuntu-22.04 }
+          - { python-version: '3.11', os: ubuntu-latest }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        # The client's own dependencies and nothing else — installing it from
+        # its pyproject is what proves that "pure requests + pandas, installs
+        # in seconds" is still true.
+        run: |
+          python -m pip install -U pip
+          python -m pip install "clients/vfbquery-client[test]"
+      - name: client (request shaping)
+        # No PYTHONPATH here: the client's own pyproject sets
+        # `pythonpath = ["src"]`, so the tests run against this checkout while
+        # the install above supplies the third-party half. That combination is
+        # the useful one — an import the client uses but does not declare fails
+        # here rather than at somebody's first `pip install vfbquery-client`.
+        run: python -m pytest clients/vfbquery-client/tests -q
+
+  server:
+    name: "Server gates (xref helpers + shed/coalescing)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: install
+        # The package's declared dependencies, deliberately. `tests/` imports
+        # `vfbquery.ha_api` through the package `__init__`, which needs pysolr,
+        # marshmallow, psycopg, dacite, dataclasses_json, requests, aiohttp and
+        # pandas — `--no-deps` was tried, and it suppresses exactly the imports
+        # collection then dies on.
+        #
+        # Those eight are all it needs at import time: `vfb_connect` (and so
+        # navis, scipy, matplotlib) is loaded lazily inside solr_fetcher, so a
+        # hand-written subset would install in 11s against this install's 28s.
+        # Not taken. Seventeen seconds does not buy a second copy of the
+        # dependency list to keep in step, and installing what the package
+        # *declares* is also the only thing that would notice the declaration
+        # going wrong.
+        run: |
+          python -m pip install -U pip
+          python -m pip install pytest
+          python -m pip install -e .
+      - name: unit (xref helpers + shed/coalescing)
+        env:
+          # Importing vfbquery otherwise patches in the SOLR result cache,
+          # which is a network dependency these tests do not want.
+          VFBQUERY_CACHE_ENABLED: 'false'
+        run: python -m pytest tests/ -q
+
+  live:
+    name: "Live gates (parity + recall + client)"
+    # Scheduled and manual only — see the note at the top of this file.
+    #
+    # Both of those event types only fire from the *default* branch, so while
+    # this branch is unmerged these gates cannot be triggered from the Actions
+    # tab at all. That is a real hole and it is why `scripts/check_gates.sh`
+    # exists as a single command a human can run from a checkout: pre-merge,
+    # that script is the gate and this job is what keeps it running afterwards.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          python -m pip install -U pip
+          python -m pip install pytest
+          python -m pip install -e .
+          python -m pip install ./clients/vfbquery-client
+      - name: fetch the website JS the parity harness runs
+        run: |
+          git clone --depth 1 https://github.com/VirtualFlyBrain/geppetto-vfb /tmp/gvfb
+      - name: all gates
+        env:
+          GEPPETTO_VFB: /tmp/gvfb
+          VFBQUERY_CACHE_ENABLED: 'false'
+        # No VFB_LIVE_TESTS here: gate 5 sets it itself, along with the
+        # VFB_API_BASE of the server it starts from this checkout. Setting it in
+        # the job would point the client's live tests at the public deploy,
+        # where /search and /xref do not exist yet — a red gate that says
+        # nothing about this branch.
+        run: ./scripts/check_gates.sh

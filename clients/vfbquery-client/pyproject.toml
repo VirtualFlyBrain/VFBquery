@@ -24,3 +24,9 @@ test = ["pytest>=7"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# So `pytest` works in a fresh checkout without an editable install first —
+# otherwise collection dies on ModuleNotFoundError and reads like a broken test
+# suite rather than a missing `pip install -e .`.
+pythonpath = ["src"]

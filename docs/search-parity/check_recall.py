@@ -17,8 +17,13 @@ What it reports, per variant:
   matching. A variant that fixes ``neuron`` by reshuffling everything else has not
   fixed anything; it has traded a visible bug for an invisible one.
 
-    python3 docs/search-parity/check_recall.py
-    python3 docs/search-parity/check_recall.py --variant rows1000
+    python3 docs/search-parity/check_recall.py                  # baseline vs shipped
+    python3 docs/search-parity/check_recall.py --gate           # same, non-zero on regression
+    python3 docs/search-parity/check_recall.py --variant rows1000   # a rejected alternative
+
+``--gate`` is what ``scripts/check_gates.sh`` runs, and it is the only guard on this
+class of change: a retrieval regression cannot fail the parity gate, for the reason
+above.
 """
 import argparse
 import json
@@ -83,13 +88,26 @@ def build_corpus(n_per_bucket=12, seed=7):
 # --------------------------------------------------------------------------- #
 
 def variant_baseline(query, rows=sc.DEFAULT_ROWS):
-    """Current shipped behaviour."""
-    docs = solr(sc.build_params(query, rows=rows), rows)["docs"]
+    """The website's unpatched retrieval — the bug, reproduced on purpose.
+
+    This is the reference every other variant is scored against, so it has to
+    keep working even after the fix ships: ``exact_label_boost=False`` is exactly
+    what makes that possible without a second copy of the query builder here.
+    """
+    docs = solr(sc.build_params(query, rows=rows, exact_label_boost=False),
+                rows)["docs"]
+    return sc.sort_results(sc.refine_results(docs), query), 1
+
+
+def variant_shipped(query):
+    """What ``/search`` does today. Calls the real builder, no local copy — if
+    this harness and ``search_config`` ever disagree, that is the bug."""
+    docs = solr(sc.build_params(query, rows=sc.DEFAULT_ROWS), sc.DEFAULT_ROWS)["docs"]
     return sc.sort_results(sc.refine_results(docs), query), 1
 
 
 def variant_rows1000(query):
-    """Same scoring, twice the candidate depth (MAX_ROWS)."""
+    """Rejected alternative: same scoring, twice the candidate depth (MAX_ROWS)."""
     return variant_baseline(query, rows=1000)[0], 1
 
 
@@ -112,10 +130,13 @@ AUGMENT_MAX_TOKENS = 2
 
 
 def variant_augment(query, max_tokens=None):
-    """Retrieval augmentation: a second, selective exact lookup merged into the
+    """Rejected alternative: a second, selective exact lookup merged into the
     candidate set. Perturbs no score — it only guarantees the sorter is *given*
-    the exact match, which it already knows how to promote."""
-    docs = solr(sc.build_params(query, rows=sc.DEFAULT_ROWS), sc.DEFAULT_ROWS)["docs"]
+    the exact match, which it already knows how to promote. Correct, but it
+    doubles the request count to buy what one extra `bq` clause buys free."""
+    docs = solr(sc.build_params(query, rows=sc.DEFAULT_ROWS,
+                                exact_label_boost=False),
+                sc.DEFAULT_ROWS)["docs"]
     term = sc.normalise_search_term(sc.escape_braces(query))
     extra = []
     if max_tokens is not None and len(term.split()) > max_tokens:
@@ -135,42 +156,25 @@ def variant_augment_short(query):
     return variant_augment(query, max_tokens=AUGMENT_MAX_TOKENS)
 
 
-#: Weight for the exact-label clause. Has to beat the *combined* label+synonym
-#: phrase boost (3000 + 1500), because that combination is precisely what the
-#: exact term loses to: a competitor whose label AND one of whose synonyms both
-#: contain the query token collects both halves, while a term whose label *is*
-#: the query but which has no redundant synonym collects only the label half.
-EXACT_LABEL_BOOST = 6000
+VARIANTS = {"baseline": variant_baseline, "shipped": variant_shipped,
+            "rows1000": variant_rows1000, "augment": variant_augment,
+            "augment_short": variant_augment_short}
 
-
-def _exact_label_clause(term):
-    """`label_str` is a case-sensitive `strings` docValues copy of `label`, so an
-    exact clause has to enumerate plausible capitalisations. VFB labels are
-    lowercase except proper nouns ('Kenyon cell'), so these cover the space."""
-    variants = list(dict.fromkeys([term, term.lower(), term.capitalize(),
-                                   term.title()]))
-    return " ".join('label_str:"%s"^%d' % (v.replace('"', r'\"'), EXACT_LABEL_BOOST)
-                    for v in variants)
-
-
-def variant_exact_boost(query):
-    """Add a selective exact-label clause to `bq`.
-
-    Unlike the label/synonym phrase halves, this one cannot be earned by a longer
-    label that merely *contains* the query — `label_str` matches the whole field —
-    so it lifts the exact term and nothing else. One Solr request, no extra depth.
-    """
-    params = sc.build_params(query, rows=sc.DEFAULT_ROWS)
-    term = sc.normalise_search_term(sc.escape_braces(query))
-    if term:
-        params["bq"] = params["bq"] + " " + _exact_label_clause(term)
-    docs = solr(params, sc.DEFAULT_ROWS)["docs"]
-    return sc.sort_results(sc.refine_results(docs), query), 1
-
-
-VARIANTS = {"baseline": variant_baseline, "rows1000": variant_rows1000,
-            "augment": variant_augment, "augment_short": variant_augment_short,
-            "exact_boost": variant_exact_boost}
+#: Gate thresholds for ``--gate``. Both are differences between the two variants
+#: *measured in the same run*, never absolutes recorded from an earlier one —
+#: this hits the live index, so any number written down here would rot as the
+#: ontology moves, while a same-run A/B cancels that out.
+#:
+#: Which is why zero churn is a fair bar and not a hair trigger: the shipped
+#: config differs from the website's by one appended ``bq`` clause, and a clause
+#: that only boosts exact label matches has no business changing the top ten of
+#: a query that has no exact label match. One position moved is the regression,
+#: not noise. The one way it can flake is an index commit landing between the
+#: baseline and shipped requests for the same query; that is rare enough to
+#: chase when it happens rather than to paper over with a tolerance that would
+#: also hide a real one-position regression.
+GATE_MIN_RECALL_GAIN = 1
+GATE_MAX_CHURN = 0
 
 
 def rank_of_exact(rows, label):
@@ -188,11 +192,17 @@ def top10(rows):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", action="append", choices=sorted(VARIANTS),
-                    help="repeatable; default is baseline plus every variant")
+                    help="repeatable; default is baseline + shipped. Pass "
+                         "--variant rows1000 etc. to re-measure the rejected "
+                         "alternatives.")
+    ap.add_argument("--gate", action="store_true",
+                    help="exit non-zero unless the shipped config still beats "
+                         "the website's retrieval (use in CI)")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
-    names = args.variant or ["baseline", "rows1000", "augment", "augment_short",
-                             "exact_boost"]
+    names = args.variant or ["baseline", "shipped"]
+    if args.gate:
+        names = ["baseline", "shipped"]
 
     corpus = build_corpus()
     print(f"corpus: {len(corpus)} exact labels sampled from the live index "
@@ -263,9 +273,43 @@ def main():
             d_recall = s["recall"] - b["recall"]
             d_at0 = s["at0"] - b["at0"]
             ch = sum(m for _, m in s["churn"])
-            print(f"  {name:9s} recall {d_recall:+3d}  rank0 {d_at0:+3d}  "
+            print(f"  {name:13s} recall {d_recall:+3d}  rank0 {d_at0:+3d}  "
                   f"churn {ch:3d} positions  cost {s['reqs'] / b['reqs']:.1f}x requests")
+
+    if args.gate:
+        s = summary["shipped"]
+        b = summary["baseline"]
+        gain = s["recall"] - b["recall"]
+        churn = sum(m for _, m in s["churn"])
+        problems = []
+        if gain < GATE_MIN_RECALL_GAIN:
+            problems.append(f"recall gain {gain:+d} < required "
+                            f"{GATE_MIN_RECALL_GAIN:+d} — the exact-label boost "
+                            f"has stopped working")
+        if s["at0"] < b["at0"]:
+            problems.append(f"rank-0 count fell {b['at0']} -> {s['at0']}")
+        if churn > GATE_MAX_CHURN:
+            problems.append(f"top-10 churn {churn} > {GATE_MAX_CHURN} — the "
+                            f"boost is moving unrelated results")
+        # "costs no extra request" is a design claim of the boost (it appends a
+        # bq clause to a query that was going to be issued anyway), and the PASS
+        # line used to assert it in words without anything checking it. Both
+        # variants issue one request per corpus label plus one per churn query,
+        # so the counts are equal or the boost has started doing something it
+        # was not supposed to — measure it, and print the measurement either
+        # way so the claim in the PASS line is the number, not a sentence.
+        if s["reqs"] != b["reqs"]:
+            problems.append(f"solr requests {b['reqs']} -> {s['reqs']} — the "
+                            f"boost is meant to cost no extra request")
+        print()
+        if problems:
+            for p in problems:
+                print("FAIL:", p)
+            return 1
+        print(f"PASS: recall {gain:+d}, rank0 {s['at0'] - b['at0']:+d}, "
+              f"churn {churn}, solr requests {s['reqs']} vs {b['reqs']} baseline")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

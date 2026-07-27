@@ -2,9 +2,15 @@
 *.ipynb
 *.pyc
 .ipynb_checkpoints/
-src/vfbquery.egg-info/
-src/vfbquery/__pycache__/
-src/vfbquery/ontology/__pycache__/
+# Globs, not paths: neither pattern contains a slash, so both match at any
+# depth. They replace the per-directory spellings that used to be here, which
+# named `src/` only — so `pip install -e clients/vfbquery-client` left its
+# egg-info showing as untracked, which is build output a `git add -A` will
+# happily commit. (`*.pyc` above already hides the compiled files; the
+# `__pycache__/` entry is what keeps the directory out when it holds anything
+# else.)
+*.egg-info/
+__pycache__/
 build/
 test_examples.py
 test_results.py

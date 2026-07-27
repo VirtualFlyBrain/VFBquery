@@ -25,6 +25,7 @@ Two things about this repo shape the config, and both are deliberate:
 """
 
 import os
+import re
 import shutil
 import sys
 
@@ -156,6 +157,60 @@ html_theme_options = {
     "source_directory": "docs/",
 }
 
+# -- PDF output --------------------------------------------------------------
+
+# `.readthedocs.yaml` asks for the `pdf` format, so this build runs on RTD
+# whether anyone reads the result or not — and with the default pdflatex engine
+# it does not merely warn, it stops. These documents are full of characters
+# pdflatex has no glyph for and treats as *fatal*:
+#
+#   * the set-theory notation the /combine reference is written in — ∪ ∩ ⊕ ↔ ≡,
+#     and the α/β used for the operand placeholders;
+#   * the emoji in the *generated* root documents — 🎉 ✅ ✨ 🔶 in `README.md`
+#     and `performance.md`, written by the `examples` and `performance-test`
+#     workflows.
+#
+# Neither source can be cleaned up at the source: the notation is the subject
+# matter, and the emoji are rewritten by a workflow on every run. xelatex reads
+# UTF-8 natively, so an unrepresentable character degrades to a "Missing
+# character" warning and a gap in the page rather than an `Emergency stop`.
+latex_engine = "xelatex"
+
+# A gap in the page is still wrong, though, so the two categories are handled
+# rather than merely survived: the font choice below covers the notation, and
+# `_replace_pictographs` (LaTeX only) rewrites the emoji, which no font shipped
+# with TeX Live can set.
+latex_elements = {
+    # DejaVu where it exists. The default (Latin Modern) and the obvious
+    # alternative (TeX Gyre Termes/Heros/Cursor, the URW Times/Helvetica/Courier
+    # clones) are typographically nicer and cover none of ∪ ∩ ⊕ ↔ ≡ α β — every
+    # one of which is load-bearing in the /combine reference, where "A ∪ B"
+    # silently losing its operator turns a definition into a typo. DejaVu has
+    # the lot, in all three families, so the symbols come from the running text
+    # font rather than needing per-character math escapes in the markdown.
+    #
+    # Guarded with \IfFontExistsTF because the font is a system font, not a TeX
+    # one: RTD's build image has it, a minimal TeX Live may not, and falling
+    # back to TeX Gyre gives a PDF with some missing glyphs instead of a build
+    # that dies on a font it cannot find.
+    "fontpkg": r"""
+\usepackage{fontspec}
+\IfFontExistsTF{DejaVu Serif}{
+  \setmainfont{DejaVu Serif}[Scale=0.9]
+  \setsansfont{DejaVu Sans}[Scale=0.9]
+  \setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+}{
+  \setmainfont{TeX Gyre Termes}
+  \setsansfont{TeX Gyre Heros}
+  \setmonofont{TeX Gyre Cursor}[Scale=MatchLowercase]
+}
+""",
+}
+
+latex_documents = [
+    (root_doc, "vfbquery.tex", "VFBquery Documentation", author, "manual"),
+]
+
 # -- Copy the repo-root markdown into the source tree ------------------------
 
 # Kept in the order they appear in the toctree, with the destination name
@@ -205,6 +260,211 @@ def _drop_leading_transitions(text):
     return "\n".join(out)
 
 
+def _fill_empty_tables(text):
+    """Give a header-only markdown table one placeholder row.
+
+    `performance.md` is written by the `performance-test` workflow, and a run
+    that records no per-query timings still emits the "Query Performance
+    Details" table — header, separator, nothing under it. HTML renders that
+    without complaint. The LaTeX builder does not: Sphinx's table writer does
+    ``next(node.findall(nodes.tbody))``, and a bodyless table raises
+    ``StopIteration``, aborting the whole PDF build with a traceback rather than
+    a warning naming the file. Since `.readthedocs.yaml` asks for the PDF
+    format, that is a red docs build caused by a workflow run nobody would
+    connect to the documentation.
+
+    A row of em dashes rather than dropping the table: the column names are the
+    informative part — this run measured Query, Duration and Status and found
+    none — and a heading with nothing under it reads as content gone missing.
+    """
+    lines = text.split("\n")
+    out = []
+    for index, line in enumerate(lines):
+        out.append(line)
+        stripped = line.strip()
+        # A separator row is pipes, dashes, colons and spaces, nothing else.
+        if not (stripped.startswith("|") and "-" in stripped
+                and set(stripped) <= set("|-: ")):
+            continue
+        # It is only a table if a header row precedes it and no row follows.
+        if index == 0 or "|" not in lines[index - 1]:
+            continue
+        following = lines[index + 1] if index + 1 < len(lines) else ""
+        if "|" in following:
+            continue
+        columns = len(stripped.strip("|").split("|"))
+        out.append("|" + "|".join(" — " for _ in range(columns)) + "|")
+    return "\n".join(out)
+
+
+# A literal block longer than this is elided in the PDF only — see
+# `_elide_long_code_blocks`. 80 lines is about a page and a half of monospace,
+# which is already past the point where anybody reads a code block rather than
+# skims it, and it leaves an enormous margin under the hard limit that forces
+# the elision in the first place.
+_LATEX_MAX_CODE_LINES = 80
+_LATEX_HEAD_LINES = 55
+_LATEX_TAIL_LINES = 10
+
+
+def _elide_long_code_blocks(text, docname):
+    """Shorten very long fenced code blocks. **LaTeX builder only.**
+
+    `README.md` is generated: `update_readme.py` replaces its ```json fences
+    with the *actual* output of the examples, and `get_term_info` on a template
+    returns every painted domain, so two of those blocks are ~1,100 lines of
+    JSON. HTML renders them fine — scrollable, searchable, and skipping them
+    costs a flick of the wrist.
+
+    LaTeX does not. Sphinx typesets a literal block inside `framed`, which
+    collects the whole thing into a single box so it can be split across pages,
+    and a box taller than TeX's `\\maxdimen` (16383.99998pt, about 5.7 metres) is
+    a fatal "Dimension too large" — not a warning naming the file, an
+    `Emergency stop` partway through the run. At ~11pt a line, and with the long
+    URLs in that JSON wrapping to two or three lines each, 1,100 lines clears
+    the limit comfortably.
+
+    So the PDF gets the head and tail with a marked gap. This is the one place
+    the PDF deliberately differs from the HTML, and it differs where the
+    difference costs nothing: 25 pages of `"thumbnail": "https://..."` repeated
+    per domain is not something a PDF reader was going to read, and the marker
+    says where the whole thing lives. Doing it here, in `source-read`, rather
+    than in `_sync_root_docs`, is what keeps it PDF-only — the builder is not
+    known yet when the root documents are copied.
+    """
+    lines = text.split("\n")
+    out = []
+    fence = None            # the exact opening fence, or None outside a block
+    body = []
+    for line in lines:
+        stripped = line.strip()
+        if fence is None:
+            # An opening fence: three or more backticks or tildes. The info
+            # string may name a language; it never contains the fence char.
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                char = stripped[0]
+                run = len(stripped) - len(stripped.lstrip(char))
+                if char not in stripped[run:]:
+                    fence = char * run
+                    out.append(line)
+                    body = []
+                    continue
+            out.append(line)
+            continue
+        # Inside a block: a closing fence is the same char, at least as long,
+        # and nothing else on the line.
+        if stripped.startswith(fence) and set(stripped) == {fence[0]}:
+            if len(body) > _LATEX_MAX_CODE_LINES:
+                dropped = len(body) - _LATEX_HEAD_LINES - _LATEX_TAIL_LINES
+                out.extend(body[:_LATEX_HEAD_LINES])
+                out.append("")
+                out.append(
+                    f"... [{dropped} lines omitted from the PDF - this block is "
+                    f"shown in full in the HTML documentation and in {docname.split('/')[-1]}] ..."
+                )
+                out.append("")
+                out.extend(body[-_LATEX_TAIL_LINES:])
+            else:
+                out.extend(body)
+            out.append(line)
+            fence = None
+            body = []
+            continue
+        body.append(line)
+    # An unterminated fence is a malformed source file, not something to repair
+    # silently — emit it as it was and let the parser report it.
+    out.extend(body)
+    return "\n".join(out)
+
+
+# Emoji that carry information rather than decoration, and what they mean in a
+# document that cannot show them. `performance.md` is a table of ✅ and ❌ in a
+# Status column — dropped rather than translated, that column would come out
+# blank and the table would say the opposite of nothing at all.
+_PICTOGRAPH_SUBS = {
+    "✅": "[OK]",       # ✅
+    "✔": "[OK]",       # ✔
+    "✓": "[OK]",       # ✓
+    "❌": "[FAIL]",     # ❌
+    "✗": "[FAIL]",     # ✗
+    "⚠": "[!]",        # ⚠
+    "⏳": "[...]",      # ⏳
+    "⭐": "[*]",        # ⭐
+}
+
+# Everything else in the pictograph blocks is decoration — the 🎉 that ends a
+# passing perf run, the 🐍 📦 in a heading — and reads better gone than as a
+# gap. Ranges rather than a list because these files are generated: a workflow
+# can introduce a new emoji at any time, and a list would go stale silently
+# while a range keeps working. Deliberately *not* included: U+2190–U+21FF
+# (arrows) and U+2200–U+22FF (mathematical operators), which is where ↔ ∪ ∩ ⊕ ≡
+# live and which the font above sets properly.
+_PICTOGRAPH_RE = re.compile(
+    "[" + "".join((
+        "☀-➿",        # miscellaneous symbols and dingbats
+        "⬀-⯿",        # miscellaneous symbols and arrows
+        "\U0001F000-\U0001FAFF",  # emoji proper
+    )) + "]"
+    # Eat one following space as well, so a dropped leading emoji does not leave
+    # a heading indented by a space.
+    r" ?"
+)
+
+# Stripped first and separately, because they are modifiers rather than
+# characters: `⚠️` is `⚠` followed by U+FE0F, and if the selector were dropped by
+# the rule above — which also eats a following space — the substitution would
+# come out as `[!]warn` instead of `[!] warn`.
+_MODIFIER_RE = re.compile("[︎️‍]")
+
+# ATX headings, which are exempt — see `_replace_pictographs`.
+_HEADING_RE = re.compile(r"\s{0,3}#{1,6}(\s|$)")
+
+
+def _replace_pictographs(text):
+    """Make emoji printable. **LaTeX builder only.**
+
+    No font shipped with TeX Live has a glyph for ✅ or 🎉 — they are colour
+    emoji, which is a different rendering technology, not a missing character
+    set. xelatex therefore drops them with a "Missing character" warning, and
+    `performance.md` alone accounts for 224 of those: its Status column is
+    nothing but ✅. Translating the meaningful ones and deleting the decorative
+    ones is the difference between a status table and an empty column.
+    """
+    out = []
+    for line in text.split("\n"):
+        # Headings are left exactly as they are. MyST derives a heading's anchor
+        # from its text, so `## 🎉 MAJOR MILESTONE` anchors as
+        # `#-major-milestone` — with the leading dash the emoji left behind —
+        # and `VFB_QUERIES_REFERENCE.md` links to precisely that from its
+        # hand-written table of contents. Rewriting the heading moves the anchor
+        # and breaks the link, which under `-W` is a failed build; and since the
+        # anchor is in the *link*, not the heading, fixing one file is not
+        # enough. The cost of the exception is a gap where the emoji was in a
+        # heading, against a status column full of them in the body.
+        if _HEADING_RE.match(line):
+            out.append(line)
+            continue
+        line = _MODIFIER_RE.sub("", line)
+        for char, replacement in _PICTOGRAPH_SUBS.items():
+            line = line.replace(char, replacement)
+        out.append(_PICTOGRAPH_RE.sub("", line))
+    return "\n".join(out)
+
+
+def _on_source_read(app, docname, source):
+    """Apply the PDF-only source transforms.
+
+    `source-read` is the earliest event at which ``app.builder`` exists, which
+    is the whole reason these two live here rather than in `_sync_root_docs`:
+    both of them make the PDF differ from the HTML, and the HTML is the version
+    that should be complete.
+    """
+    if app.builder.name != "latex":
+        return
+    text = _elide_long_code_blocks(source[0], docname)
+    source[0] = _replace_pictographs(text)
+
+
 def _sync_root_docs(app=None, config=None):
     """Copy the repo-root markdown files into ``docs/_root/`` for the build.
 
@@ -227,6 +487,7 @@ def _sync_root_docs(app=None, config=None):
         for old, new in _LINK_REWRITES.items():
             text = text.replace(old, new)
         text = _drop_leading_transitions(text)
+        text = _fill_empty_tables(text)
         with open(os.path.join(dest_dir, dest_name), "w", encoding="utf-8") as handle:
             handle.write(text)
 
@@ -235,6 +496,10 @@ def setup(app):
     # `config-inited` fires before Sphinx enumerates the source files, so the
     # copies exist by the time the toctree is resolved.
     app.connect("config-inited", _sync_root_docs)
+    # `source-read` rather than `config-inited` for the elision: it is the first
+    # point at which `app.builder` exists, and the whole point of that transform
+    # is that it applies to one builder.
+    app.connect("source-read", _on_source_read)
     return {"parallel_read_safe": True, "parallel_write_safe": True}
 
 

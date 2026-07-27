@@ -61,7 +61,13 @@ Two details are worth knowing when a release does something unexpected:
 
 The build treats warnings as errors (`fail_on_warning` in `.readthedocs.yaml`,
 `-W` in the docs workflow), so a broken cross-reference fails the build rather
-than shipping a dead link. `docs/_root/` is generated at build time — `conf.py`
+than shipping a dead link. `.readthedocs.yaml` also asks for a PDF, which is
+built by xelatex and is where the awkward cases live: the PDF drops the emoji
+that the generated documents are full of, translating `✅`/`❌` in a status
+column to `[OK]`/`[FAIL]`, and it elides code blocks over 80 lines because the
+1,100-line JSON examples in `README.md` overflow a TeX box and stop the build
+outright. Both transforms are in `docs/conf.py`, both apply to the PDF only, and
+the HTML remains the complete version. `docs/_root/` is generated at build time — `conf.py`
 copies the repo-root markdown into it — and is gitignored; do not commit it, and
 do not fix a docs-only problem by editing `README.md`, which is itself generated
 (see the note at the top of `docs/conf.py`).

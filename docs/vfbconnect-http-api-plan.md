@@ -51,6 +51,7 @@ HTTP-served**.
 | `search` (free-text) | three stages, not one: `edismax` + `refineResults` + the website comparator, all ported to `search_config.py` | ✅ `/search` (C1) |
 | `xref_2_vfb_id` / `get_terms_by_xref` | `term_info.xrefs`; no accession is indexed, so reverse = search + exact confirm | ✅ `/xref` (C3) |
 | `get_terms_by_region` (arbitrary `overlaps some X`) | approximated by `NeuronsPartHere`/`PartsOf`; exact = Owlery | ⚠️ interim OK, full = Owlery phase |
+| boolean combinations of the above ("in the calyx **and** the lateral horn", "MB dopaminergic **but not** octopaminergic") | bracketed expression over query results, matched on the `selection_id` column | ✅ `/combine` (C5) |
 | arbitrary OWL class expressions | `owlery_client.py` exists, not exposed | ⏳ later (Manchester phase) |
 | `get_vfb_link` | pure client-side URL builder | 🔵 client-side |
 | navis skeleton load / NBLAST *compute* / 3D plot | heavy client ops | 🔵 stays client-side / static files |
@@ -152,11 +153,66 @@ the `_text_` catch-all — checked). So there is no query that finds a term by a
 - **Render (optional, L):** `/scene?ids=…&template=…` → server-rendered PNG/GLB of N neurons. Bigger job
   (headless render); keep off the shared request path or gate/queue it hard. Nice shareable workshop output.
 
-### C5 — Owlery / Manchester passthrough + `/combine`  *(effort: M, later)*
+### C5 — `/combine` set algebra  ✅ **shipped**  ·  Owlery / Manchester passthrough *(still later)*
 For arbitrary compositions ("cholinergic neurons with presynaptic terminals in the fan-shaped body").
-- **Interim:** `/combine` doing ∪ / ∩ / − over id-sets from the existing named query_types (covers ~80%).
-- **Full:** Manchester-syntax → `owlery_client` passthrough (already in the repo) → id set → hydrate.
-- **Accept:** a 2-term intersection matches the equivalent `vfb_connect` Owlery query.
+The interim half is built and is larger than the estimate: not ∪ / ∩ / − over id-sets but a full
+bracketed boolean expression over an arbitrary number of queries, with the result *explained*.
+Reference: [`docs/combine-endpoint.md`](combine-endpoint.md).
+
+- **As shipped:** `src/vfbquery/combine.py` (840 lines, stdlib-only) + `handle_combine` in `ha_api.py`,
+  `/combine` in both the route table and `ALLOWED_PATHS`.
+  - **Expression, not a fixed pair.** `GET /combine?expr=a AND [b NOT c]&a=…&b=…&c=…`. Each name is
+    bound to an operand by its own query parameter, so the arity is open — up to
+    `MAX_COMBINE_OPERANDS` (12, `VFBQUERY_MAX_COMBINE_OPERANDS`) per request, and past that you stage a
+    result back in as `ids:`. `expr` is capped at `MAX_COMBINE_EXPR_LEN` (2000 chars).
+  - **Operators:** `AND OR NOT XOR NAND NOR XNOR`, each also reachable by the words people actually
+    type (`both`, `either`, `but not`, `only one of`, …) and by `& | - ^ !`. Precedence is
+    `OR/NOR` loosest → `XOR/XNOR` → `AND/NAND/NOT` tightest, left-associative, overridable with
+    `[…]` (preferred in URLs) or `(…)`.
+  - **Operands take three forms:** `<QueryType>:<id>` (any of the ~40 `QUERY_TYPE_MAP` entries),
+    `search:<text>` (goes through C1), and `ids:<id>,<id>,…` (a set you already have — costs no query
+    and is how you exceed the operand limit).
+  - **Explained, not just answered.** Every response carries `as_read` (the expression with the
+    brackets the parser actually applied), `plain_english`, and a `steps` list — one record per
+    operation with `operation`, `description`, `input_counts`, `result_count`, and `why_empty` when a
+    step returns nothing for a diagnosable reason. `explain_only=true` returns all of that having run
+    **no** queries, which is the cheap way to check you meant what you wrote.
+  - **Matching is on the identity column, not "the first column".** Rows are matched on the header
+    whose declared `type` is `selection_id` — the same column the website uses for "add to search".
+    Verified present on 11 of 12 query types; `NeuronInputsTo` is the exception (plain `id`) and is
+    covered by an explicit fallback list. Duplicate ids fold to one term
+    (`DownstreamClassConnectivity` on `FBbt_00049825` is 8,935 rows over 894 terms).
+  - **Lossless column merge** *(explicitly requested)*. The output row for a term carries every column
+    every contributing operand had for it. Same-named columns that agree collapse to one; where they
+    disagree the operand-qualified `column__operand` is kept alongside, so no cell is discarded.
+    `found_in` / `found_in_count` record which operands produced the term. Merged headers inherit
+    their type from the source query and gain `from_query`, so the DataFrame adapter (C2) and the
+    website's renderers still know what each column is.
+  - **Refuses rather than guesses.** Undefined name, unparseable expression, unknown query type,
+    unclosed bracket, missing operator → 400 with a sentence saying which. A namespace mismatch
+    (`FBbt_` ∩ `VFB_` can only ever be empty) is diagnosed in words on the step instead of being
+    returned as a bare zero. An operand truncated by `RESULT_ROW_CAP` warns, and `require_complete=1`
+    turns that into a 409 — because a set operation over a silently truncated input is wrong, not
+    partial.
+  - **The universe is explicit.** `NOT`/`NAND`/`NOR`/`XNOR` need one; the default is the union of the
+    operands used, which makes `NOR` always empty and collapses `NAND`≡`XOR`, `XNOR`≡`AND`. Rather
+    than hide that, the four degeneracies are named in the warnings and `universe=` takes any operand
+    form to fix it.
+  - **Costs the same as calling `/run_query` yourself.** Operands execute on the existing pool,
+    coalescer and result cache, with **byte-identical cache keys** to the direct `/run_query` call —
+    so a workshop room where 80 people combine the same two queries pays for two backend hits, and an
+    operand repeated inside one expression runs once.
+- **Deliberately *not* in this half:** Manchester syntax → `owlery_client` passthrough (already
+  vendored) → id set → hydrate. That is what covers compositions no named query_type expresses; the
+  set algebra covers the ~80% that are combinations of ones that do.
+- **Accept:** ✅ offline — `tests/test_combine.py` (65) for the language, matching, universe and merge;
+  `tests/test_combine_endpoint.py` (30) for the handler, including a real-dispatch layer asserting the
+  shared cache entry, that `a AND [b OR a]` runs two queries not three, and that a full queue sheds the
+  whole combination as one 503. Client: `combine()` / `explain_combination()` plus 8 tests, and a
+  live-gated calyx ∩ lateral-horn intersection. ~20 worked biological examples with counts verified
+  live on 2026-07-27 are in `docs/combine-endpoint.md` §8.
+- **Still open (Owlery half):** a 2-term Manchester intersection matching the equivalent
+  `vfb_connect` Owlery query.
 
 ### C6 — thin client wrapper  ✅ **shipped** — **this is what makes access "simpler"**
 A pure `requests` + `pandas` package (installs instantly, Colab-friendly, no navis/setuptools issues)
@@ -208,8 +264,10 @@ coalescing + the 5-min result cache collapse them to ~1 backend hit each. Theref
   shipped in this branch. The one step left in the phase is outside this repo: point the workshop
   notebooks at the client as the zero-install route A.
 - **Phase 2:** ~~C3 `/xref`~~ (shipped in this branch — see above), C4 scene-link.
-- **Phase 3 — post-workshop / power users:** C5 Owlery+`/combine`, C4 scene render, full
-  `get_terms_by_region` via Owlery.
+- **Phase 3 — post-workshop / power users:** ~~C5 `/combine`~~ (shipped in this branch — it turned out
+  to be workshop material rather than power-user material: "neurons in the calyx **and** the lateral
+  horn" is the first question an attendee asks after two searches), C5 Owlery/Manchester passthrough,
+  C4 scene render, full `get_terms_by_region` via Owlery.
 
 ## 6. Decisions & open questions
 
@@ -259,7 +317,7 @@ coalescing + the 5-min result cache collapse them to ~1 backend hit each. Theref
 
 ## 7. Test plan
 
-Unit tests per new endpoint (`/search`, `/xref`), adapter round-trip tests (schema → DataFrame parity
+Unit tests per new endpoint (`/search`, `/xref`, `/combine`), adapter round-trip tests (schema → DataFrame parity
 with `vfb_connect` outputs on DA1 lPN), and a load test at **80 concurrent** hitting a shared query to
 confirm coalescing + cache hold the backend to ~1 hit and the 503 backpressure behaves.
 
@@ -434,3 +492,39 @@ Both were confirmed to fail with the `_raise_server_warnings` call deleted.
 `test_live_get_instances_da1lpn` now asserts the absence of a degradation warning **before** the
 row-count floor, so a repeat of that outage fails saying it was an outage instead of leaving
 `assert 10 > 50` to be diagnosed.
+
+### Done for `/combine`
+
+The set algebra is split across two modules on purpose, and the split is the design decision worth
+recording. Everything decidable **without the network** — tokenising, parsing, precedence and
+brackets, plain-English rendering, identity-column selection, namespace diagnosis, the universe and
+its degeneracies, and the lossless row/header merge — lives in `src/vfbquery/combine.py`, which
+imports nothing outside the stdlib. `ha_api.py` holds only the part that needs a server: turning
+operand specs into `/run_query` and `/search` calls on the existing pool. That is why 65 of the 95
+tests run in well under a second, why the client can reuse the same parser to validate an expression
+before spending a request, and why a bracketing bug can be reproduced without a Neo4j.
+
+**Tested in two layers, because they fail differently.** `test_combine_endpoint.py` patches the
+payload seams for the handler's own logic — the reserved-vs-operand parameter split, all eight refusal
+messages, the warnings, `explain_only` running nothing — and then patches `_run_query` underneath a
+real `ThreadPoolExecutor` for the four behaviours only the true dispatch path exercises: that an
+operand lands on the **same cache key** a direct `/run_query?id=…&query_type=…` would (the one test
+that would catch a key drift — answers stay correct either way, only the cost changes), that a paged
+query asks `offset=0, limit=0`, that `a AND [b OR a]` runs two queries and not three, and that a full
+queue sheds the whole combination as a single 503 with `Retry-After` having run nothing.
+
+**Every hazard the design guards against was measured first, not imagined.** Silent truncation
+(`DatasetImages`/`Nern2024` reports `count: 60002` and returns 25,000 rows), duplicate ids (8,935 rows
+over 894 terms), namespace mismatch (`FBbt_` / `VFB_` / `FBlc_` / `FBgn_` sets that can never
+intersect), cross-dataset divergence (`T4c_R` spans 1,766 distinct VFB ids across five datasets, so an
+*individual*-level intersection across datasets is always ≈0 and the useful question is a class-level
+one), and the implicit-universe algebra. Each of those is a way to get a confidently wrong empty set,
+which is the same failure this branch has been removing everywhere else: a partial or meaningless
+answer that is shaped exactly like a complete one. `why_empty` on the step record, the truncation
+warning, and `require_complete`'s 409 are the three places that failure is made to announce itself.
+
+One test is worth naming because it encodes a decision rather than a behaviour:
+`test_and_not_is_two_operators_rather_than_one`. `a AND NOT b` is parsed as two operators, not as an
+alias for `a NOT b`, because the two readings **diverge** the moment an explicit `universe=` is
+narrower than `a` — and a phrase alias that silently agrees in the common case and disagrees in the
+rare one is worse than no alias.

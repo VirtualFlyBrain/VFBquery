@@ -268,6 +268,179 @@ def test_xref_sends_only_the_given_direction(monkeypatch):
     assert list(df["id"]) == ["VFB_jrchjtdb"]
 
 
+# ---------------------------------------------------------------------------
+# /combine
+# ---------------------------------------------------------------------------
+
+_COMBINE_PAYLOAD = {
+    "expression": "calyx AND lh",
+    "as_read": "(calyx AND lh)",
+    "plain_english": "terms in both NeuronsPartHere of FBbt_00007401 and "
+                     "NeuronsPartHere of FBbt_00007053",
+    "steps": [{"operation": "AND", "input_counts": [567, 314],
+               "result_count": 91}],
+    "headers": {"id": {"type": "selection_id"}},
+    "rows": [{"id": "VFB_1", "label": "n1", "found_in": ["calyx", "lh"],
+              "found_in_count": 2}],
+    "count": 91,
+    "operands": {"calyx": {"truncated": False}},
+    "universe": {"source": "operands", "size": 790},
+}
+
+
+def test_combine_sends_the_expression_and_one_parameter_per_operand(monkeypatch):
+    seen = {}
+
+    def fake_get(self, path, **params):
+        seen["path"] = path
+        seen["params"] = params
+        return _COMBINE_PAYLOAD
+
+    monkeypatch.setattr(VfbClient, "_get", fake_get, raising=True)
+    df = VfbClient().combine("calyx AND lh", {
+        "calyx": "NeuronsPartHere:FBbt_00007401",
+        "lh": ("NeuronsPartHere", "FBbt_00007053"),
+    }, limit=10)
+    assert seen["path"] == "combine"
+    assert seen["params"]["expr"] == "calyx AND lh"
+    assert seen["params"]["calyx"] == "NeuronsPartHere:FBbt_00007401"
+    # The (query_type, id) pair is joined the way the endpoint parses it.
+    assert seen["params"]["lh"] == "NeuronsPartHere:FBbt_00007053"
+    assert seen["params"]["limit"] == 10
+    assert "require_complete" not in seen["params"]
+    assert list(df["id"]) == ["VFB_1"]
+
+
+def test_a_list_of_ids_becomes_an_ids_operand(monkeypatch):
+    """The output of one combination is the input to the next.
+
+    Feeding a result column straight back in is the documented way to build an
+    expression bigger than the operand limit, so a DataFrame column, a list and
+    a set all have to be accepted where a query string goes.
+    """
+    seen = {}
+    monkeypatch.setattr(VfbClient, "_get",
+                        lambda self, path, **p: seen.update(p) or _COMBINE_PAYLOAD,
+                        raising=True)
+    previous = pd.DataFrame({"id": ["VFB_1", "VFB_2"]})
+    VfbClient().combine("a NOT b", {"a": "NeuronsPartHere:FBbt_00007401",
+                                    "b": previous["id"]})
+    assert seen["b"] == "ids:VFB_1,VFB_2"
+
+    VfbClient().combine("a NOT b", {"a": "NeuronsPartHere:FBbt_00007401",
+                                    "b": ["VFB_3"]})
+    assert seen["b"] == "ids:VFB_3"
+
+
+def test_the_explanation_travels_with_the_frame(monkeypatch):
+    """`as_read` is the grouping that actually ran, and a caller has to be able
+    to reach it.
+
+    Returning a bare DataFrame would drop the one field that tells a user
+    whether `a AND b NOT c` was read the way they meant. `attrs` keeps the
+    return value an ordinary DataFrame while carrying it.
+    """
+    monkeypatch.setattr(VfbClient, "_get",
+                        lambda self, path, **p: _COMBINE_PAYLOAD, raising=True)
+    df = VfbClient().combine("calyx AND lh", {"calyx": "ids:VFB_1",
+                                              "lh": "ids:VFB_1"})
+    assert df.attrs["as_read"] == "(calyx AND lh)"
+    assert df.attrs["steps"][0]["result_count"] == 91
+    # The full size, which is not len(df) once a limit is in play.
+    assert df.attrs["count"] == 91 and len(df) == 1
+    assert "NeuronsPartHere" in df.attrs["plain_english"]
+
+
+def test_explain_only_runs_no_query_and_returns_the_reading(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(
+        VfbClient, "_get",
+        lambda self, path, **p: seen.update(p) or {"as_read": "((a AND b) NOT c)"},
+        raising=True)
+    out = VfbClient().explain_combination(
+        "a AND b NOT c", {"a": "ids:VFB_1", "b": "ids:VFB_2", "c": "ids:VFB_3"})
+    assert seen["explain_only"] == "true"
+    assert out["as_read"] == "((a AND b) NOT c)"
+
+
+def test_an_operand_named_like_a_parameter_is_refused_here(monkeypatch):
+    """`limit` as an operand name would be eaten by the endpoint.
+
+    Caught client-side because the server cannot tell the difference: it would
+    read `&limit=NeuronsPartHere:...` as a malformed limit, and an expression
+    naming `limit` as "undefined" — two confusing errors for one avoidable
+    collision.
+    """
+    monkeypatch.setattr(VfbClient, "_get",
+                        lambda self, path, **p: _COMBINE_PAYLOAD, raising=True)
+    with pytest.raises(ValueError, match="reserved|cannot be used"):
+        VfbClient().combine("limit OR a", {"limit": "ids:VFB_1", "a": "ids:VFB_2"})
+    with pytest.raises(ValueError, match="operands"):
+        VfbClient().combine("a AND b", {})
+
+
+def test_a_4xx_carries_the_servers_own_message(monkeypatch):
+    """"400 Client Error" is useless; "unknown query type 'NeuronsPartHear'" is not.
+
+    /combine's refusals are all written for the person who typed the
+    expression — which bracket never closed, which name was never defined,
+    which operand was truncated (409 under require_complete). Losing them to
+    `raise_for_status` would make a fixable mistake look like a broken service.
+    """
+    _stub_transport(monkeypatch, {"error": "Operand 'a': unknown query type "
+                                           "'NeuronsPartHear'."}, status_code=400)
+    with pytest.raises(VfbError, match="unknown query type"):
+        VfbClient().combine("a", {"a": "NeuronsPartHear:FBbt_1"})
+
+    _stub_transport(monkeypatch, {"error": "'big' was cut short: it has 60002 "
+                                           "results but only 25000 were returned.",
+                                  "operand": "big"}, status_code=409)
+    with pytest.raises(VfbError, match="cut short"):
+        VfbClient().combine("a AND big", {"a": "ids:VFB_1",
+                                          "big": "DatasetImages:x"},
+                            require_complete=True)
+
+
+def test_combine_warnings_reach_the_caller(monkeypatch):
+    """The traps are only useful if they arrive.
+
+    An empty combination that is empty because the two sides are different
+    kinds of thing looks exactly like one that is empty for a biological
+    reason — the warning is the only thing that tells them apart.
+    """
+    _stub_transport(monkeypatch, dict(
+        _COMBINE_PAYLOAD, rows=[], count=0,
+        warnings=["The two sides return different kinds of thing — individual "
+                  "on the left, anatomy class on the right — so no ID can "
+                  "appear in both."]))
+    with pytest.warns(UserWarning, match="different kinds of thing"):
+        df = VfbClient().combine("a AND b", {"a": "ids:VFB_1",
+                                             "b": "ids:FBbt_1"})
+    assert df.empty
+
+
+@pytest.mark.skipif(os.environ.get("VFB_LIVE_TESTS") != "1",
+                    reason="set VFB_LIVE_TESTS=1 to run live v3-cached tests")
+def test_live_combine_finds_calyx_and_lateral_horn_neurons():
+    """Neurons with arbours in both the calyx and the lateral horn.
+
+    A floor rather than an exact count — the number moves with each connectome
+    release — plus the two invariants that must hold whatever the data does: the
+    intersection cannot be larger than either side, and the grouping must be the
+    one that was asked for.
+    """
+    vfb = VfbClient()
+    df = vfb.combine("calyx AND lh", {
+        "calyx": "NeuronsPartHere:FBbt_00007401",
+        "lh": "NeuronsPartHere:FBbt_00007053"})
+    assert df.attrs["as_read"] == "(calyx AND lh)"
+    assert len(df) > 20
+    step = df.attrs["steps"][0]
+    assert step["result_count"] <= min(step["input_counts"])
+    # No column was dropped on the way through the merge.
+    assert {"id", "found_in", "found_in_count"} <= set(df.columns)
+
+
 @pytest.mark.skipif(os.environ.get("VFB_LIVE_TESTS") != "1",
                     reason="set VFB_LIVE_TESTS=1 to run live v3-cached tests")
 def test_live_xref_round_trips_a_hemibrain_bodyid():

@@ -26,6 +26,7 @@ Design notes
 """
 from __future__ import annotations
 
+import collections.abc
 import os
 import re
 import warnings
@@ -90,6 +91,23 @@ class VfbClient:
                              params=params, timeout=self.timeout)
         if r.status_code == 503:
             raise VfbError("Service busy (queue full) — retry shortly.")
+        if 400 <= r.status_code < 500:
+            # A 4xx from this service is a message written for the person who
+            # made the request — which expression failed to parse, which operand
+            # was truncated, which name was never defined. `raise_for_status`
+            # would throw all of that away and report "400 Client Error", which
+            # for /combine in particular is the difference between a fixable
+            # mistake and an opaque one. 5xx deliberately still raises the
+            # transport's own error: that is not the caller's to fix.
+            detail = None
+            try:
+                body = r.json()
+                if isinstance(body, dict):
+                    detail = body.get("error")
+            except ValueError:
+                pass
+            if detail:
+                raise VfbError(detail)
         r.raise_for_status()
         payload = r.json()
         self._raise_server_warnings(path, payload)
@@ -299,6 +317,141 @@ class VfbClient:
         if bool(id) == bool(accession):
             raise ValueError("Provide exactly one of id= or accession= (+ optional db=).")
         return self._to_df(self._get("xref", id=id, accession=accession, db=db))
+
+    # ---- set algebra over queries ----------------------------------------
+    #: Query-string keys ``/combine`` uses for itself. An operand named one of
+    #: these would be read as a parameter and silently vanish from the
+    #: expression, so it is refused here — before a request that would come back
+    #: as a puzzling "unknown name" 400, or worse, as a plausible answer to a
+    #: different question.
+    _COMBINE_RESERVED = frozenset({
+        "expr", "expression", "q", "universe", "limit", "offset",
+        "require_complete", "explain_only", "order_by", "force_refresh",
+    })
+
+    @classmethod
+    def _combine_params(cls, expr, operands, universe=None):
+        if not operands:
+            raise ValueError(
+                "combine() needs operands: a dict mapping each name in the "
+                "expression to a query, e.g. "
+                "{'calyx': 'NeuronsPartHere:FBbt_00007401'}")
+        params = {"expr": expr}
+        for name, spec in operands.items():
+            if name in cls._COMBINE_RESERVED:
+                raise ValueError(
+                    f"{name!r} cannot be used as an operand name — /combine uses "
+                    f"it for itself. Reserved: {', '.join(sorted(cls._COMBINE_RESERVED))}.")
+            params[name] = cls._combine_spec(spec)
+        if universe is not None:
+            params["universe"] = cls._combine_spec(universe)
+        return params
+
+    @staticmethod
+    def _combine_spec(spec) -> str:
+        """Accept the three shapes a caller naturally has to hand.
+
+        A string is passed through as written. A ``(query_type, id)`` pair spares
+        the caller a bit of string joining. An iterable of ids becomes ``ids:``,
+        which is the important one: it is how the output of one combination — or
+        a column of a DataFrame, or a list from a paper's supplementary table —
+        goes back in as the input to the next.
+        """
+        if isinstance(spec, str):
+            return spec
+        if isinstance(spec, tuple) and len(spec) == 2:
+            return f"{spec[0]}:{spec[1]}"
+        if isinstance(spec, pd.Series):
+            spec = spec.tolist()
+        if isinstance(spec, collections.abc.Iterable):
+            ids = [str(i) for i in spec if str(i).strip()]
+            if not ids:
+                raise ValueError("An id list operand cannot be empty.")
+            return "ids:" + ",".join(ids)
+        raise TypeError(
+            f"Cannot read {spec!r} as a query. Give a string "
+            "('NeuronsPartHere:FBbt_00007401', 'search:kenyon cell', "
+            "'ids:VFB_1,VFB_2'), a (query_type, id) pair, or a list of ids.")
+
+    def combine(self, expr: str, operands: Optional[dict] = None,
+                universe=None, limit: Optional[int] = None,
+                require_complete: bool = False) -> pd.DataFrame:
+        """Set algebra over the results of several queries (GET /combine).
+
+        Each name in ``expr`` is a query; the expression says how to combine
+        their results. Rows are matched on each result's own term-id column, so
+        tables with completely different shapes still compare correctly::
+
+            vfb.combine("calyx AND lh", {
+                "calyx": "NeuronsPartHere:FBbt_00007401",
+                "lh":    "NeuronsPartHere:FBbt_00007053"})
+
+        Operators: ``OR AND NOT XOR NAND NOR XNOR``, unary ``NOT``, brackets
+        (``[]``, ``()`` or ``{}``), symbols (``| & - ^``) and plain-English
+        aliases ("but not", "in both", "either but not both"). Precedence,
+        loosest binding first: OR/NOR, then XOR/XNOR, then AND/NAND/NOT — all
+        left-associative. Bracket anything you would otherwise have to think
+        about.
+
+        No column from any operand is dropped: the returned frame carries the
+        union of every operand's columns, plus ``found_in`` (which operands the
+        row came from) and ``found_in_count``. Where two operands disagree about
+        the value of a shared column, both are kept, the second suffixed with
+        its operand name.
+
+        The explanation travels with the frame in ``df.attrs``:
+        ``as_read`` (the grouping actually used — check it), ``plain_english``,
+        ``steps`` (every intermediate set size), ``operands``, ``universe`` and
+        ``count`` (the full size, which differs from ``len(df)`` when ``limit``
+        is set). Anything the server thinks is misleading — a truncated operand,
+        two sides that can never intersect, a complement against an implicit
+        universe — arrives as a Python warning.
+
+        Args:
+            expr: the expression.
+            operands: ``{name: query}``. A query is a string
+                (``'<QueryType>:<id>'``, ``'search:<text>'``, ``'ids:<id>,<id>'``),
+                a ``(query_type, id)`` pair, or any iterable of ids (a list, a
+                set, a DataFrame column) — which is how one combination's output
+                becomes the next one's input.
+            universe: what "everything" means, for NOT/NOR/NAND/XNOR. Same forms
+                as an operand. Without it the universe is whatever the operands
+                between them returned, which makes ``NOR`` always empty — the
+                server warns when that matters.
+            limit: return at most this many rows (``attrs['count']`` still
+                reports the full size).
+            require_complete: fail with :class:`VfbError` rather than warn if any
+                operand came back truncated. Use it when the number is going in
+                a paper.
+        """
+        params = self._combine_params(expr, operands, universe)
+        if limit is not None:
+            params["limit"] = limit
+        if require_complete:
+            params["require_complete"] = "true"
+        payload = self._get("combine", **params)
+        df = self._to_df(payload)
+        # attrs rather than extra columns or a bespoke result class: the frame
+        # stays a plain DataFrame that every downstream tool already understands,
+        # and the explanation is one attribute away instead of being lost.
+        for key in ("expression", "as_read", "plain_english", "steps",
+                    "operands", "universe", "count", "capped"):
+            if key in payload:
+                df.attrs[key] = payload[key]
+        return df
+
+    def explain_combination(self, expr: str, operands: Optional[dict] = None,
+                            universe=None) -> dict:
+        """How ``/combine`` would read an expression — without running anything.
+
+        Returns ``as_read`` (the bracketing that would be used) and
+        ``plain_english`` (a sentence naming the actual queries). Cheap, because
+        no query is run: worth calling first on any expression whose grouping you
+        would otherwise be assuming.
+        """
+        params = self._combine_params(expr, operands, universe)
+        params["explain_only"] = "true"
+        return self._get("combine", **params)
 
     # ---- links (client-side, no endpoint) --------------------------------
     @staticmethod

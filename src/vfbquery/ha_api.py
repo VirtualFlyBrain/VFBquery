@@ -50,6 +50,12 @@ import aiohttp
 from aiohttp import web
 import numpy as np
 
+# Pure standard-library module: the /combine expression language, its set
+# algebra and its explanations. Imported at module scope because it costs
+# nothing to import (no pysolr, no neo4j, no navis) — everything expensive in
+# this file is still imported lazily inside the handler that needs it.
+from . import combine
+
 # ---------------------------------------------------------------------------
 # Running-version helper — surfaced in /health and /status so v2-dev and
 # Rancher operators can confirm which build is actually serving a request
@@ -480,7 +486,7 @@ ALLOWED_PATHS = frozenset({
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
-    "/search", "/xref",
+    "/search", "/xref", "/combine",
 })
 # NB /get_hierarchy and /get_hierarchy_html are registered routes but are absent
 # here, so they 404 for any client outside TRUSTED_NETWORKS. That predates this
@@ -2130,6 +2136,502 @@ async def handle_xref(request):
 
 
 # ---------------------------------------------------------------------------
+# /combine — set algebra over the results of several queries
+#
+# The endpoint is thin on purpose. Everything that can be decided without the
+# network — parsing, precedence, bracketing, the set algebra, the explanations,
+# the lossless column merge — lives in `vfbquery.combine`, which imports nothing
+# but the standard library and can therefore be unit-tested at full speed and
+# reused by the client to explain an expression before it is sent. What is left
+# here is the part that genuinely needs the server: turning each named operand
+# into rows, under the same cache, coalescer and backpressure as every other
+# endpoint.
+# ---------------------------------------------------------------------------
+
+#: How many operands one expression may name. Not a parser limit — the parser is
+#: happy with any number — but a cost limit: every operand is a separate query
+#: against Neo4j or Solr, issued concurrently, and one request that fans out to
+#: fifty is a denial of service against the other seventy-nine people using the
+#: service. Twelve is well past any expression a human writes by hand (the
+#: documented use cases top out at four) while still leaving room for a client
+#: that generates them.
+MAX_COMBINE_OPERANDS = _int_env("VFBQUERY_MAX_COMBINE_OPERANDS", 12)
+
+#: Longest accepted expression. Guards the tokeniser against a megabyte of
+#: brackets; 2000 characters is roughly 150 operators.
+MAX_COMBINE_EXPR_LEN = 2000
+
+
+def _parse_operand_spec(name, raw):
+    """Turn one ``name=<spec>`` parameter into a dict describing what to run.
+
+    Three forms, distinguished by their prefix:
+
+        a=NeuronsPartHere:FBbt_00007401   run a query — any /run_query type
+        a=search:kenyon cell              run a free-text /search
+        a=ids:VFB_00000001,VFB_00000002   a literal set, no query at all
+
+    The lowercase prefixes cannot collide with a query type: every key of
+    QUERY_TYPE_MAP is CamelCase, and the query-type branch is tried first
+    regardless, so a query type called `search` would still win.
+
+    `ids:` exists because it is the only way to bring an outside set into the
+    algebra — a list from a paper's supplementary table, a hand-curated set of
+    neurons, or the ids of a previous /combine result — and because it makes the
+    endpoint testable without a network.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        raise combine.CombineError(
+            f"Operand '{name}' has no query. Give it one, e.g. "
+            f"{name}=NeuronsPartHere:FBbt_00007401")
+
+    head, sep, rest = raw.partition(":")
+    head, rest = head.strip(), rest.strip()
+    if not sep:
+        raise combine.CombineError(
+            f"Operand '{name}' = {raw!r} is not a query. Expected "
+            "'<QueryType>:<id>' (e.g. NeuronsPartHere:FBbt_00007401), "
+            "'search:<text>' or 'ids:<id>,<id>'.")
+
+    if head in QUERY_TYPE_MAP:
+        if not rest and QUERY_TYPE_MAP[head] != "get_all_datasets":
+            raise combine.CombineError(
+                f"Operand '{name}' = {raw!r} names the query type but no term. "
+                f"Expected {head}:<id>.")
+        if len(rest) > MAX_ID_LEN:
+            raise combine.CombineError(
+                f"Operand '{name}': id is longer than {MAX_ID_LEN} characters.")
+        return {"kind": "query", "query_type": head, "id": rest,
+                "label": f"{head} of {rest}" if rest else head, "raw": raw}
+
+    if head == "search":
+        if not rest:
+            raise combine.CombineError(
+                f"Operand '{name}': search needs some text, e.g. "
+                f"{name}=search:kenyon cell")
+        if len(rest) > MAX_QUERY_LEN:
+            raise combine.CombineError(
+                f"Operand '{name}': search text is longer than "
+                f"{MAX_QUERY_LEN} characters.")
+        return {"kind": "search", "query": rest,
+                "label": f"search for {rest!r}", "raw": raw}
+
+    if head == "ids":
+        ids = [token.strip() for token in rest.replace(";", ",").split(",")]
+        ids = [token for token in ids if token]
+        if not ids:
+            raise combine.CombineError(
+                f"Operand '{name}': ids needs at least one id, e.g. "
+                f"{name}=ids:VFB_00000001,VFB_00000002")
+        return {"kind": "ids", "ids": ids,
+                "label": f"a list of {len(ids)} ids", "raw": raw}
+
+    raise combine.CombineError(
+        f"Operand '{name}': unknown query type {head!r}. Use one of the "
+        f"/run_query types, 'search:' or 'ids:'. Available query types: "
+        f"{', '.join(sorted(QUERY_TYPE_MAP))}")
+
+
+#: Headers synthesised for the operand kinds that do not come from a query
+#: function. `type: selection_id` is the contract `combine.id_column` reads, so
+#: declaring it here is what lets a search result or a pasted id list combine on
+#: the same axis as a query table instead of falling through to a guess.
+_SEARCH_HEADERS = {
+    "short_form": {"title": "Add to search", "type": "selection_id", "order": 0},
+    "label": {"title": "Name", "type": "markdown", "order": 1},
+}
+_IDS_HEADERS = {
+    "id": {"title": "Add to search", "type": "selection_id", "order": 0},
+}
+
+
+async def _run_query_payload(request, short_form, query_type):
+    """Run one /run_query and return its payload dict rather than a Response.
+
+    Deliberately keyed exactly as `handle_run_query` keys it, so an operand and
+    a direct call to /run_query for the same thing share one cache entry and one
+    in-flight computation. At a workshop where forty people run the same
+    documented example that is the difference between forty Neo4j queries and
+    one.
+    """
+    func_name = QUERY_TYPE_MAP[query_type]
+    if func_name == "get_all_datasets":
+        key = "run_query::AllDatasets"
+    else:
+        key = f"run_query:{short_form}:{query_type}"
+    # Paged functions key on their window. Combine always wants the whole
+    # answer, which is offset=0/limit=0 — the same window a bare /run_query
+    # asks for, so the cache is still shared.
+    if func_name in PAGED_QUERY_FUNCS:
+        key = f"{key}:0:0"
+
+    rcache = request.app["result_cache"]
+    coalescer = request.app["coalescer"]
+
+    cached = rcache.get(key)
+    if cached is not None:
+        return cached
+
+    fut, is_owner = await coalescer.get_or_create(key)
+    if not is_owner:
+        return await fut
+
+    tracker = request.app["tracker"]
+    max_queue = request.app.get("max_queue_depth")
+    if max_queue:
+        snap = tracker.snapshot
+        if snap["waiting"] >= max_queue:
+            # Raise rather than return a Response: the caller is holding N of
+            # these in an asyncio.gather and needs one place to turn any of them
+            # into the 503. _shed settles the coalescer future for the waiters.
+            await _shed(coalescer, fut, key,
+                        "Server overloaded, please retry later", retry_after="30")
+            raise Overloaded("Server overloaded, please retry later", "30")
+
+    pool = request.app["pool"]
+    sem = request.app["semaphore"]
+    await tracker.enter_queue()
+    started = False
+    try:
+        async with sem:
+            await tracker.leave_queue_start_work()
+            started = True
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                pool, _run_query, short_form, func_name, False, 0, 0)
+        if func_name in PAGED_QUERY_FUNCS:
+            result = _cap_result_rows(result)
+        else:
+            result = _prepare_full_for_cache(result)
+        rcache.put(key, result)
+        await coalescer.remove(key)
+        fut.set_result(result)
+        return result
+    except Exception as exc:
+        await coalescer.remove(key)
+        if not fut.done():
+            fut.set_exception(exc)
+        raise
+    finally:
+        _abandon(coalescer, fut, key)
+        await tracker.finish_work(started=started)
+
+
+async def _search_payload(request, text):
+    """Run one /search and shape it as a combinable table."""
+    from . import search_config as _sc
+
+    key = "|".join(["search", text, str(_sc.DEFAULT_ROWS), "None", "", "", "", ""])
+    rcache = request.app["result_cache"]
+    cached = rcache.get(key)
+    if cached is not None:
+        return dict(cached, headers=_SEARCH_HEADERS)
+
+    stats = request.app["search_stats"]
+    sem = request.app["search_semaphore"]
+    if sem.locked():
+        stats["queued"] += 1
+    try:
+        await asyncio.wait_for(sem.acquire(),
+                               timeout=request.app["search_queue_wait"])
+    except asyncio.TimeoutError:
+        stats["shed"] += 1
+        raise Overloaded("Search overloaded, please retry later")
+    stats["in_flight"] += 1
+    try:
+        ranked, total, block, n_docs = await _solr_search_ranked(
+            request.app, text, _sc.DEFAULT_ROWS)
+    finally:
+        stats["in_flight"] -= 1
+        sem.release()
+
+    result = _cap_result_rows({
+        "query": text, "rows": ranked, "count": total,
+        "solr_num_found": block.get("numFound"), "rows_fetched": n_docs,
+    })
+    rcache.put(key, result)
+    stats["served"] += 1
+    return dict(result, headers=_SEARCH_HEADERS)
+
+
+async def _fetch_operand(request, name, spec):
+    """Resolve one operand spec to an `OperandResult`."""
+    if spec["kind"] == "ids":
+        payload = {"headers": _IDS_HEADERS,
+                   "rows": [{"id": i} for i in spec["ids"]],
+                   "count": len(spec["ids"])}
+    elif spec["kind"] == "search":
+        payload = await _search_payload(request, spec["query"])
+    else:
+        payload = await _run_query_payload(request, spec["id"],
+                                           spec["query_type"])
+    try:
+        return combine.OperandResult(name, payload, spec=spec["raw"],
+                                     description=spec["label"])
+    except combine.CombineError as exc:
+        # Re-raised with the operand named. Without this the user is told that
+        # "a result" has no identifiable term column while looking at an
+        # expression with four of them.
+        raise combine.CombineError(
+            f"Operand '{name}' ({spec['raw']}) cannot take part in a "
+            f"combination: {exc}") from exc
+
+
+#: Query-string keys `/combine` consumes itself; everything else is an operand
+#: name. Spelling the reserved set out is what lets operands be named freely
+#: (`calyx`, `lh`, `pn`) instead of forcing a `op1=`/`op2=` convention that makes
+#: an expression unreadable.
+#:
+#: Three of these — `offset`, `order_by`, `force_refresh` — are **reserved but
+#: not implemented**: the endpoint ignores them today. That is deliberate and is
+#: the cheaper half of a decision made once. Adding paging or caller-chosen
+#: ordering later is a small change; discovering then that somebody's saved
+#: expression names an operand `offset` — and that honouring the new parameter
+#: silently changes what their expression means — is not. Reserving the name now
+#: costs a user the inconvenience of picking a different operand name; reserving
+#: it later costs them a wrong answer. Either implement one of these or leave it
+#: here; do not quietly free it.
+_COMBINE_RESERVED = frozenset({
+    "expr", "expression", "q", "universe", "limit", "offset",
+    "require_complete", "explain_only", "order_by", "force_refresh",
+})
+
+
+class _StubOperand:
+    """Just enough of an OperandResult for `explain_only` to describe a query it
+    has deliberately not run."""
+
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+
+async def handle_combine(request):
+    """GET /combine?expr=<expression>&<name>=<query>&...
+
+    Set algebra over the rows of two or more queries, compared on each row's
+    term id.
+
+        /combine?expr=calyx AND lh
+                &calyx=NeuronsPartHere:FBbt_00007401
+                &lh=NeuronsPartHere:FBbt_00007053
+
+    Operators: OR AND NOT XOR NAND NOR XNOR, plus unary NOT, plus brackets, plus
+    plain-English aliases ("but not", "in both", "either but not both") and
+    symbols (| & - ^). Precedence, loosest first: OR/NOR, XOR/XNOR, AND/NAND/NOT
+    — all left-associative. The response echoes the grouping actually used, so a
+    user can check it rather than assume it.
+
+    The answer carries its own explanation: a step-by-step trace with the size
+    of every intermediate set, a one-sentence plain-English reading of the whole
+    expression, and warnings for the three ways a combination is silently wrong
+    (a truncated operand, two sides in different id namespaces, and a complement
+    against an implicit universe).
+    """
+    query_params = request.query
+
+    expr = query_params.get("expr") or query_params.get("expression") \
+        or query_params.get("q")
+    if not expr or not expr.strip():
+        return web.json_response({
+            "error": "Missing required parameter: expr",
+            "example": ("/combine?expr=a AND b"
+                        "&a=NeuronsPartHere:FBbt_00007401"
+                        "&b=NeuronsPartHere:FBbt_00007053"),
+        }, status=400)
+    if len(expr) > MAX_COMBINE_EXPR_LEN:
+        return web.json_response(
+            {"error": f"expr must be at most {MAX_COMBINE_EXPR_LEN} characters"},
+            status=400)
+
+    # ---- operand specs ----
+    specs = {}
+    try:
+        for name in query_params:
+            if name in _COMBINE_RESERVED:
+                continue
+            specs[name] = _parse_operand_spec(name, query_params[name])
+    except combine.CombineError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    if not specs:
+        return web.json_response({
+            "error": "No operands given. Every name in the expression needs a "
+                     "query of its own, e.g. &a=NeuronsPartHere:FBbt_00007401",
+        }, status=400)
+    if len(specs) > MAX_COMBINE_OPERANDS:
+        return web.json_response({
+            "error": f"Too many operands ({len(specs)}); at most "
+                     f"{MAX_COMBINE_OPERANDS} per expression. Each one is a "
+                     "separate query, so this is a limit on how much work one "
+                     "request may ask for. Combine in stages: run part of the "
+                     "expression, then feed its ids back in with 'ids:'.",
+        }, status=400)
+
+    # ---- parse ----
+    try:
+        tree = combine.parse(expr, known_names=set(specs))
+    except combine.CombineError as exc:
+        return web.json_response({"error": str(exc), "expression": expr},
+                                 status=400)
+
+    used = sorted(set(tree.names()))
+    unused = sorted(set(specs) - set(used))
+
+    universe_spec = None
+    if query_params.get("universe"):
+        try:
+            universe_spec = _parse_operand_spec("universe",
+                                                query_params["universe"])
+        except combine.CombineError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
+    # ---- explain without running anything ----
+    # The whole point of the explanation is that a user can check the reading
+    # *before* paying for the queries; explain_only makes that a request of its
+    # own so a client can offer "what will this do?" as a button.
+    if query_params.get("explain_only", "").lower() in ("true", "1", "yes"):
+        return web.json_response({
+            "expression": expr,
+            "as_read": combine.to_expression(tree),
+            "plain_english": combine.plain_english(
+                tree, {n: _StubOperand(n, specs[n]["label"]) for n in used}),
+            "operands": {n: specs[n]["raw"] for n in used},
+            "unused_operands": unused,
+            "universe_note": combine.UNIVERSE_NOTE,
+        })
+
+    try:
+        limit = int(query_params.get("limit", 0) or 0)
+    except ValueError:
+        return web.json_response({"error": "limit must be an integer"},
+                                 status=400)
+    require_complete = query_params.get("require_complete", "").lower() in (
+        "true", "1", "yes")
+
+    # ---- run the operands ----
+    # Concurrently: they are independent, and the alternative is that a
+    # four-operand expression takes four times as long as the slowest one for no
+    # reason. The pool semaphore and the queue-depth guard still bound the work.
+    jobs = [(name, specs[name]) for name in used]
+    if universe_spec is not None:
+        jobs.append(("universe", universe_spec))
+    try:
+        fetched = await asyncio.gather(
+            *[_fetch_operand(request, name, spec) for name, spec in jobs])
+    except Overloaded as exc:
+        return _overloaded_response(exc)
+    except combine.CombineError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except Exception as exc:
+        return _failure_response("Combine failed while running its queries",
+                                 exc, f"combine {expr!r}")
+
+    operands = {name: result for (name, _spec), result in zip(jobs, fetched)}
+    universe_operand = operands.pop("universe", None)
+
+    warnings = []
+    for name in used:
+        operand = operands[name]
+        if not operand.by_id:
+            warnings.append(
+                f"'{name}' ({operand.description}) returned nothing. Anything "
+                "AND-ed with it is empty and anything NOT-ed by it is "
+                "unchanged, so check this query on its own before reading the "
+                "combination as a biological result.")
+        if operand.truncated:
+            message = (
+                f"'{name}' ({operand.description}) was cut short: it has "
+                f"{operand.reported_count} results but only "
+                f"{operand.rows_returned} were returned. Any combination using "
+                "it is unreliable — an AND can silently lose members and a NOT "
+                "can silently keep them. Narrow the query, or re-run with "
+                "require_complete=true to make this an error instead of a "
+                "warning.")
+            if require_complete:
+                return web.json_response(
+                    {"error": message, "operand": name}, status=409)
+            warnings.append(message)
+        if operand.rows_without_id:
+            warnings.append(
+                f"'{name}': {operand.rows_without_id} row(s) had no value in "
+                f"the '{operand.id_column}' column and were left out of the "
+                "comparison.")
+
+    if universe_operand is not None:
+        universe = combine.Universe(
+            universe_operand.ids, "explicit",
+            f"the {len(universe_operand.ids)} terms returned by "
+            f"{universe_spec['label']}")
+        operands["universe"] = universe_operand   # so its columns survive
+    else:
+        universe = combine.implicit_universe(
+            {n: operands[n] for n in used})
+
+    steps = []
+    try:
+        result_ids = combine.evaluate(tree, operands, universe, steps, warnings)
+    except combine.CombineError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    # Column order follows the expression, so the left-hand query's columns come
+    # first — which is what someone reading `calyx AND lh` expects to see.
+    order = list(used) + (["universe"] if universe_operand is not None else [])
+    rows = combine.build_rows(result_ids, operands, order)
+    headers = combine.merge_headers(operands, order, rows)
+    total = len(rows)
+    if limit and limit > 0:
+        rows = rows[:limit]
+
+    if not result_ids and not warnings:
+        warnings.append(
+            "The combination is empty. That can be a real biological result, "
+            "but check the step counts below first: if one side is 0 the query "
+            "itself found nothing, and if both sides are large but the overlap "
+            "is 0 the two queries are probably returning different kinds of "
+            "thing (classes vs individual images, say) that can never match.")
+
+    result = {
+        "expression": expr,
+        "as_read": combine.to_expression(tree),
+        "plain_english": combine.plain_english(tree, operands),
+        "steps": steps,
+        "headers": headers,
+        "rows": rows,
+        "count": total,
+        "operands": {
+            name: {
+                "query": specs[name]["raw"],
+                "description": operands[name].description,
+                "id_column": operands[name].id_column,
+                "rows_returned": operands[name].rows_returned,
+                "distinct_terms": len(operands[name].by_id),
+                "reported_count": operands[name].reported_count,
+                "truncated": operands[name].truncated,
+            } for name in used
+        },
+        "universe": {
+            "source": universe.source,
+            "size": len(universe.ids),
+            "description": universe.description,
+            "note": combine.UNIVERSE_NOTE,
+        },
+    }
+    if unused:
+        result["unused_operands"] = unused
+        warnings.append(
+            "Defined but never used in the expression: "
+            f"{', '.join(unused)}. They were not run.")
+    if limit and limit > 0 and total > limit:
+        result["limit"] = limit
+        result["capped"] = True
+    if warnings:
+        result["warnings"] = warnings
+    return web.json_response(_cap_result_rows(result))
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 
@@ -2189,6 +2691,9 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     # Canonical free-text search (website-equivalent ranking)
     app.router.add_get("/search", handle_search)
     app.router.add_get("/xref", handle_xref)
+
+    # Set algebra over query results
+    app.router.add_get("/combine", handle_combine)
 
     _warn_unreachable_routes(app)
 

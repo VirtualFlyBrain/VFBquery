@@ -150,39 +150,62 @@ if [[ $SKIP_LIVE == 1 ]]; then
 else
     PORT="${VFBQUERY_GATE_PORT:-8971}"
     LOG="$(mktemp -t vfbquery-gate-XXXXXX.log)"
-    # 127.0.0.1 rather than 0.0.0.0: this server is up for the length of a test
-    # run and has no business being reachable from off the box. It also lands
-    # inside the default TRUSTED_NETWORKS, so the security middleware does not
-    # 404 the new paths at us.
-    env PYTHONPATH="$REPO/src" VFBQUERY_WORKERS=2 \
-        python3 -m vfbquery.ha_api --host 127.0.0.1 --port "$PORT" \
-        >"$LOG" 2>&1 &
-    SERVER_PID=$!
-    trap 'kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null' EXIT
 
-    for _ in $(seq 1 60); do
-        curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1 && break
-        kill -0 "$SERVER_PID" 2>/dev/null || break
-        sleep 1
-    done
+    # Every probe gets `--max-time`. Without it, a *wedged* server — one holding
+    # the port and accepting connections but never answering — blocks each curl
+    # indefinitely, and the retry loop below turns that into a hang measured in
+    # minutes with no output. That happens for real: kill this script with
+    # Ctrl-C or a timeout and the EXIT trap does not run for every signal, so
+    # the previous run's server can still own the port on the next one. Two
+    # seconds is far longer than a local /health, which is a dict literal.
+    probe() { curl -fsS --max-time 2 "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; }
 
-    if ! curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
-        results+=("FAIL  live    (server from this checkout never became healthy; log: $LOG)")
-        tail -20 "$LOG" >&2
+    # Refuse to start on an occupied port rather than starting, failing to bind,
+    # and then reporting the *other* process's health as this checkout's. That
+    # misreads either way round: a stale server passes the gate for code that is
+    # no longer there, or a wedged one fails it for code that is fine.
+    if probe || curl -fsS --max-time 2 "http://127.0.0.1:$PORT/" >/dev/null 2>&1; then
+        results+=("FAIL  live    (port $PORT is already serving; stop it, or set VFBQUERY_GATE_PORT)")
         rc=1
     else
-        # -k selects the live set by name: the offline tests already ran as gate
-        # 2, and running them twice would pad the count without adding a check.
-        run "live    (client vs local server)" \
-            env PYTHONPATH="$REPO/clients/vfbquery-client/src" \
-                VFB_LIVE_TESTS=1 VFB_API_BASE="http://127.0.0.1:$PORT" \
-            python3 -m pytest "$REPO/clients/vfbquery-client/tests" -q \
-                -k "live" -p no:cacheprovider
-    fi
+        # 127.0.0.1 rather than 0.0.0.0: this server is up for the length of a
+        # test run and has no business being reachable from off the box. It also
+        # lands inside the default TRUSTED_NETWORKS, so the security middleware
+        # does not 404 the new paths at us.
+        env PYTHONPATH="$REPO/src" VFBQUERY_WORKERS=2 \
+            python3 -m vfbquery.ha_api --host 127.0.0.1 --port "$PORT" \
+            >"$LOG" 2>&1 &
+        SERVER_PID=$!
+        # INT and TERM as well as EXIT: an interrupted run that leaves the
+        # server behind is what makes the *next* run fail on the port check, and
+        # "it worked when I reran it" is a bad way to find that out.
+        trap 'kill "$SERVER_PID" 2>/dev/null; wait "$SERVER_PID" 2>/dev/null' EXIT INT TERM
 
-    kill "$SERVER_PID" 2>/dev/null
-    wait "$SERVER_PID" 2>/dev/null
-    trap - EXIT
+        for _ in $(seq 1 60); do
+            probe && break
+            kill -0 "$SERVER_PID" 2>/dev/null || break
+            sleep 1
+        done
+
+        if ! probe; then
+            results+=("FAIL  live    (server from this checkout never became healthy; log: $LOG)")
+            tail -20 "$LOG" >&2
+            rc=1
+        else
+            # -k selects the live set by name: the offline tests already ran as
+            # gate 2, and running them twice would pad the count without adding
+            # a check.
+            run "live    (client vs local server)" \
+                env PYTHONPATH="$REPO/clients/vfbquery-client/src" \
+                    VFB_LIVE_TESTS=1 VFB_API_BASE="http://127.0.0.1:$PORT" \
+                python3 -m pytest "$REPO/clients/vfbquery-client/tests" -q \
+                    -k "live" -p no:cacheprovider
+        fi
+
+        kill "$SERVER_PID" 2>/dev/null
+        wait "$SERVER_PID" 2>/dev/null
+        trap - EXIT INT TERM
+    fi
 fi
 
 # -----------------------------------------------------------------------------

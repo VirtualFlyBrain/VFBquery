@@ -21,6 +21,7 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /find_combo_publications?id=<resolved_fbco_id>
     GET /list_connectome_datasets
     GET /query_connectivity?upstream_type=<name>&downstream_type=<name>
+    GET /get_hierarchy?id=<VFB id>[&relationship=&direction=&max_depth=]
     GET /search?query=<free_text>                      # canonical website search
     GET /xref?id=<VFB id> | ?accession=<external id>[&db=<site>]
     GET /health
@@ -486,15 +487,15 @@ ALLOWED_PATHS = frozenset({
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
-    "/search", "/xref", "/combine",
+    "/search", "/xref", "/combine", "/get_hierarchy",
 })
-# NB /get_hierarchy and /get_hierarchy_html are registered routes but are absent
-# here, so they 404 for any client outside TRUSTED_NETWORKS. That predates this
-# change and may be deliberate (in-cluster only) — left alone rather than
-# silently widening exposure, because opening a path is a decision about the
-# public surface and not a tidy-up. _warn_unreachable_routes() logs the
-# divergence at startup so it stays visible instead of being rediscovered as a
-# mystery 404.
+# NB /get_hierarchy_html is a registered route and is deliberately absent here,
+# so it 404s for any client outside TRUSTED_NETWORKS. It is not a query — it is
+# the pre-rendered HTML the geppetto site's ROI browser consumes, produced by
+# the same worker /get_hierarchy uses. Publishing it would make one consumer's
+# markup part of the API's compatibility surface for no gain, since the JSON
+# carries the same tree. _warn_unreachable_routes() logs the divergence at
+# startup so it stays visible instead of being rediscovered as a mystery 404.
 
 
 # Trusted internal networks. Traffic from the Rancher/Canal pod network and
@@ -1496,7 +1497,14 @@ async def handle_list_connectome_datasets(request):
 
 
 async def handle_query_connectivity(request):
-    """GET /query_connectivity?upstream_type=X&downstream_type=Y&weight=5&group_by_class=false&exclude_dbs=hb,fafb&include_graph=false"""
+    """GET /query_connectivity?upstream_type=X&downstream_type=Y&weight=5&group_by_class=false&exclude_dbs=hb,fafb&include_graph=false
+
+    A neuron type means itself or any of its subclasses, so ``Kenyon cell``
+    finds Kenyon cells even though nothing is typed directly to that class.
+    ``exclude_dbs`` defaults to ``DEFAULT_EXCLUDE_DBS`` (hemibrain and CATMAID
+    FAFB, both of which double-count against datasets that are kept — see that
+    constant for the reasoning); pass ``exclude_dbs=`` empty for all datasets.
+    """
     upstream = request.query.get("upstream_type") or None
     downstream = request.query.get("downstream_type") or None
     if upstream is None and downstream is None:
@@ -1510,7 +1518,8 @@ async def handle_query_connectivity(request):
     if exclude_dbs_raw is not None:
         exclude_dbs = [s.strip() for s in exclude_dbs_raw.split(",") if s.strip()]
     else:
-        exclude_dbs = ["hb", "fafb"]
+        from .vfb_connectivity import DEFAULT_EXCLUDE_DBS
+        exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
     include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
     force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
 
@@ -1577,6 +1586,11 @@ async def handle_get_hierarchy_html(request):
     """GET /get_hierarchy_html?id=FBbt_00005801&relationship=part_of&direction=both&max_depth=1
 
     Serves the hierarchy as a self-contained HTML page (Content-Type: text/html).
+
+    This is a rendering wrapper over the same worker :func:`handle_get_hierarchy`
+    uses, written for the geppetto site's ROI browser. It is intentionally not in
+    ``ALLOWED_PATHS``: the markup is one consumer's presentation detail, and
+    anything else wanting the tree should take the JSON.
     """
     short_form = request.query.get("id")
     if not short_form:

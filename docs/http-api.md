@@ -24,6 +24,7 @@ Until they are, run the service locally to use them:
 | `/resolve_entity`, `/resolve_combination` | FlyBase-Chado exact resolution (features, genotypes). Not a search — see the note below. |
 | `/find_stocks`, `/find_combo_publications` | Stock and publication lookups for a resolved entity or combination. |
 | `/list_connectome_datasets` | The connectome datasets currently loaded. |
+| `/get_hierarchy` | The `part_of` or `subclass_of` tree around a term, up, down or both. |
 | `/health`, `/status` | Liveness, version, pool and cache statistics. |
 
 ```{admonition} `/resolve_entity` is not the search endpoint
@@ -34,9 +35,10 @@ It is tiered exact→synonym→broad resolution against FlyBase-Chado, for FlyBa
 called". Use `/search`.
 ```
 
-`/get_hierarchy` and `/get_hierarchy_html` are registered routes but are absent from the service's
-`ALLOWED_PATHS`, so they return 404 to anything outside the cluster network. That is longstanding and
-is left as it is; whether to publish them is an open question, not an oversight.
+There is a second hierarchy route, `/get_hierarchy_html`, which returns the same tree as a rendered
+HTML page. It stays inside the cluster network (it is not in `ALLOWED_PATHS`, so it 404s from
+outside) because it exists to serve one consumer — the ROI browser on the geppetto site — and its
+markup is that consumer's presentation, not an API contract. The JSON carries the same tree.
 
 ## `/get_term_info`
 
@@ -66,6 +68,96 @@ GET /run_query?id=FBbt_00007401&query_type=NeuronsPartHere
 The response is a table: `headers` (one entry per column, carrying a `title`, a `type` and an
 `order`), `rows`, and `count`. **`count` is the number of results that exist, which is not always the
 number of rows returned** — see [Partial answers](#partial-answers).
+
+## `/query_connectivity`
+
+```
+GET /query_connectivity?upstream_type=DA1 lPN&downstream_type=Kenyon cell
+```
+
+| Parameter | |
+|---|---|
+| `upstream_type`, `downstream_type` | Neuron type labels, synonyms or FBbt ids. **At least one is required**; giving one asks "everything downstream of / upstream of this". |
+| `weight` | Minimum synapse count for a connection to be reported. Default 5. |
+| `group_by_class` | `true` aggregates to one row per class pair, with `pairwise_connections`, `average_weight` and `percent_connected`. Default is one row per neuron pair. |
+| `exclude_dbs` | Comma-separated dataset symbols to leave out. Defaults to `hb,fafb` — see below. Pass `exclude_dbs=` (empty) for every dataset. |
+| `include_graph` | Attach a graph structure alongside the table. |
+| `force_refresh` | Bypass the cache. |
+
+### A type means its subclasses too
+
+Asking for `Kenyon cell` asks for Kenyon cells *and every class beneath it*. This is not a
+convenience: in FBbt the classes people name are usually not the classes individual neurons are
+typed to. `Kenyon cell` (`FBbt_00003686`) has **zero** directly-typed instances — all ~16,000 hang
+off its 38 subclasses — so matching the named class alone answers the most obvious question in the
+mushroom body with an empty table, which reads as "these cells are not connected".
+
+The response says what it did, in a `resolved` block: which term each label was taken to mean, how
+many classes the expansion covered, and how many individuals those classes hold. Worth reading when
+a count surprises you.
+
+```json
+"resolved": {
+  "upstream":   {"query": "DA1 lPN", "id": "FBbt_00067363",
+                 "label": "adult antennal lobe projection neuron DA1 lPN",
+                 "classes_searched": 1, "instances": 68},
+  "downstream": {"query": "Kenyon cell", "id": "FBbt_00003686", "label": "Kenyon cell",
+                 "classes_searched": 38, "instances": 15994}
+}
+```
+
+Labels resolve through exact match, then case-insensitive, then exact synonym, then — as a last
+resort — the only term containing the string. That last tier is what makes `DA1 lPN` find *adult
+antennal lobe projection neuron DA1 lPN*, and when it fires it says so in `warnings`. Two or more
+candidates are never guessed between: the error lists them.
+
+### How long a broad type takes
+
+Expansion makes some questions large. `DA1 lPN → Kenyon cell` is 68 individuals against 15,994 and
+answers in about 5s; `Tm1 → T3` is 4,915 against 5,430 and has been measured between 30 and 60s on a
+cold cache. The query is driven from whichever side has fewer individuals, which is worth several
+times the difference on an asymmetric pair, but a genuinely big walk is a genuinely big walk.
+
+The result is cached, so only the first caller waits — which is why the client's read timeout
+defaults to 180s rather than 60s. A workshop room asking the same broad question at the same second
+coalesces onto one query rather than 80.
+
+### Why `hb` and `fafb` are excluded by default
+
+Both are good data. The reason is **double-counting**, and it is about the shape of the answer
+rather than the quality of the source:
+
+`fafb` (VFB CATMAID Adult Brain) and `fw` (FlyWire v783) are two reconstructions of *the same EM
+volume*. A neuron traced in both appears twice, so a connection found in both is counted twice, and
+"how many partners does this cell have" silently doubles for the cells that happen to have been
+traced in both. FlyWire is the proofread whole-brain segmentation of that volume, so it is the one
+kept.
+
+`hb` (hemibrain v1.2.1) is a partial volume — one hemisphere of one female brain — largely
+superseded for whole-brain questions by `fw` and `mc` (male CNS v0.9). Its cells overlap heavily in
+*type* with those two without being the *same* cells, which inflates per-type counts in a way that is
+easy to misread as biological variation.
+
+The cost of this default is that a plain query does not reproduce a published hemibrain figure. To
+do that, name the dataset you want by excluding the others, or pass `exclude_dbs=` to get everything
+and deduplicate yourself. `/list_connectome_datasets` gives the symbols.
+
+## `/get_hierarchy`
+
+```
+GET /get_hierarchy?id=FBbt_00005801&relationship=part_of&direction=both&max_depth=1
+```
+
+| Parameter | |
+|---|---|
+| `id` | **Required.** A VFB short_form. |
+| `relationship` | `part_of` (default) or `subclass_of`. |
+| `direction` | `descendants`, `ancestors`, or `both` (default). |
+| `max_depth` | How many steps out from the term. Default 1. |
+
+This is the query behind the ROI browser on the VFB site: "what is inside the mushroom body, and
+what is the mushroom body inside of". `part_of` walks anatomical containment, `subclass_of` walks the
+ontology. Depth is worth keeping small — `part_of` descendants of a large region fan out quickly.
 
 ## `/search`
 

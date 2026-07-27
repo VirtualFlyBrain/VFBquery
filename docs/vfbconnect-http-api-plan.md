@@ -16,11 +16,11 @@ endpoints. We add those and a thin pure-`requests` client; we do **not** reimple
 
 - **Endpoints:** `/get_term_info`, `/run_query?id=&query_type=`, `/query_connectivity`,
   `/resolve_entity`, `/resolve_combination`, `/find_stocks`, `/find_combo_publications`,
-  `/list_connectome_datasets`, `/health`, `/status`. (`/get_hierarchy` and `/get_hierarchy_html` are
-  registered routes too, but they are absent from `ALLOWED_PATHS`, so they 404 for anything outside
-  `TRUSTED_NETWORKS` — in-cluster only, in effect. That predates this branch; `_warn_unreachable_routes`
-  now logs the divergence at startup rather than leaving it to be rediscovered as a mystery 404, and
-  whether to publish them is an open question below, not a tidy-up.)
+  `/list_connectome_datasets`, `/get_hierarchy`, `/health`, `/status`. (`/get_hierarchy` was a
+  registered route absent from `ALLOWED_PATHS` — in-cluster only, in effect — and is published in
+  this branch; see the resolved item below. `/get_hierarchy_html` remains in-cluster.
+  `_warn_unreachable_routes` logs any such divergence at startup rather than leaving it to be
+  rediscovered as a mystery 404.)
 - **~40 `run_query` query_types**, incl. `ListAllAvailableImages` (=instances), `SubclassesOf`,
   `PartsOf`, `NeuronsPartHere/Synaptic/Pre|PostsynapticHere/CapableOf`,
   `Up|DownstreamClassConnectivity`, `NeuronNeuronConnectivityQuery`, `NeuronInputsTo`,
@@ -306,10 +306,12 @@ coalescing + the 5-min result cache collapse them to ~1 backend hit each. Theref
     invisible to the parity gate.
 
 **Still open:**
-2. **`/get_hierarchy` and `/get_hierarchy_html`** — registered routes that are not in `ALLOWED_PATHS`,
-   so they answer in-cluster and 404 for everyone else (§1). Deliberate, or an omission? Left as found:
-   opening a path is a decision about the public surface, not a tidy-up. `_warn_unreachable_routes`
-   logs the divergence at startup so the question stays visible.
+2. ~~**`/get_hierarchy` and `/get_hierarchy_html`**~~ — **resolved.** `/get_hierarchy` is now in
+   `ALLOWED_PATHS`: it is an ordinary query — the `part_of` or `subclass_of` tree around a term —
+   and nothing about it needed to be private beyond nobody having asked. `/get_hierarchy_html` stays
+   in-cluster: it is the pre-rendered markup the geppetto site's ROI browser consumes, produced by
+   the same worker, so publishing it would make one consumer's HTML part of the API's compatibility
+   surface for no gain. `_warn_unreachable_routes` still logs the remaining divergence at startup.
 3. **Deploy target** — extend the `ha_api` image/replica, or a sibling service sharing the Solr cache?
 4. **Auth / rate-limit policy** for a public endpoint (per-IP is probably enough for a workshop).
 5. **Scene feature scope** — link-only for now, or commit to server-side render?

@@ -25,9 +25,9 @@ vfb = VfbClient()          # https://v3-cached.virtualflybrain.org, or $VFB_API_
 vfb.search("DA1 lPN")                              # ranked hits, website order
 vfb.term("FBbt_00067363")                          # TermInfo (dict)
 vfb.get_instances("adult antennal lobe projection neuron DA1 lPN")   # 68-row DataFrame
-vfb.get_connected_neurons_by_type(                 # Tm1 -> T3, >=60 synapses
-    upstream_type="transmedullary neuron Tm1",
-    downstream_type="T3 neuron", weight=60)
+vfb.get_connected_neurons_by_type(                 # giant fiber -> PSI, >=50 synapses
+    upstream_type="giant fiber neuron",
+    downstream_type="peripherally synapsing interneuron", weight=50)
 vfb.get_similar_neurons("VFB_jrchjtdb")            # NBLAST matches, sorted by score
 vfb.get_transcriptomic_profile("Kenyon cell")      # scRNAseq profile
 vfb.get_vfb_link(["VFB_jrchjtdb", "VFB_fw035286"]) # shareable 3D-scene link
@@ -108,18 +108,29 @@ the threshold that ran. Its default is 5 — the server's own — rather than 0:
 does not mean "unfiltered", it means the server picks, so a client default of 0 would be a promise
 the client cannot keep.
 
-A type the server cannot resolve is a **warning plus zero rows**, not an error. Zero rows on their
-own are ambiguous — a misspelt type and a genuinely unconnected pair look identical — so those
-warnings are re-raised as Python `UserWarning`s rather than dropped:
+**A type means its subclasses too.** `"Kenyon cell"` finds Kenyon cells, even though not one of the
+~16,000 of them is typed to that class — they all sit under its 38 subclasses. Without that
+expansion the most obvious question in the mushroom body returns an empty table, which reads as "not
+connected" rather than "you named a parent class". Short names work too: `"DA1 lPN"` resolves to
+*adult antennal lobe projection neuron DA1 lPN* as the only term containing it, and says so.
 
 ```python
->>> vfb.get_connected_neurons_by_type("DA1 lPN", "Kenyon cell")
-UserWarning: query_connectivity: Neuron type not found in VFB: 'DA1 lPN'.
-             Use list_connectome_datasets() or check spelling.
+>>> vfb.get_connected_neurons_by_type("DA1 lPN", "Kenyon cell")     # 1504 rows
+UserWarning: query_connectivity: 'DA1 lPN' is not a VFB term; matched the only term
+             containing it: 'adult antennal lobe projection neuron DA1 lPN' (FBbt_00067363).
 ```
 
-Note that this endpoint wants a name the connectivity index knows, which is not always the term
-label search would return — the warning is how you find that out.
+Two or more candidates are never guessed between — the error lists them so you can pick. A type the
+server cannot resolve at all is a **warning plus zero rows**, not an error, because zero rows on
+their own are ambiguous: a misspelt type and a genuinely unconnected pair look identical.
+
+**Two connectome datasets are excluded by default**, `hb` (hemibrain) and `fafb` (CATMAID FAFB). The
+reason is double-counting rather than data quality. FAFB and FlyWire are two reconstructions of the
+same EM volume, so a cell traced in both is counted twice and partner counts silently double;
+FlyWire is the proofread one and is the one kept. Hemibrain is one hemisphere of one brain whose
+cells overlap in *type* with FlyWire and male-CNS without being the *same* cells, which inflates
+per-type counts in a way that looks like biological variation. Pass `exclude_dbs=[]` for everything,
+or exclude the others to isolate one dataset — reproducing a published hemibrain figure needs that.
 
 ### Warnings mean "this answer may be incomplete"
 

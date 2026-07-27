@@ -78,7 +78,18 @@ class VfbError(RuntimeError):
 
 
 class VfbClient:
-    def __init__(self, base_url: Optional[str] = None, timeout: int = 60,
+    #: Read timeout in seconds. 180 rather than 60 because of connectivity: a
+    #: broad neuron type expands over its subclasses into thousands of
+    #: individuals, and a cold `Tm1 -> T3` (4,915 against 5,430) has been
+    #: measured at 30-60s end to end. The server caches the answer, so it is
+    #: only ever the first caller who waits — but a default that times that
+    #: caller out turns a slow query into an apparent outage, and the failure
+    #: lands on whoever asked the broad question first, which in a workshop is
+    #: everyone at once.
+    DEFAULT_TIMEOUT = 180
+
+    def __init__(self, base_url: Optional[str] = None,
+                 timeout: int = DEFAULT_TIMEOUT,
                  session: Optional[requests.Session] = None):
         self.base_url = (base_url or default_base_url()).rstrip("/")
         self.timeout = timeout
@@ -252,15 +263,38 @@ class VfbClient:
                                      query_type="SubclassesOf"))
 
     # ---- connectivity ----------------------------------------------------
-    def get_connected_neurons_by_type(self, upstream_type: str, downstream_type: str,
-                                       weight: int = DEFAULT_CONNECTIVITY_WEIGHT
+    def get_connected_neurons_by_type(self, upstream_type: Optional[str] = None,
+                                       downstream_type: Optional[str] = None,
+                                       weight: int = DEFAULT_CONNECTIVITY_WEIGHT,
+                                       group_by_class: bool = False,
+                                       exclude_dbs: Optional[Iterable[str]] = None,
                                        ) -> pd.DataFrame:
         """Type -> type synaptic connections (GET /query_connectivity).
+
+        Either side may be omitted, which asks the open-ended question:
+        everything downstream of a type, or everything upstream of it.
+
+        **A type includes its subclasses.** ``"Kenyon cell"`` finds Kenyon
+        cells, though none of the ~16,000 of them is typed to that class — they
+        hang off its subclasses. The server does the expansion and reports what
+        it covered.
 
         ``weight`` is the minimum synapse count and is applied **server-side**;
         the default matches the server's own so the threshold in the signature is
         the threshold that ran. Filtering here instead would be a second, weaker
         filter on top of an unstated one.
+
+        ``group_by_class`` aggregates to one row per class pair, with
+        ``percent_connected`` and ``average_weight``, rather than one row per
+        pair of neurons.
+
+        ``exclude_dbs`` names connectome datasets to leave out, by symbol. The
+        default — ``None``, meaning the server's own — drops ``hb`` and
+        ``fafb``, which **double-count** against datasets that are kept rather
+        than being poor data: FAFB and FlyWire reconstruct the same EM volume,
+        and hemibrain overlaps in type with FlyWire and male-CNS. Pass ``[]``
+        for every dataset, or exclude the others to isolate one; reproducing a
+        published hemibrain figure needs that.
 
         A type the server could not resolve comes back as a warning rather than
         an error, and an unresolved type is indistinguishable from a genuinely
@@ -268,10 +302,19 @@ class VfbClient:
         Python warnings instead of being dropped. That happens in ``_get`` for
         every endpoint, not here.
         """
+        if upstream_type is None and downstream_type is None:
+            raise ValueError(
+                "At least one of upstream_type or downstream_type is required.")
+        # An empty list has to reach the server as an empty value rather than be
+        # dropped as absent: "exclude nothing" and "use your default" are
+        # different requests, and _get drops only None.
+        dbs = None if exclude_dbs is None else ",".join(exclude_dbs)
         return self._to_df(self._get("query_connectivity",
                                      upstream_type=upstream_type,
                                      downstream_type=downstream_type,
-                                     weight=weight))
+                                     weight=weight,
+                                     group_by_class=str(group_by_class).lower(),
+                                     exclude_dbs=dbs))
 
     def get_neuron_connectivity(self, neuron_id: str) -> pd.DataFrame:
         """Per-individual partners (run_query NeuronNeuronConnectivityQuery)."""

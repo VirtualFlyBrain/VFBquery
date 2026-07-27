@@ -100,10 +100,45 @@ def test_connectivity_sends_weight_to_the_server(monkeypatch):
     VfbClient().get_connected_neurons_by_type("Tm1", "T3 neuron", weight=60)
     assert seen["path"] == "query_connectivity"
     assert seen["params"] == {"upstream_type": "Tm1",
-                              "downstream_type": "T3 neuron", "weight": 60}
+                              "downstream_type": "T3 neuron", "weight": 60,
+                              "group_by_class": "false", "exclude_dbs": None}
 
     VfbClient().get_connected_neurons_by_type("Tm1", "T3 neuron")
     assert seen["params"]["weight"] == 5      # the server's own default
+
+
+def test_excluding_nothing_is_not_the_same_as_saying_nothing(monkeypatch):
+    """`exclude_dbs=[]` and omitting it are different requests.
+
+    Omitted means "use the server's default", which drops hemibrain and CATMAID
+    FAFB because they double-count against datasets that are kept. `[]` means
+    "every dataset", which is what reproducing a published hemibrain figure
+    needs. `_get` drops only `None`, so the empty list has to reach the wire as
+    an empty value rather than be filtered out with it.
+    """
+    seen = {}
+
+    def fake_get(self, path, **params):
+        seen.update(params)
+        return {"connections": [], "warnings": [], "count": 0}
+
+    monkeypatch.setattr(VfbClient, "_get", fake_get, raising=True)
+
+    VfbClient().get_connected_neurons_by_type("Tm1", "T3 neuron")
+    assert seen["exclude_dbs"] is None                  # server default applies
+
+    VfbClient().get_connected_neurons_by_type("Tm1", "T3 neuron", exclude_dbs=[])
+    assert seen["exclude_dbs"] == ""                    # explicit "exclude nothing"
+
+    VfbClient().get_connected_neurons_by_type("Tm1", "T3 neuron",
+                                              exclude_dbs=["fw", "mc"])
+    assert seen["exclude_dbs"] == "fw,mc"
+
+
+def test_connectivity_needs_at_least_one_type():
+    """One-sided is a legitimate question; no-sided is not."""
+    with pytest.raises(ValueError, match="At least one"):
+        VfbClient().get_connected_neurons_by_type()
 
 
 def test_server_warnings_reach_the_caller_from_any_endpoint(monkeypatch):
@@ -478,18 +513,28 @@ def test_live_get_instances_da1lpn():
 @pytest.mark.skipif(os.environ.get("VFB_LIVE_TESTS") != "1",
                     reason="set VFB_LIVE_TESTS=1 to run live v3-cached tests")
 def test_live_connectivity_filters_server_side():
-    """The pair the README documents, against the real service.
+    """`weight` reaches the server, against the real service.
 
     Asserted on the *threshold* rather than a row count: the underlying
     connectome data is versioned and rows come and go, but no row may ever be
     below the weight that was asked for. If `weight` stopped reaching the
     server this fails even though the frame still looks plausible.
+
+    The pair is deliberately a small one — the giant fiber against its PSI
+    target, 8 individuals to 6, about a second. It used to be Tm1 to T3, which
+    is 4,915 individuals against 5,430 and takes 30-60s on a cold cache:
+    latency that close to the client's own read timeout makes this gate fail
+    for being slow rather than for being wrong, and what it is here to check is
+    that the parameter arrives, not how fast Neo4j walks half the optic lobe.
+    Subclass expansion against the live database is covered by the server-side
+    suite (``src/test/test_vfb_connectivity.py``), which is where the types big
+    enough to need it belong.
     """
     df = VfbClient().get_connected_neurons_by_type(
-        upstream_type="transmedullary neuron Tm1",
-        downstream_type="T3 neuron", weight=60)
+        upstream_type="giant fiber neuron",
+        downstream_type="peripherally synapsing interneuron", weight=50)
     assert not df.empty
-    assert df["weight"].min() >= 60
+    assert df["weight"].min() >= 50
 
 
 @pytest.mark.skipif(os.environ.get("VFB_LIVE_TESTS") != "1",

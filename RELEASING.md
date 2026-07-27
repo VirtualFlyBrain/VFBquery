@@ -38,6 +38,34 @@ That's it — the `Publish 🐍 📦 to PyPI` workflow
 So after a release, **`main` reflects the released version** too — you don't have
 to bump it by hand.
 
+## Documentation
+
+The documentation site at <https://vfbquery.readthedocs.io> is built by Read the
+Docs from `.readthedocs.yaml` and `docs/conf.py`, and needs nothing added to the
+release procedure above: RTD builds `latest` from every push to `main` and
+`stable` from every tag, so cutting a release publishes the matching docs on its
+own.
+
+Two details are worth knowing when a release does something unexpected:
+
+- **The docs version comes from `_version.py` as well.** `docs/conf.py` reads it
+  the same way `setup.py` does, so the site header and the `{{ release }}`
+  substitution on the landing page name the version being documented. Since the
+  publish workflow rewrites `_version.py` *and* commits it back to `main`, both
+  `stable` and `latest` end up correct without a second bump.
+- **`stable` is what PyPI links to.** The `Documentation` URL in `setup.py`'s
+  `project_urls` (and in the client's `pyproject.toml`) points at `/en/stable/`,
+  because somebody arriving from PyPI has installed the released version, not
+  `main`. If a documentation fix needs to reach them before the next release, it
+  has to go out as a release — merging it to `main` only updates `latest`.
+
+The build treats warnings as errors (`fail_on_warning` in `.readthedocs.yaml`,
+`-W` in the docs workflow), so a broken cross-reference fails the build rather
+than shipping a dead link. `docs/_root/` is generated at build time — `conf.py`
+copies the repo-root markdown into it — and is gitignored; do not commit it, and
+do not fix a docs-only problem by editing `README.md`, which is itself generated
+(see the note at the top of `docs/conf.py`).
+
 ## Cache warming after a release
 
 A minor/major bump invalidates the previous version's cache entries

@@ -22,3 +22,10 @@ temp_examples_output.txt
 json_block_*.json
 .idea/
 src/.DS_Store
+
+# Sphinx. `docs/_root/` holds build-time copies of the repo-root markdown
+# (README, CACHING, …) made by docs/conf.py — generated, never edited, and
+# committing them would create a second copy of README.md that drifts from the
+# generated one.
+docs/_build/
+docs/_root/

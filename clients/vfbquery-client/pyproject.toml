@@ -17,7 +17,15 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://virtualflybrain.org"
+# The client has no docs site of its own — it is documented alongside the
+# service it calls, because most of what a caller needs to know (which endpoints
+# exist, what `warnings` in a payload means, how `/combine` expressions are
+# written) is service behaviour the client only passes through. Deep-linked to
+# the client page rather than the site root so a PyPI visitor lands on the
+# section about the thing they installed.
+Documentation = "https://vfbquery.readthedocs.io/en/stable/python-client.html"
 Source = "https://github.com/VirtualFlyBrain/VFBquery"
+Issues = "https://github.com/VirtualFlyBrain/VFBquery/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=7"]

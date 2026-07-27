@@ -44,6 +44,13 @@ setup(
     ],
     python_requires=">=3.7",
     project_urls={  # Optional
+        # PyPI renders the 'Documentation' key as the Documentation link in the
+        # project sidebar, which is how somebody who found the package there
+        # reaches the Read the Docs site. Pointed at /stable, not /latest:
+        # /stable is built from the newest tag — the version they have just
+        # installed — while /latest tracks `main` and would document code that
+        # is not in their release yet.
+        'Documentation': 'https://vfbquery.readthedocs.io/en/stable/',
         'Bug Reports': 'https://github.com/VirtualFlyBrain/VFBquery/issues',
         'Source': 'https://github.com/VirtualFlyBrain/VFBquery'
     },

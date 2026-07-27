@@ -1,0 +1,13 @@
+# Documentation build only — not a runtime dependency of vfbquery or of the
+# client. Read the Docs installs this (see .readthedocs.yaml), and so does the
+# docs CI job (docs/ci/docs.yml).
+#
+# Upper bounds are deliberate. `fail_on_warning` is on, so a new Sphinx or MyST
+# minor that adds a warning category turns a docs build red on a day nobody
+# touched the docs. Pinning the major means that happens when someone bumps
+# this file and can look at it, rather than on an unrelated pull request.
+
+sphinx>=7.2,<10
+myst-parser>=2.0,<5
+furo>=2024.1
+sphinx-copybutton>=0.5

@@ -627,13 +627,28 @@ class TermInfoQueriesTest(unittest.TestCase):
         # observed up to ~45s uncached on loaded infra, so the cache-disabled
         # budget is generous — it guards against true hangs / runaway queries
         # rather than enforcing a tight latency SLA on the live path.
+        #
+        # The cache-disabled budget was 60s single / 90s total and that was too
+        # tight to be a hang guard: it was sitting on top of the real
+        # distribution rather than above it. VFB_00101567 is JRC2018Unisex, the
+        # busiest template, and its term-info preview is dominated by
+        # get_all_aligned_images, which on the raw (uncached) path recomputes the
+        # template's entire aligned-image id list just to return 10 preview rows
+        # — ~18s of a 27.5s call when the infra is quiet. Three consecutive
+        # uncached runs measured 25.1s / 56.6s / 58.0s, and CI drew 61.2s
+        # (Python Package using Conda #1129), so the old ceiling was failing
+        # roughly on a coin flip with nothing wrong. 120s single / 180s total
+        # clears the observed spread with headroom while still tripping well
+        # before SUBQUERY_TIMEOUT_S (600s), which is where a genuine hang lands.
+        # If the aligned-images preview is ever changed to take a bounded count
+        # instead of materialising every id, these can come back down.
         cache_enabled = os.environ.get("VFBQUERY_CACHE_ENABLED", "true").lower() != "false"
         if cache_enabled:
             max_single_query_time = 10.0
             max_total_time = 10.0
         else:
-            max_single_query_time = 60.0
-            max_total_time = 90.0
+            max_single_query_time = 120.0
+            max_total_time = 180.0
 
         self.assertLess(duration_1, max_single_query_time,
                        f"FBbt_00003748 query took {duration_1:.4f}s, exceeding {max_single_query_time}s threshold "

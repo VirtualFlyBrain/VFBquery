@@ -5,6 +5,10 @@ to setup requirements:
 pip install --upgrade vfbquery
 ```
 
+📖 **Full documentation: [vfbquery.readthedocs.io](https://vfbquery.readthedocs.io/en/stable/)** — the
+HTTP API, the `/combine` set-algebra reference, the lightweight `vfbquery-client` package, and the
+query catalogue, all rendered and cross-linked. This README is the quick start.
+
 ## 🚀 Performance & Caching
 
 VFBquery includes intelligent SOLR-based caching for optimal performance:

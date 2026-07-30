@@ -1,32 +1,28 @@
-"""Shared setup for the integration test suite.
+"""Shared pytest setup for the test suite.
 
-The one job here is to make the Neo4j client fail fast under test. The library's
-defaults are tuned for a person at a REPL, who would rather wait than be told to
-try again; a CI job wants the opposite. The upstream at
-pdb.virtualflybrain.org intermittently stops answering for minutes at a time,
-and with the library defaults a single statement caught in that can spend
-several minutes retrying before it gives up — multiplied across the connectivity
-suite, that is the difference between a job that fails in a readable way and one
-the runner kills at its own ceiling with nothing to show for it.
+The Neo4j fail-fast defaults these tests need live in ``src/test/__init__.py``
+rather than here, because not every job runs pytest — the conda workflow drives
+the suite through ``unittest``, which imports ``src.test.<module>`` and never
+reads a conftest. Importing the package is the one thing both runners do.
 
-These are read at import time by ``vfbquery.neo4j_client``, so they are set
-here — conftest is imported before any test module — and only when not already
-set, so a workflow or a developer can still override them from the environment.
+This file re-applies them anyway, so the settings do not depend on pytest having
+imported the parent package first. It is a no-op when it has, because the
+underlying call uses ``os.environ.setdefault``.
 """
-import os
+try:
+    from . import apply_test_neo4j_defaults
+except ImportError:  # collected without the package, e.g. rootdir-relative
+    import os
 
-#: Fail-fast Neo4j settings for tests. Deliberately much tighter than the
-#: library defaults (120s read, 3 retries): a healthy connectivity query against
-#: production returns in a couple of seconds, so 45s is already far beyond
-#: normal, and one retry is enough to ride out a dropped connection without
-#: turning a dead upstream into minutes of waiting per statement.
-_TEST_NEO4J_DEFAULTS = {
-    "VFBQUERY_NEO4J_CONNECT_TIMEOUT_S": "10",
-    "VFBQUERY_NEO4J_READ_TIMEOUT_S": "45",
-    "VFBQUERY_NEO4J_MAX_RETRIES": "1",
-    "VFBQUERY_NEO4J_RETRY_BACKOFF_S": "2",
-    "VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S": "10",
-}
+    def apply_test_neo4j_defaults():
+        for name, value in {
+            "VFBQUERY_NEO4J_CONNECT_TIMEOUT_S": "10",
+            "VFBQUERY_NEO4J_READ_TIMEOUT_S": "45",
+            "VFBQUERY_NEO4J_MAX_RETRIES": "1",
+            "VFBQUERY_NEO4J_RETRY_BACKOFF_S": "2",
+            "VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S": "10",
+        }.items():
+            os.environ.setdefault(name, value)
 
-for _name, _value in _TEST_NEO4J_DEFAULTS.items():
-    os.environ.setdefault(_name, _value)
+
+apply_test_neo4j_defaults()

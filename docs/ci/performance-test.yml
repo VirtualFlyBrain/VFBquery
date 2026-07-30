@@ -149,10 +149,25 @@ jobs:
           # pushed after a bad run must not be validated against entries the
           # bad code wrote.
           #
+          # Unconditional, unlike the two steps above. Those vary by event
+          # because on push and schedule they deliberately write the production
+          # cache to keep it warm for the deployed service. This step never did
+          # — it ran with the cache off on every event — so there is nothing to
+          # preserve here: namespacing it on every event takes nothing away
+          # from production warming and gives push and scheduled runs the same
+          # warm retry a pull request gets.
+          #
+          # This is NOT a fix for the runs currently timing out. #743 to #748
+          # were all cancelled at 2h05 on the 120-minute ceiling, but this
+          # workflow file is byte-identical to the one that finished in ~7
+          # minutes at 73b919d, so that regression came in with the code merged
+          # in 2c29b33 (PR #82) and has to be found there. A warm retry cannot
+          # rescue a job whose first attempt does not finish.
+          #
           # Net effect: attempt 1 is as slow as today; the auto-retry below,
           # which is where the doubling cost lives, is warm.
-          VFBQUERY_CACHE_ENABLED: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
-          VFBQUERY_CACHE_NAMESPACE: ${{ github.event_name == 'pull_request' && format('ci-{0}', github.sha) || '' }}
+          VFBQUERY_CACHE_ENABLED: 'true'
+          VFBQUERY_CACHE_NAMESPACE: ci-${{ github.sha }}
           VFBQUERY_CACHE_NAMESPACE_FALLBACK: 'false'
           VFBQUERY_CACHE_TTL_HOURS: '12'
           VFBQUERY_CACHE_READONLY: 'false'

@@ -5,8 +5,8 @@ runs against the shared production Neo4j, and CI runs them with the SOLR result
 cache disabled, so each call is paid in full. Two rules keep that affordable:
 
 * Prefer small classes. ``giant fiber neuron`` (8 individuals) and
-  ``peripherally synapsing interneuron`` (6) are used wherever the assertion
-  does not depend on the class being large.
+  ``giant fiber coupled neuron 2`` (30) are used wherever the assertion does
+  not depend on the class being large.
 * Where a large class is the point — ``Kenyon cell`` has no individuals of its
   own and ~16,000 under its subclasses, which is exactly what the subclass
   expansion tests exist to check — ask for it with ``group_by_class=True``.
@@ -21,10 +21,20 @@ import pytest
 
 from vfbquery.vfb_connectivity import list_connectome_datasets, query_connectivity
 
-#: A small, stable pair: 8 and 6 connectivity individuals respectively, one
-#: class each, no subclasses. Cheap enough to query several times.
+#: A small, stable pair: 8 and 30 connectivity individuals respectively, one
+#: class each, no subclasses. Cheap enough to query several times — the two
+#: sides give 42 connections under the default excludes in well under two
+#: seconds.
+#:
+#: The downstream side is deliberately not ``peripherally synapsing
+#: interneuron``, which reads like the obvious partner for the giant fiber and
+#: was used here until it was actually measured. Every one of its 17
+#: connections to ``giant fiber neuron`` lives in ``hb`` or ``fafb``, so
+#: ``DEFAULT_EXCLUDE_DBS`` removes all of them and the pair answers 0 —
+#: silently, since an empty table is a valid answer. A fixture for this file
+#: has to be checked against the *default* excludes, not merely shown to exist.
 KNOWN_UPSTREAM = "giant fiber neuron"
-KNOWN_DOWNSTREAM = "peripherally synapsing interneuron"
+KNOWN_DOWNSTREAM = "giant fiber coupled neuron 2"
 
 #: The subclass-expansion pair. DA1 lPN has 68 individuals; Kenyon cell has none
 #: of its own and ~16,000 across 38 subclasses. Only ever queried grouped.

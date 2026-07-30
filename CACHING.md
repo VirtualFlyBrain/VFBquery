@@ -257,6 +257,22 @@ separate collection with `VFBQUERY_SOLR_URL` instead.
 | `VFBQUERY_MAX_RESULT_MB` | 100 | Refuse to cache a payload larger than this. |
 | `VFBQUERY_FACET_VOCAB_TTL` | 3600 | How long `/facets` and the type-name validator hold the vocabulary. |
 | `VFBQUERY_PREVIEW_WARM_COOLDOWN` | 300 | How long before re-warming a term whose previews came back incomplete. |
+| `VFBQUERY_COMPUTE_BUDGET` | 180 | How long an HTTP handler waits for a computation before answering `503 status:"computing"`. The computation is **not** cancelled — it keeps running and writes to the cache, so the retry the 503 asks for is the cheap one. Set to `0` to wait indefinitely (the pre-1.22.36 behaviour, minus the cancellation). |
+
+### The compute budget and the cache
+
+`VFBQUERY_COMPUTE_BUDGET` is a caching setting more than a timeout one, which is why it is documented
+here. Before 1.22.36 the worker ran inline in the request coroutine, so anything that cancelled the
+request — a client hanging up, a proxy giving up, a handler timing out — killed the computation
+mid-flight with nothing written to the cache. The next caller started the same minutes-long query from
+scratch, and so did the one after that; a query slow enough to lose one client was a query that could
+never finish for anybody. Every request coalesced onto the same key was woken with "Request aborted,
+please retry" and pointed back at exactly that query.
+
+The computation now runs as a detached task that owns the coalescing future and the cache write, and
+the handler keeps only the *waiting*, which is the part that should be cancellable. So the budget
+bounds how long a caller waits, not how long the work runs, and the first slow request is what warms
+the entry for everyone behind it.
 
 ## Performance Benefits
 

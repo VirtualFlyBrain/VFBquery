@@ -233,14 +233,24 @@ def _db_filter_predicate(var, exclude_dbs):
 def list_connectome_datasets():
     """List available connectome datasets from VFB.
 
-    :return: list of dicts with 'label' and 'symbol' keys
+    ``short_form`` is returned alongside ``symbol`` because both are legitimate
+    things to exclude with: :func:`_db_filter_predicate` compares against
+    ``Site.short_form`` *and* ``Site.symbol[0]``, so a caller who reads
+    ``flywire783`` off a term's cross-references and passes that to
+    ``exclude_dbs`` is not making a mistake. Returning the symbol alone left
+    them guessing which of the two spellings the filter wanted, and guessing
+    wrong used to be silent — see ``ha_api._resolve_exclude_dbs``.
+
+    :return: list of dicts with 'label', 'symbol' and 'short_form' keys
     """
     nc = _get_nc()
     results = nc.commit_list([
-        "MATCH (c:Connectome:Individual) RETURN c.label, c.symbol[0] ORDER BY c.label"
+        "MATCH (c:Connectome:Individual) "
+        "RETURN c.label, c.symbol[0], c.short_form ORDER BY c.label"
     ])
     dc = dict_cursor(results)
-    return [{"label": r["c.label"], "symbol": r["c.symbol[0]"]} for r in dc]
+    return [{"label": r["c.label"], "symbol": r["c.symbol[0]"],
+             "short_form": r["c.short_form"]} for r in dc]
 
 
 def _connectivity_cache_key(upstream_type, downstream_type, weight,

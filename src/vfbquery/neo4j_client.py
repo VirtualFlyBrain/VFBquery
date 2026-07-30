@@ -22,9 +22,19 @@ def _env_float(name, default):
         return default
 
 
+#: Every setting below is a *fallback*, used only when the corresponding
+#: environment variable is unset. They are resolved in :meth:`Neo4jConnect.__init__`,
+#: not at import time, and that distinction matters: ``src/__init__.py`` does
+#: ``from vfbquery import *``, so importing anything under ``src.test`` imports
+#: this module first. Frozen-at-import constants meant a test package could not
+#: set its own timeouts — the values were already read — and the conda job kept
+#: the REPL-tuned defaults no matter what the suite asked for. Reading at
+#: construction also makes the settings genuinely live: change the environment
+#: and the next connection picks it up.
+
 #: Seconds to wait for the TCP connect. Short: an unreachable host should fail
 #: immediately rather than sit in the pool.
-CONNECT_TIMEOUT_S = _env_float("VFBQUERY_NEO4J_CONNECT_TIMEOUT_S", 10.0)
+CONNECT_TIMEOUT_S = 10.0
 
 #: Seconds to wait for the *first byte* of a response. This is the number that
 #: keeps a stalled server from hanging a caller forever.
@@ -36,7 +46,7 @@ CONNECT_TIMEOUT_S = _env_float("VFBQUERY_NEO4J_CONNECT_TIMEOUT_S", 10.0)
 #: job into one that is still running when the runner's two-hour ceiling kills
 #: it. Raise it with ``VFBQUERY_NEO4J_READ_TIMEOUT_S`` for a genuinely long
 #: analytical query; lower it in CI to fail fast.
-READ_TIMEOUT_S = _env_float("VFBQUERY_NEO4J_READ_TIMEOUT_S", 120.0)
+READ_TIMEOUT_S = 120.0
 
 #: How many times a request is retried after a connection-level failure.
 #:
@@ -45,15 +55,15 @@ READ_TIMEOUT_S = _env_float("VFBQUERY_NEO4J_READ_TIMEOUT_S", 120.0)
 #: that loop until something else killed the process (and grew the Python stack
 #: one frame per attempt while it did). Retrying is still right — the endpoint
 #: does drop the occasional connection — but it has to end.
-MAX_RETRIES = int(_env_float("VFBQUERY_NEO4J_MAX_RETRIES", 3))
+MAX_RETRIES = 3
 
 #: Seconds to wait before the first retry; doubled for each subsequent one.
-RETRY_BACKOFF_S = _env_float("VFBQUERY_NEO4J_RETRY_BACKOFF_S", 2.0)
+RETRY_BACKOFF_S = 2.0
 
 #: Ceiling for the connection test run during construction. It only decides
 #: which transaction API the server speaks, so it must not inherit the query
 #: path's patience — see :meth:`Neo4jConnect._probe`.
-CONNECTION_TEST_TIMEOUT_S = _env_float("VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S", 15.0)
+CONNECTION_TEST_TIMEOUT_S = 15.0
 
 #: Transaction endpoints, newest first. VFB production speaks the first.
 V4_COMMIT_PATH = "/db/neo4j/tx/commit"
@@ -98,11 +108,21 @@ class Neo4jConnect:
         self.base_uri = endpoint
         self.usr = usr
         self.pwd = pwd
-        self.connect_timeout = (CONNECT_TIMEOUT_S if connect_timeout is None
-                                else connect_timeout)
-        self.read_timeout = (READ_TIMEOUT_S if read_timeout is None
-                             else read_timeout)
-        self.max_retries = MAX_RETRIES
+        # Resolved here, not at import time — see the note above the constants.
+        # An explicit argument still wins over the environment.
+        self.connect_timeout = (
+            _env_float("VFBQUERY_NEO4J_CONNECT_TIMEOUT_S", CONNECT_TIMEOUT_S)
+            if connect_timeout is None else connect_timeout
+        )
+        self.read_timeout = (
+            _env_float("VFBQUERY_NEO4J_READ_TIMEOUT_S", READ_TIMEOUT_S)
+            if read_timeout is None else read_timeout
+        )
+        self.max_retries = int(_env_float("VFBQUERY_NEO4J_MAX_RETRIES", MAX_RETRIES))
+        self.retry_backoff = _env_float("VFBQUERY_NEO4J_RETRY_BACKOFF_S", RETRY_BACKOFF_S)
+        self.connection_test_timeout = _env_float(
+            "VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S", CONNECTION_TEST_TIMEOUT_S
+        )
         self.commit = V4_COMMIT_PATH
         self.headers = dict(V4_HEADERS)
 
@@ -124,7 +144,7 @@ class Neo4jConnect:
         elif status == "unreachable":
             print(
                 f"\033[33mWarning:\033[0m {self.base_uri} did not answer within "
-                f"{min(self.connect_timeout, CONNECTION_TEST_TIMEOUT_S):.0f}s; "
+                f"{min(self.connect_timeout, self.connection_test_timeout):.0f}s; "
                 "assuming the Neo4j 4+ transaction API and continuing."
             )
     
@@ -147,7 +167,7 @@ class Neo4jConnect:
         payload = {'statements': cstatements}
 
         max_retries = getattr(self, "max_retries", MAX_RETRIES)
-        delay = RETRY_BACKOFF_S
+        delay = getattr(self, "retry_backoff", RETRY_BACKOFF_S)
         for attempt in range(max_retries + 1):
             try:
                 response = requests.post(
@@ -213,8 +233,8 @@ class Neo4jConnect:
         no longer scans for a node (``MATCH (n) RETURN n LIMIT 1``); ``RETURN
         1`` answers the only question being asked.
         """
-        timeout = (min(self.connect_timeout, CONNECTION_TEST_TIMEOUT_S),
-                   min(self.read_timeout, CONNECTION_TEST_TIMEOUT_S))
+        cap = getattr(self, "connection_test_timeout", CONNECTION_TEST_TIMEOUT_S)
+        timeout = (min(self.connect_timeout, cap), min(self.read_timeout, cap))
         try:
             response = requests.post(
                 url=f"{self.base_uri}{commit_path}",

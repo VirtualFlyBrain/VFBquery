@@ -325,3 +325,139 @@ def test_a_facet_containing_solr_syntax_is_a_400(monkeypatch):
             await client.close()
 
     run(go())
+
+
+def test_a_db_nickname_resolves_and_a_db_miss_says_so(monkeypatch):
+    """An empty `rows` under a filter must not read like an answer about the data.
+
+    Before this, `db=flywire` and `db=notadatabase` were indistinguishable from
+    "this term has no cross-references": all three were a 200 with zero rows. The
+    filter now reports what it matched and what was there to match, so a caller
+    can tell a typo from a fact.
+    """
+    app, _, _ = _make_app([], monkeypatch=monkeypatch)
+
+    async def go():
+        client = await _client(app)
+        try:
+            # 'hemibrain' is a whole word of the site's label, not its symbol.
+            hit = await (await client.get(
+                "/xref", params={"id": "VFB_right", "db": "hemibrain"})).json()
+            assert hit["count"] == 1 and hit["rows"][0]["db"] == "hb"
+            assert hit["db"] == "hemibrain" and hit["db_matched"] == ["hb"]
+            assert "warnings" not in hit
+
+            miss = await (await client.get(
+                "/xref", params={"id": "VFB_right",
+                                 "db": "notadatabase"})).json()
+            assert miss["count"] == 0 and miss["db_matched"] == []
+            assert [e["db"] for e in miss["available_dbs"]] == \
+                ["hb", "neuronbridge"]
+            assert len(miss["warnings"]) == 1
+            assert "notadatabase" in miss["warnings"][0]
+            assert "hb, neuronbridge" in miss["warnings"][0]
+
+            # No `db` at all -> the response shape is exactly what it was.
+            plain = await (await client.get(
+                "/xref", params={"id": "VFB_right"})).json()
+            assert plain["count"] == 2
+            assert not {"db", "db_matched", "available_dbs", "warnings"} & set(plain)
+        finally:
+            await client.close()
+
+    run(go())
+
+
+def test_available_dbs_describes_the_accession_not_the_candidates(monkeypatch):
+    """In the reverse direction the confirmation runs before the db filter.
+
+    Otherwise `available_dbs` would advertise every database the near-miss
+    candidates are cross-referenced to — databases that do not hold the
+    accession being asked about, which is precisely the confident-but-wrong
+    association this endpoint exists to refuse.
+    """
+    infos = dict(TERM_INFOS)
+    infos["VFB_nearmiss"] = {
+        "term": {"core": {"label": "near miss"}},
+        "xrefs": [{"accession": "9999", "site": {
+            "symbol": "zz", "short_form": "zz_site", "label": "Not This One"}}],
+    }
+    app, _, _ = _make_app(["VFB_nearmiss", "VFB_right"], term_infos=infos,
+                          monkeypatch=monkeypatch)
+
+    async def go():
+        client = await _client(app)
+        try:
+            body = await (await client.get(
+                "/xref", params={"accession": WANTED, "db": "nope"})).json()
+            assert [e["db"] for e in body["available_dbs"]] == \
+                ["hb", "neuronbridge"]
+            assert "zz" not in [e["db"] for e in body["available_dbs"]]
+        finally:
+            await client.close()
+
+    run(go())
+
+
+# ---------------------------------------------------------------------------
+# /search rows reshaped for /combine — the id column
+# ---------------------------------------------------------------------------
+
+IRI = "http://purl.obolibrary.org/obo/FBbt_00003748"
+
+
+def test_a_search_row_reshaped_for_combine_carries_the_short_form_in_id():
+    """`ids:` and `run_query` operands put the short form in `id`; search did not.
+
+    Solr's `id` for an ontology term is the full OBO IRI, so a client reading
+    `row["id"]` off a combined table got an IRI or a short form depending on
+    which operand kinds the expression happened to use. The join was never wrong
+    — `_SEARCH_HEADERS` declares `short_form` as the selection_id — but a
+    generic reader cannot tell those two shapes apart.
+    """
+    row = {"id": IRI, "short_form": "FBbt_00003748", "label": "medulla"}
+    out = ha_api._combinable_search_rows([row])[0]
+    assert out["id"] == "FBbt_00003748"
+    assert out["iri"] == IRI                  # nothing is lost
+    assert out["label"] == "medulla"
+    assert out["short_form"] == "FBbt_00003748"
+    # ...and `iri` is a declared column rather than an undeclared extra key.
+    assert "iri" in ha_api._SEARCH_HEADERS
+
+
+def test_reshaping_copies_and_never_mutates_the_cached_search_payload():
+    """The dict being reshaped is the shared /search cache entry.
+
+    `_search_payload` reads the same entry `/search` serves, so mutating it in
+    place would rewrite `/search`'s own documented output — for every later
+    caller, from one combine request. That is a silent contract change with no
+    failing test anywhere near it, so it is asserted here.
+    """
+    row = {"id": IRI, "short_form": "FBbt_00003748"}
+    cached = {"query": "medulla", "rows": [row], "count": 1}
+    shaped = ha_api._search_result_for_combine(cached)
+
+    assert row["id"] == IRI and "iri" not in row     # the row object untouched
+    assert cached["rows"] is not shaped["rows"]
+    assert cached["rows"][0]["id"] == IRI            # /search still sees the IRI
+    assert shaped["rows"][0]["id"] == "FBbt_00003748"
+    assert shaped["headers"] is ha_api._SEARCH_HEADERS
+    assert shaped["query"] == "medulla" and shaped["count"] == 1
+
+
+def test_a_row_already_keyed_on_the_short_form_is_left_alone():
+    """No `iri` key invented where there was never an IRI to move."""
+    out = ha_api._combinable_search_rows([{"id": "VFB_00101567",
+                                           "short_form": "VFB_00101567"}])[0]
+    assert out["id"] == "VFB_00101567" and "iri" not in out
+
+
+def test_the_short_form_falls_back_to_the_iri_tail():
+    """Only a fallback: Solr docs carry `short_form`, but a missing one should
+    still give a joinable id rather than an IRI in an id column."""
+    assert ha_api._short_form_of({"id": IRI}) == "FBbt_00003748"
+    assert ha_api._short_form_of({"id": "http://x.org/onto#FBbt_1"}) == "FBbt_1"
+    assert ha_api._short_form_of({"id": "FBbt_1"}) == "FBbt_1"
+    assert ha_api._short_form_of({}) == ""
+    # Non-dict rows pass through rather than raising.
+    assert ha_api._combinable_search_rows([None, "x"]) == [None, "x"]

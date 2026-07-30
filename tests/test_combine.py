@@ -65,6 +65,7 @@ def test_precedence_and_bracketing(expr, expected):
     # "and not" is deliberately absent: it is two operators, not an alias for
     # one. See test_and_not_is_two_operators_rather_than_one.
     ("a found in both b",       "(a AND b)"),
+    ("a in both b",             "(a AND b)"),
     ("a either but not both b", "(a XOR b)"),
     ("a in exactly one of b",   "(a XOR b)"),
     # Case is irrelevant; so is extra whitespace.
@@ -85,6 +86,25 @@ def test_multi_word_aliases_beat_their_own_prefixes():
     """
     assert c.to_expression(c.parse("a not both b")) == "(a NAND b)"
     assert c.to_expression(c.parse("a but not b")) == "(a NOT b)"
+
+
+def test_bare_in_both_does_not_cannibalise_the_longer_in_both_phrases():
+    """`in both` is last in PHRASE_ALIASES, and has to stay last.
+
+    Substitution runs in list order over the whole string, so a bare `in both`
+    placed any earlier would consume the tail of every longer phrase that ends
+    in those words, leaving fragments like `same AND` and `present AND` that do
+    not parse at all. Each of these would have been an error rather than a wrong
+    answer, which is the only mercy in it — this test is what stops someone
+    tidying the table into alphabetical order.
+    """
+    assert c.to_expression(c.parse("a in both b")) == "(a AND b)"
+    assert c.to_expression(c.parse("a present in both b")) == "(a AND b)"
+    assert c.to_expression(c.parse("a found in both b")) == "(a AND b)"
+    assert c.to_expression(c.parse("a same in both b")) == "(a XNOR b)"
+    assert c.to_expression(c.parse("a in both or neither b")) == "(a XNOR b)"
+    # And the guard stated structurally, so a reordering fails here too.
+    assert c.PHRASE_ALIASES[-1] == ("in both", "AND")
 
 
 def test_unary_not_is_told_from_binary_not_by_position():

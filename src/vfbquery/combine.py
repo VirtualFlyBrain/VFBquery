@@ -88,6 +88,13 @@ PHRASE_ALIASES = [
     ("present in both",     "AND"),
     ("found in both",       "AND"),
     ("in either",           "OR"),
+    # MUST STAY LAST. `tokenize` substitutes these in list order, so a bare
+    # "in both" placed any earlier would eat the tail of "same in both",
+    # "in both or neither", "present in both" and "found in both", leaving
+    # unparseable fragments ("same AND", "present AND") in their place. Kept
+    # because it is the phrasing the /combine docs advertise and the one a
+    # biologist reaches for first: "the neurons in both calyx and lateral horn".
+    ("in both",             "AND"),
 ]
 
 #: Single-token aliases.

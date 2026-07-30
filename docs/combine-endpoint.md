@@ -76,7 +76,7 @@ read you correctly.
 | Write | Means | Also accepted |
 |---|---|---|
 | `a OR b` | everything either query found, listed once | `\|`, `+`, `∪`, `union`, `any`, `either`, `plus`, `a in either b` |
-| `a AND b` | only what **both** found | `&`, `∩`, `*`, `intersect`, `both`, `found in both`, `present in both` |
+| `a AND b` | only what **both** found | `&`, `∩`, `*`, `intersect`, `both`, `in both`, `found in both`, `present in both` |
 | `a NOT b` | what `a` found, minus anything `b` also found | `-`, `\`, `minus`, `except`, `without`, `excluding`, `but not` |
 | `a XOR b` | what one side found but not the other — i.e. how they **differ** | `^`, `⊕`, `difference`, `either but not both`, `only one of`, `in exactly one of` |
 | `a NAND b` | everything **except** the overlap | `not both` |

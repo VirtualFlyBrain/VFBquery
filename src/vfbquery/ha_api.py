@@ -1046,6 +1046,46 @@ RESULT_ROW_CAP = _int_env("VFBQUERY_RESULT_ROW_CAP", DEFAULT_RESULT_ROW_CAP)
 PAYLOAD_LIST_KEYS = ("rows", "connections")
 
 
+class BadParam(ValueError):
+    """A query parameter the caller can see and fix — surfaces as a 400.
+
+    Raised by :func:`_query_int` and caught by the handler, which decides the
+    response *shape* (JSON for the API endpoints, plain text for
+    ``/get_hierarchy_html``). The message is already caller-facing, so a handler
+    only has to wrap it — it never has to compose one.
+    """
+
+
+def _query_int(request, name, default, minimum=None, maximum=None):
+    """Read an integer query parameter, or raise :class:`BadParam`.
+
+    The distinction from ``_int_param`` inside :func:`handle_run_query` is
+    deliberate and not an oversight: paging hints (``offset``, ``limit``) fall
+    back to a default because a bad one still has an obviously right answer,
+    whereas ``weight`` and ``max_depth`` change *what is asked*, so silently
+    substituting 5 or 1 would answer a question the caller did not put. A bare
+    ``int()`` here used to escape as a 500 — an unhandled exception reads as a
+    server fault when the fault is in the request.
+    """
+    raw = request.query.get(name)
+    # Blank is treated as absent, not as a malformed number: `?weight=` is a
+    # caller whose URL builder had an unset variable, and the documented default
+    # is the right answer for that. Whitespace-only counts as blank because
+    # ``int()`` strips surrounding whitespace anyway, so " 5 " and "" should not
+    # disagree about which characters matter.
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise BadParam("%s must be an integer (got %r)" % (name, raw))
+    if minimum is not None and value < minimum:
+        raise BadParam("%s must be at least %d (got %d)" % (name, minimum, value))
+    if maximum is not None and value > maximum:
+        raise BadParam("%s must be at most %d (got %d)" % (name, maximum, value))
+    return value
+
+
 def _cap_result_rows(result, cap=None):
     """Bound a result dict's bulk list to `cap` entries; no-op for anything else.
 
@@ -1512,7 +1552,13 @@ async def handle_query_connectivity(request):
             {"error": "At least one of upstream_type or downstream_type required"},
             status=400,
         )
-    weight = int(request.query.get("weight", "5"))
+    try:
+        # A weight threshold below zero cannot mean anything — every synaptic
+        # weight is positive — so it is rejected rather than quietly floored,
+        # for the same reason a non-integer is.
+        weight = _query_int(request, "weight", 5, minimum=0)
+    except BadParam as exc:
+        return web.json_response({"error": str(exc)}, status=400)
     group_by_class = request.query.get("group_by_class", "false").lower() in ("true", "1", "yes")
     exclude_dbs_raw = request.query.get("exclude_dbs")
     if exclude_dbs_raw is not None:
@@ -1573,7 +1619,10 @@ async def handle_get_hierarchy(request):
         return web.json_response(
             {"error": "direction must be 'descendants', 'ancestors', or 'both'"}, status=400
         )
-    max_depth = int(request.query.get("max_depth", "1"))
+    try:
+        max_depth = _query_int(request, "max_depth", 1, minimum=0)
+    except BadParam as exc:
+        return web.json_response({"error": str(exc)}, status=400)
 
     key = f"get_hierarchy:{short_form}:{relationship}:{direction}:{max_depth}"
     return await _dispatch_to_pool(
@@ -1601,7 +1650,12 @@ async def handle_get_hierarchy_html(request):
     direction = request.query.get("direction", "both")
     if direction not in ("descendants", "ancestors", "both"):
         return web.Response(text="Error: direction must be 'descendants', 'ancestors', or 'both'", status=400)
-    max_depth = int(request.query.get("max_depth", "1"))
+    # Plain text, not JSON: every other error this handler returns is text,
+    # because its caller is a browser rendering the body directly.
+    try:
+        max_depth = _query_int(request, "max_depth", 1, minimum=0)
+    except BadParam as exc:
+        return web.Response(text="Error: %s" % exc, status=400)
 
     key = f"get_hierarchy:{short_form}:{relationship}:{direction}:{max_depth}"
     json_response = await _dispatch_to_pool(
@@ -1913,12 +1967,139 @@ def _xref_site_names(site):
             for key in ("symbol", "short_form", "label")]
 
 
-def _xref_matches_db(site, db):
-    """``db`` is optional; when given it may be the symbol, short_form or label."""
+#: Characters that separate one word of a site name from the next. Site
+#: vocabulary mixes every convention there is — ``fw``, ``flywire783``,
+#: ``neuprint_JRC_Hemibrain_1point2point1``, ``catmaid_l1em``,
+#: ``Neuprint web interface - hemibrain:v1.2.1`` — so tokens are split on
+#: anything that is not a letter or a digit, and digits are split from letters
+#: so ``flywire783`` yields ``flywire`` as well as ``783``.
+_XREF_TOKEN_RE = re.compile(r"[A-Za-z]+|[0-9]+")
+
+
+def _xref_normalise(name):
+    """Lower-case and strip every non-alphanumeric character.
+
+    ``Neuprint web interface - hemibrain:v1.2.1`` and
+    ``neuprintwebinterfacehemibrainv121`` are the same string to the exact pass,
+    which is what lets punctuation and spacing differ without a caller having to
+    guess which form the index holds.
+    """
+    return re.sub(r"[^a-z0-9]+", "", str(name or "").lower())
+
+
+def _xref_tokens(name):
+    """The set of word-ish tokens in a site name, lower-cased."""
+    return {t.lower() for t in _XREF_TOKEN_RE.findall(str(name or ""))}
+
+
+def _xref_db_candidates(sites, db):
+    """Which of ``sites`` the caller's ``db`` means, resolved in strict order.
+
+    ``sites`` is an iterable of site dicts (duplicates fine). Returns the set of
+    normalised names that matched, or an empty set for no match.
+
+    The passes are tried in order and the **first one that matches anything
+    wins**, so a broader pass can never dilute a narrower one:
+
+    1. Exact, normalised, across symbol / short_form / label. ``db=fw`` still
+       means precisely the ``fw`` site even though ``flywire783`` contains
+       ``fw`` as a substring, and ``db=hb`` does not drag in ``hemibrain``'s
+       long label by accident.
+    2. Whole-token match — ``db=flywire`` hits ``flywire783``, ``db=hemibrain``
+       hits ``Neuprint web interface - hemibrain:v1.2.1``, ``db=neuprint`` hits
+       both neuprint sites, ``db=catmaid`` hits ``catmaid_l1em``, and
+       ``db=male-cns`` tokenises to {male, cns} and hits ``male_cns_v0_9``.
+    3. Prefix of a normalised name — the last resort, for a caller who typed
+       ``db=neuronbr`` or ``db=insectbrain``.
+
+    A pass that matches more than one site is *kept*, not rejected: ``neuprint``
+    genuinely names two sites, and returning both rows is the honest answer.
+    Deliberately no substring-anywhere pass: ``db=cns`` matching every label
+    containing "cns" is how a filter stops meaning anything.
+    """
+    want_norm = _xref_normalise(db)
+    if not want_norm:
+        return set()
+    want_tokens = _xref_tokens(db)
+
+    # name -> its normalised form, for every non-empty name on every site.
+    named = []
+    for site in sites:
+        for name in _xref_site_names(site):
+            norm = _xref_normalise(name)
+            if norm:
+                named.append((name, norm))
+
+    exact = {norm for _, norm in named if norm == want_norm}
+    if exact:
+        return exact
+
+    if want_tokens:
+        token_hit = {norm for name, norm in named
+                     if want_tokens <= _xref_tokens(name)}
+        if token_hit:
+            return token_hit
+
+    return {norm for _, norm in named if norm.startswith(want_norm)}
+
+
+def _xref_matches_db(site, db, allowed=None):
+    """Does one site satisfy the caller's ``db``?
+
+    ``db`` is optional; when given it may be the symbol, short_form or label,
+    in any capitalisation or punctuation. ``allowed`` is the resolved set from
+    :func:`_xref_db_candidates` — pass it whenever the full site list is known,
+    so the nickname passes apply. Without it this falls back to the exact
+    comparison, which is all a single site in isolation can support.
+    """
     if not db:
         return True
-    want = db.strip().lower()
-    return any(name.lower() == want for name in _xref_site_names(site) if name)
+    if allowed is None:
+        allowed = _xref_db_candidates([site], db)
+    return any(_xref_normalise(name) in allowed
+               for name in _xref_site_names(site) if name)
+
+
+def _xref_available_dbs(rows):
+    """The distinct ``db``/``db_label`` pairs present in unfiltered rows.
+
+    Returned alongside a filtered response so a caller whose ``db`` matched
+    nothing is told what they could have asked for, instead of reading a 200
+    with zero rows and having to guess whether the term has no xrefs or they
+    spelled the database wrong.
+    """
+    seen, out = set(), []
+    for row in rows:
+        key = (row.get("db") or "", row.get("db_label") or "")
+        if key in seen:
+            continue
+        seen.add(key)
+        entry = {"db": key[0]}
+        if key[1] and key[1] != key[0]:
+            entry["db_label"] = key[1]
+        out.append(entry)
+    return sorted(out, key=lambda e: e["db"].lower())
+
+
+def _xref_filter_by_db(rows, db):
+    """Filter flattened xref rows by ``db``; returns ``(kept, matched_names)``.
+
+    Filtering after flattening rather than during it is what makes the nickname
+    passes possible: pass 1 has to be able to see that no site matches exactly
+    before pass 2 is allowed to widen, and a per-site test inside the flatten
+    loop cannot see the other sites.
+    """
+    if not db:
+        return list(rows), None
+    sites = [{"symbol": r.get("db"), "short_form": r.get("site_id"),
+              "label": r.get("db_label")} for r in rows]
+    allowed = _xref_db_candidates(sites, db)
+    if not allowed:
+        return [], set()
+    kept = [r for r, site in zip(rows, sites)
+            if _xref_matches_db(site, db, allowed)]
+    matched = sorted({r.get("db") or r.get("db_label") or "" for r in kept} - {""})
+    return kept, set(matched)
 
 
 def _parse_term_info(doc):
@@ -1936,14 +2117,17 @@ def _parse_term_info(doc):
 
 
 def _xref_rows(short_form, term_info, db=None):
-    """Flatten one term's ``xrefs`` into result rows, optionally filtered by db."""
+    """Flatten one term's ``xrefs`` into result rows, optionally filtered by db.
+
+    The flatten and the filter are separate steps on purpose — see
+    :func:`_xref_filter_by_db`, which needs the whole site list in hand before it
+    can decide whether the caller's ``db`` was an exact name or a nickname.
+    """
     core = (term_info.get("term") or {}).get("core") or {}
     label = core.get("label") or core.get("symbol") or ""
     rows = []
     for xref in term_info.get("xrefs") or []:
         site = xref.get("site") or {}
-        if not _xref_matches_db(site, db):
-            continue
         accession = str(xref.get("accession") or "")
         link = ""
         if xref.get("link_base"):
@@ -1959,7 +2143,7 @@ def _xref_rows(short_form, term_info, db=None):
             "is_data_source": bool(xref.get("is_data_source")),
             "link": link,
         })
-    return rows
+    return _xref_filter_by_db(rows, db)[0]
 
 
 async def _fetch_term_info_docs(session, ids):
@@ -2014,7 +2198,15 @@ async def handle_xref(request):
     returned only if that term really does carry that accession.
 
     ``db`` is optional and matches a site's symbol ("hb"), short_form
-    ("neuprint_JRC_Hemibrain_1point2point1") or label.
+    ("neuprint_JRC_Hemibrain_1point2point1") or label, in any capitalisation and
+    ignoring punctuation and spacing. Failing an exact match it accepts any set
+    of whole words from those names, so "flywire" finds ``flywire783``,
+    "hemibrain" and "neuprint" find the neuprint sites, "catmaid" finds
+    ``catmaid_l1em`` and "male-cns" finds ``male_cns_v0_9``. An exact name always
+    wins outright, so ``db=fw`` still means the ``fw`` site alone. When ``db`` is
+    given, the response carries ``db_matched`` and ``available_dbs``, and a
+    ``db`` that matched nothing adds a warning — an empty ``rows`` under a filter
+    should never be mistakable for "this term has no cross-references".
 
     Known limit of the reverse direction: it can only confirm a term that the
     search reached, and the only reason an accession is searchable at all is
@@ -2096,9 +2288,9 @@ async def handle_xref(request):
             session = request.app["http"]
             if term_id:
                 infos = await _fetch_term_info_docs(session, [term_id])
-                rows = []
+                all_rows = []
                 for short_form, info in infos.items():
-                    rows.extend(_xref_rows(short_form, info, db))
+                    all_rows.extend(_xref_rows(short_form, info))
                 candidates = list(infos)
             else:
                 # No `limit`: the sorter ranks the whole candidate set either
@@ -2115,16 +2307,22 @@ async def handle_xref(request):
                     if r.get("short_form")))[:XREF_MAX_CANDIDATES]
                 infos = await _fetch_term_info_docs(session, candidates)
                 want = accession.lower()
-                rows = []
+                all_rows = []
                 for short_form in candidates:   # keep the search's rank order
                     info = infos.get(short_form)
                     if info is None:
                         continue
-                    rows.extend(row for row in _xref_rows(short_form, info, db)
-                                if row["accession"].lower() == want)
+                    # The accession confirmation comes first in both directions,
+                    # so `available_dbs` lists the databases that really do hold
+                    # *this* accession, not every database the candidate terms
+                    # happen to be cross-referenced to.
+                    all_rows.extend(row for row in _xref_rows(short_form, info)
+                                    if row["accession"].lower() == want)
         finally:
             stats["in_flight"] -= 1
             sem.release()
+
+        rows, db_matched = _xref_filter_by_db(all_rows, db)
 
         result = {
             "query": term_id or accession,
@@ -2133,6 +2331,25 @@ async def handle_xref(request):
             "count": len(rows),
             "candidates_checked": len(candidates),
         }
+        if db:
+            # Only present when a filter was asked for, so the unfiltered
+            # response shape is exactly what it was before.
+            available = _xref_available_dbs(all_rows)
+            result["db"] = db
+            result["db_matched"] = sorted(db_matched or ())
+            result["available_dbs"] = available
+            if not db_matched:
+                names = ", ".join(
+                    e["db"] for e in available if e["db"]) or "none"
+                result["warnings"] = [
+                    "db=%r matched no cross-reference on this result, so the "
+                    "empty row list is a filter miss rather than an answer "
+                    "about the data. Databases actually present here: %s. "
+                    "`db` accepts a site's symbol (fw), its short_form "
+                    "(flywire783), its label, or any whole word of those "
+                    "(flywire, hemibrain, neuprint, catmaid) — or omit `db` "
+                    "to see every cross-reference." % (db, names)
+                ]
         result = _cap_result_rows(result)
         rcache.put(cache_key, result)
         stats["served"] += 1
@@ -2254,10 +2471,72 @@ def _parse_operand_spec(name, raw):
 _SEARCH_HEADERS = {
     "short_form": {"title": "Add to search", "type": "selection_id", "order": 0},
     "label": {"title": "Name", "type": "markdown", "order": 1},
+    # Declared so the IRI that `_combinable_search_rows` moves out of `id` is a
+    # described column rather than an undeclared extra key.
+    "iri": {"title": "IRI", "type": "text", "order": 2},
 }
 _IDS_HEADERS = {
     "id": {"title": "Add to search", "type": "selection_id", "order": 0},
 }
+
+
+def _short_form_of(row):
+    """The short form for a search row, from ``short_form`` or the IRI tail.
+
+    Solr's ``id`` for an ontology term is the full OBO IRI and ``short_form`` is
+    a separate field, so the field is normally there to be read; the IRI tail is
+    only a fallback for a doc that somehow lacks it.
+    """
+    short_form = row.get("short_form")
+    if short_form:
+        return str(short_form)
+    raw = str(row.get("id") or "")
+    if "://" in raw:
+        return raw.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
+    return raw
+
+
+def _combinable_search_rows(rows):
+    """Copy search rows with ``id`` rewritten to the short form.
+
+    ``/search`` rows come straight from Solr, where ``id`` is the full OBO IRI
+    (``http://purl.obolibrary.org/obo/FBbt_00003748``) and ``short_form`` is a
+    separate field. ``ids:`` and ``run_query`` operands both carry the short form
+    in ``id``, so a client reading ``row["id"]`` off a combined table got two
+    different shapes depending on which operands the expression happened to use.
+    The join itself was never wrong — ``_SEARCH_HEADERS`` declares ``short_form``
+    as the ``selection_id`` — but the visible data column was inconsistent.
+
+    Rows are **copied, never mutated**: the dict being reshaped here is the one
+    sitting in the shared ``/search`` cache entry, and ``/search``'s own
+    documented output keeps the IRI in ``id``. The IRI is preserved under ``iri``
+    so nothing is lost, which is the same no-data-loss rule the column union in
+    :mod:`combine` follows.
+    """
+    out = []
+    for row in rows:
+        if not isinstance(row, dict):
+            out.append(row)
+            continue
+        new = dict(row)
+        short_form = _short_form_of(row)
+        raw_id = row.get("id")
+        if short_form and raw_id != short_form:
+            new["id"] = short_form
+            if raw_id:
+                new["iri"] = raw_id
+        out.append(new)
+    return out
+
+
+def _search_result_for_combine(result):
+    """Shape a cached ``/search`` payload as a combinable table (non-mutating)."""
+    shaped = dict(result)
+    rows = result.get("rows")
+    if isinstance(rows, list):
+        shaped["rows"] = _combinable_search_rows(rows)
+    shaped["headers"] = _SEARCH_HEADERS
+    return shaped
 
 
 async def _run_query_payload(request, short_form, query_type):
@@ -2340,7 +2619,7 @@ async def _search_payload(request, text):
     rcache = request.app["result_cache"]
     cached = rcache.get(key)
     if cached is not None:
-        return dict(cached, headers=_SEARCH_HEADERS)
+        return _search_result_for_combine(cached)
 
     stats = request.app["search_stats"]
     sem = request.app["search_semaphore"]
@@ -2366,7 +2645,7 @@ async def _search_payload(request, text):
     })
     rcache.put(key, result)
     stats["served"] += 1
-    return dict(result, headers=_SEARCH_HEADERS)
+    return _search_result_for_combine(result)
 
 
 async def _fetch_operand(request, name, spec):

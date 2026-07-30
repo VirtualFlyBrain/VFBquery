@@ -896,12 +896,39 @@ def with_solr_cache(query_type: str):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
 
+            # ...and hand it back to the function if the function declares it.
+            #
+            # The pop alone was silently dropping it, which broke the contract
+            # this decorator's own docstring advertises. The consequence was not
+            # cosmetic: get_term_info uses `force_refresh` to decide whether to
+            # compute query previews synchronously, so the background warm that
+            # calls it with force_refresh=True took the *fast* path instead, wrote
+            # nothing, and left rich templates reporting count=-1 for every query
+            # forever. A caller asking the endpoint for force_refresh=true got the
+            # same blank, in two seconds, which reads as a fresh answer.
+            #
+            # It is passed at the call sites rather than put back into `kwargs`
+            # on purpose: `kwargs` is copied into the parameters that generate
+            # cache field names, so re-inserting it there would split the cache
+            # namespace between refreshed and unrefreshed callers.
+            try:
+                import inspect as _inspect_fr
+                _func_takes_force_refresh = (
+                    'force_refresh' in _inspect_fr.signature(func).parameters)
+            except (ValueError, TypeError):
+                _func_takes_force_refresh = False
+
+            def _call(*call_args, **call_kwargs):
+                if _func_takes_force_refresh:
+                    call_kwargs = dict(call_kwargs, force_refresh=force_refresh)
+                return func(*call_args, **call_kwargs)
+
             # Fully bypass the cache when disabled (VFBQUERY_CACHE_ENABLED=false):
             # run the live query directly, never reading stale data nor writing
             # to the shared production cache. This is what the test suite relies
             # on so a PR's queries are validated live without poisoning the cache.
             if solr_caching_disabled():
-                return func(*args, **kwargs)
+                return _call(*args, **kwargs)
 
             # Check if limit is applied - only cache full results (limit=-1)
             limit = kwargs.get('limit', -1)
@@ -957,7 +984,7 @@ def with_solr_cache(query_type: str):
                     term_id = 'all_datasets'
                 else:
                     logger.warning(f"No term_id found for caching {query_type}")
-                    return func(*args, **kwargs)
+                    return _call(*args, **kwargs)
             
             # Include preview parameter in cache key for term_info queries
             # This ensures preview=True and preview=False have separate cache entries
@@ -1123,9 +1150,9 @@ def with_solr_cache(query_type: str):
                     full_kwargs['limit'] = -1
                     if _func_takes_offset:
                         full_kwargs['offset'] = 0
-                    full_result = func(*args, **full_kwargs)
+                    full_result = _call(*args, **full_kwargs)
                 else:
-                    full_result = func(*args, **kwargs)
+                    full_result = _call(*args, **kwargs)
 
                 # Validate the full result before caching.
                 full_is_valid = False
@@ -1182,7 +1209,7 @@ def with_solr_cache(query_type: str):
                         if _func_takes_offset:
                             full_kwargs['offset'] = 0
                     # print(f"DEBUG: Executing {query_type} with full results for caching")
-                    full_result = func(*args, **full_kwargs)
+                    full_result = _call(*args, **full_kwargs)
                     result = full_result
                     
                     # If the original request was limited, slice the result for return
@@ -1195,7 +1222,7 @@ def with_solr_cache(query_type: str):
                             # print(f"DEBUG: Sliced result to {limit} items for return")
                 else:
                     # Execute with original parameters (no caching)
-                    result = func(*args, **kwargs)
+                    result = _call(*args, **kwargs)
                     full_result = result
             
             # Cache the result - skip for expensive queries as they use background caching

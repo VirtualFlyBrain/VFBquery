@@ -23,6 +23,7 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /query_connectivity?upstream_type=<name>&downstream_type=<name>
     GET /get_hierarchy?id=<VFB id>[&relationship=&direction=&max_depth=]
     GET /search?query=<free_text>                      # canonical website search
+    GET /facets[?contains=<text>]                      # type names /search accepts
     GET /xref?id=<VFB id> | ?accession=<external id>[&db=<site>]
     GET /health
     GET /status          — queue depth, cache stats & worker utilisation
@@ -1086,6 +1087,25 @@ def _query_int(request, name, default, minimum=None, maximum=None):
     return value
 
 
+#: Spellings of "yes" accepted for a boolean query parameter, matching what the
+#: existing ``force_refresh`` parsing already accepts across this module.
+_TRUE_VALUES = ("true", "1", "yes", "on")
+
+
+def _query_flag(request, name, default=False):
+    """Read a boolean query parameter.
+
+    Anything that is not a recognised "yes" is false — including a malformed
+    value. Unlike an integer, a flag has no wrong answer worth a 400: the whole
+    space is two values, both benign, and the fallback (feature off) is the
+    behaviour the caller would have got by not passing it at all.
+    """
+    raw = request.query.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip().lower() in _TRUE_VALUES
+
+
 def _cap_result_rows(result, cap=None):
     """Bound a result dict's bulk list to `cap` entries; no-op for anything else.
 
@@ -1759,26 +1779,40 @@ def _parse_type_list(raw):
     return values or None
 
 
-def _rank_search_docs(docs, query, limit):
-    """Refine + sort + clean. Runs in a thread; pure CPU, no I/O."""
+def _rank_search_docs(docs, query, limit, boost_types=None, demote_types=None,
+                      unique=False):
+    """Refine + sort + partition + clean. Runs in a thread; pure CPU, no I/O.
+
+    Returns ``(rows, total, distinct_terms)``. ``total`` counts the list the
+    caller is paging through, so it reflects ``unique``; ``distinct_terms``
+    counts terms either way, which is what makes the gap between "results" and
+    "terms" visible without a second request.
+    """
     from . import search_config as _sc
 
     ranked = _sc.sort_results(_sc.refine_results(docs), query)
+    # After the comparator, never before: the partition exists precisely because
+    # the comparator re-sorts on label text and discards the Solr score.
+    ranked = _sc.partition_by_facets(ranked, boost_types, demote_types)
+    distinct = _sc.count_distinct_terms(ranked)
+    if unique:
+        ranked = _sc.dedupe_by_short_form(ranked)
     total = len(ranked)
     if limit is not None:
         ranked = ranked[:limit]
     for row in ranked:
         row["label"] = _sc.clean_label(row.get("label"))
         row["original_label"] = _sc.clean_label(row.get("original_label"))
-    return ranked, total
+    return ranked, total, distinct
 
 
-async def _solr_search_ranked(app, query, rows, limit=None, **facets):
+async def _solr_search_ranked(app, query, rows, limit=None, unique=False,
+                              **facets):
     """Ask Solr for candidates and rank them exactly as ``/search`` does.
 
     Shared by ``/search`` and ``/xref`` so the reverse xref lookup searches with
     the website's own construction rather than a second copy of it that drifts.
-    Returns ``(ranked, total, response_block, n_docs_fetched)``.
+    Returns ``(ranked, total, response_block, n_docs_fetched, distinct_terms)``.
 
     The caller owns the concurrency slot: this does the Solr I/O and the CPU
     ranking, and nothing else, so the slot covers exactly the expensive part.
@@ -1800,18 +1834,155 @@ async def _solr_search_ranked(app, query, rows, limit=None, **facets):
     docs = response_block.get("docs", [])
 
     loop = asyncio.get_event_loop()
-    ranked, total = await loop.run_in_executor(
-        app["search_cpu"], _rank_search_docs, docs, query, limit
+    ranked, total, distinct = await loop.run_in_executor(
+        app["search_cpu"], _rank_search_docs, docs, query, limit,
+        facets.get("boost_types"), facets.get("demote_types"), unique,
     )
-    return ranked, total, response_block, len(docs)
+    return ranked, total, response_block, len(docs), distinct
+
+
+# --------------------------------------------------------------------------- #
+# The type-facet vocabulary
+#
+# `filter_types=NotAType` used to answer 200 with zero rows, so a typo was
+# indistinguishable from a term that genuinely has no results — and with over
+# two hundred names, none of them guessable and none of them documented
+# anywhere a caller can read, a typo is the normal case rather than the
+# exceptional one. The list is fetched from the index itself so it cannot go
+# stale, cached because it changes on a release cadence rather than a request
+# one, and *fails open*: if Solr will not answer, search still works and simply
+# stops validating.
+# --------------------------------------------------------------------------- #
+
+#: How long a fetched vocabulary is trusted. The set of type names changes when
+#: the ontology is rebuilt, not while the service is running.
+FACET_VOCAB_TTL = float(os.getenv("VFBQUERY_FACET_VOCAB_TTL", "3600"))
+
+#: How long a *failed* fetch is remembered. Much shorter than the success TTL:
+#: caching a failure for an hour would disable validation for an hour over one
+#: blip, and re-asking a healthy Solr once a minute costs nothing.
+FACET_VOCAB_FAIL_TTL = 60.0
+
+
+async def _facet_vocabulary(app):
+    """``{type_name: doc_count}`` for the live index; ``{}`` if unavailable.
+
+    An empty dict is the fail-open signal, and every caller treats it as "do not
+    validate" rather than "nothing matches" — a search must not start refusing
+    valid filters because a facet query timed out.
+    """
+    from . import search_config as _sc
+
+    now = time.monotonic()
+    entry = app.get("facet_vocab")
+    if entry and now - entry["fetched"] < entry["ttl"]:
+        return entry["values"]
+
+    lock = app.get("facet_vocab_lock")
+    if lock is None:
+        lock = asyncio.Lock()
+        app["facet_vocab_lock"] = lock
+
+    async with lock:
+        # Another request may have filled it while we waited for the lock.
+        entry = app.get("facet_vocab")
+        now = time.monotonic()
+        if entry and now - entry["fetched"] < entry["ttl"]:
+            return entry["values"]
+
+        values = {}
+        ttl = FACET_VOCAB_FAIL_TTL
+        try:
+            session = app["http"]
+            params = _sc.params_as_pairs(_sc.build_facet_vocabulary_params())
+            async with session.get(_sc.SOLR_ONTOLOGY_URL, params=params) as resp:
+                resp.raise_for_status()
+                payload = await resp.json(content_type=None)
+            values = _sc.parse_facet_vocabulary(payload)
+            if values:
+                ttl = FACET_VOCAB_TTL
+            else:
+                log.warning("facet vocabulary came back empty; "
+                            "type names will not be validated")
+        except Exception as exc:                       # noqa: BLE001 — fail open
+            log.warning("facet vocabulary unavailable (%s: %s); "
+                        "type names will not be validated",
+                        type(exc).__name__, exc)
+
+        app["facet_vocab"] = {"values": values, "fetched": now, "ttl": ttl}
+        return values
+
+
+def _resolve_facet_list(values, vocabulary, param):
+    """Canonicalise one type list, or raise ``BadParam`` naming the offender.
+
+    With an empty vocabulary this is the identity function — see
+    :func:`_facet_vocabulary` on failing open.
+    """
+    from . import search_config as _sc
+
+    if not values or not vocabulary:
+        return values
+
+    resolved, unknown = _sc.resolve_facet_names(values, vocabulary)
+    if unknown:
+        parts = []
+        for name, suggestions in unknown.items():
+            if suggestions:
+                parts.append("%r (did you mean %s?)"
+                             % (name, ", ".join(repr(s) for s in suggestions)))
+            else:
+                parts.append("%r" % (name,))
+        raise BadParam(
+            "%s: unknown type %s. GET /facets lists every type name."
+            % (param, "; ".join(parts)))
+    return resolved
+
+
+async def handle_facets(request):
+    """GET /facets[&contains=<text>] — every type name a search can filter by.
+
+    Exists because ``filter_types`` is unusable without it: the values are the
+    index's own ``facets_annotation`` terms, there are hundreds of them, and
+    a caller has no other way to find out that the lineage facets are spelled
+    ``lineage_clone_LHl1`` or that a publication is ``pub`` and not ``Pub``.
+    Counts are included so a caller can tell a broad type from a niche one.
+    """
+    vocabulary = await _facet_vocabulary(request.app)
+    if not vocabulary:
+        return web.json_response(
+            {"error": "The type-name vocabulary is temporarily unavailable. "
+                      "Search still works; type names are not being validated."},
+            status=503)
+
+    contains = (request.query.get("contains") or "").strip()
+    if len(contains) > MAX_QUERY_LEN:
+        return web.json_response(
+            {"error": "contains must be at most %d characters" % MAX_QUERY_LEN},
+            status=400)
+
+    from . import search_config as _sc
+    items = sorted(vocabulary.items(), key=lambda kv: (-kv[1], kv[0].lower()))
+    if contains:
+        needle = _sc.normalise_facet_name(contains)
+        items = [(name, count) for name, count in items
+                 if needle in _sc.normalise_facet_name(name)]
+
+    return web.json_response({
+        "count": len(items),
+        "total": len(vocabulary),
+        "contains": contains or None,
+        "facets": [{"name": name, "docs": count} for name, count in items],
+    })
 
 
 async def handle_search(request):
-    """GET /search?query=<text>&rows=500&limit=&filter_types=&exclude_types=&boost_types=&demote_types=
+    """GET /search?query=<text>&rows=500&limit=&unique=&filter_types=&exclude_types=&boost_types=&demote_types=
 
     Returns the website's own ranked result list:
 
-        {"query", "rows": [...], "count", "solr_num_found", "rows_fetched"}
+        {"query", "rows": [...], "count", "distinct_terms", "unique",
+         "solr_num_found", "rows_fetched"}
 
     Each row carries ``short_form``, the refined display ``label``
     ("synonym (label)" or "label (short_form)"), ``original_label``, ``id``,
@@ -1822,6 +1993,21 @@ async def handle_search(request):
     retrieved, and 500 is what the website uses. ``limit`` truncates the ranked
     list afterwards, so ``limit=1`` still gets the answer ranked against the
     full candidate set.
+
+    One term normally occupies several rows: the refine step emits a row per
+    matching synonym so a searcher can see *which* name matched. ``count`` is
+    therefore rows and ``distinct_terms`` is terms, and ``unique=true`` collapses
+    to the best-ranked row per term — applied before ``limit``, so ``limit=10``
+    means ten terms.
+
+    The four type parameters take names from ``facets_annotation``; ``GET
+    /facets`` lists them. They are matched case- and separator-insensitively
+    (``nervous system`` is not a legal value only because a space is not, but
+    ``nervous_system``, ``Nervous_system`` and ``nervous-system`` all resolve),
+    and an unrecognised name is a 400 with suggestions rather than an empty
+    result set. ``filter_types``/``exclude_types`` are hard constraints;
+    ``boost_types``/``demote_types`` re-order, floating or sinking the named
+    types while leaving the website's ordering intact within each group.
     """
     from . import search_config as _sc
 
@@ -1851,6 +2037,8 @@ async def handle_search(request):
         except ValueError:
             return web.json_response({"error": "limit must be an integer"}, status=400)
 
+    unique = _query_flag(request, "unique")
+
     try:
         filter_types = _parse_type_list(request.query.get("filter_types"))
         exclude_types = _parse_type_list(request.query.get("exclude_types"))
@@ -1859,8 +2047,25 @@ async def handle_search(request):
     except ValueError as exc:
         return web.json_response({"error": str(exc)}, status=400)
 
+    # Resolved against the index's own vocabulary before anything is cached, so
+    # `filter_types=neuron` and `filter_types=Neuron` share one cache entry
+    # rather than racing to compute the same answer twice.
+    if filter_types or exclude_types or boost_types or demote_types:
+        vocabulary = await _facet_vocabulary(request.app)
+        try:
+            filter_types = _resolve_facet_list(filter_types, vocabulary,
+                                               "filter_types")
+            exclude_types = _resolve_facet_list(exclude_types, vocabulary,
+                                                "exclude_types")
+            boost_types = _resolve_facet_list(boost_types, vocabulary,
+                                              "boost_types")
+            demote_types = _resolve_facet_list(demote_types, vocabulary,
+                                               "demote_types")
+        except BadParam as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+
     cache_key = "|".join([
-        "search", query, str(rows), str(limit),
+        "search", query, str(rows), str(limit), str(unique),
         ",".join(filter_types or []), ",".join(exclude_types or []),
         ",".join(boost_types or []), ",".join(demote_types or []),
     ])
@@ -1906,8 +2111,9 @@ async def handle_search(request):
 
         stats["in_flight"] += 1
         try:
-            ranked, total, response_block, n_docs = await _solr_search_ranked(
-                request.app, query, rows, limit,
+            (ranked, total, response_block,
+             n_docs, distinct) = await _solr_search_ranked(
+                request.app, query, rows, limit, unique=unique,
                 filter_types=filter_types, exclude_types=exclude_types,
                 boost_types=boost_types, demote_types=demote_types,
             )
@@ -1921,6 +2127,12 @@ async def handle_search(request):
             "query": query,
             "rows": ranked,
             "count": total,
+            # Reported unconditionally: `count` exceeding `distinct_terms` is
+            # the per-synonym expansion, not a duplicate-results bug, and a
+            # caller who wants terms can see the number to expect from
+            # `unique=true` without asking twice.
+            "distinct_terms": distinct,
+            "unique": unique,
             "solr_num_found": response_block.get("numFound"),
             "rows_fetched": n_docs,
         }
@@ -2296,7 +2508,7 @@ async def handle_xref(request):
                 # No `limit`: the sorter ranks the whole candidate set either
                 # way, so truncating before de-duplication would only make
                 # XREF_MAX_CANDIDATES mean an unpredictable number of *terms*.
-                ranked, _total, _block, _n = await _solr_search_ranked(
+                ranked, _total, _block, _n, _distinct = await _solr_search_ranked(
                     request.app, accession, _sc.DEFAULT_ROWS)
                 # One term can occupy several ranked rows — refine_results
                 # explodes a term into one row per matching synonym for
@@ -2633,7 +2845,7 @@ async def _search_payload(request, text):
         raise Overloaded("Search overloaded, please retry later")
     stats["in_flight"] += 1
     try:
-        ranked, total, block, n_docs = await _solr_search_ranked(
+        ranked, total, block, n_docs, distinct = await _solr_search_ranked(
             request.app, text, _sc.DEFAULT_ROWS)
     finally:
         stats["in_flight"] -= 1
@@ -2641,6 +2853,7 @@ async def _search_payload(request, text):
 
     result = _cap_result_rows({
         "query": text, "rows": ranked, "count": total,
+        "distinct_terms": distinct, "unique": False,
         "solr_num_found": block.get("numFound"), "rows_fetched": n_docs,
     })
     rcache.put(key, result)
@@ -2983,6 +3196,7 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
 
     # Canonical free-text search (website-equivalent ranking)
     app.router.add_get("/search", handle_search)
+    app.router.add_get("/facets", handle_facets)
     app.router.add_get("/xref", handle_xref)
 
     # Set algebra over query results

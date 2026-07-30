@@ -20,6 +20,7 @@ Until they are, run the service locally to use them:
 | `/query_connectivity` | Connectivity between two *types*, aggregated, across connectome datasets. |
 | `/search` | Free-text search over the ontology, ranked the way the website ranks it. |
 | `/xref` | VFB id ↔ external accession, both directions. |
+| `/facets` | Every type name `/search`'s type filters accept, with term counts. |
 | `/combine` | Set algebra over the results of other queries. See [the reference](combine-endpoint.md). |
 | `/resolve_entity`, `/resolve_combination` | FlyBase-Chado exact resolution (features, genotypes). Not a search — see the note below. |
 | `/find_stocks`, `/find_combo_publications` | Stock and publication lookups for a resolved entity or combination. |
@@ -171,7 +172,8 @@ GET /search?query=mushroom body output neuron&limit=25
 | `rows` | How deep to fetch candidates before ranking. Default 500. Raise it if a known-good hit is missing. |
 | `limit` | Page size of the returned, ranked list. |
 | `filter_types`, `exclude_types` | Hard filters (Solr `fq`) — a term either passes or is not returned. |
-| `boost_types`, `demote_types` | Soft boosts (Solr `bq`) — the website's filter chips. |
+| `boost_types`, `demote_types` | Soft preferences — reorder the ranked list without dropping anything. |
+| `unique` | Collapse the label/synonym rows so each term appears once. Default false. |
 
 The ranking is not Solr's. It is three stages — an `edismax` query that ANDs a wildcard OR-group per
 token, a synonym explosion that emits one row per matching synonym, and a comparator ported from the
@@ -179,6 +181,56 @@ website's JavaScript — and the third stage is what decides the order a person 
 why a "top hit" comparison done at the Solr level describes an order nobody experiences. The full
 account, including the six divergent copies of this configuration that existed across three repos, is
 in [the search config comparison](search-config-comparison.md).
+
+### Type names are validated
+
+All four type parameters are checked against the live facet vocabulary before Solr is asked. A name
+that does not exist is a **400** naming the parameter, the value and the closest real names:
+
+```
+GET /search?query=neuron&filter_types=Neurone
+400  {"error": "filter_types: unknown type Neurone. Did you mean: neuron, neuron_projection_bundle? GET /facets lists every type name."}
+```
+
+This replaces the previous behaviour, which was a 200 with zero rows — indistinguishable from "that
+type exists and nothing matched", and the reason a misspelling could look like a biological result.
+Matching is case- and separator-insensitive (`NERVOUS-SYSTEM` resolves to `nervous_system`), so the
+capitalisation you see in a row's `facets_annotation` works as an input. Prefixes deliberately do
+**not** match: `neuro` is not `neuron`, because silently widening a filter is worse than rejecting it.
+If the vocabulary cannot be fetched the check **fails open** — search keeps working, unvalidated.
+
+### `boost_types` / `demote_types` now change the order
+
+They previously changed the Solr score and nothing else, because the comparator that produces the
+final order ranks on label text and never consults that score — so the parameters were accepted,
+documented, and invisible. The boost is now also applied to the ranked list: boosted types move to the
+front, demoted types to the back, and the comparator's order is preserved *within* each of the three
+groups. Nothing is added or removed, so a demote is still not a filter — use `exclude_types` for that.
+A type named in both wins the boost.
+
+(Underneath, a demote is expressed to Solr as `(*:* -facets_annotation:X)^100` — a positive boost on
+everything that is *not* X. The website's `^0.001` is a tiny positive boost, which demotes nothing,
+and Solr rejects a negative one with a 500.)
+
+### `unique` and `distinct_terms`
+
+`/search` returns one row per matching *label or synonym*, which is how the website's dropdown works —
+so `count` is legitimately larger than the number of terms, and a term with three matching synonyms
+appears three times. Every response now reports `distinct_terms` alongside `count`, and `unique=true`
+collapses the rows to one per term (keeping the highest-ranked occurrence) before `limit` is applied,
+so a page of 25 is 25 distinct terms.
+
+## `/facets`
+
+```
+GET /facets                      # every type name, with how many terms carry it
+GET /facets?contains=lineage     # filtered, case- and separator-insensitive
+```
+
+The vocabulary that the four type parameters are validated against: 233 names at the time of writing,
+each with a `docs` count, sorted by count. This is the list to offer in a UI and the list to check a
+name against before sending it. Cached for `VFBQUERY_FACET_VOCAB_TTL` seconds (default 3600); returns
+**503** if Solr cannot be reached, with a message noting that search itself still works.
 
 ## `/xref`
 

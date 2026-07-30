@@ -120,7 +120,7 @@ def test_cancelled_owner_does_not_strand_the_key(monkeypatch):
         # And the query is usable again rather than poisoned for the life of
         # the process. Patch in something fast so this does not just re-hang.
         async def fast_search(app, query, rows, limit=None, **facets):
-            return [{"short_form": "FBbt_1"}], 1, {"numFound": 1}, 1
+            return [{"short_form": "FBbt_1"}], 1, {"numFound": 1}, 1, 1
 
         monkeypatch.setattr(ha_api, "_solr_search_ranked", fast_search,
                             raising=True)

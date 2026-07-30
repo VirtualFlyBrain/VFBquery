@@ -73,8 +73,11 @@ deliberately:
   "helpfully" tidier here changes results, so the port keeps the empty group.
 
 **b. Deprecated terms.** Website adds a second hard filter `fq=NOT facets_annotation:Deprecated`.
-MCP only *demotes* them (`facets_annotation:Deprecated^0.001` in `bq`), so deprecated terms can still
-surface.
+MCP only *tries* to demote them (`facets_annotation:Deprecated^0.001` in `bq`), so deprecated terms
+can still surface — and in fact that clause demotes nothing at all: `^0.001` is a small *positive*
+boost, so it nudges deprecated terms very slightly **up**. In the website's config it is harmless
+because the hard `fq` has already removed those documents; in the MCP's, where there is no such `fq`,
+it is a demote that does not demote. See §5b for what a demote has to look like to work.
 
 **c. `bq` boosts.**
 
@@ -277,6 +280,45 @@ the `Class^200` boost is not being overridden: `FBbt_00047966`'s synonyms are
 `["larval MBON-a2", "odd", "MBE7b"]` — **not** `MBON-a2` — so the L1EM individuals are the only exact
 label matches, and no amount of class boosting invents a match that is not there. If the class should
 be findable as `MBON-a2`, the fix is a synonym in the ontology, not a search change.
+
+## 5b. Where `/search` now deliberately diverges from the website
+
+Everything above this section is a faithful port: same `fq`, same boosts, same comparator, byte-identical
+ordering on 78 queries. Three things in that inheritance were not worth being faithful to, and this
+section is the record of choosing not to be. All three were reported as "faithful to the website rather
+than broken" in an earlier live-test writeup, on the reasoning that changing them changes what the
+website returns. That reasoning was wrong in one respect: none of the three changes the *ordering* the
+parity gate protects, and each of them silently mislead a caller.
+
+**A misspelled type name was a 200 with zero rows.** `filter_types=NotAType` produced
+`fq=facets_annotation:NotAType`, which matches nothing, so the response was a well-formed empty result
+— indistinguishable from "that type exists and nothing in it matched your query". A caller filtering by
+`Neurone` got a biological-looking answer of zero. Type names are now resolved against the live facet
+vocabulary first (233 names, all lowercase in the index although stored *row* values are capitalised —
+`Nervous_system`, `has_subClass` — so resolution folds case and separators), and an unknown one is a
+**400** naming the parameter, the value, and the nearest real names. Prefixes deliberately do not
+resolve: `neuro` is not `neuron`. Contrast `/xref`'s `db` matcher, where prefix widening *is* right
+because the user is naming a data source they know by an abbreviation; here widening a filter changes
+which biology comes back. If the vocabulary cannot be fetched, validation **fails open** — an outage in
+a convenience feature must not take search down with it. The vocabulary is also exposed directly, as
+`GET /facets`.
+
+**`boost_types` / `demote_types` were accepted and had no visible effect.** They alter the Solr score,
+and the comparator that decides the order a person actually sees ranks on label text and never consults
+that score (§2, §4) — so the two parameters were documented, accepted, and inert. Fixing it needed both
+halves. In `bq`, a demote is now `(*:* -facets_annotation:X)^100`, a positive boost on everything that
+is *not* X: `^-100` is not a Solr syntax error but an HTTP 500, and `^0.001` is a boost so small it
+demotes nothing (§2b). And after the comparator runs, the ranked rows are partitioned into
+boosted / neither / demoted, stably — the comparator's order survives *within* each group, so this is a
+three-way stable partition and not a re-sort. A type named in both parameters takes the boost. Nothing
+is added or removed by either parameter; `exclude_types` remains the way to actually drop rows.
+
+**One term could occupy several rows.** `refineResults` emits one row per matching label *or* synonym,
+which is what the website's dropdown wants — it is showing you *why* each row matched — and it is why
+`count` is legitimately larger than Solr's `numFound`. For a programmatic caller asking for 25 results
+it means an unknown number of distinct terms, and no way to tell without inspecting. The rows are
+unchanged by default; every response now also reports `distinct_terms`, and `unique=true` collapses to
+one row per term (highest-ranked occurrence kept) *before* `limit`, so a page of 25 is 25 terms.
 
 ## 6. Reproducing the measurements
 

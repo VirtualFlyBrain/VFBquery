@@ -62,6 +62,7 @@ something the port could guarantee by construction. Re-run the harness in
 """
 from __future__ import annotations
 
+import difflib
 import functools
 import re
 from typing import Any, Dict, Iterable, List, Optional
@@ -113,7 +114,28 @@ EXACT_LABEL_BOOST = 6000
 #: The website's own filter chips use these weights (``filter_positive`` /
 #: ``filter_negative`` in searchConfiguration.js) rather than a hard ``fq``.
 FILTER_POSITIVE = "^100"
+
+#: Kept for reference, and deliberately no longer used to build ``bq``.
+#: ``^0.001`` is a *tiny positive* boost, not a penalty: a clause weighted 0.001
+#: still adds a (negligible) amount to the score of every document it matches,
+#: so the website's "demote" chip cannot push anything down — it nudges the
+#: chosen type very slightly *up*. Solr rejects the obvious repair
+#: (``facets_annotation:X^-100`` answers HTTP 500; negative boosts do not
+#: parse), so demotion is expressed as a boost on the complement instead — see
+#: :data:`FILTER_DEMOTE_TEMPLATE`. This constant stays defined so the next
+#: person diffing against ``searchConfiguration.js`` finds the explanation
+#: rather than an apparent omission.
 FILTER_NEGATIVE = "^0.001"
+
+#: Demotion as Solr will actually accept it: boost everything that is *not* the
+#: demoted type, by the same amount ``boost_types`` adds. Verified against the
+#: live index — ``(*:* -facets_annotation:Individual)^100`` parses and adds
+#: exactly +100 to every non-matching document, the exact mirror of
+#: ``facets_annotation:Individual^100``.
+FILTER_DEMOTE_TEMPLATE = "(*:* -facets_annotation:{name})" + FILTER_POSITIVE
+
+#: The field every type filter, boost and demote is expressed against.
+FACET_FIELD = "facets_annotation"
 
 
 # --------------------------------------------------------------------------- #
@@ -253,8 +275,13 @@ def build_params(query: str, rows: int = DEFAULT_ROWS,
 
     ``filter_types`` / ``exclude_types`` are hard ``fq`` constraints (the
     semantics the MCP ``search_terms`` tool already exposes).
-    ``boost_types`` / ``demote_types`` are soft ``bq`` weights, matching the
-    website's own filter chips (``^100`` / ``^0.001``).
+    ``boost_types`` / ``demote_types`` are soft ``bq`` weights: ``^100`` on the
+    named type, and ``^100`` on its complement respectively. The website writes
+    the second one as ``^0.001``, which demotes nothing — see
+    :data:`FILTER_NEGATIVE`. Note that ``bq`` only changes *which* candidates
+    Solr returns and in what score order; the ranked output is re-sorted on
+    label text afterwards, so a caller who wants the effect to be visible in the
+    final order needs :func:`partition_by_facets` as well.
 
     ``exact_label_boost`` is on by default and is the single intentional
     departure from the website — see :func:`build_exact_label_boost`. Pass
@@ -271,7 +298,9 @@ def build_params(query: str, rows: int = DEFAULT_ROWS,
     for bt in boost_types or []:
         bq += f" facets_annotation:{bt}{FILTER_POSITIVE}"
     for dt in demote_types or []:
-        bq += f" facets_annotation:{dt}{FILTER_NEGATIVE}"
+        # NOT the website's `^0.001`, which is a tiny *positive* boost and so
+        # demotes nothing — see FILTER_NEGATIVE.
+        bq += " " + FILTER_DEMOTE_TEMPLATE.format(name=dt)
     bq += build_phrase_boost(query)
     if exact_label_boost:
         bq += build_exact_label_boost(query)
@@ -673,6 +702,237 @@ def sort_results(rows: List[Dict[str, Any]], input_string: str) -> List[Dict[str
 
 
 # --------------------------------------------------------------------------- #
+# 4b. Type facets — the vocabulary, and making boost/demote visible
+# --------------------------------------------------------------------------- #
+
+def build_facet_vocabulary_params() -> Dict[str, Any]:
+    """Parameters for "list every type name that actually exists".
+
+    Uses the same ``fq`` as a real search, so the answer is the vocabulary a
+    caller can usefully filter *this* search by — not every value the field has
+    ever held. ``facet.mincount=1`` drops names with nothing behind them and
+    ``facet.limit=-1`` disables Solr's default cut-off at 100, which would
+    otherwise silently hide most of the list.
+    """
+    return {
+        "q": "*:*",
+        "rows": "0",
+        "facet": "true",
+        "facet.field": FACET_FIELD,
+        "facet.limit": "-1",
+        "facet.mincount": "1",
+        "facet.sort": "count",
+        "wt": "json",
+        "fq": [FQ_BASE, FQ_NOT_DEPRECATED],
+    }
+
+
+def parse_facet_vocabulary(payload: Dict[str, Any]) -> Dict[str, int]:
+    """``{name: doc_count}`` from a faceted Solr response.
+
+    Solr's default ``facet_fields`` encoding is a *flat* ``[name, count, name,
+    count, …]`` list rather than a mapping; ``json.nl`` can change that, so both
+    shapes are accepted.
+    """
+    fields = (payload.get("facet_counts") or {}).get("facet_fields") or {}
+    raw = fields.get(FACET_FIELD)
+    if raw is None:
+        return {}
+
+    pairs: List[tuple] = []
+    if isinstance(raw, dict):
+        pairs = list(raw.items())
+    else:
+        pairs = [(raw[i], raw[i + 1]) for i in range(0, len(raw) - 1, 2)]
+
+    vocabulary: Dict[str, int] = {}
+    for name, count in pairs:
+        try:
+            count = int(count)
+        except (TypeError, ValueError):
+            continue
+        if count > 0 and name:
+            vocabulary[str(name)] = count
+    return vocabulary
+
+
+def normalise_facet_name(name: Any) -> str:
+    """Fold case and word separators, so ``Nervous_system`` == ``nervous-system``.
+
+    The indexed terms are lowercased by the field's analyser while the *stored*
+    values keep their capitalisation (``Nervous_system``, ``has_subClass``), so
+    there is no single spelling a caller could be expected to guess. Separators
+    go too, because ``_`` versus ``-`` is not a distinction anyone means.
+    """
+    return re.sub(r"[\s_-]+", "", str(name or "").strip().lower())
+
+
+def suggest_facet_names(name: Any, vocabulary: Iterable[str],
+                        limit: int = 5) -> List[str]:
+    """Plausible corrections for a name that is not in the vocabulary.
+
+    Containment first (``lineage`` -> the ``lineage_*`` family), then fuzzy
+    matches, because with 200-odd names a typo is usually a near-miss but a
+    *short* wrong name is usually a fragment of the right one.
+    """
+    target = normalise_facet_name(name)
+    pairs = [(str(c), normalise_facet_name(c)) for c in vocabulary or []]
+    if not target or not pairs:
+        return []
+
+    out: List[str] = []
+    seen = set()
+    for canonical, folded in pairs:
+        if target in folded and canonical not in seen:
+            seen.add(canonical)
+            out.append(canonical)
+
+    if len(out) < limit:
+        close = difflib.get_close_matches(
+            target, [folded for _, folded in pairs], n=limit, cutoff=0.7)
+        for match in close:
+            for canonical, folded in pairs:
+                if folded == match and canonical not in seen:
+                    seen.add(canonical)
+                    out.append(canonical)
+                    break
+    return out[:limit]
+
+
+def resolve_facet_names(requested: Iterable[str], vocabulary: Iterable[str],
+                        suggestion_limit: int = 5):
+    """Map requested type names onto the vocabulary's own spelling.
+
+    Three passes, first hit wins: exact, case-insensitive, then case- and
+    separator-insensitive. There is deliberately **no prefix or substring
+    pass** — unlike a database name in ``/xref``, a type name that matched an
+    arbitrary substring would quietly widen the filter the caller asked to
+    narrow by (``neuro`` should not silently mean ``neuron``).
+
+    Returns ``(resolved, unknown)`` where ``resolved`` is a de-duplicated list
+    in request order and ``unknown`` maps each unrecognised name to its
+    suggestions.
+    """
+    canonical = [str(c) for c in vocabulary or []]
+    by_exact = {c: c for c in canonical}
+    by_lower: Dict[str, str] = {}
+    by_folded: Dict[str, str] = {}
+    for c in canonical:
+        by_lower.setdefault(c.lower(), c)
+        by_folded.setdefault(normalise_facet_name(c), c)
+
+    resolved: List[str] = []
+    unknown: Dict[str, List[str]] = {}
+    for name in requested or []:
+        key = str(name).strip()
+        hit = by_exact.get(key)
+        if hit is None:
+            hit = by_lower.get(key.lower())
+        if hit is None:
+            hit = by_folded.get(normalise_facet_name(key))
+        if hit is None:
+            unknown[key] = suggest_facet_names(key, canonical, suggestion_limit)
+        elif hit not in resolved:
+            resolved.append(hit)
+    return resolved, unknown
+
+
+def row_facets(row: Dict[str, Any]) -> set:
+    """The row's type facets, folded for comparison.
+
+    Compared folded because the two ends disagree on spelling: the value stored
+    on the row is ``Nervous_system`` while the term the caller's filter matched
+    in the index is ``nervous_system``.
+    """
+    values = row.get(FACET_FIELD) or []
+    if isinstance(values, str):
+        values = [values]
+    return {normalise_facet_name(v) for v in values if v}
+
+
+def partition_by_facets(rows: List[Dict[str, Any]],
+                        boost_types: Optional[Iterable[str]] = None,
+                        demote_types: Optional[Iterable[str]] = None
+                        ) -> List[Dict[str, Any]]:
+    """Float boosted types to the top and sink demoted ones to the bottom.
+
+    ``bq`` weights change what Solr *retrieves* and its score order, but the
+    website comparator then re-sorts purely on label text and never reads the
+    score — so on its own a boost is invisible in the final order, which is
+    what a caller passing ``boost_types`` is actually asking to see. This is a
+    stable three-way partition applied *after* the comparator, so the website's
+    ordering survives intact inside each group.
+
+    A row matching both wins: an explicit "show me these" is a stronger
+    statement than "push those down", and it is also the only reading under
+    which ``boost_types=X&demote_types=X`` has an obvious meaning.
+
+    With neither argument this is a no-op, so default search order — and every
+    caller that does not use the feature — is untouched.
+    """
+    boost = {normalise_facet_name(b) for b in boost_types or [] if b}
+    demote = {normalise_facet_name(d) for d in demote_types or [] if d}
+    if not boost and not demote:
+        return list(rows)
+
+    lead: List[Dict[str, Any]] = []
+    middle: List[Dict[str, Any]] = []
+    tail: List[Dict[str, Any]] = []
+    for row in rows:
+        facets = row_facets(row)
+        if boost and facets & boost:
+            lead.append(row)
+        elif demote and facets & demote:
+            tail.append(row)
+        else:
+            middle.append(row)
+    return lead + middle + tail
+
+
+def dedupe_by_short_form(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """One row per term, keeping the best-ranked one.
+
+    ``refine_results`` emits a row per synonym so a searcher can see *which*
+    name matched, which is right for a search box and wrong for a caller who
+    wants ten terms: ``limit=10`` on a term with six synonyms returns four
+    terms. Rows arriving here are already ranked, so the first occurrence is by
+    definition the best-placed one.
+
+    Rows with no ``short_form`` are all kept — there is nothing to tell them
+    apart by, and dropping them would silently discard data.
+    """
+    seen = set()
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        key = row.get("short_form")
+        if not key:
+            out.append(row)
+            continue
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(row)
+    return out
+
+
+def count_distinct_terms(rows: Iterable[Dict[str, Any]]) -> int:
+    """How many distinct terms a ranked list covers.
+
+    Reported alongside the row count so the gap between "results" and "terms" is
+    visible without a second request.
+    """
+    seen = set()
+    extra = 0
+    for row in rows:
+        key = row.get("short_form")
+        if key:
+            seen.add(key)
+        else:
+            extra += 1
+    return len(seen) + extra
+
+
+# --------------------------------------------------------------------------- #
 # 5. Display fix-up — `label_manipulation` in searchConfiguration.js
 # --------------------------------------------------------------------------- #
 
@@ -723,7 +983,7 @@ def solr_query(query: str, rows: int = DEFAULT_ROWS, timeout: int = 30,
 
 def search(query: str, rows: int = DEFAULT_ROWS, limit: Optional[int] = None,
            timeout: int = 30, session: Optional[requests.Session] = None,
-           **kwargs) -> List[Dict[str, Any]]:
+           unique: bool = False, **kwargs) -> List[Dict[str, Any]]:
     """Website-equivalent search: query, refine, sort, clean.
 
     ``rows`` is how many docs to ask Solr for (ranking quality depends on a wide
@@ -732,9 +992,20 @@ def search(query: str, rows: int = DEFAULT_ROWS, limit: Optional[int] = None,
     candidate set. Returns a list of dicts with ``short_form``, refined
     ``label``, ``original_label``, ``id``, ``facets_annotation`` and
     ``unique_facets``.
+
+    ``unique=True`` collapses the per-synonym rows to one row per term, applied
+    *before* ``limit`` so ``limit=10`` means ten terms.
+
+    The same post-comparator steps the ``/search`` endpoint applies are applied
+    here, so the module and the endpoint cannot drift into answering the same
+    question differently.
     """
     docs = solr_query(query, rows=rows, timeout=timeout, session=session, **kwargs)
     ranked = sort_results(refine_results(docs), query)
+    ranked = partition_by_facets(ranked, kwargs.get("boost_types"),
+                                 kwargs.get("demote_types"))
+    if unique:
+        ranked = dedupe_by_short_form(ranked)
     if limit is not None:
         ranked = ranked[:max(0, int(limit))]
     for row in ranked:

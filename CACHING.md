@@ -71,6 +71,44 @@ post-processing (`post_fn`) stays in the handler and is never part of the
 cached payload. `force_refresh=true` on `/query_connectivity` drops both the
 in-memory entry and the SOLR document and recomputes.
 
+### Term-info query previews (two-phase loading)
+
+A rich term — a template or a painted-domain individual — carries several
+preview queries (`PaintedDomains`, `AllAlignedImages`, `AlignedDatasets`,
+`AllDatasets`, …) whose counts and first ten rows `fill_query_results` computes
+serially. On a cold cache that is tens of seconds, so `get_term_info` does not
+make the caller wait for it: it returns immediately with every preview's `count`
+set to **-1**, meaning *not counted yet* (as distinct from `0`, "no matches"),
+and warms the full previews on a background thread pool.
+
+`-1` is also what makes the deferral safe. The cache refuses to *write* a
+term_info whose previews are unresolved, and treats one as a miss on read, so a
+blank is never promoted to the final answer — the request simply takes the fast
+path again while the warm works.
+
+**Fixed in v1.22.35:** the warm could not make progress. It signalled "fill
+synchronously" by calling `get_term_info(force_refresh=True)`, and
+`with_solr_cache` popped `force_refresh` off the kwargs without forwarding it to
+the wrapped function — so the warm took the same fast path and produced the same
+blank, forever. A live probe caught `VFB_00101567` returning `-1` for all four
+previews on eight consecutive rounds over eight minutes, and
+`force_refresh=true` on `/get_term_info` answered in 2.0s with blanks, which is
+the tell: the synchronous fill takes far longer than that, so it never ran.
+
+Two things changed. The decorator now forwards `force_refresh` to any wrapped
+function that declares it (at the call site, deliberately not by putting it back
+into `kwargs` — those keys generate the cache field names, so re-inserting it
+would split the term_info namespace between refreshed and unrefreshed callers).
+And the warm no longer uses `force_refresh` at all: it only ever runs when there
+is no complete entry, so it has nothing to invalidate, and `force_refresh` would
+additionally discard every sub-query cache underneath the fill — 74.6s measured
+against 3.9s for the shallow fill. "Fill previews synchronously" is now its own
+signal, a thread-local the warm sets.
+
+A warm that finishes without a complete result puts the term on a cooldown
+(`VFBQUERY_PREVIEW_WARM_COOLDOWN`, default 300s) so a term whose previews cannot
+be computed does not queue one warm per request and starve the terms that can.
+
 ### Deliberately not cached
 
 - `get_similar_morphology_userdata` — keyed on a per-session user upload id;
@@ -209,6 +247,16 @@ Caveat: a PR that bumps the **minor/major** version reads cold in read-only mode
 same-version PRs read the already-warm production entries. If you'd rather PR
 checks read *and* write a cache without touching production, point them at a
 separate collection with `VFBQUERY_SOLR_URL` instead.
+
+#### Other environment variables
+
+| Variable | Default | Effect |
+|---|---|---|
+| `VFBQUERY_SOLR_URL` | the shared cache collection | Point the persistent cache at a different Solr core. |
+| `VFBQUERY_VERSION` | installed package version | Override the major.minor cache namespace. |
+| `VFBQUERY_MAX_RESULT_MB` | 100 | Refuse to cache a payload larger than this. |
+| `VFBQUERY_FACET_VOCAB_TTL` | 3600 | How long `/facets` and the type-name validator hold the vocabulary. |
+| `VFBQUERY_PREVIEW_WARM_COOLDOWN` | 300 | How long before re-warming a term whose previews came back incomplete. |
 
 ## Performance Benefits
 

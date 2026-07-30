@@ -50,7 +50,7 @@ def _make_app(queue_wait):
 async def _start(monkeypatch, hold=2.0, queue_wait=0.3):
     async def slow_search(app, query, rows, limit=None, **facets):
         await asyncio.sleep(hold)
-        return [], 0, {"numFound": 0}, 0
+        return [], 0, {"numFound": 0}, 0, 0
 
     async def slow_terminfo(session, ids):
         await asyncio.sleep(hold)

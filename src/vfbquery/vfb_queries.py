@@ -2433,17 +2433,56 @@ def serialize_solr_output(results):
 # cache that can take minutes and blocks the caller, which is what stalls the
 # geppetto UI on "Loading ...". To keep term-info responsive we return
 # immediately with the previews left unresolved (count -1) and compute the full
-# previews on a background thread, writing them into the term_info cache via
-# force_refresh so the next open is complete.
+# previews on a background thread, so the next open is complete.
 #
-# Self-healing falls out of the existing cache validation: a cached term_info
-# whose queries still have count < 0 is treated as incomplete on read and
-# re-executed, so a blank entry is never served as final -- it just re-triggers
-# this fast path (and the background warm) until the full result lands.
+# What makes that safe rather than lossy is the cache's completeness rule: a
+# term_info whose queries still have count < 0 is not written, and if one is
+# somehow read back it is treated as a miss. So a blank answer is never
+# *promoted* to the final answer -- it re-triggers this fast path, and the warm,
+# until a full result lands.
+#
+# The one thing that rule does NOT give you is progress. Until v1.22.35 the warm
+# could never make any: it signalled "fill synchronously" by calling back in
+# with force_refresh=True, and `with_solr_cache` popped force_refresh off the
+# kwargs without forwarding it, so the warm's own call took the *same* fast path
+# and wrote the *same* blank. VFB_00101567 sat at count=-1 on every one of eight
+# probe rounds over eight minutes, and a client asking the endpoint for
+# force_refresh=true got a blank back in two seconds, which reads like a fresh
+# answer rather than a skipped one.
+#
+# The decorator now forwards force_refresh, and the warm no longer uses it: a
+# warm only ever runs when there is no complete cached entry, so it has nothing
+# to invalidate, and force_refresh would additionally bust every *sub*-query
+# cache underneath fill_query_results -- 74.6s measured against 3.9s for the
+# shallow fill. "Fill previews synchronously" and "ignore all caches" are two
+# different requests and are now two different signals: the warm sets a
+# thread-local flag, checked via _warming_previews().
 # ---------------------------------------------------------------------------
 _bg_preview_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="vfb-terminfo-warm")
 _bg_preview_inflight = set()
 _bg_preview_lock = threading.Lock()
+
+# When a warm finishes without producing a cacheable (complete) entry, every
+# later request for that term would otherwise queue another warm -- one per
+# request, forever, four at a time. This is the backpressure: a term is not
+# re-warmed until the cooldown expires. Successful warms are unaffected, because
+# a complete cached entry short-circuits the fast path before scheduling.
+_BG_PREVIEW_COOLDOWN = float(os.getenv("VFBQUERY_PREVIEW_WARM_COOLDOWN", "300"))
+_BG_PREVIEW_COOLDOWN_MAX = 2048          # bound the map; evict expired first
+_bg_preview_cooldown = {}
+
+# A warm's request is "fill the previews synchronously", which is *not* the same
+# as force_refresh's "ignore every cache". Thread-local rather than a keyword on
+# get_term_info on purpose: kwargs feed the cache field names, so a new keyword
+# would split the term_info cache namespace between warmed and unwarmed callers
+# -- and per feedback_cache_invalidation the only sanctioned invalidation is a
+# major.minor bump.
+_bg_preview_state = threading.local()
+
+
+def _warming_previews():
+    """True inside a background preview warm on this thread."""
+    return getattr(_bg_preview_state, 'warming', False)
 
 
 def _blank_query_previews(term_info):
@@ -2459,25 +2498,66 @@ def _blank_query_previews(term_info):
     return term_info
 
 
+def _trim_preview_cooldowns():
+    """Keep the cooldown map bounded. Caller holds ``_bg_preview_lock``.
+
+    Keyed by term id, so without this it grows for the lifetime of the process.
+    Expired entries go first because dropping them costs nothing; only if that
+    is not enough are live ones evicted, soonest-to-expire first, since those
+    are the closest to being eligible for a re-warm anyway.
+    """
+    if len(_bg_preview_cooldown) <= _BG_PREVIEW_COOLDOWN_MAX:
+        return
+    now = time.time()
+    for key in [k for k, v in _bg_preview_cooldown.items() if v <= now]:
+        _bg_preview_cooldown.pop(key, None)
+    while len(_bg_preview_cooldown) > _BG_PREVIEW_COOLDOWN_MAX:
+        _bg_preview_cooldown.pop(
+            min(_bg_preview_cooldown, key=_bg_preview_cooldown.get), None)
+
+
 def _schedule_preview_warm(short_form):
-    """Compute the full term-info previews in the background and cache them."""
+    """Compute the full term-info previews in the background and cache them.
+
+    No-ops if a warm for this term is already running, or if one finished
+    recently without managing to cache a complete entry.
+    """
+    now = time.time()
     with _bg_preview_lock:
         if short_form in _bg_preview_inflight:
+            return
+        until = _bg_preview_cooldown.get(short_form)
+        if until is not None and until > now:
             return
         _bg_preview_inflight.add(short_form)
 
     def _warm():
+        # Set before the call, not inside get_term_info: the flag has to be
+        # visible to the *decorated* function, and it is read on this thread
+        # only, so there is nothing to race with.
+        _bg_preview_state.warming = True
+        complete = False
         try:
             import vfbquery
-            # force_refresh re-runs get_term_info with full (synchronous) preview
-            # execution and overwrites the cached entry, so the next open is fast
-            # AND complete.
-            vfbquery.get_term_info(short_form, preview=True, force_refresh=True)
+            # Deliberately NOT force_refresh: nothing needs invalidating (a warm
+            # only runs when no complete entry exists) and force_refresh would
+            # also discard every sub-query cache under fill_query_results.
+            warmed = vfbquery.get_term_info(short_form, preview=True)
+            complete = bool(warmed) and all(
+                q.get('count', -1) >= 0 for q in (warmed.get('Queries') or []))
         except Exception as e:
             print(f"Background term_info preview warm failed for {short_form}: {e}")
         finally:
+            _bg_preview_state.warming = False
             with _bg_preview_lock:
                 _bg_preview_inflight.discard(short_form)
+                if complete:
+                    # It is cached now; later requests never reach here.
+                    _bg_preview_cooldown.pop(short_form, None)
+                else:
+                    _bg_preview_cooldown[short_form] = (
+                        time.time() + _BG_PREVIEW_COOLDOWN)
+                    _trim_preview_cooldowns()
 
     _bg_preview_executor.submit(_warm)
 
@@ -2504,10 +2584,16 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
                 # Two-phase preview loading: on a normal (foreground) cold call,
                 # return immediately with previews unresolved so the caller is not
                 # blocked by slow connectivity/count queries, and warm the full
-                # previews into the cache on a background thread. The background
-                # job (force_refresh=True) and cache-disabled runs (the test suite,
-                # which validates live data) still fill synchronously below.
-                if not force_refresh and not solr_caching_disabled():
+                # previews into the cache on a background thread.
+                #
+                # Three callers skip the fast path and fill synchronously below:
+                # the background warm itself (_warming_previews -- otherwise the
+                # warm returns the same blank and nothing ever fills, which is
+                # exactly the bug the header comment describes), an explicit
+                # force_refresh, and cache-disabled runs such as the test suite,
+                # which validates against live data.
+                if (not force_refresh and not solr_caching_disabled()
+                        and not _warming_previews()):
                     _schedule_preview_warm(short_form)
                     return _blank_query_previews(parsed_object)
                 try:

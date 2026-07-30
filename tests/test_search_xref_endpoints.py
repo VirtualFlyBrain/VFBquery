@@ -63,10 +63,15 @@ def _make_app(ranked_ids, term_infos=None, monkeypatch=None):
     fetched = []
     searched = []
 
-    async def fake_search(app, query, rows, limit=None, **facets):
-        searched.append({"query": query, "rows": rows, "limit": limit, **facets})
+    async def fake_search(app, query, rows, limit=None, unique=False, **facets):
+        searched.append({"query": query, "rows": rows, "limit": limit,
+                         "unique": unique, **facets})
         docs = [{"short_form": sf, "label": sf} for sf in ranked_ids]
-        return docs[:limit] if limit else docs, len(docs), {"numFound": len(docs)}, len(docs)
+        if unique:
+            docs = list({d["short_form"]: d for d in docs}.values())
+        distinct = len({d["short_form"] for d in docs})
+        return (docs[:limit] if limit else docs, len(docs),
+                {"numFound": len(docs)}, len(docs), distinct)
 
     async def fake_terminfo(session, ids):
         ids = list(ids)

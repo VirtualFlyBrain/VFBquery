@@ -77,6 +77,72 @@ def _decode_cache_field(cached_field) -> str:
     return cached_field
 
 
+
+# --- Cache namespaces -------------------------------------------------------
+# Every cache document id is "<prefix>vfb_query_<query_type>_<term_id>". In
+# production the prefix is empty, which is what makes the deployed service and
+# the released package share one warm cache.
+#
+# CI needs something different. A PR check must never write into that shared
+# cache (experimental code would poison it for the live site), but running with
+# the cache switched off entirely means every job pays full cold-query cost —
+# tens of minutes of Neo4j/Owlery work per run, and perf assertions that grade
+# a cold path nobody in production ever takes.
+#
+# VFBQUERY_CACHE_NAMESPACE resolves that: it moves *all* reads, writes and
+# deletes for this process into a private id prefix. Experimental code can then
+# write freely, because it is physically incapable of addressing a production
+# document. Set it per branch (e.g. "ci-fix-connectivity") so one branch's
+# results can never be served to another's tests.
+#
+# VFBQUERY_CACHE_NAMESPACE_FALLBACK adds a read-through: on a namespace miss,
+# read the production document instead (never writing or purging it). That
+# makes a brand-new namespace warm on its very first run. Use it for timing
+# tests, where a production entry is a fair stand-in; leave it off for
+# correctness tests, where reading production would hide the branch's own
+# behaviour behind an entry produced by different code.
+
+_NAMESPACE_SEPARATOR = "__"
+
+
+def cache_namespace() -> str:
+    """The private cache namespace for this process ('' means production).
+
+    Sanitised to ``[a-z0-9_]`` because the id lands unescaped in a Solr ``q=id:``
+    term, where characters like ``-``, ``:`` and whitespace change the query's
+    meaning rather than matching literally. A branch name is therefore a safe
+    thing to pass in. Evaluated per call so tests can toggle it via env.
+    """
+    raw = (os.getenv('VFBQUERY_CACHE_NAMESPACE', '') or '').strip().lower()
+    if not raw:
+        return ''
+    return re.sub(r'[^a-z0-9]+', '_', raw).strip('_')[:48]
+
+
+def cache_namespace_fallback() -> bool:
+    """True when a namespace miss should fall back to reading production."""
+    return os.getenv('VFBQUERY_CACHE_NAMESPACE_FALLBACK', 'false').lower() in (
+        'true', '1', 'yes', 'on')
+
+
+def cache_doc_id_for(query_type: str, term_id: str, namespace: Optional[str] = None) -> str:
+    """Cache document id for a query, in the given namespace (None = current)."""
+    ns = cache_namespace() if namespace is None else namespace
+    prefix = f"ns_{ns}{_NAMESPACE_SEPARATOR}" if ns else ""
+    return f"{prefix}vfb_query_{query_type}_{term_id}"
+
+
+def cache_doc_glob(namespace: Optional[str] = None) -> str:
+    """Solr id wildcard matching every cache document in a namespace.
+
+    Note the production glob ``id:vfb_query_*`` does not match namespaced ids
+    (they start ``ns_``), so the production cleanup sweep and stats report leave
+    CI documents alone — and vice versa.
+    """
+    ns = cache_namespace() if namespace is None else namespace
+    return f"ns_{ns}{_NAMESPACE_SEPARATOR}vfb_query_*" if ns else "vfb_query_*"
+
+
 @dataclass 
 class CacheMetadata:
     """Metadata for cached results"""
@@ -122,6 +188,19 @@ class SolrResultCache:
         if cache_url is None:
             cache_url = os.getenv('VFBQUERY_SOLR_URL', self.DEFAULT_CACHE_URL)
         self.cache_url = cache_url
+        # A namespaced (CI) cache is scratch space in the same Solr collection
+        # as production, so it gets a much shorter default life: long enough to
+        # warm a re-run or a follow-up push, short enough that abandoned branches
+        # evaporate instead of accumulating. VFBQUERY_CACHE_TTL_HOURS overrides
+        # either default.
+        raw_ttl = os.getenv('VFBQUERY_CACHE_TTL_HOURS')
+        if raw_ttl:
+            try:
+                ttl_hours = int(raw_ttl)
+            except ValueError:
+                logger.warning("Invalid VFBQUERY_CACHE_TTL_HOURS=%r; ignoring", raw_ttl)
+        elif cache_namespace():
+            ttl_hours = 48
         self.ttl_hours = ttl_hours
         if max_result_size_mb is None:
             raw = os.getenv("VFBQUERY_MAX_RESULT_MB", "100")
@@ -142,6 +221,19 @@ class SolrResultCache:
         self._solr_disabled_until = 0.0  # epoch timestamp
         self._solr_backoff_seconds = int(os.getenv('VFBQUERY_SOLR_BACKOFF_SECONDS', '60'))
         self._solr_last_error = None
+
+        # Loud on purpose. A namespace set by accident on a production deploy
+        # would look like a total cache wipe (every lookup missing, every query
+        # cold) with nothing in the logs to explain it.
+        _ns = cache_namespace()
+        if _ns:
+            logger.warning(
+                "SOLR result cache is namespaced as '%s' (ids prefixed 'ns_%s%s'); "
+                "production cache entries will not be read%s, written or deleted. "
+                "TTL %sh.",
+                _ns, _ns, _NAMESPACE_SEPARATOR,
+                " (except read-only fallback, which is ON)" if cache_namespace_fallback() else "",
+                self.ttl_hours)
 
     @property
     def solr_cache_enabled(self) -> bool:
@@ -268,8 +360,32 @@ class SolrResultCache:
         return False
 
     def get_cached_result(self, query_type: str, term_id: str, **params) -> Optional[Any]:
+        """Retrieve a cached result, honouring the configured cache namespace.
+
+        In production (no namespace) this is a single lookup, exactly as before.
+        With VFBQUERY_CACHE_NAMESPACE set, the private document is tried first;
+        only if it misses and VFBQUERY_CACHE_NAMESPACE_FALLBACK is on do we read
+        the production document, and then strictly read-only — a namespaced
+        process never purges, rewrites or expires a production entry.
+        """
+        namespace = cache_namespace()
+        result = self._get_cached_result_in(namespace, True, query_type, term_id, **params)
+        if result is None and namespace and cache_namespace_fallback():
+            result = self._get_cached_result_in('', False, query_type, term_id, **params)
+            if result is not None:
+                logger.debug(
+                    "Namespace '%s' miss for %s(%s); served from production cache",
+                    namespace, query_type, term_id)
+        return result
+
+    def _get_cached_result_in(self, namespace: str, allow_purge: bool,
+                              query_type: str, term_id: str, **params) -> Optional[Any]:
         """
         Retrieve cached result from separate cache document
+
+        ``allow_purge`` is False when reading outside our own namespace: the
+        version/expiry/corruption checks still reject an unusable entry, but they
+        must not delete it, because it belongs to somebody else.
         
         Args:
             query_type: Type of query ('term_info', 'instances', etc.)
@@ -285,8 +401,9 @@ class SolrResultCache:
         try:
             # Query for cache document with prefixed ID including query type
             # This ensures different query types for the same term have separate cache entries
-            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
-            
+            cache_doc_id = cache_doc_id_for(query_type, term_id, namespace)
+            purge = self._clear_expired_cache_document if allow_purge else (lambda _id: None)
+
             response = requests.get(f"{self.cache_url}/select", params={
                 "q": f"id:{cache_doc_id}",
                 "fl": "cache_data",
@@ -320,7 +437,7 @@ class SolrResultCache:
                 cached_data = json.loads(_decode_cache_field(cached_field))
             except (ValueError, TypeError):
                 logger.warning(f"Corrupt cache entry for {query_type}({term_id}); clearing it")
-                self._clear_expired_cache_document(cache_doc_id)
+                purge(cache_doc_id)
                 return None
             
             # Check package version before anything else so stale cache is rejected early.
@@ -346,7 +463,7 @@ class SolrResultCache:
                         f"Cache invalidated for {query_type}({term_id}): cached version "
                         f"{cached_version} older than current {current_version}"
                     )
-                    self._clear_expired_cache_document(cache_doc_id)
+                    purge(cache_doc_id)
                 else:
                     logger.info(
                         f"Cache miss for {query_type}({term_id}): cached version "
@@ -364,7 +481,7 @@ class SolrResultCache:
                 if now > expires_at:
                     age_days = (now - cached_at).days
                     logger.info(f"Cache expired for {query_type}({term_id}) - age: {age_days} days")
-                    self._clear_expired_cache_document(cache_doc_id)
+                    purge(cache_doc_id)
                     return None
                     
                 # Log cache age for monitoring
@@ -373,7 +490,7 @@ class SolrResultCache:
                     
             except (KeyError, ValueError) as e:
                 logger.warning(f"Invalid cache metadata for {term_id}: {e}")
-                self._clear_expired_cache_document(cache_doc_id)
+                purge(cache_doc_id)
                 return None
             
             # Check if cached result parameters are compatible with requested parameters
@@ -426,7 +543,7 @@ class SolrResultCache:
             if isinstance(result, dict) and 'count' in result:
                 if result.get('count', -1) < 0:
                     logger.warning(f"Rejecting cached error result for {query_type}({term_id}): count={result.get('count')}")
-                    self._clear_expired_cache_document(cache_doc_id)
+                    purge(cache_doc_id)
                     return None
             
             logger.info(f"Cache hit for {query_type}({term_id})")
@@ -472,7 +589,7 @@ class SolrResultCache:
                 
             # Create cache document with prefixed ID including query type
             # This ensures different query types for the same term have separate cache entries
-            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
+            cache_doc_id = cache_doc_id_for(query_type, term_id)
             
             # Serialise then gzip the envelope. The size cap is enforced here, on
             # the compressed payload that is actually stored.
@@ -575,7 +692,7 @@ class SolrResultCache:
             return False
         try:
             # Include query_type in cache document ID to match storage format
-            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
+            cache_doc_id = cache_doc_id_for(query_type, term_id)
             response = requests.post(
                 f"{self.cache_url}/update",
                 data=f'<delete><id>{cache_doc_id}</id></delete>',
@@ -593,6 +710,40 @@ class SolrResultCache:
             logger.error(f"Error clearing cache entry: {e}")
             return False
     
+    def purge_namespace(self, namespace: Optional[str] = None) -> bool:
+        """Delete every cache document in a namespace.
+
+        Refuses to run against production: an empty namespace here would expand
+        to ``id:vfb_query_*`` and wipe the shared cache, which is exactly the
+        accident this whole mechanism exists to make impossible. CI calls this
+        when a branch is done with its scratch cache; otherwise the 48h TTL
+        collects it.
+        """
+        ns = cache_namespace() if namespace is None else namespace
+        if not ns:
+            logger.error("purge_namespace refused: no namespace set "
+                         "(refusing to delete the production cache)")
+            return False
+        if not self._solr_available():
+            return False
+        try:
+            response = requests.post(
+                f"{self.cache_url}/update",
+                data=f'<delete><query>id:{cache_doc_glob(ns)}</query></delete>',
+                headers={"Content-Type": "application/xml"},
+                params={"commit": "true"},
+                timeout=30
+            )
+            if response.status_code == 200:
+                logger.info("Purged cache namespace '%s'", ns)
+                return True
+            logger.error("Failed to purge cache namespace '%s': HTTP %s",
+                         ns, response.status_code)
+            return False
+        except Exception as e:
+            logger.error("Error purging cache namespace '%s': %s", ns, e)
+            return False
+
     def get_cache_age(self, query_type: str, term_id: str, **params) -> Optional[Dict[str, Any]]:
         """
         Get cache age information for a specific cached result
@@ -605,7 +756,7 @@ class SolrResultCache:
 
         try:
             # Include query_type in cache document ID to match storage format
-            cache_doc_id = f"vfb_query_{query_type}_{term_id}"
+            cache_doc_id = cache_doc_id_for(query_type, term_id)
             
             response = requests.get(f"{self.cache_url}/select", params={
                 "q": f"id:{cache_doc_id}",
@@ -667,7 +818,7 @@ class SolrResultCache:
             
             # Search for all cache documents
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "id:vfb_query_*",
+                "q": f"id:{cache_doc_glob()}",
                 "fl": "id,cache_data,expires_at",
                 "rows": "1000",  # Process in batches
                 "wt": "json"
@@ -741,7 +892,7 @@ class SolrResultCache:
         try:
             # Get all cache documents
             response = requests.get(f"{self.cache_url}/select", params={
-                "q": "id:vfb_query_*",
+                "q": f"id:{cache_doc_glob()}",
                 "fl": "id,query_type,cache_data,cached_at,expires_at",
                 "rows": "1000",  # Process in batches 
                 "wt": "json"
@@ -752,6 +903,7 @@ class SolrResultCache:
                 docs = data.get("response", {}).get("docs", [])
                 total_cache_docs = data.get("response", {}).get("numFound", 0)
                 
+                namespace = cache_namespace()
                 type_stats = {}
                 total_size = 0
                 expired_count = 0
@@ -823,6 +975,7 @@ class SolrResultCache:
                         expired_count += 1
                 
                 return {
+                    "cache_namespace": namespace or "production",
                     "total_cache_documents": total_cache_docs,
                     "cache_by_type": type_stats,
                     "expired_documents": expired_count,
@@ -836,6 +989,7 @@ class SolrResultCache:
             logger.error(f"Error getting cache stats: {e}")
             
         return {
+            "cache_namespace": cache_namespace() or "production",
             "total_cache_documents": 0,
             "cache_by_type": {},
             "expired_documents": 0,

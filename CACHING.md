@@ -244,9 +244,87 @@ after a release bumps it. There's no dedicated release-triggered warm.
 
 Caveat: a PR that bumps the **minor/major** version reads cold in read-only mode
 (its version's entries don't exist yet — see version invalidation below);
-same-version PRs read the already-warm production entries. If you'd rather PR
-checks read *and* write a cache without touching production, point them at a
-separate collection with `VFBQUERY_SOLR_URL` instead.
+same-version PRs read the already-warm production entries.
+
+Read-only mode's limitation is that it is read-only. A branch that *changes what
+a query returns* can never observe its own results warm, so those steps run with
+`VFBQUERY_CACHE_ENABLED=false` and pay the full cold cost on every job. Cache
+namespaces (next section) exist for that case.
+
+#### Private cache namespaces
+
+```bash
+export VFBQUERY_CACHE_NAMESPACE=ci-my-branch
+export VFBQUERY_CACHE_NAMESPACE_FALLBACK=true   # optional
+```
+
+A namespace moves **every** read, write and delete this process performs into a
+private id prefix. Cache document ids go from
+
+```
+vfb_query_term_info_FBbt_00003748
+ns_ci_my_branch__vfb_query_term_info_FBbt_00003748
+```
+
+so a namespaced process is not merely forbidden from touching production
+entries, it is *incapable of addressing them* — there is no id it can construct
+that names one. That is a stronger guarantee than read-only mode, and it is what
+makes it safe to let experimental code write.
+
+The isolation runs both ways. The production sweep and stats report query
+`id:vfb_query_*`, which does not match `ns_…` ids, and a namespaced sweep queries
+`id:ns_<ns>__vfb_query_*`, which does not match production ids. Neither sees the
+other's documents.
+
+**Why a prefix and not a separate Solr collection.** A collection would need
+provisioning, credentials and its own capacity planning for something that lives
+for the length of a branch. A prefix needs one environment variable, and — the
+part a separate collection cannot do — it can fall back.
+
+**Read-through fallback.** With `VFBQUERY_CACHE_NAMESPACE_FALLBACK=true`, a
+namespace miss is retried against the production document, strictly read-only:
+the fallback path never writes, never purges and never expires what it reads,
+even if it finds the entry corrupt or stale. A brand-new namespace is therefore
+warm on its *first* run rather than after its first run.
+
+Turn fallback **on** for timing work, where a production entry is a fair stand-in
+for what the branch would have computed. Leave it **off** for anything asserting
+on result *content*, where reading production would hide the branch's own
+behaviour behind an entry some other code wrote.
+
+**Naming.** The value is lowercased and everything outside `[a-z0-9]` becomes
+`_`, capped at 48 characters, because the id is interpolated unescaped into a
+Solr `q=id:` term where `-`, `:` and whitespace would change the query's meaning.
+Passing a raw branch name is safe: `fix/silent-noop` becomes `fix_silent_noop`.
+Use one namespace per branch — sharing one between branches reintroduces exactly
+the cross-contamination the namespace is there to prevent.
+
+**Lifetime.** Namespaced entries default to a **48-hour** TTL rather than
+production's 2160 hours (override with `VFBQUERY_CACHE_TTL_HOURS`), so an
+abandoned branch's scratch entries evaporate on their own. To reclaim the space
+immediately:
+
+```python
+from vfbquery.solr_result_cache import get_solr_cache
+get_solr_cache().purge_namespace()
+```
+
+`purge_namespace()` refuses to run when no namespace is set, and refuses an
+explicit empty one: without that guard its delete query would expand to
+`id:vfb_query_*` and wipe the production cache — the precise accident this
+mechanism exists to make impossible.
+
+**Interaction with the other two switches.** `VFBQUERY_CACHE_ENABLED=false` wins
+over everything (the cache layer is bypassed entirely; no server contact at all).
+`VFBQUERY_CACHE_READONLY=true` still suppresses all writes, so setting it
+alongside a namespace gives you a namespace you can only read — rarely what you
+want. Pick one: read-only for "warm production timings, touch nothing", a
+namespace for "write freely, in a sandbox".
+
+A namespace is announced with a `WARNING` at cache construction, naming the
+prefix, whether fallback is on, and the TTL. Set one by accident on a production
+deploy and every lookup misses; the warning is there so the logs say why rather
+than leaving you to infer a total cache wipe.
 
 #### Other environment variables
 
@@ -257,6 +335,9 @@ separate collection with `VFBQUERY_SOLR_URL` instead.
 | `VFBQUERY_MAX_RESULT_MB` | 100 | Refuse to cache a payload larger than this. |
 | `VFBQUERY_FACET_VOCAB_TTL` | 3600 | How long `/facets` and the type-name validator hold the vocabulary. |
 | `VFBQUERY_PREVIEW_WARM_COOLDOWN` | 300 | How long before re-warming a term whose previews came back incomplete. |
+| `VFBQUERY_CACHE_NAMESPACE` | *(empty = production)* | Move all cache reads/writes/deletes into a private id prefix. |
+| `VFBQUERY_CACHE_NAMESPACE_FALLBACK` | `false` | On a namespace miss, read (never write) the production entry. |
+| `VFBQUERY_CACHE_TTL_HOURS` | 2160 (48 when namespaced) | Lifetime of entries written by this process. |
 | `VFBQUERY_COMPUTE_BUDGET` | 180 | How long an HTTP handler waits for a computation before answering `503 status:"computing"`. The computation is **not** cancelled — it keeps running and writes to the cache, so the retry the 503 asks for is the cheap one. Set to `0` to wait indefinitely (the pre-1.22.36 behaviour, minus the cancellation). |
 
 ### The compute budget and the cache

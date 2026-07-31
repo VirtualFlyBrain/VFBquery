@@ -429,7 +429,25 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add performance.md
-          git diff --staged --quiet || git commit -m "Update performance test results [skip ci]"
+          git diff --staged --quiet && { echo "No performance change to record."; exit 0; }
+          git commit -m "Update performance test results [skip ci]"
+          # This job takes about twenty minutes, and it is not the only thing
+          # that pushes to main: the PyPI publish workflow commits
+          # "Bump version to X.Y.Z [skip ci]" when a release is cut. Cutting a
+          # release right after a merge therefore lands that bump while this job
+          # is still measuring, and the push is rejected as non-fast-forward —
+          # which turned the v1.22.36 release red on a run where every test step
+          # had passed. Rebasing costs nothing (this commit only ever touches
+          # performance.md, so it cannot conflict with a version bump) and turns
+          # a race into a retry.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt); rebasing onto the current main..."
+            git pull --rebase origin main
+          done
+          # A fourth failure is not a race any more — let the job go red.
           git push origin HEAD:main
 
       - name: Fail job on test failures

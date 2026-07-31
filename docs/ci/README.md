@@ -38,10 +38,10 @@ see the comments at the top of the file for why it is not part of the gate.
 
 ## `performance-test.yml`
 
-A replacement for the live `.github/workflows/performance-test.yml`, changing only the three `env:`
+A replacement for the live `.github/workflows/performance-test.yml`, changing the three `env:`
 blocks so the job uses a private cache namespace on pull requests (see the *Private cache namespaces*
-section of `CACHING.md`). Nothing else in the workflow moves — same steps, same thresholds, same
-report.
+section of `CACHING.md`), plus the report push described at the end of this section. Nothing else in
+the workflow moves — same steps, same thresholds, same report.
 
 What changes, per step:
 
@@ -63,3 +63,21 @@ already computed.
 Entries expire after 12 hours (`VFBQUERY_CACHE_TTL_HOURS`), so abandoned commits collect themselves.
 There is no purge step: a namespace whose run is still in flight must not have the ground pulled out
 from under it, and the TTL is shorter than the cases where that would matter.
+
+### The report push retries
+
+`Commit and Push Performance Report` now rebases and retries up to three times instead of pushing
+once. The job takes about twenty minutes and is not the only thing that pushes to `main`: the PyPI
+publish workflow commits `Bump version to X.Y.Z [skip ci]` when a release is cut, so cutting a release
+shortly after a merge lands that bump while the measurement is still running and the push is rejected
+as non-fast-forward. That is exactly what happened on the v1.22.36 release — every test step passed
+and the job still went red, which is the worst kind of red because it looks like a test failure.
+
+Rebasing is safe here because the commit only ever touches `performance.md`, so it cannot conflict
+with a version bump. A fourth failure is not a race and is left to fail.
+
+`actions/checkout` clones at depth 1, which is the obvious thing to doubt about a rebase, so the loop
+was rehearsed against a depth-1 detached checkout with two version bumps landing on `main` mid-run:
+`git pull --rebase` fetches the missing commits, replays the report commit on top, and the second
+push succeeds. No history is lost and nothing is force-pushed — the bumps stay, the report lands
+above them.

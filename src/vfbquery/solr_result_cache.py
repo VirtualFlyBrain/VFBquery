@@ -1140,7 +1140,29 @@ def with_solr_cache(query_type: str):
                 import inspect
                 func_takes_limit = 'limit' in inspect.signature(func).parameters
 
-                if func_takes_limit:
+                # Computing the full result is only worth doing if we can then
+                # store it. In read-only mode we cannot, so the extra work buys
+                # nothing and is charged entirely to the caller — who asked for
+                # ten rows and gets billed for all of them.
+                #
+                # That is not a theoretical cost. ``expression_overlaps_here``
+                # walks an unbounded ``has_source|SUBCLASSOF|INSTANCEOF`` path
+                # that reaches 100,426 individuals for FBbt_00007228: with the
+                # caller's ``limit=10`` it answers in about six seconds, and at
+                # ``limit=-1`` it does not finish at all. PR checks run with
+                # ``VFBQUERY_CACHE_READONLY=true`` and so can never warm the
+                # cache, which meant every PR paid the uncapped price forever
+                # and one of those runs took production Neo4j down for an hour.
+                honour_callers_limit = (
+                    func_takes_limit and not should_cache and solr_caching_readonly()
+                )
+                if honour_callers_limit:
+                    logger.debug(
+                        f"Cache is read-only; running {query_type}({term_id}) at the "
+                        f"caller's limit={limit} rather than computing the full result"
+                    )
+
+                if func_takes_limit and not honour_callers_limit:
                     # Always compute the full result so we have something
                     # complete to cache. If the caller already asked for
                     # the full result (should_cache=True), this is the same
@@ -1151,8 +1173,15 @@ def with_solr_cache(query_type: str):
                     if _func_takes_offset:
                         full_kwargs['offset'] = 0
                     full_result = _call(*args, **full_kwargs)
+                    result_is_full = True
                 else:
                     full_result = _call(*args, **kwargs)
+                    # Only a full result may be written under the limit=-1
+                    # cache key. A function with no limit parameter always
+                    # returns one; a call made at the caller's own limit does
+                    # not, and caching it would serve a truncated table to
+                    # every later reader as if it were complete.
+                    result_is_full = not honour_callers_limit
 
                 # Validate the full result before caching.
                 full_is_valid = False
@@ -1169,7 +1198,7 @@ def with_solr_cache(query_type: str):
                     else:
                         full_is_valid = True
 
-                if full_is_valid:
+                if full_is_valid and result_is_full:
                     try:
                         full_kwargs_for_cache = kwargs.copy()
                         full_kwargs_for_cache['limit'] = -1
@@ -1182,7 +1211,10 @@ def with_solr_cache(query_type: str):
                 # Return what the caller asked for: full result if
                 # should_cache, else slice the full result to the requested
                 # limit. The slicing mirrors the non-expensive branch below.
-                if should_cache or limit == -1 or full_result is None:
+                # Nothing to slice when the function was already given the
+                # caller's limit — slicing again would apply the offset twice.
+                if (should_cache or limit == -1 or full_result is None
+                        or not result_is_full):
                     result = full_result
                 else:
                     result = full_result

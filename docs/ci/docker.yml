@@ -1,0 +1,107 @@
+name: Docker Image CI
+
+on:
+  push:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Extract metadata
+      id: meta
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          TAG=${GITHUB_REF#refs/tags/}
+        else
+          TAG=${GITHUB_REF#refs/heads/}
+        fi
+        # A git ref is not a docker tag. Docker allows
+        # [A-Za-z0-9_][A-Za-z0-9._-]{0,127}; branch names allow a good deal
+        # more, most importantly the slash in `fix/whatever`. Passing one
+        # through unchanged fails the build outright:
+        #   invalid tag "virtualflybrain/vfbquery:fix/perf-report-push-race":
+        #   invalid reference format
+        # which puts a red X on nearly every pull request, and does it *after*
+        # the image has already built and passed its health and version checks.
+        # Map anything outside the allowed set to a dash, prefix if the result
+        # cannot legally start a tag, and truncate to the 128-character limit.
+        # `main`, `dev` and `vX.Y.Z` are already valid and pass through
+        # untouched, so no published tag moves.
+        TAG=$(printf '%s' "$TAG" | tr -c 'A-Za-z0-9_.-' '-')
+        case "$TAG" in [!A-Za-z0-9_]*) TAG="x$TAG";; esac
+        TAG=${TAG:0:128}
+        echo "Docker tag: $TAG"
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+    # Mirror what publish_to_pypi.yaml does so the docker image and the
+    # PyPI wheel never disagree about their own version. The version lives in a
+    # single source file (src/vfbquery/_version.py); setup.py reads it at build
+    # time and __init__.py imports it, so only _version.py is bumped here.
+    - name: Sync version to tag
+      id: version
+      run: |
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Tag build detected: syncing __version__ to $VERSION"
+          sed -i "s/__version__ = \"[^\"]*\"/__version__ = \"$VERSION\"/" src/vfbquery/_version.py
+        else
+          VERSION=$(grep '^__version__' src/vfbquery/_version.py | sed 's/.*"\(.*\)".*/\1/')
+          echo "Branch / dev build: using committed version $VERSION"
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "  _version.py: $(grep ^__version__ src/vfbquery/_version.py)"
+
+    - name: Build test Docker image
+      run: docker build --no-cache . --file Dockerfile --tag test-image
+
+    - name: Test container startup
+      run: |
+        docker run -d --name test-container -p 8080:8080 test-image
+        sleep 10
+        if docker ps | grep -q test-container; then
+          echo "Container is running successfully"
+          curl -sf http://localhost:8080/health || { echo "Health check failed"; docker logs test-container; exit 1; }
+          echo "Health check passed"
+        else
+          echo "Container failed to start"
+          docker logs test-container
+          exit 1
+        fi
+        docker stop test-container || true
+        docker rm test-container
+
+    # Belt-and-braces: catch any future drift between the workflow
+    # sync step and what actually ends up inside the image. If the
+    # built image reports a version different from what we asked for,
+    # refuse to push it.
+    - name: Verify image reports expected version
+      run: |
+        EXPECTED="${{ steps.version.outputs.version }}"
+        ACTUAL=$(docker run --rm --entrypoint python test-image -c "from importlib.metadata import version; print(version('vfbquery'))" 2>/dev/null | tr -d '[:space:]')
+        echo "Expected vfbquery version: $EXPECTED"
+        echo "Image reports vfbquery   : $ACTUAL"
+        if [[ "$EXPECTED" != "$ACTUAL" ]]; then
+          echo "ERROR: image version $ACTUAL does not match expected $EXPECTED"
+          echo "       (see solr_result_cache.py:251-258 — mismatches the wheel and"
+          echo "       cached package_version so cache invalidation silently breaks)"
+          exit 1
+        fi
+
+    - name: Build Docker image
+      run: docker build . --file Dockerfile --tag virtualflybrain/vfbquery:${{ steps.meta.outputs.tag }}
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    - name: Push Docker image
+      run: docker push virtualflybrain/vfbquery:${{ steps.meta.outputs.tag }}

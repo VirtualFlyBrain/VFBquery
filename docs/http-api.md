@@ -6,9 +6,11 @@ are plain `GET` requests returning JSON and there is nothing wrong with calling 
 website and the MCP server do.
 
 ```{note}
-`/search`, `/xref` and `/combine` are new in this branch and are **not yet on the public deploy**.
-Until they are, run the service locally to use them:
-`python -m vfbquery.ha_api --port 8080` and point at `http://localhost:8080`.
+`/search`, `/xref`, `/facets` and `/combine` went live with 1.22.35 and are on the public deploy.
+`https://vfbquery.virtualflybrain.org` is the service itself; `https://v3-cached.virtualflybrain.org`
+is an nginx cache in front of it. The cache is the right default — it is what the website and the MCP
+use — but it does not honour `Cache-Control: no-cache`, so a body it is holding expires on its own TTL.
+Call the service host directly when you need to see the current answer rather than the cached one.
 ```
 
 ## Endpoints
@@ -37,9 +39,17 @@ called". Use `/search`.
 ```
 
 There is a second hierarchy route, `/get_hierarchy_html`, which returns the same tree as a rendered
-HTML page. It stays inside the cluster network (it is not in `ALLOWED_PATHS`, so it 404s from
-outside) because it exists to serve one consumer — the ROI browser on the geppetto site — and its
-markup is that consumer's presentation, not an API contract. The JSON carries the same tree.
+HTML page. It exists to serve one consumer — the ROI browser on the geppetto site — and its markup is
+that consumer's presentation, not an API contract, so treat it as internal and use `/get_hierarchy`
+for the same tree as JSON.
+
+```{warning}
+Internal by convention, not by enforcement. `ALLOWED_PATHS` is checked against `request.remote`, and
+behind the Kubernetes ingress `request.remote` is the ingress — an address inside `TRUSTED_NETWORKS`
+— so on the public deploy the allowlist matches nothing and every routed path answers. Making it
+effective means trusting `X-Forwarded-For`, which changes who can reach what; it is deliberately not
+being done as part of a patch release. Do not rely on the allowlist as an access control.
+```
 
 ## `/get_term_info`
 
@@ -81,7 +91,7 @@ GET /query_connectivity?upstream_type=DA1 lPN&downstream_type=Kenyon cell
 | `upstream_type`, `downstream_type` | Neuron type labels, synonyms or FBbt ids. **At least one is required**; giving one asks "everything downstream of / upstream of this". |
 | `weight` | Minimum synapse count for a connection to be reported. Default 5. |
 | `group_by_class` | `true` aggregates to one row per class pair, with `pairwise_connections`, `average_weight` and `percent_connected`. Default is one row per neuron pair. |
-| `exclude_dbs` | Comma-separated dataset symbols to leave out. Defaults to `hb,fafb` — see below. Pass `exclude_dbs=` (empty) for every dataset. |
+| `exclude_dbs` | Comma-separated datasets to leave out. Defaults to `hb,fafb` — see below. Pass `exclude_dbs=` (empty) for every dataset. A symbol (`mc`), a short_form (`male_cns_v0_9`), a label (`male-cns`) or the whole label all name the same dataset; an unrecognised one is a **400** with suggestions. |
 | `include_graph` | Attach a graph structure alongside the table. |
 | `force_refresh` | Bypass the cache. |
 
@@ -107,6 +117,16 @@ a count surprises you.
 }
 ```
 
+The response also echoes **`excluded_dbs`**: the datasets the answer actually leaves out, canonicalised
+to symbols. Reading it beats re-deriving it from the query string, and it is the only way to see what a
+request that sent no `exclude_dbs` at all was filtered to.
+
+Until 1.22.36 an `exclude_dbs` value that was not letter-for-letter a symbol or a short_form excluded
+**nothing** and said nothing about it — `exclude_dbs=hemibrain` returned the same double-counted answer
+as sending no filter, wearing a 200. Values are now resolved against the live dataset list first, an
+unrecognised one is a 400, and a spelling that had to be rewritten is reported in `warnings`. The
+canonical form is the symbol, which is what the default already was, so cached answers are unaffected.
+
 Labels resolve through exact match, then case-insensitive, then exact synonym, then — as a last
 resort — the only term containing the string. That last tier is what makes `DA1 lPN` find *adult
 antennal lobe projection neuron DA1 lPN*, and when it fires it says so in `warnings`. Two or more
@@ -114,14 +134,25 @@ candidates are never guessed between: the error lists them.
 
 ### How long a broad type takes
 
-Expansion makes some questions large. `DA1 lPN → Kenyon cell` is 68 individuals against 15,994 and
-answers in about 5s; `Tm1 → T3` is 4,915 against 5,430 and has been measured between 30 and 60s on a
-cold cache. The query is driven from whichever side has fewer individuals, which is worth several
-times the difference on an asymmetric pair, but a genuinely big walk is a genuinely big walk.
+Expansion makes some questions large, and how large depends on the *shape* of the pair rather than its
+size. `DA1 lPN → Kenyon cell` is 68 individuals against 15,994 and answers in about 5s: the query is
+driven from whichever side has fewer individuals, and 68 against a filtered id list is a small walk.
 
-The result is cached, so only the first caller waits — which is why the client's read timeout
-defaults to 180s rather than 60s. A workshop room asking the same broad question at the same second
-coalesces onto one query rather than 80.
+An optic-lobe pair is the opposite case. `Tm1 → T3` is 4,915 individuals against 5,430 — no small
+side to drive from — and a cold-cache run of it was measured at **over 40 minutes without returning**.
+Treat a large-against-large type pair as a background job, not a request.
+
+What changed in 1.22.36 is what happens while you wait. The computation now runs detached from the
+request that started it, under `VFBQUERY_COMPUTE_BUDGET` seconds of patience (default 180); when the
+budget runs out you get a **503 `status: "computing"`** with `Retry-After: 30` instead of a connection
+that eventually dies. The work carries on and lands in the cache, so the retry the header asks for is
+the cheap one. Before this, a client giving up cancelled the query it was waiting on, every request
+coalesced behind it was woken with "Request aborted, please retry", and the next caller started the
+same forty minutes from scratch.
+
+The result is cached either way, so only the first caller waits — which is why the client's read
+timeout defaults to 180s rather than 60s. A workshop room asking the same broad question at the same
+second coalesces onto one query rather than 80.
 
 ### Why `hb` and `fafb` are excluded by default
 
@@ -169,8 +200,8 @@ GET /search?query=mushroom body output neuron&limit=25
 | Parameter | |
 |---|---|
 | `query` (or `q`) | **Required.** Free text: a name, a synonym, a symbol, an ID, a bare connectome bodyId. |
-| `rows` | How deep to fetch candidates before ranking. Default 500. Raise it if a known-good hit is missing. |
-| `limit` | Page size of the returned, ranked list. |
+| `rows` | How deep to fetch candidates before ranking. Default 500, capped at `MAX_ROWS`. A value outside the range is clamped **and reported in `warnings`**, because `rows` sizes the pool the comparator ranks — silently shrinking it changes the *order* of the top of your list, not just its length. |
+| `limit` | Page size of the returned, ranked list. Must be at least 1; omit it for no limit. `limit=0` used to return `rows: []` beside a `count` of 1537, which is a result set that reports matches and shows none — it is now a 400. |
 | `filter_types`, `exclude_types` | Hard filters (Solr `fq`) — a term either passes or is not returned. |
 | `boost_types`, `demote_types` | Soft preferences — reorder the ranked list without dropping anything. |
 | `unique` | Collapse the label/synonym rows so each term appears once. Default false. |
@@ -276,6 +307,27 @@ carrying `warnings` should not be treated as an answer without reading them.
 `/combine` goes further, because set algebra over a truncated input is not partially right but wrong:
 `require_complete=true` turns truncation into a 409 refusal.
 
+### Parameters that did nothing now say so
+
+The same convention was extended in 1.22.36 to cover the request rather than only the answer, because
+a parameter that is read and discarded produces a **correct response to a different question**, and
+nothing in the body distinguishes it from the one you asked. Each of these now attaches a `warnings`
+entry:
+
+An **unrecognised parameter** is named back, with the closest real one — `filter_type` gets told about
+`filter_types`, `min_weight` about `weight`, `short_form` about `id`. A **flag with an unusable value**
+is reported rather than read as false: `include_graph=y` and `unique=Y` are not among the accepted
+spellings (`true/1/yes/on` and `false/0/no/off`), and used to be indistinguishable from not passing the
+flag. **`include_graph` on a query type that cannot draw one** now lists the four that can, instead of
+returning a graphless result that reads as "this query has no graph". **`offset`/`limit` on a query
+type that does not page**, a non-integer or negative page parameter, and **an `id` sent to
+`query_type=AllDatasets`** (which takes none, and looked filtered) are all called out. `/combine`'s
+`offset`, `order_by` and `force_refresh` are reserved names that are not implemented; passing one is
+now reported rather than silently skipped.
+
+None of this changes a status code. They are 200s that were already 200s — the only thing that changed
+is that the response no longer looks identical to the one you meant to send.
+
 ## Errors and backpressure
 
 | Status | Means |
@@ -284,10 +336,13 @@ carrying `warnings` should not be treated as an answer without reading them.
 | 404 | Unknown path, or a path not in `ALLOWED_PATHS` for your network. |
 | 409 | `/combine` with `require_complete=true`, where an operand was truncated. |
 | 500 | A genuine fault. `detail` carries `"ExcType: message"`. |
-| 503 | Overloaded — the queue is full. Honour `Retry-After`. |
+| 503 | Two cases, distinguished by the body's `status`. `"computing"` means your query is still running and will be cached — retry per `Retry-After`, and the retry gets the finished answer. Otherwise the queue is full and the request was shed. Honour `Retry-After` in both. |
 
-The 503 is a real design feature rather than a failure: the service holds a bounded queue in front of
-a process pool, and shedding early is what keeps the pool answering the requests it accepted. In a
+Both 503s are design features rather than failures. The shedding one exists because the service holds a
+bounded queue in front of a process pool, and shedding early is what keeps the pool answering the
+requests it accepted. The `status: "computing"` one exists because the alternative to admitting that a
+query is slow is a socket held open until something in the path gives up — and what gave up first used
+to take the computation down with it. In a
 workshop room this matters less than it sounds, because the second half of the design is that
 identical in-flight queries are **coalesced** onto one worker and results are cached for five
 minutes. Eighty people running the same cell is one backend query, not eighty.

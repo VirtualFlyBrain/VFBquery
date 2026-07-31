@@ -488,8 +488,12 @@ ALLOWED_PATHS = frozenset({
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
-    "/search", "/xref", "/combine", "/get_hierarchy",
+    "/search", "/facets", "/xref", "/combine", "/get_hierarchy",
 })
+# /facets belongs here because /search's four type parameters 400 with
+# "did you mean" suggestions on an unrecognised name and point the caller at
+# /facets for the full list — an allowlist that 404s the endpoint the error
+# message names is a dead end by construction.
 # NB /get_hierarchy_html is a registered route and is deliberately absent here,
 # so it 404s for any client outside TRUSTED_NETWORKS. It is not a query — it is
 # the pre-rendered HTML the geppetto site's ROI browser consumes, produced by
@@ -914,19 +918,32 @@ def _rewrite_resolve_combination_query(name_or_id):
 # HTTP handlers
 # ---------------------------------------------------------------------------
 
+#: Query-string keys /get_term_info reads.
+_TERM_INFO_PARAMS = frozenset({"id", "force_refresh"})
+
+
 async def handle_get_term_info(request):
-    """GET /get_term_info?id=<short_form>"""
+    """GET /get_term_info?id=<short_form>&force_refresh=false"""
     short_form = request.query.get("id")
     if not short_form:
         return web.json_response(
             {"error": "Missing required parameter: id"}, status=400
         )
 
-    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
+    force_refresh = _query_flag(request, "force_refresh")
+
+    warnings = _unknown_param_warnings(request, _TERM_INFO_PARAMS)
+    warn = _flag_warning(request, "force_refresh")
+    if warn:
+        warnings.append(warn)
+
+    def finish(result):
+        return web.json_response(_with_warnings(result, warnings))
 
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
     key = f"term_info:{short_form}"
+    budget = request.app.get("compute_budget", COMPUTE_BUDGET)
 
     # ---- L1: in-memory result cache ----
     # force_refresh=true skips the cache read AND drops any stale entry so the
@@ -939,15 +956,16 @@ async def handle_get_term_info(request):
         cached = rcache.get(key)
         if cached is not None:
             log.info("get_term_info id=%s — cache hit", short_form)
-            return web.json_response(cached)
+            return finish(cached)
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
     if not is_owner:
         log.info("get_term_info id=%s — coalesced", short_form)
         try:
-            result = await fut
-            return web.json_response(result)
+            return finish(await _shielded(fut, budget))
+        except asyncio.TimeoutError:
+            return _computing_response(key, budget)
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
@@ -971,40 +989,30 @@ async def handle_get_term_info(request):
                                retry_after="30")
 
     # ---- Enter the bounded worker queue ----
-    pool = request.app["pool"]
-    sem = request.app["semaphore"]
-
-    await tracker.enter_queue()
     snap = tracker.snapshot
     log.info(
         "get_term_info id=%s — queued  (active=%d waiting=%d)",
         short_form, snap["active"], snap["waiting"],
     )
-    started = False
+    task = _spawn_compute(
+        request.app, coalescer, tracker, fut, key,
+        _run_term_info, (short_form, force_refresh),
+        # Stored uncapped, as it always was: a term info blob is one term, not a
+        # row set, and _cap_result_rows would have nothing to trim anyway.
+        store=lambda result: result,
+        log_label=f"get_term_info id={short_form}",
+    )
     try:
-        async with sem:
-            await tracker.leave_queue_start_work()
-            started = True
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(pool, _run_term_info, short_form, force_refresh)
-        log.info("get_term_info id=%s — done", short_form)
-        rcache.put(key, result)
-        await coalescer.remove(key)
-        fut.set_result(result)
-        return web.json_response(result)
+        return finish(await _shielded(task, budget))
+    except asyncio.TimeoutError:
+        return _computing_response(key, budget)
+    except Overloaded as exc:
+        return _overloaded_response(exc)
     except Exception as exc:
-        await coalescer.remove(key)
-        if not fut.done():
-            fut.set_exception(exc)
         return _failure_response(
             f"Query failed for id={short_form}", exc,
             f"get_term_info id={short_form}",
         )
-    finally:
-        # _abandon first, and synchronous: it is the one that must not be
-        # skipped if this finally is itself interrupted.
-        _abandon(coalescer, fut, key)
-        await tracker.finish_work(started=started)
 
 
 # Query functions that accept offset/limit paging (id ASC pages, <=10000 rows).
@@ -1104,6 +1112,83 @@ def _query_flag(request, name, default=False):
     if raw is None or not str(raw).strip():
         return default
     return str(raw).strip().lower() in _TRUE_VALUES
+
+
+#: Spellings of "no" a caller might reasonably write for a flag. Everything
+#: outside these two sets is neither yes nor no — it is a typo, and
+#: :func:`_flag_warning` says so instead of quietly meaning "no".
+_FALSE_VALUES = ("false", "0", "no", "off", "")
+
+
+def _flag_warning(request, name):
+    """Warn about a flag whose value is neither a yes nor a no, else ``None``.
+
+    ``_query_flag`` treats anything unrecognised as false, which is the right
+    *behaviour* — there is no third state to fall back to — but it is the wrong
+    thing to do in silence. ``include_graph=y`` and ``force_refresh=T`` read as
+    obviously affirmative to the person who typed them and mean "off" here, and
+    the response looks exactly like one where the flag was never passed.
+    """
+    raw = request.query.get(name)
+    if raw is None:
+        return None
+    value = str(raw).strip().lower()
+    if value in _TRUE_VALUES or value in _FALSE_VALUES:
+        return None
+    return ("%s=%r is not a recognised boolean and was read as false; use %s"
+            % (name, str(raw), " / ".join(_TRUE_VALUES)))
+
+
+def _suggest(name, known, cutoff=0.6, n=2):
+    """Closest matches for ``name`` among ``known``, best first."""
+    import difflib
+    return difflib.get_close_matches(str(name).lower(),
+                                     sorted({str(k).lower() for k in known}),
+                                     n=n, cutoff=cutoff)
+
+
+def _unknown_param_warnings(request, known):
+    """Warnings for query-string keys the handler does not read.
+
+    An ignored parameter is the quietest way an API can be wrong: the caller
+    gets a 200 that looks like an answer to the question they asked, and the
+    only clue that ``filter_type=Neuron`` should have been ``filter_types`` is
+    that the results are not filtered — which is indistinguishable from a
+    filter that matched everything. Naming the key back at them, with the near
+    miss where there is one, turns a wrong answer into a fixable one.
+
+    A warning rather than a 400 on purpose: rejecting unknown keys outright
+    would break every caller who appends a cache-buster or an analytics tag,
+    and this service already has clients in the wild.
+    """
+    if not known:
+        return []
+    seen, out = set(), []
+    for key in request.query.keys():
+        if key in known or key in seen:
+            continue
+        seen.add(key)
+        close = _suggest(key, known)
+        if close:
+            out.append("Ignored unrecognised parameter %r (did you mean %s?)"
+                       % (key, ", ".join(repr(c) for c in close)))
+        else:
+            out.append("Ignored unrecognised parameter %r" % (key,))
+    return out
+
+
+def _with_warnings(result, warnings):
+    """Append *warnings* to a result's ``warnings`` list, without mutating it.
+
+    The copy is not defensive style, it is required: results are shared out of
+    the cache by reference, so appending in place would attach one request's
+    warnings to every later request that hits the same key.
+    """
+    if not warnings or not isinstance(result, dict):
+        return result
+    merged = dict(result)
+    merged["warnings"] = list(merged.get("warnings") or []) + list(warnings)
+    return merged
 
 
 def _cap_result_rows(result, cap=None):
@@ -1221,6 +1306,13 @@ def _page_out(result, func_name, offset=0, page_size=None):
     return _slice_page(result, offset, page_size)
 
 
+#: Query-string keys /run_query reads. `query`, `type` and `max_depth` are the
+#: near misses this catches.
+_RUN_QUERY_PARAMS = frozenset({
+    "id", "query_type", "include_graph", "force_refresh", "offset", "limit",
+})
+
+
 async def handle_run_query(request):
     """GET /run_query?id=<short_form>&query_type=<QueryType>&include_graph=false"""
     short_form = request.query.get("id")
@@ -1245,20 +1337,73 @@ async def handle_run_query(request):
             {"error": "Missing required parameter: id"}, status=400
         )
 
-    include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
-    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
+    include_graph = _query_flag(request, "include_graph")
+    force_refresh = _query_flag(request, "force_refresh")
+
+    warnings = _unknown_param_warnings(request, _RUN_QUERY_PARAMS)
+    for flag in ("include_graph", "force_refresh"):
+        warn = _flag_warning(request, flag)
+        if warn:
+            warnings.append(warn)
+
+    # `include_graph` is honoured by four of the forty query types. Asking for
+    # it on any of the other thirty-six used to return a graphless result that
+    # looked exactly like one where the flag had never been passed, which reads
+    # as "this query has no graph" when it means "this endpoint cannot draw one".
+    if include_graph and func_name not in _GRAPH_CONVERTERS:
+        warnings.append(
+            "include_graph is not supported for query_type=%s and was ignored; "
+            "graphs are available for: %s"
+            % (query_type,
+               ", ".join(sorted(qt for qt, fn in QUERY_TYPE_MAP.items()
+                                if fn in _GRAPH_CONVERTERS))))
+
+    # AllDatasets takes no id. Reading one and discarding it silently made
+    # `id=FBbt_00003748&query_type=AllDatasets` look like a filtered dataset
+    # list rather than the whole thing.
+    if func_name == "get_all_datasets" and short_form:
+        warnings.append(
+            "query_type=AllDatasets takes no id; %r was ignored" % (short_form,))
 
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
+
     # Paging params — only consumed by PAGED_QUERY_FUNCS; harmless otherwise.
+    # Kept lenient (a bad value falls back to the default rather than 400ing —
+    # see _query_int) but no longer silent about it, because `limit=all` used to
+    # return one default-sized page with nothing to say it had not understood.
     def _int_param(name, default):
-        try:
-            return int(request.query.get(name, default))
-        except (TypeError, ValueError):
+        raw = request.query.get(name)
+        if raw is None:
             return default
-    offset = max(0, _int_param("offset", 0))
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            warnings.append(
+                "%s=%r is not an integer and was ignored (using %s)"
+                % (name, raw, default))
+            return default
+    offset = _int_param("offset", 0)
+    if offset < 0:
+        warnings.append("offset=%d is negative and was clamped to 0" % (offset,))
+        offset = 0
     limit = _int_param("limit", 0)  # 0/absent -> function default page size
+    if limit < 0:
+        warnings.append(
+            "limit=%d is negative and was ignored (using the default page size)"
+            % (limit,))
+        limit = 0
     page_size = limit if (limit and limit > 0) else RESULT_ROW_CAP
+
+    if (offset or limit) and func_name not in PAGED_QUERY_FUNCS:
+        warnings.append(
+            "query_type=%s does not page; offset/limit were ignored" % (query_type,))
+
+    def finish(result):
+        out = _page_out(result, func_name, offset, page_size)
+        if include_graph:
+            out = _maybe_add_graph(out, func_name, short_form)
+        return web.json_response(_with_warnings(out, warnings))
 
     # Normalize key — AllDatasets ignores the id parameter
     if func_name == "get_all_datasets":
@@ -1280,9 +1425,9 @@ async def handle_run_query(request):
         cached = rcache.get(key)
         if cached is not None:
             log.info("run_query id=%s query_type=%s — cache hit", short_form, query_type)
-            if include_graph:
-                cached = _maybe_add_graph(cached, func_name, short_form)
-            return web.json_response(_page_out(cached, func_name, offset, page_size))
+            return finish(cached)
+
+    budget = request.app.get("compute_budget", COMPUTE_BUDGET)
 
     # ---- Coalescing: piggyback on identical in-flight query ----
     fut, is_owner = await coalescer.get_or_create(key)
@@ -1291,10 +1436,9 @@ async def handle_run_query(request):
             "run_query id=%s query_type=%s — coalesced", short_form, query_type
         )
         try:
-            result = await fut
-            if include_graph:
-                result = _maybe_add_graph(result, func_name, short_form)
-            return web.json_response(_page_out(result, func_name, offset, page_size))
+            return finish(await _shielded(fut, budget))
+        except asyncio.TimeoutError:
+            return _computing_response(key, budget)
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
@@ -1318,50 +1462,38 @@ async def handle_run_query(request):
                                retry_after="30")
 
     # ---- Enter the bounded worker queue ----
-    pool = request.app["pool"]
-    sem = request.app["semaphore"]
-
-    await tracker.enter_queue()
     snap = tracker.snapshot
     log.info(
         "run_query id=%s query_type=%s — queued  (active=%d waiting=%d)",
         short_form, query_type, snap["active"], snap["waiting"],
     )
-    started = False
-    try:
-        async with sem:
-            await tracker.leave_queue_start_work()
-            started = True
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                pool, _run_query, short_form, func_name, force_refresh, offset, limit
-            )
-        log.info("run_query id=%s query_type=%s — done", short_form, query_type)
-        # Bound/prepare for cache + coalesced sharing. AllAlignedImages caches a
-        # single server page; every other query caches its FULL set so any offset
-        # slice can be served (and later pages need no recompute).
+
+    # Bound/prepare for cache + coalesced sharing. AllAlignedImages caches a
+    # single server page; every other query caches its FULL set so any offset
+    # slice can be served (and later pages need no recompute). Coalesced waiters
+    # therefore receive the full set and slice their own page in `finish`.
+    def store(result):
         if func_name in PAGED_QUERY_FUNCS:
-            cached_result = _cap_result_rows(result)
-        else:
-            cached_result = _prepare_full_for_cache(result)
-        rcache.put(key, cached_result)
-        await coalescer.remove(key)
-        fut.set_result(cached_result)  # coalesced waiters slice their own page
-        out = _page_out(cached_result, func_name, offset, page_size)
-        if include_graph:
-            out = _maybe_add_graph(out, func_name, short_form)
-        return web.json_response(out)
+            return _cap_result_rows(result)
+        return _prepare_full_for_cache(result)
+
+    task = _spawn_compute(
+        request.app, coalescer, tracker, fut, key,
+        _run_query, (short_form, func_name, force_refresh, offset, limit),
+        store=store,
+        log_label=f"run_query id={short_form} query_type={query_type}",
+    )
+    try:
+        return finish(await _shielded(task, budget))
+    except asyncio.TimeoutError:
+        return _computing_response(key, budget)
+    except Overloaded as exc:
+        return _overloaded_response(exc)
     except Exception as exc:
-        await coalescer.remove(key)
-        if not fut.done():
-            fut.set_exception(exc)
         return _failure_response(
             f"Query failed for id={short_form} query_type={query_type}", exc,
             f"run_query id={short_form} query_type={query_type}",
         )
-    finally:
-        _abandon(coalescer, fut, key)
-        await tracker.finish_work(started=started)
 
 
 async def handle_health(request):
@@ -1434,7 +1566,125 @@ async def handle_status(request):
 # FlyBase & connectivity endpoint handlers
 # ---------------------------------------------------------------------------
 
-async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
+#: How long a request will wait for its own computation before answering 503
+#: and leaving the work running. See :func:`_dispatch_to_pool`. Set to 0 to
+#: disable the budget and wait indefinitely (the pre-1.22.36 behaviour).
+COMPUTE_BUDGET = float(os.getenv("VFBQUERY_COMPUTE_BUDGET", "180"))
+
+
+def _computing_response(cache_key, budget, retry_after="30"):
+    """503 for a query that outran its budget but is still being computed.
+
+    Deliberately not a 504 and not an error: nothing has failed. The work is
+    still running and will land in the cache, so the honest thing to tell the
+    caller is "not yet, ask again" — which is what 503 + Retry-After means.
+    """
+    log.info("compute budget of %.0fs exceeded for %s — still running",
+             budget, cache_key)
+    return web.json_response(
+        {"error": "Query exceeded the %.0fs response budget. It is still being "
+                  "computed and the result will be cached — retry shortly."
+                  % budget,
+         "status": "computing"},
+        status=503, headers={"Retry-After": retry_after})
+
+
+def _retrieve_task_exception(task):
+    """Done-callback that marks a detached task's exception as retrieved.
+
+    A task the handler stopped awaiting (budget expired, client hung up) has
+    nobody left to see its failure, and asyncio logs "Task exception was never
+    retrieved" at garbage-collection time — long after the fact and with no
+    request context. The failure is already recorded against the coalescer
+    future and the log inside :func:`_dispatch_to_pool`; this only silences the
+    duplicate.
+    """
+    if not task.cancelled():
+        task.exception()
+
+
+async def _shielded(awaitable, budget):
+    """Await *awaitable* under a time budget without cancelling it.
+
+    The shield is the whole point. ``asyncio.wait_for`` cancels what it is
+    waiting on when the timeout fires, which is exactly wrong here: the thing
+    being awaited is either the computation itself or the coalescing future
+    other requests are also waiting on, and neither belongs to the one client
+    who ran out of patience. Shielding separates "this request stops waiting"
+    from "this work stops running".
+
+    A falsy *budget* means wait indefinitely — still shielded, so a client
+    hanging up does not take the computation with it.
+    """
+    if not budget:
+        return await asyncio.shield(awaitable)
+    return await asyncio.wait_for(asyncio.shield(awaitable), budget)
+
+
+def _spawn_compute(app, coalescer, tracker, fut, cache_key, worker_fn, args,
+                   store=None, log_label=None):
+    """Run *worker_fn* as a task that owns the coalescer future and the cache.
+
+    Detaching the computation from the handler is what makes the compute budget
+    honest. Before this, the worker ran inline in the request coroutine, so a
+    client that hung up — or a proxy that gave up, or a handler that timed out —
+    cancelled it, and because ``CancelledError`` is a ``BaseException`` the work
+    died mid-flight with nothing written to the cache. The next caller started
+    the same minutes-long query from scratch, and so did the one after that.
+    Worse, every request coalesced onto the key was woken by ``_abandon`` with
+    "Request aborted, please retry" and pointed back at a query that had just
+    proved it takes longer than anyone was willing to wait.
+
+    As a task it outlives its caller, so :func:`_computing_response`'s "retry
+    shortly" means it: the retry finds the finished result in the cache. The
+    handler keeps only the *waiting*, which is the part that should be
+    cancellable.
+
+    *store* maps the worker's raw result to the value that gets cached and
+    handed to coalesced waiters; it defaults to :func:`_cap_result_rows`.
+    Handlers that page or decorate their response apply that to the stored
+    value afterwards, so the cache holds one canonical answer per key.
+    """
+    rcache = app["result_cache"]
+    pool = app["pool"]
+    sem = app["semaphore"]
+
+    async def _compute():
+        await tracker.enter_queue()
+        started = False
+        try:
+            async with sem:
+                await tracker.leave_queue_start_work()
+                started = True
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(pool, worker_fn, *args)
+            result = store(result) if store is not None else _cap_result_rows(result)
+            rcache.put(cache_key, result)
+            await coalescer.remove(cache_key)
+            if not fut.done():
+                fut.set_result(result)
+            if log_label:
+                log.info("%s — done", log_label)
+            return result
+        except Exception as exc:
+            await coalescer.remove(cache_key)
+            if not fut.done():
+                fut.set_exception(exc)
+                fut.exception()          # see _shed: keeps asyncio quiet at GC
+            raise
+        finally:
+            # _abandon first, and synchronous: it is the one that must not be
+            # skipped if this finally is itself interrupted.
+            _abandon(coalescer, fut, cache_key)
+            await tracker.finish_work(started=started)
+
+    task = asyncio.ensure_future(_compute())
+    task.add_done_callback(_retrieve_task_exception)
+    return task
+
+
+async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None,
+                            known_params=None):
     """Shared dispatch logic for new endpoints — cache, coalesce, queue, run.
 
     If *post_fn* is given it is called on the result **after** cache
@@ -1444,23 +1694,42 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
     When the result comes from cache, *post_fn* runs in-process (no
     worker needed) because graph builders are lightweight CPU work plus
     a single Neo4j batch lookup.
+
+    *known_params* is the set of query-string keys the calling handler reads.
+    Anything else the caller sent is reported back as a warning rather than
+    ignored in silence — see :func:`_unknown_param_warnings`. It is applied
+    after the cache for the same reason *post_fn* is: the warning is a property
+    of the request, not of the answer, and must not be stored against a key
+    that does not include it.
+
+    The computation runs as its own task, **shielded** from the requesting
+    client. See :func:`_computing_response`.
     """
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
 
+    warnings = _unknown_param_warnings(request, known_params)
+
+    def finish(result):
+        result = _cap_result_rows(result)
+        if warnings:
+            result = _with_warnings(result, warnings)
+        if post_fn is not None:
+            result = post_fn(result)
+        return web.json_response(result)
+
     cached = rcache.get(cache_key)
     if cached is not None:
-        if post_fn is not None:
-            cached = post_fn(cached)
-        return web.json_response(_cap_result_rows(cached))
+        return finish(cached)
+
+    budget = request.app.get("compute_budget", COMPUTE_BUDGET)
 
     fut, is_owner = await coalescer.get_or_create(cache_key)
     if not is_owner:
         try:
-            result = await fut
-            if post_fn is not None:
-                result = post_fn(result)
-            return web.json_response(_cap_result_rows(result))
+            return finish(await _shielded(fut, budget))
+        except asyncio.TimeoutError:
+            return _computing_response(cache_key, budget)
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
@@ -1475,31 +1744,16 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None):
                                "Server overloaded, please retry later",
                                retry_after="30")
 
-    pool = request.app["pool"]
-    sem = request.app["semaphore"]
-    await tracker.enter_queue()
-    started = False
+    task = _spawn_compute(request.app, coalescer, tracker, fut, cache_key,
+                          worker_fn, args)
     try:
-        async with sem:
-            await tracker.leave_queue_start_work()
-            started = True
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(pool, worker_fn, *args)
-        result = _cap_result_rows(result)
-        rcache.put(cache_key, result)
-        await coalescer.remove(cache_key)
-        fut.set_result(result)
-        if post_fn is not None:
-            result = post_fn(result)
-        return web.json_response(result)
+        return finish(await _shielded(task, budget))
+    except asyncio.TimeoutError:
+        return _computing_response(cache_key, budget)
+    except Overloaded as exc:
+        return _overloaded_response(exc)
     except Exception as exc:
-        await coalescer.remove(cache_key)
-        if not fut.done():
-            fut.set_exception(exc)
         return _failure_response("Query failed", exc, cache_key)
-    finally:
-        _abandon(coalescer, fut, cache_key)
-        await tracker.finish_work(started=started)
 
 
 async def handle_resolve_entity(request):
@@ -1510,7 +1764,8 @@ async def handle_resolve_entity(request):
         return web.json_response({"error": str(exc)}, status=400)
 
     return await _dispatch_to_pool(
-        request, f"resolve_entity:{query}", _run_resolve_entity, query
+        request, f"resolve_entity:{query}", _run_resolve_entity, query,
+        known_params=frozenset({"query"}),
     )
 
 
@@ -1523,6 +1778,7 @@ async def handle_find_stocks(request):
     return await _dispatch_to_pool(
         request, f"find_stocks:{feature_id}:{collection}",
         _run_find_stocks, feature_id, collection,
+        known_params=frozenset({"id", "collection"}),
     )
 
 
@@ -1534,7 +1790,8 @@ async def handle_resolve_combination(request):
         return web.json_response({"error": str(exc)}, status=400)
 
     return await _dispatch_to_pool(
-        request, f"resolve_combination:{query}", _run_resolve_combination, query
+        request, f"resolve_combination:{query}", _run_resolve_combination, query,
+        known_params=frozenset({"query"}),
     )
 
 
@@ -1546,6 +1803,7 @@ async def handle_find_combo_publications(request):
     return await _dispatch_to_pool(
         request, f"find_combo_publications:{fbco_id}",
         _run_find_combo_publications, fbco_id,
+        known_params=frozenset({"id"}),
     )
 
 
@@ -1553,7 +1811,147 @@ async def handle_list_connectome_datasets(request):
     """GET /list_connectome_datasets"""
     return await _dispatch_to_pool(
         request, "list_connectome_datasets", _run_list_connectome_datasets,
+        known_params=frozenset(),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Connectome dataset vocabulary — what `exclude_dbs` is allowed to name.
+#
+# Same shape as _facet_vocabulary below (TTL, double-checked lock, fail open),
+# for the same reason: a validated parameter needs the real vocabulary, and a
+# validator that cannot reach it must let the request through rather than start
+# refusing valid input. The resolution itself reuses _xref_db_candidates, so
+# `exclude_dbs=flywire` and `db=flywire` mean the same thing on both endpoints
+# — one nickname algorithm, defined once, further down this file.
+# --------------------------------------------------------------------------- #
+
+#: How long the connectome dataset list is trusted. Datasets are added when VFB
+#: is rebuilt, never while the service is running.
+CONNECTOME_VOCAB_TTL = float(os.getenv("VFBQUERY_CONNECTOME_VOCAB_TTL", "3600"))
+
+#: How long a *failed* fetch is remembered — see FACET_VOCAB_FAIL_TTL.
+CONNECTOME_VOCAB_FAIL_TTL = 60.0
+
+#: Wall-clock bound on fetching the vocabulary. It is eight rows from Neo4j and
+#: it gates a request the caller is already waiting on, so a stalled fetch has
+#: to give up quickly and let the query run unvalidated.
+CONNECTOME_VOCAB_TIMEOUT = float(os.getenv("VFBQUERY_CONNECTOME_VOCAB_TIMEOUT", "20"))
+
+
+async def _connectome_vocabulary(app):
+    """The connectome datasets as ``[{label, symbol, short_form}, …]``.
+
+    Empty list is the fail-open signal — callers treat it as "do not validate",
+    never as "no dataset matches".
+    """
+    now = time.monotonic()
+    entry = app.get("connectome_vocab")
+    if entry and now - entry["fetched"] < entry["ttl"]:
+        return entry["values"]
+
+    lock = app.get("connectome_vocab_lock")
+    if lock is None:
+        lock = asyncio.Lock()
+        app["connectome_vocab_lock"] = lock
+
+    async with lock:
+        entry = app.get("connectome_vocab")
+        now = time.monotonic()
+        if entry and now - entry["fetched"] < entry["ttl"]:
+            return entry["values"]
+
+        values = []
+        ttl = CONNECTOME_VOCAB_FAIL_TTL
+        try:
+            loop = asyncio.get_event_loop()
+            values = await asyncio.wait_for(
+                loop.run_in_executor(app["pool"], _run_list_connectome_datasets),
+                CONNECTOME_VOCAB_TIMEOUT)
+            values = [v for v in (values or []) if isinstance(v, dict)]
+            if values:
+                ttl = CONNECTOME_VOCAB_TTL
+            else:
+                log.warning("connectome dataset list came back empty; "
+                            "exclude_dbs will not be validated")
+        except Exception as exc:                       # noqa: BLE001 — fail open
+            log.warning("connectome dataset list unavailable (%s: %s); "
+                        "exclude_dbs will not be validated",
+                        type(exc).__name__, exc)
+
+        app["connectome_vocab"] = {"values": values, "fetched": now, "ttl": ttl}
+        return values
+
+
+def _resolve_exclude_dbs(values, sites):
+    """Canonicalise ``exclude_dbs``, or raise :class:`BadParam` naming the typo.
+
+    The values reach Cypher as ``NOT s.short_form IN [...] AND NOT s.symbol[0]
+    IN [...]`` — an exact string comparison. So anything that is not letter-for
+    -letter a short_form or a symbol excluded **nothing**, and the caller got a
+    perfectly ordinary 200 whose only symptom was inflated counts:
+    ``exclude_dbs=hemibrain`` looks like it did what ``exclude_dbs=hb`` does and
+    silently double-counts instead. That is the same defect ``filter_types`` and
+    ``/xref``'s ``db`` already had, and it is closed the same way.
+
+    Each value is resolved against the live dataset list with
+    :func:`_xref_db_candidates`, so a symbol (``mc``), a short_form
+    (``male_cns_v0_9``), a label word (``male-cns``) or a whole label all
+    resolve to the same dataset.
+
+    Two properties worth preserving if this is ever rewritten:
+
+    * The canonical form is the dataset's **symbol**, which is what
+      ``DEFAULT_EXCLUDE_DBS`` already holds. So the default resolves to itself
+      and the existing cache keys keep working — no cache churn from shipping
+      this. Only spellings that were previously broken get new keys.
+    * Caller order is preserved rather than sorted, for the same reason:
+      ``[hb, fafb]`` must not become ``[fafb, hb]`` and orphan every cached
+      default answer.
+    """
+    values = [v for v in (values or []) if v]
+    if not values or not sites:
+        return list(values), []
+
+    resolved, seen, unknown = [], set(), {}
+    for value in values:
+        allowed = _xref_db_candidates(sites, value)
+        matched = [s for s in sites if _xref_matches_db(s, value, allowed)]
+        if not matched:
+            unknown[value] = _suggest(
+                value,
+                [n for s in sites for n in _xref_site_names(s) if n])
+            continue
+        for site in matched:
+            canon = site.get("symbol") or site.get("short_form") or site.get("label")
+            if canon and canon not in seen:
+                seen.add(canon)
+                resolved.append(canon)
+
+    if unknown:
+        parts = []
+        for name, suggestions in unknown.items():
+            if suggestions:
+                parts.append("%r (did you mean %s?)"
+                             % (name, ", ".join(repr(s) for s in suggestions)))
+            else:
+                parts.append("%r" % (name,))
+        raise BadParam(
+            "exclude_dbs: unknown dataset %s. GET /list_connectome_datasets "
+            "lists every dataset, by label, symbol and short_form."
+            % "; ".join(parts))
+
+    rewritten = [v for v in values if v not in resolved]
+    return resolved, rewritten
+
+
+#: Query-string keys /query_connectivity reads. Anything else is reported back
+#: rather than ignored — `exclude_db` and `min_weight` are the plausible near
+#: misses, and both used to return an unfiltered answer that looked filtered.
+_CONNECTIVITY_PARAMS = frozenset({
+    "upstream_type", "downstream_type", "weight", "group_by_class",
+    "exclude_dbs", "include_graph", "force_refresh",
+})
 
 
 async def handle_query_connectivity(request):
@@ -1564,6 +1962,13 @@ async def handle_query_connectivity(request):
     ``exclude_dbs`` defaults to ``DEFAULT_EXCLUDE_DBS`` (hemibrain and CATMAID
     FAFB, both of which double-count against datasets that are kept — see that
     constant for the reasoning); pass ``exclude_dbs=`` empty for all datasets.
+    Its values may be a symbol (``mc``), a short_form (``male_cns_v0_9``) or a
+    label (``male-cns``); an unrecognised one is a 400 with suggestions rather
+    than an exclusion that quietly excluded nothing.
+
+    The excluded datasets are echoed back as ``excluded_dbs`` so a caller can
+    see what the answer actually covers without re-deriving it from the query
+    string.
     """
     upstream = request.query.get("upstream_type") or None
     downstream = request.query.get("downstream_type") or None
@@ -1579,29 +1984,60 @@ async def handle_query_connectivity(request):
         weight = _query_int(request, "weight", 5, minimum=0)
     except BadParam as exc:
         return web.json_response({"error": str(exc)}, status=400)
-    group_by_class = request.query.get("group_by_class", "false").lower() in ("true", "1", "yes")
+    group_by_class = _query_flag(request, "group_by_class")
     exclude_dbs_raw = request.query.get("exclude_dbs")
     if exclude_dbs_raw is not None:
         exclude_dbs = [s.strip() for s in exclude_dbs_raw.split(",") if s.strip()]
     else:
         from .vfb_connectivity import DEFAULT_EXCLUDE_DBS
         exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
-    include_graph = request.query.get("include_graph", "false").lower() in ("true", "1", "yes")
-    force_refresh = request.query.get("force_refresh", "false").lower() in ("true", "1", "yes")
+    include_graph = _query_flag(request, "include_graph")
+    force_refresh = _query_flag(request, "force_refresh")
 
-    post_fn = None
-    if include_graph:
-        def post_fn(result):
+    # Resolved before the cache key is built, so `exclude_dbs=male-cns` and
+    # `exclude_dbs=mc` share one entry instead of computing the same answer
+    # twice under two spellings.
+    warnings = []
+    if exclude_dbs:
+        try:
+            exclude_dbs, rewritten = _resolve_exclude_dbs(
+                exclude_dbs, await _connectome_vocabulary(request.app))
+        except BadParam as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        if rewritten:
+            warnings.append(
+                "exclude_dbs %s resolved to %s"
+                % (", ".join(repr(v) for v in rewritten),
+                   ", ".join(repr(v) for v in exclude_dbs)))
+    for flag in ("group_by_class", "include_graph", "force_refresh"):
+        warn = _flag_warning(request, flag)
+        if warn:
+            warnings.append(warn)
+
+    def post_fn(result):
+        if not isinstance(result, dict):
+            return result
+        result = dict(result)            # shallow copy to avoid mutating cache
+        result["excluded_dbs"] = list(exclude_dbs)
+        if warnings:
+            result["warnings"] = list(result.get("warnings") or []) + warnings
+        if include_graph:
             from .graph_builder import graph_from_query_connectivity
-            conns = result.get("connections") if isinstance(result, dict) else None
+            conns = result.get("connections")
             if conns:
                 graph = graph_from_query_connectivity(
                     conns, group_by_class, upstream, downstream,
                 )
                 if graph is not None:
-                    result = dict(result)  # shallow copy to avoid mutating cache
                     result["graph"] = graph
-            return result
+            if "graph" not in result:
+                # Absent for two very different reasons — nothing to draw, or a
+                # builder that failed — and a missing key looked the same as
+                # `include_graph` never having been read at all.
+                result["warnings"] = list(result.get("warnings") or []) + [
+                    "include_graph was requested but no graph could be built "
+                    "(no connections matched, or the graph builder failed)."]
+        return result
 
     key = f"query_connectivity:{upstream}:{downstream}:{weight}:{group_by_class}:{exclude_dbs}"
     # force_refresh=true drops the in-memory L1 entry so the recomputed result
@@ -1611,8 +2047,13 @@ async def handle_query_connectivity(request):
     return await _dispatch_to_pool(
         request, key, _run_query_connectivity,
         upstream, downstream, weight, group_by_class, exclude_dbs, force_refresh,
-        post_fn=post_fn,
+        post_fn=post_fn, known_params=_CONNECTIVITY_PARAMS,
     )
+
+
+#: Query-string keys both hierarchy handlers read. `depth` and `relation` are
+#: the near misses this catches.
+_HIERARCHY_PARAMS = frozenset({"id", "relationship", "direction", "max_depth"})
 
 
 def _run_get_hierarchy(short_form, relationship, direction, max_depth):
@@ -1648,6 +2089,7 @@ async def handle_get_hierarchy(request):
     return await _dispatch_to_pool(
         request, key, _run_get_hierarchy,
         short_form, relationship, direction, max_depth,
+        known_params=_HIERARCHY_PARAMS,
     )
 
 
@@ -1681,10 +2123,28 @@ async def handle_get_hierarchy_html(request):
     json_response = await _dispatch_to_pool(
         request, key, _run_get_hierarchy,
         short_form, relationship, direction, max_depth,
+        known_params=_HIERARCHY_PARAMS,
     )
 
-    # Extract HTML from the JSON result
+    # A non-200 from the dispatch is a 503 or a 500 carrying its own
+    # explanation, not a tree. Parsing it for `html` and answering "No
+    # hierarchy data found" turned every one of those into a 404 about missing
+    # data — wrong status, wrong cause, and it hid the Retry-After that told the
+    # browser the answer was still being computed.
     import json as _json
+    if json_response.status != 200:
+        try:
+            detail = _json.loads(json_response.body).get("error", "")
+        except Exception:                              # noqa: BLE001
+            detail = ""
+        headers = {}
+        retry_after = json_response.headers.get("Retry-After")
+        if retry_after:
+            headers["Retry-After"] = retry_after
+        return web.Response(text="Error: %s" % (detail or "hierarchy unavailable"),
+                            status=json_response.status, headers=headers)
+
+    # Extract HTML from the JSON result
     result = _json.loads(json_response.body)
     html = result.get("html", "")
     if not html:
@@ -1968,12 +2428,20 @@ async def handle_facets(request):
         items = [(name, count) for name, count in items
                  if needle in _sc.normalise_facet_name(name)]
 
-    return web.json_response({
+    return web.json_response(_with_warnings({
         "count": len(items),
         "total": len(vocabulary),
         "contains": contains or None,
         "facets": [{"name": name, "docs": count} for name, count in items],
-    })
+    }, _unknown_param_warnings(request, frozenset({"contains"}))))
+
+
+#: Query-string keys /search reads. `q` is an accepted alias for `query`;
+#: `type`, `types` and `filter_type` are the near misses this catches.
+_SEARCH_PARAMS = frozenset({
+    "query", "q", "rows", "limit", "unique",
+    "filter_types", "exclude_types", "boost_types", "demote_types",
+})
 
 
 async def handle_search(request):
@@ -2023,19 +2491,43 @@ async def handle_search(request):
             {"error": "query must be at most %d characters" % MAX_QUERY_LEN},
             status=400)
 
+    warnings = _unknown_param_warnings(request, _SEARCH_PARAMS)
+    warn = _flag_warning(request, "unique")
+    if warn:
+        warnings.append(warn)
+
     try:
         rows = int(request.query.get("rows", _sc.DEFAULT_ROWS))
     except ValueError:
         return web.json_response({"error": "rows must be an integer"}, status=400)
-    rows = max(1, min(rows, _sc.MAX_ROWS))
+    # Clamped rather than rejected, but said out loud: `rows` is the size of the
+    # candidate set the comparator ranks, so silently changing it changes the
+    # *order* of the results, not just how many come back — a caller who asked
+    # for 5000 and got 1000 would otherwise have no way to know the top of their
+    # list was decided over a different pool than they specified.
+    if rows < 1 or rows > _sc.MAX_ROWS:
+        clamped = max(1, min(rows, _sc.MAX_ROWS))
+        warnings.append(
+            "rows=%d is outside 1..%d and was clamped to %d; rows sizes the "
+            "candidate set that gets ranked, so this affects ordering as well "
+            "as length" % (rows, _sc.MAX_ROWS, clamped))
+        rows = clamped
 
     limit_raw = request.query.get("limit")
     limit = None
     if limit_raw:
         try:
-            limit = max(0, int(limit_raw))
+            limit = int(limit_raw)
         except ValueError:
             return web.json_response({"error": "limit must be an integer"}, status=400)
+        # `limit=0` used to return `rows: []` alongside a non-zero `count` —
+        # a result set that says "1537 matches" and shows none of them. There is
+        # no sensible reading of "give me zero results", so say so rather than
+        # answering a question nobody asked.
+        if limit < 1:
+            return web.json_response(
+                {"error": "limit must be at least 1 (omit it for no limit)"},
+                status=400)
 
     unique = _query_flag(request, "unique")
 
@@ -2073,14 +2565,17 @@ async def handle_search(request):
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
 
+    def finish(result):
+        return web.json_response(_with_warnings(_cap_result_rows(result), warnings))
+
     cached = rcache.get(cache_key)
     if cached is not None:
-        return web.json_response(_cap_result_rows(cached))
+        return finish(cached)
 
     fut, is_owner = await coalescer.get_or_create(cache_key)
     if not is_owner:
         try:
-            return web.json_response(_cap_result_rows(await fut))
+            return finish(await fut)
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
@@ -2141,7 +2636,7 @@ async def handle_search(request):
         stats["served"] += 1
         await coalescer.remove(cache_key)
         fut.set_result(result)
-        return web.json_response(result)
+        return finish(result)
     except Exception as exc:
         stats["failed"] += 1
         await coalescer.remove(cache_key)
@@ -2386,6 +2881,11 @@ async def _fetch_term_info_docs(session, ids):
     return out
 
 
+#: Query-string keys /xref reads. `site`, `database` and `dbs` are the near
+#: misses this catches.
+_XREF_PARAMS = frozenset({"id", "accession", "db"})
+
+
 async def handle_xref(request):
     """GET /xref?id=<VFB id>   |   GET /xref?accession=<external id>[&db=<site>]
 
@@ -2461,14 +2961,19 @@ async def handle_xref(request):
     rcache = request.app["result_cache"]
     coalescer = request.app["coalescer"]
 
+    warnings = _unknown_param_warnings(request, _XREF_PARAMS)
+
+    def finish(result):
+        return web.json_response(_with_warnings(_cap_result_rows(result), warnings))
+
     cached = rcache.get(cache_key)
     if cached is not None:
-        return web.json_response(_cap_result_rows(cached))
+        return finish(cached)
 
     fut, is_owner = await coalescer.get_or_create(cache_key)
     if not is_owner:
         try:
-            return web.json_response(_cap_result_rows(await fut))
+            return finish(await fut)
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
@@ -2567,7 +3072,7 @@ async def handle_xref(request):
         stats["served"] += 1
         await coalescer.remove(cache_key)
         fut.set_result(result)
-        return web.json_response(result)
+        return finish(result)
     except Exception as exc:
         stats["failed"] += 1
         await coalescer.remove(cache_key)
@@ -2827,7 +3332,13 @@ async def _search_payload(request, text):
     """Run one /search and shape it as a combinable table."""
     from . import search_config as _sc
 
-    key = "|".join(["search", text, str(_sc.DEFAULT_ROWS), "None", "", "", "", ""])
+    # Nine slots, in the same order as `handle_search`'s key. The eighth —
+    # `str(unique)` — was missing here, which meant a `search:` operand and a
+    # direct `/search` for the same text computed and stored the same answer
+    # under two different keys and never shared one. `unique` is False below,
+    # so this key now collides (correctly) with `/search?query=<text>`.
+    key = "|".join(["search", text, str(_sc.DEFAULT_ROWS), "None", str(False),
+                    "", "", "", ""])
     rcache = request.app["result_cache"]
     cached = rcache.get(key)
     if cached is not None:
@@ -2961,6 +3472,22 @@ async def handle_combine(request):
     except combine.CombineError as exc:
         return web.json_response({"error": str(exc)}, status=400)
 
+    # Reserved names are skipped above so they cannot be mistaken for operands.
+    # For the three that are reserved but not yet implemented that skip is the
+    # whole behaviour: the caller's `&offset=100` is neither an operand nor a
+    # page, and the response looked identical either way. Say which.
+    param_warnings = [
+        "%s is reserved but not implemented; it was ignored (it is refused as "
+        "an operand name so that implementing it later cannot silently change "
+        "what an existing expression means)" % name
+        for name in ("offset", "order_by", "force_refresh")
+        if query_params.get(name)
+    ]
+    for flag in ("explain_only", "require_complete"):
+        warn = _flag_warning(request, flag)
+        if warn:
+            param_warnings.append(warn)
+
     if not specs:
         return web.json_response({
             "error": "No operands given. Every name in the expression needs a "
@@ -2997,8 +3524,8 @@ async def handle_combine(request):
     # The whole point of the explanation is that a user can check the reading
     # *before* paying for the queries; explain_only makes that a request of its
     # own so a client can offer "what will this do?" as a button.
-    if query_params.get("explain_only", "").lower() in ("true", "1", "yes"):
-        return web.json_response({
+    if _query_flag(request, "explain_only"):
+        return web.json_response(_with_warnings({
             "expression": expr,
             "as_read": combine.to_expression(tree),
             "plain_english": combine.plain_english(
@@ -3006,15 +3533,14 @@ async def handle_combine(request):
             "operands": {n: specs[n]["raw"] for n in used},
             "unused_operands": unused,
             "universe_note": combine.UNIVERSE_NOTE,
-        })
+        }, param_warnings))
 
     try:
         limit = int(query_params.get("limit", 0) or 0)
     except ValueError:
         return web.json_response({"error": "limit must be an integer"},
                                  status=400)
-    require_complete = query_params.get("require_complete", "").lower() in (
-        "true", "1", "yes")
+    require_complete = _query_flag(request, "require_complete")
 
     # ---- run the operands ----
     # Concurrently: they are independent, and the alternative is that a
@@ -3037,7 +3563,7 @@ async def handle_combine(request):
     operands = {name: result for (name, _spec), result in zip(jobs, fetched)}
     universe_operand = operands.pop("universe", None)
 
-    warnings = []
+    warnings = list(param_warnings)
     for name in used:
         operand = operands[name]
         if not operand.by_id:

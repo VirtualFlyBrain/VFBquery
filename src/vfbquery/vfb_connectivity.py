@@ -56,9 +56,23 @@ DEFAULT_EXCLUDE_DBS = ["hb", "fafb"]
 MAX_SUBCLASS_IDS = 10000
 
 
+_NC = None
+
+
 def _get_nc():
-    """Get a Neo4jConnect instance for VFB."""
-    return Neo4jConnect()
+    """Get a Neo4jConnect instance for VFB, reusing one per process.
+
+    Constructing ``Neo4jConnect`` runs a connection test to work out whether
+    the server speaks the v4 or v3 transaction API. Returning a fresh instance
+    per call meant that test ran again on every single query — a whole extra
+    round-trip against a shared, and at times very slow, production server,
+    paid before any useful work started. The answer does not change during a
+    process's life, so it is worked out once.
+    """
+    global _NC
+    if _NC is None:
+        _NC = Neo4jConnect()
+    return _NC
 
 
 def _cypher_str(value):
@@ -110,7 +124,8 @@ def _resolve_neuron_type_label(nc, label, notes=None):
             "Check the ID is a valid neuron class (not an anatomy region)."
         )
 
-    # Exact label match
+    # Exact label match. Kept on its own because it is the only step that is an
+    # index seek, and it is what almost every caller hits.
     results = nc.commit_list([
         f"MATCH (n:Class:Neuron) WHERE n.label = {quoted} "
         f"RETURN n.short_form LIMIT 1"
@@ -118,6 +133,16 @@ def _resolve_neuron_type_label(nc, label, notes=None):
     dc = dict_cursor(results)
     if dc:
         return dc[0]["n.short_form"]
+
+    # The tiers below stay as separate statements on purpose. Merging them into
+    # one `OR` was tried, on the reasoning that three sequential round-trips
+    # against an intermittently slow server is three chances to block; measured
+    # against production it was far worse. The single-predicate containment scan
+    # returns in well under a second, while the same scan with the equality and
+    # synonym disjuncts bolted on did not return inside forty seconds on any of
+    # six attempts — the disjunction costs the planner the filter it can push
+    # down. Split, each tier is also short-circuiting: a caller passing a real
+    # label never reaches the scan at all.
 
     # Case-insensitive label fallback
     results = nc.commit_list([
@@ -233,14 +258,24 @@ def _db_filter_predicate(var, exclude_dbs):
 def list_connectome_datasets():
     """List available connectome datasets from VFB.
 
-    :return: list of dicts with 'label' and 'symbol' keys
+    ``short_form`` is returned alongside ``symbol`` because both are legitimate
+    things to exclude with: :func:`_db_filter_predicate` compares against
+    ``Site.short_form`` *and* ``Site.symbol[0]``, so a caller who reads
+    ``flywire783`` off a term's cross-references and passes that to
+    ``exclude_dbs`` is not making a mistake. Returning the symbol alone left
+    them guessing which of the two spellings the filter wanted, and guessing
+    wrong used to be silent — see ``ha_api._resolve_exclude_dbs``.
+
+    :return: list of dicts with 'label', 'symbol' and 'short_form' keys
     """
     nc = _get_nc()
     results = nc.commit_list([
-        "MATCH (c:Connectome:Individual) RETURN c.label, c.symbol[0] ORDER BY c.label"
+        "MATCH (c:Connectome:Individual) "
+        "RETURN c.label, c.symbol[0], c.short_form ORDER BY c.label"
     ])
     dc = dict_cursor(results)
-    return [{"label": r["c.label"], "symbol": r["c.symbol[0]"]} for r in dc]
+    return [{"label": r["c.label"], "symbol": r["c.symbol[0]"],
+             "short_form": r["c.short_form"]} for r in dc]
 
 
 def _connectivity_cache_key(upstream_type, downstream_type, weight,

@@ -16,17 +16,31 @@ before the client's module-level constants are evaluated.
 """
 import os
 
-#: Fail-fast Neo4j settings for tests. Deliberately much tighter than the
-#: library defaults (120s read, 3 retries): a healthy query against production
-#: returns in a couple of seconds, so 45s is already far beyond normal, and one
-#: retry is enough to ride out a dropped connection without turning a dead
-#: upstream into minutes of waiting per statement.
+#: Fail-fast Neo4j settings for tests. Tighter than the library defaults
+#: (120s read, 3 retries), because one retry is enough to ride out a dropped
+#: connection without turning a dead upstream into minutes of waiting per
+#: statement.
+#:
+#: The read timeout is 180s rather than the 45s first used here. 45s was
+#: chosen on the assumption that a healthy query returns in a couple of
+#: seconds, which is true of most of them and not true of the class-level
+#: connectivity queries: ``get_downstream_class_connectivity('FBbt_00001482')``
+#: is measured at 106s against a healthy production server, returning 9,095
+#: rows. Those tests pass ``force_refresh=True`` and run with the cache
+#: disabled, so every one of them pays that in full — under 45s they did not
+#: time out so much as report an empty table, and nine of them failed on
+#: assertions about rows that had simply never arrived. The tight value was
+#: also invisible until recently: the client used to freeze its constants at
+#: import, so this file's settings never reached the queries at all.
+#:
+#: A stalled server is still bounded — 180s x 2 attempts, and the client now
+#: sends ``max-execution-time`` so the server abandons the work as well.
 #:
 #: ``setdefault``, not assignment — a workflow or a developer that has set one
 #: of these deliberately keeps it.
 TEST_NEO4J_DEFAULTS = {
     "VFBQUERY_NEO4J_CONNECT_TIMEOUT_S": "10",
-    "VFBQUERY_NEO4J_READ_TIMEOUT_S": "45",
+    "VFBQUERY_NEO4J_READ_TIMEOUT_S": "180",
     "VFBQUERY_NEO4J_MAX_RETRIES": "1",
     "VFBQUERY_NEO4J_RETRY_BACKOFF_S": "2",
     "VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S": "10",

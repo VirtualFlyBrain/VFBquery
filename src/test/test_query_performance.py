@@ -397,16 +397,25 @@ class QueryPerformanceTest(unittest.TestCase):
         print("="*80)
 
         # Both-end + group_by_class is the fastest variant per LLM guidance.
-        # giant fiber neuron → peripherally synapsing interneuron is a
-        # known-good pair with non-zero results.
+        #
+        # The downstream side is not ``peripherally synapsing interneuron``,
+        # which was used here until it was measured. All 17 of its connections
+        # to the giant fiber live in ``hb`` or ``fafb``, both of which
+        # ``DEFAULT_EXCLUDE_DBS`` removes, so that pair answered 0 — and since
+        # this test only timed the call, it never noticed it was timing an
+        # empty result. ``giant fiber coupled neuron 2`` gives 42 connections
+        # under the same defaults.
         result, duration, success = self._time_query(
             "QueryConnectivity",
             query_connectivity,
             upstream_type="giant fiber neuron",
-            downstream_type="peripherally synapsing interneuron",
+            downstream_type="giant fiber coupled neuron 2",
             group_by_class=True,
         )
         print(f"QueryConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+        # A performance test that passes on an empty table measures nothing.
+        self.assertTrue(success and result and result.get("count", 0) > 0,
+                        "QueryConnectivity returned no connections")
         # Live cross-dataset query — allow up to 5 min per the MCP timeout.
         self.assertLess(duration, 300.0, "QueryConnectivity exceeded threshold")
 
@@ -462,10 +471,20 @@ class QueryPerformanceTest(unittest.TestCase):
         # anatomy classes). Use VFBexp_FBtp0001321 (P{GAL4-per.BS}),
         # known to overlap ~50 anatomy classes in pdb.
         EP_EXAMPLE = 'VFBexp_FBtp0001321'
-        try:
-            get_expression_overlaps_here(EP_EXAMPLE, return_dataframe=False, limit=-1)
-        except Exception:
-            pass  # Ignore warm-up failures
+
+        # Warm the cache — but only where a write can actually land. Under
+        # VFBQUERY_CACHE_READONLY (how every PR check runs) this limit=-1 call
+        # cannot be stored, so it is the uncapped AnatomyExpressedIn traversal
+        # run for nothing: minutes of server time per job, and the shape that
+        # took pdb down. The timed call below asks for ten rows and now gets
+        # exactly that.
+        from vfbquery.solr_result_cache import solr_caching_readonly
+
+        if not solr_caching_readonly():
+            try:
+                get_expression_overlaps_here(EP_EXAMPLE, return_dataframe=False, limit=-1)
+            except Exception:
+                pass  # Ignore warm-up failures
 
         result, duration, success = self._time_query(
             "AnatomyExpressedIn (P{GAL4-per.BS} expression pattern)",

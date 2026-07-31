@@ -65,11 +65,72 @@ RETRY_BACKOFF_S = 2.0
 #: path's patience — see :meth:`Neo4jConnect._probe`.
 CONNECTION_TEST_TIMEOUT_S = 15.0
 
+#: How long a single statement may run on the server, in seconds, regardless of
+#: how briefly this client intends to wait for it. See
+#: :func:`_execution_budget_ms`.
+SERVER_MAX_EXECUTION_S = 300.0
+
+#: A caller that has explicitly asked to wait longer than the ceiling gets this
+#: multiple of its own read timeout instead, so raising
+#: ``VFBQUERY_NEO4J_READ_TIMEOUT_S`` for a genuinely long analytical query still
+#: works.
+SERVER_BUDGET_FACTOR = 2.0
+
+#: Neo4j status codes that mean "the server stopped this itself". Retryable:
+#: the server says as much in the message it sends back.
+TERMINATED_CODES = (
+    "Neo.DatabaseError.Statement.ExecutionFailed",
+    "Neo.ClientError.Transaction.TransactionTimedOut",
+    "Neo.ClientError.Transaction.Terminated",
+)
+
 #: Transaction endpoints, newest first. VFB production speaks the first.
 V4_COMMIT_PATH = "/db/neo4j/tx/commit"
 V4_HEADERS = {'Content-type': 'application/json'}
 V3_COMMIT_PATH = "/db/data/transaction/commit"
 V3_HEADERS = {}
+
+
+def _is_terminated(response):
+    """True if this response is the server reporting it stopped the work itself."""
+    try:
+        errors = response.json().get('errors') or []
+    except ValueError:
+        return False
+    return any(e.get('code') in TERMINATED_CODES for e in errors)
+
+
+def _execution_budget_ms(read_timeout_s, factor=None, ceiling_s=None):
+    """Milliseconds to allow the *server* for a statement, as a header value.
+
+    A ``requests`` timeout only ends this side of the conversation. The
+    transaction it started keeps running on the database: measured here, a
+    query that took pdb.virtualflybrain.org down carried on after the client
+    had given up, and after the client process had been killed outright. So
+    every retry stacked another copy of the same expensive traversal onto a
+    server that was already struggling, which is how one bad query became an
+    hour-long outage.
+
+    Neo4j's HTTP API accepts ``max-execution-time`` (milliseconds) and
+    honours it: ``CALL apoc.util.sleep(6000)`` sent with
+    ``max-execution-time: 1000`` was killed after 2.16s with
+    ``Neo.DatabaseError.Statement.ExecutionFailed``. The documented
+    ``Neo4j-Transaction-Timeout`` header is ignored by this server — the same
+    sleep ran its full 6.18s — so it is not used.
+
+    The budget is a flat ceiling rather than something derived from the read
+    timeout. Deriving it was tried: at ``read_timeout + 5s`` and again at
+    ``read_timeout * 2``, legitimate connectivity queries that had always
+    passed started coming back as hard ``ExecutionFailed`` errors — 22 of them
+    in one run — because the client's patience is tuned for a healthy server
+    and these queries are simply slow. The ceiling exists to stop a runaway,
+    not to enforce a latency target, so it sits far above any query that
+    finishes. A caller who has explicitly asked to wait longer than the
+    ceiling gets ``factor`` times its own read timeout instead.
+    """
+    factor = SERVER_BUDGET_FACTOR if factor is None else factor
+    ceiling = SERVER_MAX_EXECUTION_S if ceiling_s is None else ceiling_s
+    return max(1000, int(max(read_timeout_s * factor, ceiling) * 1000))
 
 
 def dict_cursor(results):
@@ -123,6 +184,12 @@ class Neo4jConnect:
         self.connection_test_timeout = _env_float(
             "VFBQUERY_NEO4J_CONNECTION_TEST_TIMEOUT_S", CONNECTION_TEST_TIMEOUT_S
         )
+        self.server_budget_factor = _env_float(
+            "VFBQUERY_NEO4J_SERVER_BUDGET_FACTOR", SERVER_BUDGET_FACTOR
+        )
+        self.server_max_execution = _env_float(
+            "VFBQUERY_NEO4J_SERVER_MAX_EXECUTION_S", SERVER_MAX_EXECUTION_S
+        )
         self.commit = V4_COMMIT_PATH
         self.headers = dict(V4_HEADERS)
 
@@ -168,13 +235,25 @@ class Neo4jConnect:
 
         max_retries = getattr(self, "max_retries", MAX_RETRIES)
         delay = getattr(self, "retry_backoff", RETRY_BACKOFF_S)
+
+        # Bound the work on the server too, not just the wait on this side —
+        # see _execution_budget_ms.
+        headers = dict(self.headers)
+        headers["max-execution-time"] = str(
+            _execution_budget_ms(
+                self.read_timeout,
+                getattr(self, "server_budget_factor", SERVER_BUDGET_FACTOR),
+                getattr(self, "server_max_execution", SERVER_MAX_EXECUTION_S),
+            )
+        )
+
         for attempt in range(max_retries + 1):
             try:
                 response = requests.post(
                     url=f"{self.base_uri}{self.commit}",
                     auth=(self.usr, self.pwd),
                     data=json.dumps(payload),
-                    headers=self.headers,
+                    headers=headers,
                     timeout=(self.connect_timeout, self.read_timeout),
                 )
             except requests.exceptions.RequestException as e:
@@ -196,6 +275,22 @@ class Neo4jConnect:
 
             if self.rest_return_check(response):
                 return response.json()['results']
+
+            # A statement the server stopped is the same kind of event as a
+            # read that timed out on this side — the work ran long, not wrong —
+            # so it gets the same treatment. Without this the two paths
+            # disagreed: an overrun caught by the client retried and usually
+            # succeeded, while an overrun caught by the server returned False
+            # on the first attempt.
+            if attempt < max_retries and _is_terminated(response):
+                print(
+                    f"Query terminated by the server; retrying in {delay:.0f}s "
+                    f"(attempt {attempt + 2} of {max_retries + 1})..."
+                )
+                time.sleep(delay)
+                delay *= 2
+                continue
+
             return False
 
         return False
@@ -234,13 +329,22 @@ class Neo4jConnect:
         1`` answers the only question being asked.
         """
         cap = getattr(self, "connection_test_timeout", CONNECTION_TEST_TIMEOUT_S)
-        timeout = (min(self.connect_timeout, cap), min(self.read_timeout, cap))
+        read = min(self.read_timeout, cap)
+        timeout = (min(self.connect_timeout, cap), read)
+        probe_headers = dict(headers)
+        probe_headers["max-execution-time"] = str(
+            _execution_budget_ms(
+                read,
+                getattr(self, "server_budget_factor", SERVER_BUDGET_FACTOR),
+                getattr(self, "server_max_execution", SERVER_MAX_EXECUTION_S),
+            )
+        )
         try:
             response = requests.post(
                 url=f"{self.base_uri}{commit_path}",
                 auth=(self.usr, self.pwd),
                 data=json.dumps({'statements': [{'statement': 'RETURN 1'}]}),
-                headers=headers,
+                headers=probe_headers,
                 timeout=timeout,
             )
         except requests.exceptions.RequestException as e:

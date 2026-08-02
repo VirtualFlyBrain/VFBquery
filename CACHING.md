@@ -109,6 +109,30 @@ A warm that finishes without a complete result puts the term on a cooldown
 (`VFBQUERY_PREVIEW_WARM_COOLDOWN`, default 300s) so a term whose previews cannot
 be computed does not queue one warm per request and starve the terms that can.
 
+**Fixed in v1.22.37:** the deferral above is only safe while it is *temporary*,
+and it had stopped being temporary. `cache_result` wrote its documents with
+`commit=false`, deferring visibility to the core's `autoSoftCommit` — but the
+cache core is configured `autoSoftCommit.maxTime: -1` and
+`autoCommit.openSearcher: false`, so no searcher ever reopens on its own. Writes
+were durable and returned HTTP 200, yet nothing written could ever be read back.
+Every request was therefore a cold miss, every cold miss took the fast path, and
+every response carried `count: -1` — permanently, for every term. Writes now use
+`commitWithin` (which this core *does* honour, with `softCommit: true`), so they
+stay non-blocking but become searchable within ~10s
+(`VFBQUERY_SOLR_COMMIT_WITHIN_MS`); `VFBQUERY_SOLR_WRITE_COMMIT=true` still
+forces the old blocking hard commit. The same `commit=false` bug silently
+disabled the expired-document delete, and is fixed alongside it.
+
+Two related changes went in with it. `preview_results` now carries an optional
+`status` (`pending`/`complete`) and a `message` explaining what an unresolved
+preview means and how to resolve it, because `count: -1` reads as "no results"
+to anyone who has not read this page; absence of `status` keeps meaning
+complete, since the cache holds three months of entries written without it. And
+the read/write validators now ask `preview_is_resolved()` rather than testing
+`count >= 0` directly, which incidentally fixes a term whose preview is complete
+but whose exact total exceeded `COUNT_CAP`: its `count` is `-1` meaning "many",
+and such a term was being rejected from cache and recomputed on every request.
+
 ### Deliberately not cached
 
 - `get_similar_morphology_userdata` — keyed on a per-session user upload id;

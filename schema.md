@@ -5,6 +5,7 @@ This document describes the JSON schema structure for the Virtual Fly Brain (VFB
 ## Table of Contents
 
 - [Core Schema](#core-schema)
+  - [Query previews and the -1 count](#query-previews-and-the--1-count)
 - [Entity Types](#entity-types)
   - [Individual](#individual)
   - [Class](#class)
@@ -51,6 +52,8 @@ The base schema returned by term info queries:
       "preview": "Integer (number of preview results, -1 for all)",
       "preview_columns": ["String (column identifiers)"],
       "preview_results": {
+        "status": "String (pending|complete; optional — absent means complete)",
+        "message": "String (present with status; explains a pending or uncounted preview)",
         "headers": {
           "column_id": {
             "title": "String (display name)",
@@ -68,7 +71,7 @@ The base schema returned by term info queries:
         ]
       },
       "output_format": "String (table/ribbon)",
-      "count": "Integer (total result count)"
+      "count": "Integer (total result count; -1 = not counted, distinct from 0)"
     }
   ],
   "IsIndividual": "Boolean",
@@ -84,6 +87,34 @@ The base schema returned by term info queries:
   ]
 }
 ```
+
+### Query previews and the -1 count
+
+Each entry in `Queries` describes a query the caller can run against the term, and carries a small
+preview of that query's results so a client can show something useful without running anything. A
+preview is expensive, so it is not always available when the term itself is, and the schema has to be
+able to say so.
+
+`count` is that signal. A count of `0` means the query was run and matched nothing. A count of `-1`
+means the query has **not been counted**, which is a different statement entirely: it says nothing
+about whether results exist, only that finding out requires running the query. Treating `-1` as "no
+results" is the single most common misreading of this schema. (Note the unrelated `-1` on the
+`preview` field just above it, which means "preview every result" — the two are not related.)
+
+A preview can be uncounted for four reasons. It has not been computed yet, because this was the first
+request for the term and the full previews are being computed in the background; it timed out inside
+its share of the response budget; it failed; or — the one case where `-1` does *not* mean unknown —
+the rows are complete but the exact total exceeded the counting cap, so `-1` here means "many".
+
+`preview_results.status` distinguishes those. It is `pending` when the rows are not the answer and
+`complete` when they are, and `preview_results.message` accompanies it with a sentence saying which
+case this is and what to do about it. Both keys are optional, and **absence means complete**: results
+cached before these keys existed carry neither, and remain valid. So the rule for a consumer is:
+trust `status` when it is present, and fall back to `count >= 0` when it is not.
+
+A `pending` preview is transient, not an error. Requesting the same term again shortly will usually
+return it filled in, since the first request schedules the computation; passing `force_refresh=true`
+(or the `X-Force-Refresh: true` header, from a whitelisted caller) computes it synchronously instead.
 
 ## Entity Types
 
@@ -422,6 +453,7 @@ Finds individuals related to a template.
       "preview": 5,
       "preview_columns": ["id", "score", "name", "tags", "thumbnail"],
       "preview_results": {
+        "status": "complete",
         "headers": {
           "id": {"title": "Add", "type": "selection_id", "order": -1},
           "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {"0": "Desc"}},
@@ -554,6 +586,7 @@ Finds individuals related to a template.
       "preview": 5,
       "preview_columns": ["id", "name", "driver", "thumbnail"],
       "preview_results": {
+        "status": "complete",
         "headers": {
           "id": {"title": "Add", "type": "selection_id", "order": -1},
           "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {"0": "Asc"}},

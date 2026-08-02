@@ -930,12 +930,13 @@ async def handle_get_term_info(request):
             {"error": "Missing required parameter: id"}, status=400
         )
 
-    force_refresh = _query_flag(request, "force_refresh")
+    force_refresh = _force_refresh_requested(request)
 
     warnings = _unknown_param_warnings(request, _TERM_INFO_PARAMS)
-    warn = _flag_warning(request, "force_refresh")
-    if warn:
-        warnings.append(warn)
+    for warn in (_flag_warning(request, "force_refresh"),
+                 _force_refresh_header_warning(request)):
+        if warn:
+            warnings.append(warn)
 
     def finish(result):
         return web.json_response(_with_warnings(result, warnings))
@@ -1112,6 +1113,43 @@ def _query_flag(request, name, default=False):
     if raw is None or not str(raw).strip():
         return default
     return str(raw).strip().lower() in _TRUE_VALUES
+
+
+#: Header spelling of ``force_refresh``. The v3-cached nginx layer in front of
+#: this service already defines ``X-Force-Refresh: true|1|yes|on`` (from a
+#: whitelisted IP) as "bypass the edge cache and overwrite the canonical slot
+#: with a fresh upstream response". Until this service honoured it too, that
+#: header refreshed the edge from an *unrefreshed* upstream — and the obvious
+#: workaround, appending ``&force_refresh=true``, changes ``$request_uri`` and
+#: therefore the nginx cache key, so it writes a different slot and can never
+#: heal the canonical one. Accepting the header here closes that seam: one
+#: request refreshes both layers, at the URL users actually call.
+_FORCE_REFRESH_HEADER = "X-Force-Refresh"
+
+
+def _force_refresh_requested(request):
+    """True when this request asks for a refresh, by query param or header.
+
+    Either spelling is sufficient; neither overrides the other.
+    """
+    if _query_flag(request, "force_refresh"):
+        return True
+    raw = request.headers.get(_FORCE_REFRESH_HEADER)
+    if raw is None:
+        return False
+    return str(raw).strip().lower() in _TRUE_VALUES
+
+
+def _force_refresh_header_warning(request):
+    """Warn about an ``X-Force-Refresh`` value that is neither a yes nor a no."""
+    raw = request.headers.get(_FORCE_REFRESH_HEADER)
+    if raw is None:
+        return None
+    value = str(raw).strip().lower()
+    if value in _TRUE_VALUES or value in _FALSE_VALUES:
+        return None
+    return ("%s: %r is not a recognised boolean and was read as false; use %s"
+            % (_FORCE_REFRESH_HEADER, str(raw), " / ".join(_TRUE_VALUES)))
 
 
 #: Spellings of "no" a caller might reasonably write for a flag. Everything
@@ -1338,13 +1376,16 @@ async def handle_run_query(request):
         )
 
     include_graph = _query_flag(request, "include_graph")
-    force_refresh = _query_flag(request, "force_refresh")
+    force_refresh = _force_refresh_requested(request)
 
     warnings = _unknown_param_warnings(request, _RUN_QUERY_PARAMS)
     for flag in ("include_graph", "force_refresh"):
         warn = _flag_warning(request, flag)
         if warn:
             warnings.append(warn)
+    warn = _force_refresh_header_warning(request)
+    if warn:
+        warnings.append(warn)
 
     # `include_graph` is honoured by four of the forty query types. Asking for
     # it on any of the other thirty-six used to return a graphless result that
@@ -1992,7 +2033,7 @@ async def handle_query_connectivity(request):
         from .vfb_connectivity import DEFAULT_EXCLUDE_DBS
         exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
     include_graph = _query_flag(request, "include_graph")
-    force_refresh = _query_flag(request, "force_refresh")
+    force_refresh = _force_refresh_requested(request)
 
     # Resolved before the cache key is built, so `exclude_dbs=male-cns` and
     # `exclude_dbs=mc` share one entry instead of computing the same answer
@@ -2013,6 +2054,9 @@ async def handle_query_connectivity(request):
         warn = _flag_warning(request, flag)
         if warn:
             warnings.append(warn)
+    warn = _force_refresh_header_warning(request)
+    if warn:
+        warnings.append(warn)
 
     def post_fn(result):
         if not isinstance(result, dict):

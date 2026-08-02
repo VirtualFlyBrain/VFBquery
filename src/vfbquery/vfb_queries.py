@@ -11,7 +11,9 @@ import json
 import numpy as np
 from urllib.parse import unquote
 import hashlib
-from .solr_result_cache import with_solr_cache, solr_caching_disabled
+from .solr_result_cache import (with_solr_cache, solr_caching_disabled,
+                                PREVIEW_STATUS_PENDING, PREVIEW_STATUS_COMPLETE,
+                                preview_is_resolved)
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -2485,16 +2487,64 @@ def _warming_previews():
     return getattr(_bg_preview_state, 'warming', False)
 
 
+#: ``count`` sentinel: not counted yet. Distinct from ``0`` ("no matches") —
+#: see CACHING.md. It is deliberately *not* an error: the query simply has not
+#: been run for this term, and running it is what resolves the number.
+PREVIEW_COUNT_UNKNOWN = -1
+
+#: Why a preview came back unresolved. The distinction matters to a caller
+#: deciding what to do next: a not-yet-run preview resolves by asking again,
+#: whereas a timeout resolves by running the query directly with its own budget.
+PREVIEW_PENDING_NOT_RUN = (
+    "This preview has not been computed yet, so count is -1 (not counted) "
+    "rather than 0 (no matches). The full results are being computed in the "
+    "background; request this term again shortly, or run the query directly "
+    "to get the results now.")
+
+PREVIEW_PENDING_TIMEOUT = (
+    "This preview timed out before returning, so count is -1 (not counted) "
+    "rather than 0 (no matches). Run the query directly — on its own it has a "
+    "larger time budget than it gets as one preview among many.")
+
+PREVIEW_PENDING_ERROR = (
+    "This preview could not be computed, so count is -1 (not counted) rather "
+    "than 0 (no matches). Run the query directly to get the results, or to see "
+    "the underlying error.")
+
+#: Rows are present and correct, but the total was too expensive to establish
+#: exactly, so ``count`` is -1 meaning "more than the counting cap" rather than
+#: "unknown". Only ``status`` separates this from a genuinely pending preview.
+PREVIEW_COMPLETE_UNCOUNTED = (
+    "Results are complete, but the total was not counted exactly: there are "
+    "more than {cap} matches, so count is -1 here meaning 'many', not "
+    "'unknown'.")
+
+
+def _pending_preview(query, message):
+    """A ``preview_results`` block for a query whose results are not yet known.
+
+    ``status``/``message`` are advisory and additive: a consumer that ignores
+    them still gets the long-standing contract (``count == -1``, empty
+    ``rows``). They exist because that contract is easy to misread as "no
+    results" — and because three months of cache entries written before this
+    shipped carry no ``status`` at all, so *absence* has to keep meaning
+    "complete" and cannot be used to signal anything.
+    """
+    return {
+        'status': PREVIEW_STATUS_PENDING,
+        'message': message,
+        'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']),
+        'rows': []
+    }
+
+
 def _blank_query_previews(term_info):
     """Return term_info with every query's preview left unresolved (count -1)."""
     for query in term_info.get('Queries', []):
-        query['preview_results'] = {
-            'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']),
-            'rows': []
-        }
+        query['preview_results'] = _pending_preview(query, PREVIEW_PENDING_NOT_RUN)
         # -1 = not yet counted (distinct from a genuine 0), so the UI shows the
         # query as pending and the cache treats the entry as not-yet-complete.
-        query['count'] = -1
+        query['count'] = PREVIEW_COUNT_UNKNOWN
     return term_info
 
 
@@ -6873,14 +6923,14 @@ def fill_query_results(term_info, force_refresh: bool = False):
                           f"reporting unknown count (-1) with empty preview")
                     # Unknown, not empty: keep the query live so the user can run
                     # it on demand; -1 distinguishes this from a known-empty (0).
-                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                    query['count'] = -1
+                    query['preview_results'] = _pending_preview(query, PREVIEW_PENDING_TIMEOUT)
+                    query['count'] = PREVIEW_COUNT_UNKNOWN
                     return
                 except Exception as e:
                     print(f"Error executing query function {query['function']}: {e}")
                     # Set default values for failed query (unknown count, not empty)
-                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                    query['count'] = -1
+                    query['preview_results'] = _pending_preview(query, PREVIEW_PENDING_ERROR)
+                    query['count'] = PREVIEW_COUNT_UNKNOWN
                     return
                 # print(f"Function result: {result}")
                 
@@ -6890,8 +6940,8 @@ def fill_query_results(term_info, force_refresh: bool = False):
                 
                 if result is None:
                     print(f"ERROR: Query function {query['function']} returned None - this indicates a query failure that needs investigation")
-                    query['preview_results'] = {'headers': query.get('preview_columns', ['id', 'label', 'tags', 'thumbnail']), 'rows': []}
-                    query['count'] = -1
+                    query['preview_results'] = _pending_preview(query, PREVIEW_PENDING_ERROR)
+                    query['count'] = PREVIEW_COUNT_UNKNOWN
                     return
                 
                 if isinstance(result, dict) and 'rows' in result:
@@ -7006,7 +7056,15 @@ def fill_query_results(term_info, force_refresh: bool = False):
                 else:
                     # Default to ID descending if no sort specified
                     filtered_result.sort(key=lambda x: x.get('id', ''), reverse=True)
-                query['preview_results'] = {'headers': filtered_headers, 'rows': filtered_result}
+                query['preview_results'] = {'status': PREVIEW_STATUS_COMPLETE,
+                                            'headers': filtered_headers,
+                                            'rows': filtered_result}
+                if result_count == PREVIEW_COUNT_UNKNOWN:
+                    # The rows are real; only the total is capped. Without this
+                    # a consumer applying the "count < 0 means pending" rule
+                    # would discard a perfectly good preview.
+                    query['preview_results']['message'] = \
+                        PREVIEW_COMPLETE_UNCOUNTED.format(cap=COUNT_CAP)
                 query['count'] = result_count
                 # print(f"Filtered result: {filtered_result}")
             else:

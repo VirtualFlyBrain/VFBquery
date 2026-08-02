@@ -62,6 +62,29 @@ GET /get_term_info?id=FBbt_00007401
 | `id` | **Required.** A VFB short_form: `FBbt_…` (anatomy class), `VFB_…` (individual), `VFBexp_…`, `FBgn_…`, `FBlc_…`. |
 | `force_refresh` | `true` bypasses the result cache for this call. |
 
+### Query previews may be pending
+
+Each entry in `Queries` carries a preview of that query's results. Computing all of them takes tens of
+seconds on a cold term, so the first request for a term returns without them and warms them in the
+background. Such a preview has empty `rows` and a **`count` of `-1`, which means *not counted* — not
+zero.** It says nothing about whether results exist.
+
+`preview_results.status` names the state (`pending` or `complete`) and `preview_results.message`
+explains it in a sentence. Both are optional and their **absence means complete**, because entries
+cached before they existed carry neither; the fallback rule is `count >= 0`. A `complete` preview can
+also carry `count: -1`, in the one case where `-1` means "many": the rows are final, but the exact
+total exceeded the counting cap. Ask again shortly and a pending preview is usually filled in.
+
+### `X-Force-Refresh`
+
+`/get_term_info`, `/run_query` and `/query_connectivity` accept `X-Force-Refresh: true|1|yes|on` as a
+header spelling of `force_refresh=true`. It exists because the `v3-cached` layer in front of this
+service already defines that header as "bypass the edge cache and overwrite the cached entry with the
+fresh upstream response", and reserves it for whitelisted callers. Sending the header refreshes both
+layers in one request, at the URL users actually call. Adding `&force_refresh=true` instead does not:
+the edge cache is keyed on the request URI, so the refreshed response lands in a *different* cache
+entry and the one users hit is never healed.
+
 ## `/run_query`
 
 ```

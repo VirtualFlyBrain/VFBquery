@@ -23,7 +23,13 @@ from vfbquery import ha_api
 def _make_app(monkeypatch):
     dispatched = []
 
-    async def fake_dispatch(request, cache_key, worker_fn, *args, post_fn=None):
+    # ``known_params`` is accepted and ignored: the real ``_dispatch_to_pool``
+    # grew that keyword after this stub was written, and a stub with the
+    # narrower signature turns every call that reaches it into a TypeError the
+    # handler reports as a 500 — which reads exactly like the defect these tests
+    # exist to catch, so the suite failed while the service was fine.
+    async def fake_dispatch(request, cache_key, worker_fn, *args, post_fn=None,
+                            known_params=None):
         dispatched.append(cache_key)
         # The html handler parses this body, so it has to look like a result.
         return web.json_response({"html": "<div>tree</div>"})
@@ -189,5 +195,10 @@ def test_paging_hints_still_fall_back_rather_than_failing():
     # asserted through the endpoint elsewhere. What is checkable here is that
     # the strict one is not wired into it.
     import inspect
-    src = inspect.getsource(ha_api.handle_run_query)
+    # Comments are stripped before the check. The question is what the handler
+    # *calls*, and a cross-reference in a comment — "see _query_int" — is not a
+    # call. Matching raw source made this fail the moment someone documented the
+    # very distinction the test is here to protect.
+    src = "\n".join(line.split("#", 1)[0]
+                    for line in inspect.getsource(ha_api.handle_run_query).splitlines())
     assert "_int_param" in src and "_query_int" not in src

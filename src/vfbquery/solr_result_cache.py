@@ -143,7 +143,86 @@ def cache_doc_glob(namespace: Optional[str] = None) -> str:
     return f"ns_{ns}{_NAMESPACE_SEPARATOR}vfb_query_*" if ns else "vfb_query_*"
 
 
-@dataclass 
+#: ``preview_results.status`` values. ``pending`` means the query has not been
+#: run for this term yet (or could not finish), so ``count`` is -1 = "not
+#: counted", which is *not* the same as 0 = "no matches". ``complete`` means the
+#: rows are final, even if ``count`` is -1 because the exact total exceeded the
+#: counting cap.
+#:
+#: The key is optional and always has been: entries written before this shipped
+#: carry no ``status``, and the cache holds three months of them. Absence
+#: therefore has to keep meaning "complete" — see :func:`preview_is_resolved`.
+PREVIEW_STATUS_PENDING = 'pending'
+PREVIEW_STATUS_COMPLETE = 'complete'
+
+
+def preview_is_resolved(query: Dict[str, Any]) -> bool:
+    """True when a query's preview holds a final answer.
+
+    Prefers the explicit ``status`` and falls back to the ``count >= 0`` rule
+    for entries written before ``status`` existed. The fallback is the reason
+    this is a function rather than an inline comparison: read literally,
+    ``count < 0`` also condemns a *complete* preview whose total was capped, so
+    such a term could never be served from cache and was silently recomputed on
+    every request.
+    """
+    preview_results = query.get('preview_results')
+    if not isinstance(preview_results, dict):
+        return False
+    status = preview_results.get('status')
+    if status == PREVIEW_STATUS_COMPLETE:
+        return True
+    if status == PREVIEW_STATUS_PENDING:
+        return False
+    return query.get('count', -1) >= 0
+
+
+# Default visibility delay for cache writes, in milliseconds. Ten seconds is
+# comfortably inside the 3-month TTL and well under the time a cold term_info
+# takes to recompute, so a write is readable long before anything would want to
+# read it back.
+_DEFAULT_COMMIT_WITHIN_MS = 10000
+
+
+def solr_write_params() -> Dict[str, str]:
+    """Update-handler params that make a write *visible*, without blocking on it.
+
+    A per-write ``commit=true`` is a hard flush: it blocks the request until the
+    IndexWriter completes, and on a wedged writer (the soft-NFS ``write.lock``
+    EIO failure mode) that stall propagates up — a cold-miss term such as a
+    License individual then hangs and saturates the ha_api worker queue,
+    surfacing as HTTP 503. So it is not the default.
+
+    ``commit=false`` alone, however, is *not* a safe substitute here. It defers
+    to the core's own ``autoSoftCommit``, and the production cache core
+    (``vfb_json``) is configured with ``autoSoftCommit.maxTime: -1`` and
+    ``autoCommit.openSearcher: false`` — no searcher is ever reopened on its own.
+    Documents written that way are durable and the POST returns 200, but they
+    never become searchable, so every read-back misses and every call is cold.
+    That is what left ``get_term_info`` returning unresolved previews
+    (``count: -1``, ``rows: []``) indefinitely rather than transiently.
+
+    ``commitWithin`` is the middle ground the core *does* honour (its
+    ``commitWithin`` is configured with ``softCommit: true``): the write returns
+    immediately, and Solr opens a new searcher within the given window, batching
+    concurrent writes into one flush. Override the window with
+    ``VFBQUERY_SOLR_COMMIT_WITHIN_MS``, or force the old blocking behaviour with
+    ``VFBQUERY_SOLR_WRITE_COMMIT=true``.
+    """
+    if os.getenv('VFBQUERY_SOLR_WRITE_COMMIT', 'false').lower() in ('1', 'true', 'yes', 'on'):
+        return {"commit": "true"}
+    try:
+        within_ms = int(os.getenv('VFBQUERY_SOLR_COMMIT_WITHIN_MS', '') or _DEFAULT_COMMIT_WITHIN_MS)
+    except ValueError:
+        within_ms = _DEFAULT_COMMIT_WITHIN_MS
+    # A non-positive window would mean "never", reintroducing the invisible-write
+    # bug; clamp to the default instead.
+    if within_ms <= 0:
+        within_ms = _DEFAULT_COMMIT_WITHIN_MS
+    return {"commit": "false", "commitWithin": str(within_ms)}
+
+
+@dataclass
 class CacheMetadata:
     """Metadata for cached results"""
     query_type: str          # 'term_info', 'instances', etc.
@@ -613,24 +692,15 @@ class SolrResultCache:
                 "expires_at": cached_data["expires_at"]
             }
             
-            # Store cache document.
-            # Use a soft (deferred) commit by default: a hard per-write
-            # ``commit=true`` flush blocks the request until the IndexWriter
-            # completes, and on a wedged writer (e.g. the soft-NFS write.lock
-            # EIO failure mode) that stall propagates up — a cold-miss term
-            # such as a License individual then hangs and saturates the ha_api
-            # worker queue, surfacing as HTTP 503. Relying on the core's
-            # autoSoftCommit (as the sibling write paths in this module already
-            # do) keeps the write fast and non-blocking; the 3-month cache
-            # tolerates a few seconds' visibility delay. Override with
-            # VFBQUERY_SOLR_WRITE_COMMIT=true if an immediate commit is needed.
-            commit_flag = os.getenv('VFBQUERY_SOLR_WRITE_COMMIT', 'false').lower() \
-                in ('1', 'true', 'yes')
+            # Store cache document. ``solr_write_params()`` uses ``commitWithin``
+            # so the write returns immediately but still becomes searchable — see
+            # that function for why a bare ``commit=false`` is never readable on
+            # this core.
             response = requests.post(
                 f"{self.cache_url}/update",
                 data=json.dumps([cache_doc]),
                 headers={"Content-Type": "application/json"},
-                params={"commit": "true" if commit_flag else "false"},
+                params=solr_write_params(),
                 timeout=int(os.getenv('VFBQUERY_SOLR_WRITE_TIMEOUT', '60'))
             )
             
@@ -668,7 +738,11 @@ class SolrResultCache:
                 f"{self.cache_url}/update",
                 data=f'<delete><id>{cache_doc_id}</id></delete>',
                 headers={"Content-Type": "application/xml"},
-                params={"commit": "false"},  # Don't commit immediately for performance
+                # Non-blocking, but still made visible: with a bare
+                # ``commit=false`` the delete never takes effect on a core
+                # without autoSoftCommit, so the expired document keeps being
+                # read back and re-expired on every subsequent lookup.
+                params=solr_write_params(),
                 timeout=2
             )
         except Exception as e:
@@ -1260,11 +1334,13 @@ def with_solr_cache(query_type: str):
                                 
                                 logger.debug(f"Query {i}: count={count}, preview_results_type={type(preview_results)}, headers={headers}")
                                 
-                                # Check if query has error count (-1) which indicates failed execution
-                                # Note: count of 0 is valid - it means "no matches found"
-                                if count < 0:
+                                # Reject a preview that never resolved. Note count
+                                # of 0 is valid ("no matches found"), and so is
+                                # count -1 on a preview explicitly marked
+                                # complete (rows final, exact total capped).
+                                if not preview_is_resolved(query):
                                     is_valid = False
-                                    logger.debug(f"Cached result has error query count {count} for {term_id}")
+                                    logger.debug(f"Cached result has unresolved query (count {count}) for {term_id}")
                                     break
                                 # Check if preview_results is missing or has empty headers when it should have data
                                 if not isinstance(preview_results, dict) or not headers:
@@ -1461,11 +1537,10 @@ def with_solr_cache(query_type: str):
                                 failed_queries = 0
                                 
                                 for query in result['Queries']:
-                                    count = query.get('count', -1)
-                                    preview_results = query.get('preview_results')
-                                    
-                                    # Count queries with valid results (count >= 0)
-                                    if count >= 0 and isinstance(preview_results, dict):
+                                    # Resolved = has a final answer; see
+                                    # preview_is_resolved for why this is not
+                                    # simply count >= 0.
+                                    if preview_is_resolved(query):
                                         valid_queries += 1
                                     else:
                                         failed_queries += 1

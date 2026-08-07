@@ -963,9 +963,31 @@ def term_info_parse_object(results, short_form):
                 record['icon'] = dataset_license.license.icon
                 record['source_iri'] = dataset_license.dataset.core.iri
                 record['source'] = dataset_license.dataset.core.label
-                licenses[idx] = record 
+                licenses[idx] = record
             termInfo["Licenses"] = licenses
-              
+        elif vfbTerm.license and len(vfbTerm.license) > 0:
+            # Terms that carry a licence directly rather than inheriting one
+            # from the dataset they came from. DataSet term info (see
+            # QueryLibrary.dataset_term_info) returns has_license on the term
+            # itself as `license`, with no `dataset_license`, so without this
+            # branch every dataset page loses its License row.
+            # Mirrors the fallback in term_info_queries.VFBTerm.get_license()
+            # and the legacy Java serialiser (VFBProcessTermInfoJson.getLicense).
+            licenses = {}
+            for idx, lcns in enumerate(vfbTerm.license):
+                record = {}
+                record['iri'] = lcns.core.iri
+                record['short_form'] = lcns.core.short_form
+                record['label'] = lcns.core.label
+                record['icon'] = lcns.icon
+                # No source dataset to attribute: the term is its own source,
+                # and an empty source keeps the panel from rendering a Source
+                # row that links back to the page you are already on.
+                record['source_iri'] = ''
+                record['source'] = ''
+                licenses[idx] = record
+            termInfo["Licenses"] = licenses
+
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             termInfo["IsTemplate"] = True
             images = {}

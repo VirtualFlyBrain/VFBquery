@@ -151,6 +151,35 @@ class TermInfoParityTest(unittest.TestCase):
                         "License term_info failed validity check")
         self.assertIn("License", result.get("SuperTypes", []))
 
+    # --- Gap E: a term's own licence (`license`) must reach Licenses{} -----
+    # DataSet term info returns has_license on the term itself as `license`
+    # (QueryLibrary.dataset_term_info), not as `dataset_license`. The
+    # serialiser only read `dataset_license`, so every dataset page rendered
+    # without a License row even though the edge was in the KB.
+    def test_dataset_own_license_reaches_licenses(self):
+        ti = self._parse("Cachero2010")
+        licenses = ti.get("Licenses", {})
+        self.assertTrue(licenses, "DataSet own licence dropped from Licenses{}")
+        lic = licenses[0]
+        self.assertTrue(lic.get("short_form", "").startswith("VFBlicense"),
+                        f"unexpected licence short_form: {lic.get('short_form')}")
+        self.assertTrue(lic.get("label"), "licence label missing")
+        self.assertTrue(lic.get("iri"), "licence iri missing")
+
+    def test_dataset_own_license_has_no_self_source(self):
+        # The dataset is its own source, so leave source empty rather than
+        # rendering a Source row that links back to the same page.
+        lic = self._parse("Cachero2010").get("Licenses", {})[0]
+        self.assertEqual("", lic.get("source", ""))
+        self.assertEqual("", lic.get("source_iri", ""))
+
+    def test_dataset_license_still_attributes_source_on_images(self):
+        # The dataset_license path is unchanged: an image/template still gets
+        # its licence via the dataset it came from, with that dataset as source.
+        licenses = self._parse("VFB_00101567").get("Licenses", {})
+        self.assertTrue(licenses, "template lost its inherited licence")
+        self.assertTrue(licenses[0].get("source"), "inherited licence lost its source")
+
 
 if __name__ == "__main__":
     unittest.main()

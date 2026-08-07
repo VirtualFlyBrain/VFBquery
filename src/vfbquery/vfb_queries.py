@@ -973,6 +973,9 @@ def term_info_parse_object(results, short_form):
             # branch every dataset page loses its License row.
             # Mirrors the fallback in term_info_queries.VFBTerm.get_license()
             # and the legacy Java serialiser (VFBProcessTermInfoJson.getLicense).
+            # Deliberately elif, not a merge: the query library populates one or
+            # the other per term type, and if a term ever carried both, the
+            # inherited dataset licence wins -- same precedence as get_license().
             licenses = {}
             for idx, lcns in enumerate(vfbTerm.license):
                 record = {}

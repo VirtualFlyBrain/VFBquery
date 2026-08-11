@@ -2,6 +2,18 @@
 import pytest
 
 from vfbquery.flybase_stocks import resolve_entity, find_stocks
+from vfbquery.vfb_queries import get_flybase_stocks
+
+
+def assert_single_selection_id(result):
+    """A result table must declare exactly one `selection_id` identity column,
+    hidden at order -1. Without it the website consumes the first visible data
+    column as the row identity and drops it from the table (regression: the
+    Stock ID / FBrf columns went missing on the site)."""
+    headers = result["headers"]
+    sel = [c for c, m in headers.items() if m.get("type") == "selection_id"]
+    assert len(sel) == 1, f"expected exactly one selection_id column, got {sel}"
+    assert headers[sel[0]]["order"] == -1, "selection_id column must be hidden (order -1)"
 
 # Known stable test entities
 KNOWN_GENE_SYMBOL = "dpp"
@@ -154,6 +166,47 @@ class TestFindStocksStockDetail:
         assert any("Bloomington" in str(s.get("collection", "")) for s in stocks)
 
 
+class TestFindStocksConstruct:
+    # FBtp0000352 = P{GawB} — a widely-used construct carried by many insertions.
+    KNOWN_CONSTRUCT_ID = "FBtp0000352"
+
+    @pytest.mark.integration
+    def test_known_construct_returns_stocks(self):
+        # A construct is not held in stocks directly; stocks are propagated from
+        # the FBti insertions producedby it.
+        stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        assert len(stocks) > 0
+        assert all("stock_id" in s for s in stocks)
+
+    @pytest.mark.integration
+    def test_construct_stocks_have_fbst(self):
+        stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        assert any(s["stock_id"].startswith("FBst") for s in stocks)
+
+    @pytest.mark.integration
+    def test_construct_collection_filter(self):
+        all_stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        filtered = find_stocks(self.KNOWN_CONSTRUCT_ID, collection_filter="Bloomington")
+        assert 0 < len(filtered) <= len(all_stocks)
+        for s in filtered:
+            if s.get("collection"):
+                assert "Bloomington" in s["collection"]
+
+    @pytest.mark.integration
+    def test_construct_stocks_via_allele_path(self):
+        # FBtp0000162 = P{CaSpeR-3}: has stocks ONLY through alleles made from it
+        # (zero via the producedby-insertion route). Regression guard for the
+        # multi-path UNION — a single insertion-only query returns 0 here.
+        stocks = find_stocks("FBtp0000162")
+        assert len(stocks) > 0
+        assert all(s["stock_id"].startswith("FBst") for s in stocks)
+
+    @pytest.mark.integration
+    def test_nonexistent_construct(self):
+        stocks = find_stocks("FBtp9999999999")
+        assert stocks == []
+
+
 class TestFindStocksCombination:
     @pytest.mark.integration
     def test_known_combination(self):
@@ -170,6 +223,25 @@ class TestFindStocksCombination:
     def test_nonexistent_combination(self):
         stocks = find_stocks("FBco9999999")
         assert stocks == []
+
+
+class TestFindStocksTableSchema:
+    CONSTRUCT_WITH_STOCKS = "FBtp0000352"  # P{GawB}
+
+    @pytest.mark.integration
+    def test_single_selection_id_column(self):
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        assert_single_selection_id(result)
+
+    @pytest.mark.integration
+    def test_stock_id_is_a_visible_column(self):
+        # stock_id must be a normal displayed column, not the (hidden) identity.
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        stock_id = result["headers"]["stock_id"]
+        assert stock_id["type"] == "text"
+        assert stock_id["order"] >= 0
+        # and the hidden identity carries the same FBst value
+        assert result["rows"][0]["id"] == result["rows"][0]["stock_id"]
 
 
 class TestFindStocksEdgeCases:

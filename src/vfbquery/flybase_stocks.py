@@ -1,4 +1,4 @@
-"""Find FlyBase stocks for genes, alleles, insertions, or split system combinations."""
+"""Find FlyBase stocks for genes, alleles, insertions, transgenic constructs, or split system combinations."""
 import re
 
 import pandas as pd
@@ -30,7 +30,7 @@ def resolve_entity(name_or_id):
       2. Synonym match via feature_synonym (case-insensitive ILIKE)
       3. Broad match via feature.name ILIKE '%query%'
 
-    :param name_or_id: Gene name, allele symbol, or FlyBase ID (FBgn/FBal/FBti/FBst/FBco)
+    :param name_or_id: Gene name, allele symbol, or FlyBase ID (FBgn/FBal/FBti/FBtp/FBst/FBco)
     :return: dict with 'match_type' and 'results' list
     """
     conn = get_connection(statement_timeout_ms=30000)
@@ -308,6 +308,63 @@ WHERE f.uniquename = %(feature_id)s
   AND s.is_obsolete = false
 """
 
+_CONSTRUCT_STOCKS_SQL = """
+WITH all_stocks AS (
+  -- A construct (FBtp) is not itself held in stocks; it reaches them three ways.
+  -- Path 1 alone misses ~1,400 construct/stock pairs and leaves 127 constructs
+  -- (e.g. FBtp0000162 P{CaSpeR-3}) with zero stocks despite carrying some.
+
+  -- Path 1: construct <- producedby - FBti insertion -> genotype -> stock
+  SELECT DISTINCT s.uniquename AS stock_id, s.name AS stock_number,
+         g.uniquename AS genotype, sc.uniquename AS collection
+  FROM feature tp
+  JOIN feature_relationship fr2 ON tp.feature_id = fr2.object_id
+  JOIN cvterm c2 ON fr2.type_id = c2.cvterm_id AND c2.name = 'producedby'
+  JOIN feature ti ON fr2.subject_id = ti.feature_id AND ti.is_obsolete = false
+  JOIN feature_genotype fg ON ti.feature_id = fg.feature_id
+  JOIN genotype g ON fg.genotype_id = g.genotype_id
+  JOIN stock_genotype sg ON g.genotype_id = sg.genotype_id
+  JOIN stock s ON sg.stock_id = s.stock_id AND s.is_obsolete = false
+  LEFT JOIN stockcollection_stock scs ON s.stock_id = scs.stock_id
+  LEFT JOIN stockcollection sc ON scs.stockcollection_id = sc.stockcollection_id
+  WHERE tp.uniquename = %(feature_id)s AND tp.is_obsolete = false
+
+  UNION
+
+  -- Path 2: construct -> genotype -> stock (construct sits directly in the genotype)
+  SELECT DISTINCT s.uniquename, s.name, g.uniquename, sc.uniquename
+  FROM feature tp
+  JOIN feature_genotype fg ON tp.feature_id = fg.feature_id
+  JOIN genotype g ON fg.genotype_id = g.genotype_id
+  JOIN stock_genotype sg ON g.genotype_id = sg.genotype_id
+  JOIN stock s ON sg.stock_id = s.stock_id AND s.is_obsolete = false
+  LEFT JOIN stockcollection_stock scs ON s.stock_id = scs.stock_id
+  LEFT JOIN stockcollection sc ON scs.stockcollection_id = sc.stockcollection_id
+  WHERE tp.uniquename = %(feature_id)s AND tp.is_obsolete = false
+
+  UNION
+
+  -- Path 3: construct <- (associated_with|derived_tp_assoc_alleles) - allele
+  --         -> genotype -> stock (allele made from this construct, held directly)
+  SELECT DISTINCT s.uniquename, s.name, g.uniquename, sc.uniquename
+  FROM feature tp
+  JOIN feature_relationship fr1 ON tp.feature_id = fr1.object_id
+  JOIN cvterm cr ON fr1.type_id = cr.cvterm_id
+    AND cr.name IN ('associated_with', 'derived_tp_assoc_alleles')
+  JOIN feature al ON fr1.subject_id = al.feature_id AND al.is_obsolete = false
+  JOIN cvterm cal ON al.type_id = cal.cvterm_id AND cal.name = 'allele'
+  JOIN feature_genotype fg ON al.feature_id = fg.feature_id
+  JOIN genotype g ON fg.genotype_id = g.genotype_id
+  JOIN stock_genotype sg ON g.genotype_id = sg.genotype_id
+  JOIN stock s ON sg.stock_id = s.stock_id AND s.is_obsolete = false
+  LEFT JOIN stockcollection_stock scs ON s.stock_id = scs.stock_id
+  LEFT JOIN stockcollection sc ON scs.stockcollection_id = sc.stockcollection_id
+  WHERE tp.uniquename = %(feature_id)s AND tp.is_obsolete = false
+)
+SELECT stock_id, stock_number, genotype, collection
+FROM all_stocks
+"""
+
 _STOCK_DETAILS_SQL = """
 SELECT
     s.uniquename AS stock_id,
@@ -374,6 +431,21 @@ def _find_stocks_insertion(conn, feature_id, collection_filter=None):
     return _run_query(conn, sql, params)
 
 
+def _find_stocks_construct(conn, construct_id, collection_filter=None):
+    """Find stocks for a transgenic construct (FBtp) via three UNION paths.
+
+    A construct is not itself held in stocks; it reaches them through
+    (1) the FBti insertions producedby it, (2) direct genotype membership, and
+    (3) alleles made from it (associated_with / derived_tp_assoc_alleles) that
+    are held directly. Path 1 alone leaves 127 constructs with zero stocks.
+    """
+    sql = _CONSTRUCT_STOCKS_SQL
+    params = {"feature_id": construct_id}
+    sql = _add_collection_filter(sql, params, collection_filter, use_where=True)
+    sql += "ORDER BY collection, stock_number;"
+    return _run_query(conn, sql, params)
+
+
 def _find_stocks_combination(conn, combo_id, collection_filter=None):
     """Find stocks for a split system combination via its component alleles."""
     components = _run_query(conn, _COMBO_COMPONENTS_SQL, {"combo_id": combo_id})
@@ -411,14 +483,16 @@ def find_stocks(feature_id, collection_filter=None):
       - FBgn: gene (4-path UNION, 120s timeout)
       - FBal: allele (3-path UNION, 60s timeout)
       - FBti: insertion (direct, 60s timeout)
+      - FBtp: transgenic construct (via its insertions, 120s timeout)
       - FBco: combination (component alleles, 60s timeout)
       - FBst: stock details (direct lookup, 60s timeout)
 
-    :param feature_id: FlyBase ID (FBgn/FBal/FBti/FBco/FBst)
+    :param feature_id: FlyBase ID (FBgn/FBal/FBti/FBtp/FBco/FBst)
     :param collection_filter: Optional stock collection name filter (e.g. "Bloomington")
     :return: list of stock dicts
     """
-    timeout = 120000 if feature_id.startswith("FBgn") else 60000
+    # FBgn (gene) and FBtp (construct) fan out to many insertions, so allow longer.
+    timeout = 120000 if feature_id.startswith(("FBgn", "FBtp")) else 60000
     conn = get_connection(statement_timeout_ms=timeout)
 
     try:
@@ -428,6 +502,8 @@ def find_stocks(feature_id, collection_filter=None):
             df = _find_stocks_allele(conn, feature_id, collection_filter)
         elif feature_id.startswith("FBti"):
             df = _find_stocks_insertion(conn, feature_id, collection_filter)
+        elif feature_id.startswith("FBtp"):
+            df = _find_stocks_construct(conn, feature_id, collection_filter)
         elif feature_id.startswith("FBco"):
             df = _find_stocks_combination(conn, feature_id, collection_filter)
         elif feature_id.startswith("FBst"):
@@ -435,7 +511,7 @@ def find_stocks(feature_id, collection_filter=None):
         else:
             raise ValueError(
                 f"Unrecognised ID prefix: {feature_id}. "
-                "Expected FBgn, FBal, FBti, FBst, or FBco."
+                "Expected FBgn, FBal, FBti, FBtp, FBst, or FBco."
             )
 
         if df.empty:

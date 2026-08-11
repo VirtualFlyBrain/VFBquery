@@ -154,6 +154,47 @@ class TestFindStocksStockDetail:
         assert any("Bloomington" in str(s.get("collection", "")) for s in stocks)
 
 
+class TestFindStocksConstruct:
+    # FBtp0000352 = P{GawB} — a widely-used construct carried by many insertions.
+    KNOWN_CONSTRUCT_ID = "FBtp0000352"
+
+    @pytest.mark.integration
+    def test_known_construct_returns_stocks(self):
+        # A construct is not held in stocks directly; stocks are propagated from
+        # the FBti insertions producedby it.
+        stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        assert len(stocks) > 0
+        assert all("stock_id" in s for s in stocks)
+
+    @pytest.mark.integration
+    def test_construct_stocks_have_fbst(self):
+        stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        assert any(s["stock_id"].startswith("FBst") for s in stocks)
+
+    @pytest.mark.integration
+    def test_construct_collection_filter(self):
+        all_stocks = find_stocks(self.KNOWN_CONSTRUCT_ID)
+        filtered = find_stocks(self.KNOWN_CONSTRUCT_ID, collection_filter="Bloomington")
+        assert 0 < len(filtered) <= len(all_stocks)
+        for s in filtered:
+            if s.get("collection"):
+                assert "Bloomington" in s["collection"]
+
+    @pytest.mark.integration
+    def test_construct_stocks_via_allele_path(self):
+        # FBtp0000162 = P{CaSpeR-3}: has stocks ONLY through alleles made from it
+        # (zero via the producedby-insertion route). Regression guard for the
+        # multi-path UNION — a single insertion-only query returns 0 here.
+        stocks = find_stocks("FBtp0000162")
+        assert len(stocks) > 0
+        assert all(s["stock_id"].startswith("FBst") for s in stocks)
+
+    @pytest.mark.integration
+    def test_nonexistent_construct(self):
+        stocks = find_stocks("FBtp9999999999")
+        assert stocks == []
+
+
 class TestFindStocksCombination:
     @pytest.mark.integration
     def test_known_combination(self):

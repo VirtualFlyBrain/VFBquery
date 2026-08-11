@@ -1383,7 +1383,11 @@ def term_info_parse_object(results, short_form):
                 },
             })
 
-        # FlyBase stock finder — for Feature terms (FBgn/FBal/FBti/FBtp/FBco/FBst)
+        # FlyBase stock finder. Prefix-gated (not by a single SuperType): genes
+        # and combinations aren't `Feature` nodes but still have stocks. Every
+        # prefix here has a matching router branch in flybase_stocks.find_stocks
+        # — FBtp (construct) resolves via its insertions, direct genotype
+        # membership, and the alleles made from it.
         sf = vfbTerm.term.core.short_form
         if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")):
             q = FindStocks_to_schema(termInfo["Name"], {"short_form": sf})

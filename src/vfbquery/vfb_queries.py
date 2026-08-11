@@ -1109,7 +1109,14 @@ def term_info_parse_object(results, short_form):
         if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
             q = NeuronNeuronConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
-        
+
+        # NeuronRegionConnectivity query - synaptic terminal counts per brain
+        # region. Gated on has_region_connectivity, mirroring the
+        # NeuronNeuronConnectivity block above.
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_region_connectivity"]):
+            q = NeuronRegionConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
+            queries.append(q)
+
         # NeuronsPartHere query - for anatomical regions (neuropils, ganglia, etc.)
         # Gate: Class + (Synaptic_neuropil OR Anatomy), but NOT Cell.
         # Excluded for cell classes (neurons, glia, neuroblasts): "neurons with some
@@ -1953,14 +1960,16 @@ def NeuronNeuronConnectivityQuery_to_schema(name, take_default):
     """
     Schema for neuron_neuron_connectivity_query.
     Finds neurons connected to the specified neuron.
-    Matching criteria from XMI: Connected_neuron
+    Matching criteria: Individual + Neuron + has_neuron_connectivity
+    (the XMI's legacy "Connected_neuron" facet; the SOLR/pdb label is
+    has_neuron_connectivity).
     Query chain: Neo4j compound query → process
     """
     query = "NeuronNeuronConnectivityQuery"
     label = f"Neurons connected to {name}"
     function = "get_neuron_neuron_connectivity"
     takes = {
-        "short_form": {"$and": ["Individual", "Connected_neuron"]},
+        "short_form": {"$and": ["Individual", "has_neuron_connectivity"]},
         "default": take_default,
     }
     preview = 5
@@ -1972,18 +1981,20 @@ def NeuronRegionConnectivityQuery_to_schema(name, take_default):
     """
     Schema for neuron_region_connectivity_query.
     Shows connectivity to regions from a specified neuron.
-    Matching criteria from XMI: Region_connectivity
+    Matching criteria: Individual + Neuron + has_region_connectivity
+    (the XMI's legacy "Region_connectivity" facet; the SOLR/pdb label is
+    has_region_connectivity).
     Query chain: Neo4j compound query → process
     """
     query = "NeuronRegionConnectivityQuery"
     label = f"Connectivity per region for {name}"
     function = "get_neuron_region_connectivity"
     takes = {
-        "short_form": {"$and": ["Individual", "Region_connectivity"]},
+        "short_form": {"$and": ["Individual", "has_region_connectivity"]},
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"]
+    preview_columns = ["id", "region", "presynaptic_terminals", "downstream_synapses", "postsynaptic_terminals", "tags"]
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
 
@@ -3961,7 +3972,7 @@ def get_neuron_neuron_connectivity(short_form: str, return_dataframe=True, limit
 
     This implements the neuron_neuron_connectivity_query from the VFB XMI specification.
     Query chain (from XMI): Neo4j compound query → process
-    Matching criteria: Individual + Connected_neuron
+    Matching criteria: Individual + Neuron + has_neuron_connectivity
 
     Uses synapsed_to relationships to find partner neurons.
     Returns inputs (upstream) and outputs (downstream) connection information,
@@ -4128,8 +4139,9 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
             target.short_form AS id,
             apoc.text.format("[%s](%s)", [target.label, target.short_form]) AS region,
             type,
-            synapse_counts.`pre` AS presynaptic_terminals,
-            synapse_counts.`post` AS postsynaptic_terminals,
+            toInteger(synapse_counts.`Tbars`[0]) AS presynaptic_terminals,
+            toInteger(synapse_counts.`downstream`[0]) AS downstream_synapses,
+            toInteger(synapse_counts.`upstream`[0]) AS postsynaptic_terminals,
             apoc.text.join(coalesce(target.uniqueFacets, []), '|') AS tags,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
@@ -4150,15 +4162,16 @@ def get_neuron_region_connectivity(short_form: str, return_dataframe=True, limit
             'id':                     {'title': 'Region ID',             'type': 'selection_id', 'order': -1},
             'region':                 {'title': 'Brain Region',          'type': 'markdown',     'order':  0},
             'type':                   {'title': 'Type',                  'type': 'text',         'order':  1},
-            'presynaptic_terminals':  {'title': 'Presynaptic Terminals', 'type': 'number',       'order':  2},
-            'postsynaptic_terminals': {'title': 'Postsynaptic Terminals','type': 'number',       'order':  3},
-            'template':               {'title': 'Template',              'type': 'markdown',     'order':  4},
-            'technique':              {'title': 'Imaging Technique',     'type': 'text',         'order':  5},
-            'tags':                   {'title': 'Tags',                  'type': 'tags',         'order':  6},
+            'presynaptic_terminals':  {'title': 'Presynaptic Terminals (T-bars)', 'type': 'number', 'order':  2},
+            'downstream_synapses':    {'title': 'Downstream Synapses',   'type': 'number',       'order':  3},
+            'postsynaptic_terminals': {'title': 'Postsynaptic Terminals','type': 'number',       'order':  4},
+            'template':               {'title': 'Template',              'type': 'markdown',     'order':  5},
+            'technique':              {'title': 'Imaging Technique',     'type': 'text',         'order':  6},
+            'tags':                   {'title': 'Tags',                  'type': 'tags',         'order':  7},
             'thumbnail':              {'title': 'Thumbnail',             'type': 'markdown',     'order':  9},
         },
         'rows': [
-            {k: row.get(k) for k in ['id', 'region', 'type', 'presynaptic_terminals', 'postsynaptic_terminals', 'template', 'technique', 'tags', 'thumbnail']}
+            {k: row.get(k) for k in ['id', 'region', 'type', 'presynaptic_terminals', 'downstream_synapses', 'postsynaptic_terminals', 'template', 'technique', 'tags', 'thumbnail']}
             for row in rows
         ],
         'count': len(rows),

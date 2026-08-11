@@ -4774,6 +4774,11 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
     rows = []
     for s in stocks:
         rows.append({
+            # Hidden identity column (the FBst the row is about). Without a
+            # `selection_id`-typed column the website consumes the first data
+            # column as the row identity and hides it — which dropped Stock ID
+            # from the table. See the `id` header below.
+            'id': s.get('stock_id', ''),
             'stock_id': s.get('stock_id', ''),
             'stock_number': s.get('stock_number', ''),
             'genotype': s.get('genotype', ''),
@@ -4788,6 +4793,7 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
         return pd.DataFrame(rows)
 
     headers = {
+        'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
         'stock_id': {'title': 'Stock ID', 'type': 'text', 'order': 0},
         'stock_number': {'title': 'Stock Number', 'type': 'text', 'order': 1},
         'genotype': {'title': 'Genotype', 'type': 'text', 'order': 2},
@@ -4817,6 +4823,10 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
     rows = []
     for p in pubs:
         rows.append({
+            # Hidden identity column (the FBrf the row is about). Mirrors the
+            # stocks fix: without a `selection_id` column the website consumes
+            # the first data column (FBrf) as the row identity and hides it.
+            'id': p.get('fbrf', ''),
             'fbrf': p.get('fbrf', ''),
             'title': p.get('title', ''),
             'year': p.get('year', ''),
@@ -4835,6 +4845,7 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
         return pd.DataFrame(rows)
 
     headers = {
+        'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
         'fbrf': {'title': 'FBrf', 'type': 'text', 'order': 0},
         'title': {'title': 'Title', 'type': 'text', 'order': 1},
         'year': {'title': 'Year', 'type': 'text', 'order': 2},

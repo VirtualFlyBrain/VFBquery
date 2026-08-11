@@ -2,6 +2,17 @@
 import pytest
 
 from vfbquery.flybase_combo_pubs import resolve_combination, find_combo_publications
+from vfbquery.vfb_queries import get_flybase_combo_pubs
+
+
+def assert_single_selection_id(result):
+    """A result table must declare exactly one `selection_id` identity column,
+    hidden at order -1, so the website doesn't consume a visible data column as
+    the row identity (regression: FBrf column went missing on the site)."""
+    headers = result["headers"]
+    sel = [c for c, m in headers.items() if m.get("type") == "selection_id"]
+    assert len(sel) == 1, f"expected exactly one selection_id column, got {sel}"
+    assert headers[sel[0]]["order"] == -1, "selection_id column must be hidden (order -1)"
 
 KNOWN_COMBO_ID = "FBco0000052"
 KNOWN_COMBO_SYNONYM = "MB002B"
@@ -89,3 +100,20 @@ class TestFindComboPublicationsEdgeCases:
     def test_invalid_id_prefix(self):
         with pytest.raises(ValueError, match="Expected FBco"):
             find_combo_publications("FBgn0000490")
+
+
+class TestComboPubsTableSchema:
+    @pytest.mark.integration
+    def test_single_selection_id_column(self):
+        result = get_flybase_combo_pubs(KNOWN_COMBO_ID, return_dataframe=False, limit=3)
+        assert_single_selection_id(result)
+
+    @pytest.mark.integration
+    def test_fbrf_is_a_visible_column(self):
+        # fbrf must be a normal displayed column, not the (hidden) identity.
+        result = get_flybase_combo_pubs(KNOWN_COMBO_ID, return_dataframe=False, limit=3)
+        fbrf = result["headers"]["fbrf"]
+        assert fbrf["type"] == "text"
+        assert fbrf["order"] >= 0
+        if result["rows"]:
+            assert result["rows"][0]["id"] == result["rows"][0]["fbrf"]

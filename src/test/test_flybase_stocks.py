@@ -2,6 +2,18 @@
 import pytest
 
 from vfbquery.flybase_stocks import resolve_entity, find_stocks
+from vfbquery.vfb_queries import get_flybase_stocks
+
+
+def assert_single_selection_id(result):
+    """A result table must declare exactly one `selection_id` identity column,
+    hidden at order -1. Without it the website consumes the first visible data
+    column as the row identity and drops it from the table (regression: the
+    Stock ID / FBrf columns went missing on the site)."""
+    headers = result["headers"]
+    sel = [c for c, m in headers.items() if m.get("type") == "selection_id"]
+    assert len(sel) == 1, f"expected exactly one selection_id column, got {sel}"
+    assert headers[sel[0]]["order"] == -1, "selection_id column must be hidden (order -1)"
 
 # Known stable test entities
 KNOWN_GENE_SYMBOL = "dpp"
@@ -211,6 +223,25 @@ class TestFindStocksCombination:
     def test_nonexistent_combination(self):
         stocks = find_stocks("FBco9999999")
         assert stocks == []
+
+
+class TestFindStocksTableSchema:
+    CONSTRUCT_WITH_STOCKS = "FBtp0000352"  # P{GawB}
+
+    @pytest.mark.integration
+    def test_single_selection_id_column(self):
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        assert_single_selection_id(result)
+
+    @pytest.mark.integration
+    def test_stock_id_is_a_visible_column(self):
+        # stock_id must be a normal displayed column, not the (hidden) identity.
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        stock_id = result["headers"]["stock_id"]
+        assert stock_id["type"] == "text"
+        assert stock_id["order"] >= 0
+        # and the hidden identity carries the same FBst value
+        assert result["rows"][0]["id"] == result["rows"][0]["stock_id"]
 
 
 class TestFindStocksEdgeCases:

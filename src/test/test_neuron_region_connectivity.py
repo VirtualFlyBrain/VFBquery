@@ -36,7 +36,7 @@ class TestNeuronRegionConnectivityDict:
         )
         assert result["rows"], "Expected at least one row"
         row = result["rows"][0]
-        expected_keys = {"id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"}
+        expected_keys = {"id", "region", "presynaptic_terminals", "downstream_synapses", "postsynaptic_terminals", "tags"}
         assert expected_keys.issubset(row.keys())
 
     @pytest.mark.integration
@@ -47,7 +47,25 @@ class TestNeuronRegionConnectivityDict:
         assert "headers" in result
         assert "region" in result["headers"]
         assert "presynaptic_terminals" in result["headers"]
+        assert "downstream_synapses" in result["headers"]
         assert "postsynaptic_terminals" in result["headers"]
+
+    @pytest.mark.integration
+    def test_count_columns_populated(self):
+        """Regression: synapse-count columns must not be all-None.
+
+        The Cypher previously read edge keys that never existed (`pre`/`post`
+        instead of the real `Tbars`/`downstream`/`upstream`), so every count
+        came back None. This neuron carries T-bar counts, so all three columns
+        must yield at least one real integer.
+        """
+        result = get_neuron_region_connectivity(TEST_NEURON, return_dataframe=False)
+        rows = result["rows"]
+        assert rows, "Expected at least one row"
+        for col in ("presynaptic_terminals", "downstream_synapses", "postsynaptic_terminals"):
+            populated = [r[col] for r in rows if r.get(col) is not None]
+            assert populated, f"{col} was None for every row (edge-key regression)"
+            assert all(isinstance(v, int) for v in populated), f"{col} should be integers"
 
     @pytest.mark.integration
     def test_limit_respected(self):
@@ -74,7 +92,7 @@ class TestNeuronRegionConnectivityDataFrame:
         df = get_neuron_region_connectivity(
             TEST_NEURON, return_dataframe=True, limit=1
         )
-        expected_cols = {"id", "region", "presynaptic_terminals", "postsynaptic_terminals", "tags"}
+        expected_cols = {"id", "region", "presynaptic_terminals", "downstream_synapses", "postsynaptic_terminals", "tags"}
         assert expected_cols.issubset(set(df.columns))
 
     @pytest.mark.integration
@@ -96,4 +114,19 @@ class TestNeuronRegionConnectivitySchema:
         assert schema.preview == 5
         assert "region" in schema.preview_columns
         assert "presynaptic_terminals" in schema.preview_columns
+        assert "downstream_synapses" in schema.preview_columns
         assert "postsynaptic_terminals" in schema.preview_columns
+
+
+class TestNeuronRegionConnectivityAttachment:
+    @pytest.mark.integration
+    def test_query_attached_to_term_info(self):
+        """Regression: the query must be offered on a neuron's term-info page.
+
+        NeuronRegionConnectivityQuery_to_schema existed and worked, but was
+        never called from get_term_info, so the query never appeared on any
+        term. The gate is has_region_connectivity in the neuron's SuperTypes.
+        """
+        term_info = get_term_info(TEST_NEURON)
+        query_names = {q.get("query") for q in term_info.get("Queries", [])}
+        assert "NeuronRegionConnectivityQuery" in query_names

@@ -454,7 +454,10 @@ def graph_from_neuron_region(rows, primary_id, primary_label=None):
             "group": assign_group(tags_for_group, info.get("label", "")),
         })
 
-        pre = r.get("presynaptic_terminals", 0) or 0
+        # Fall back to downstream synapse count when T-bar counts are absent
+        # (some datasets still being loaded have no Tbars), so the edge weight
+        # still reflects presynaptic output rather than collapsing to 0.
+        pre = (r.get("presynaptic_terminals") or r.get("downstream_synapses") or 0)
         post = r.get("postsynaptic_terminals", 0) or 0
         weight = pre + post
         if weight > 0:

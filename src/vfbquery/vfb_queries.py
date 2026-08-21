@@ -1118,10 +1118,15 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
 
         # NeuronsPartHere query - for anatomical regions (neuropils, ganglia, etc.)
-        # Gate: Class + (Synaptic_neuropil OR Anatomy), but NOT Cell.
-        # Excluded for cell classes (neurons, glia, neuroblasts): "neurons with some
-        # part in <a cell>" is not a meaningful query. Cell subsumes Neuron.
-        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and (
+        # Gate: Class + (Synaptic_neuropil OR Anatomy), but NOT Cell or
+        # Expression_pattern.
+        # - NOT Cell (neurons, glia, neuroblasts): "neurons with some part in
+        #   <a cell>" is not a meaningful query. Cell subsumes Neuron.
+        # - NOT Expression_pattern: expression patterns carry the Anatomy tag but
+        #   have no neuron class overlapping them at the class level (0 of ~27.5k),
+        #   so the query is guaranteed-empty; excluding it also avoids the wasted
+        #   Owlery preview call (cf. SubclassesOf / has_subClass below).
+        if contains_all_tags(termInfo["SuperTypes"], ["Class"]) and "Cell" not in termInfo["SuperTypes"] and "Expression_pattern" not in termInfo["SuperTypes"] and (
             "Synaptic_neuropil" in termInfo["SuperTypes"] or
             "Anatomy" in termInfo["SuperTypes"]
         ):
@@ -1153,7 +1158,7 @@ def term_info_parse_object(results, short_form):
             queries.append(q)
         
         # PartsOf query - for anatomical classes that are not individual cells
-        # Gate: Class + Anatomy, but NOT Cell.
+        # Gate: Class + Anatomy, but NOT Cell or Expression_pattern.
         # - Anatomy: "part of" is only meaningful for anatomical structures; it
         #   excludes non-anatomy classes (genes, features, GO process terms,
         #   deprecated/stage classes, and data-less expression patterns lacking
@@ -1161,9 +1166,13 @@ def term_info_parse_object(results, short_form):
         # - NOT Cell: excludes individual cell types (neurons, glia, neuroblasts),
         #   whose anatomical sub-parts are not modelled usefully at the class
         #   level. Cell subsumes Neuron, so this also keeps neuron classes out.
-        # Retains neuropils, tracts/nerves, clones, ganglia, whole regions, and
-        # imaged expression patterns/splits (all Anatomy, not Cell).
-        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]) and "Cell" not in termInfo["SuperTypes"]:
+        # - NOT Expression_pattern: expression patterns carry the Anatomy tag but
+        #   have no class-level parts (0 of ~27.5k) — their parts are individual
+        #   fragments, which epFrag returns — so PartsOf is guaranteed-empty here;
+        #   excluding it also avoids the wasted Owlery preview call (cf.
+        #   SubclassesOf below).
+        # Retains neuropils, tracts/nerves, clones, ganglia, and whole regions.
+        if contains_all_tags(termInfo["SuperTypes"], ["Class", "Anatomy"]) and "Cell" not in termInfo["SuperTypes"] and "Expression_pattern" not in termInfo["SuperTypes"]:
             q = PartsOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
@@ -1482,7 +1491,7 @@ def term_info_parse_object(results, short_form):
                 # own menu above so an instance shows exactly what its class shows.
                 inheritable_class_queries = (
                     (ListAllAvailableImages_to_schema, lambda p: {"Class", "Anatomy"} <= p),
-                    (NeuronsPartHere_to_schema, lambda p: "Class" in p and "Cell" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
+                    (NeuronsPartHere_to_schema, lambda p: "Class" in p and "Cell" not in p and "Expression_pattern" not in p and ("Synaptic_neuropil" in p or "Anatomy" in p)),
                     (NeuronsSynaptic_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
                     (NeuronsPresynapticHere_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
                     (NeuronsPostsynapticHere_to_schema, lambda p: "Class" in p and "Cell" not in p and "Nervous_system" in p),
@@ -1499,7 +1508,7 @@ def term_info_parse_object(results, short_form):
                     (TargetNeurons_to_schema, lambda p: {"Class", "Split"} <= p),
                     (DownstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
                     (UpstreamClassConnectivity_to_schema, lambda p: {"Class", "Neuron"} <= p),
-                    (PartsOf_to_schema, lambda p: {"Class", "Anatomy"} <= p and "Cell" not in p),
+                    (PartsOf_to_schema, lambda p: {"Class", "Anatomy"} <= p and "Cell" not in p and "Expression_pattern" not in p),
                     (SubclassesOf_to_schema, lambda p: {"Class", "has_subClass"} <= p),
                 )
                 for schema_fn, predicate in inheritable_class_queries:

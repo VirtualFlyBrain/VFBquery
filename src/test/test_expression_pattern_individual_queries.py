@@ -119,10 +119,20 @@ class TestExpressionPatternIndividualQueries(unittest.TestCase):
         # SubclassesOf is intentionally NOT expected: it is gated on has_subClass,
         # and this expression-pattern class is a leaf (no subclasses), so the query
         # would only ever return empty.
-        for qid in ("AnatomyExpressedIn", "epFrag", "ListAllAvailableImages",
-                    "NeuronsPartHere", "PartsOf"):
+        for qid in ("AnatomyExpressedIn", "epFrag", "ListAllAvailableImages"):
             self.assertIn(qid, ind_menu, f"expected {qid} inherited onto the EP instance")
             self.assertEqual(ind_menu[qid], self.EP_CLASS)
+
+    def test_guaranteed_empty_queries_excluded(self):
+        """PartsOf / NeuronsPartHere are gated out for expression patterns: they
+        match the Anatomy facet but have no class-level parts or overlapping
+        neuron classes, so they would only ever return empty (epFrag covers an
+        expression pattern's actual parts)."""
+        if not self.ind or not self.cls:
+            self.skipTest("term_info unavailable (no live VFB backend)")
+        for qid in ("PartsOf", "NeuronsPartHere"):
+            self.assertNotIn(qid, _menu(self.cls), f"{qid} should be gated out on the EP class")
+            self.assertNotIn(qid, _menu(self.ind), f"{qid} should be gated out on the EP instance")
 
     def test_no_query_is_anchored_on_the_individual(self):
         """Inherited class queries run on the class; none should target the VFB_ instance."""

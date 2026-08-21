@@ -33,6 +33,49 @@ def _menu(term_info):
     return out
 
 
+def _stock_anchors(term_info):
+    """Every short_form a FindStocks query in the menu is anchored on."""
+    return sorted(
+        q.get("takes", {}).get("default", {}).get("short_form")
+        for q in (term_info or {}).get("Queries", []) or []
+        if isinstance(q, dict) and q.get("query") == "FindStocks"
+    )
+
+
+class TestExpressionPatternStockQueries(unittest.TestCase):
+    """FindStocks is propagated to expression patterns via the driver feature(s)
+    reached through the graph (`expresses` / `has_hemidriver`), not by parsing
+    the VFBexp_ short_form. The query anchors on the FlyBase feature (FBtp/...),
+    since find_stocks cannot route the VFBexp_/VFB_ id itself."""
+
+    EP_CLASS = "VFBexp_FBtp0060056"          # P{GMR40G10-GAL4} expression pattern
+    EP_INDIVIDUAL = "VFB_00020530"           # R40G10 image, has its own `expresses` edge
+    SPLIT_CLASS = "VFBexp_FBtp0129935FBtp0129968"  # intersectional, two `has_hemidriver`
+    SPLIT_INDIVIDUAL = "VFB_00070031"        # split image, no own driver edge
+
+    def _anchors_or_skip(self, short_form):
+        ti = get_term_info(short_form, preview=False)
+        if not ti:
+            self.skipTest("term_info unavailable (no live VFB backend)")
+        return _stock_anchors(ti)
+
+    def test_class_stock_query_on_driver_feature(self):
+        self.assertEqual(self._anchors_or_skip(self.EP_CLASS), ["FBtp0060056"])
+
+    def test_instance_stock_query_matches_its_driver(self):
+        # Regular EP image carries its own `expresses` edge — same feature as the class.
+        self.assertEqual(self._anchors_or_skip(self.EP_INDIVIDUAL), ["FBtp0060056"])
+
+    def test_split_class_offers_a_stock_query_per_hemidriver(self):
+        self.assertEqual(self._anchors_or_skip(self.SPLIT_CLASS),
+                         ["FBtp0129935", "FBtp0129968"])
+
+    def test_split_instance_inherits_hemidriver_stock_queries(self):
+        # No own driver edge: features come from the pattern class it instantiates.
+        self.assertEqual(self._anchors_or_skip(self.SPLIT_INDIVIDUAL),
+                         ["FBtp0129935", "FBtp0129968"])
+
+
 class TestExpressionPatternIndividualQueries(unittest.TestCase):
     """R40G10 expression-pattern image inherits its class's menu."""
 
@@ -58,10 +101,16 @@ class TestExpressionPatternIndividualQueries(unittest.TestCase):
         # Queries the class offers must all appear on the instance...
         missing = set(class_menu) - set(ind_menu)
         self.assertFalse(missing, f"instance is missing class queries: {sorted(missing)}")
-        # ...and each such inherited query must run on the class, not the instance.
+        # ...anchored identically to the class. Most inherited queries run on the
+        # class itself; FindStocks is the exception — on both the class and the
+        # instance it anchors on the embedded FlyBase feature (find_stocks cannot
+        # route the VFBexp_ id), so parity means "same anchor as the class".
         for qid in class_menu:
-            self.assertEqual(ind_menu[qid], self.EP_CLASS,
-                             f"{qid} on the instance should anchor on {self.EP_CLASS}")
+            self.assertEqual(ind_menu[qid], class_menu[qid],
+                             f"{qid} on the instance should anchor as it does on the class")
+            if qid != "FindStocks":
+                self.assertEqual(class_menu[qid], self.EP_CLASS,
+                                 f"{qid} should run on the class {self.EP_CLASS}")
 
     def test_expected_ep_queries_present(self):
         if not self.ind:

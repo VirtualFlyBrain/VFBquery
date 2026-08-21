@@ -1409,6 +1409,30 @@ def term_info_parse_object(results, short_form):
             # FindComboPublications is offered as a run_query query_type above;
             # the dedicated find_combo_publications MCP tool was retired.
 
+        # FlyBase stocks for expression patterns. An expression pattern's stocks
+        # are those of the FlyBase feature(s) it drives, reached by navigating
+        # the knowledge graph rather than parsing the VFBexp_<FBid> short_form:
+        # the `expresses` / `has_hemidriver` edges (already loaded in the term's
+        # relationships) name the driver construct, or both halves of a split.
+        # find_stocks routes strictly by FB* prefix, so anchor a FindStocks
+        # query on each feature id — the sf gate above never fires for the
+        # VFBexp_/VFB_ ids these terms carry. Anchoring on the feature (not the
+        # VFBexp_ class) is deliberate: it gives the class and its instances the
+        # same working stock query.
+        if "Expression_pattern" in (termInfo["SuperTypes"] or []):
+            ep_feature_ids = _stock_features_from_relationships(vfbTerm)
+            if not ep_feature_ids and termInfo["IsIndividual"]:
+                # Split-GAL4 image instances carry no driver edge of their own;
+                # follow the cached parent link to the pattern class's features.
+                ep_feature_ids = _stock_features_via_parent_pattern(vfbTerm)
+            multi = len(ep_feature_ids) > 1
+            for fb_id in ep_feature_ids:
+                # Disambiguate the label only when a pattern drives several
+                # features (a split), so single-feature patterns keep a clean name.
+                stock_name = f"{termInfo['Name']} ({fb_id})" if multi else termInfo["Name"]
+                q = FindStocks_to_schema(stock_name, {"short_form": fb_id})
+                queries.append(q)
+
         # Bring the parent class's query menu down onto selected Individual
         # instances, reproducing the legacy term-info builder
         # (VFBProcessTermInfoCachedJson, gate ~line 1757): an Individual of one
@@ -2451,6 +2475,96 @@ def FindComboPublications_to_schema(name, take_default):
         preview=5,
         preview_columns=["fbrf", "title", "year", "pub_type"],
     )
+
+
+# term_info SOLR loaders: fetch one term's term_info doc by short_form and
+# return it either as a deserialized object (attribute access) or as the raw
+# JSON dict, whichever the caller works with.
+def _load_term_info(short_form):
+    """Deserialize a term's SOLR term_info doc, or None if unavailable."""
+    try:
+        results = vfb_solr.search(q=f'id:{short_form}', fl='term_info', rows=1)
+        if results.docs and 'term_info' in results.docs[0]:
+            return deserialize_term_info(results.docs[0]['term_info'][0])
+    except Exception as e:
+        print(f"Warning: could not load term_info for {short_form}: {e}")
+    return None
+
+
+def _load_term_info_dict(short_form):
+    """Return a term's raw term_info dict from SOLR, or None if unavailable."""
+    try:
+        results = vfb_solr.search(q=f'id:{short_form}', fl='term_info', rows=1)
+        if results.docs and 'term_info' in results.docs[0]:
+            raw = results.docs[0]['term_info']
+            return json.loads(raw[0] if isinstance(raw, list) else raw)
+    except Exception as e:
+        print(f"Warning: could not load term_info for {short_form}: {e}")
+    return None
+
+
+# Helpers for the expression-pattern stock gate in term_info_parse_object.
+# Prefixes flybase_stocks.find_stocks can route a stock query on.
+_STOCK_FEATURE_PREFIXES = ("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")
+# Relations that connect an expression pattern to its FlyBase driver
+# feature(s): `expresses` (RO_0002292) on ordinary patterns and their image
+# instances, and `has_hemidriver` (VFBext_0000008) on split/intersectional
+# patterns, which carry no single `expresses` edge. All targets in the graph
+# are FBtp/FBti/FBal driver features (no bare genes), so every match is a
+# stock-routable feature.
+_EXPRESSION_FEATURE_RELATION_IDS = {"RO_0002292", "VFBext_0000008"}
+_EXPRESSION_FEATURE_RELATION_LABELS = {"expresses", "has hemidriver", "has_hemidriver"}
+
+
+def _stock_features_from_relationships(vfbTerm):
+    """Stock-routable FlyBase feature IDs an expression pattern expresses.
+
+    Navigates the loaded term_info relationships (graph edges) rather than
+    parsing the ``VFBexp_<FBid>`` short_form: ``expresses`` gives the driver of
+    an ordinary pattern (and of its image instances); ``has_hemidriver`` gives
+    both halves of a split/intersectional pattern. Returns the FBgn/FBal/FBti/
+    FBtp/FBco/FBst targets in edge order, de-duplicated.
+    """
+    feature_ids = []
+    for rel in (getattr(vfbTerm, "relationships", None) or []):
+        relation = getattr(rel, "relation", None)
+        obj = getattr(rel, "object", None)
+        if relation is None or obj is None:
+            continue
+        rel_id = getattr(relation, "short_form", None)
+        if not rel_id and getattr(relation, "iri", None):
+            rel_id = relation.iri.split("/")[-1]
+        if (rel_id not in _EXPRESSION_FEATURE_RELATION_IDS
+                and getattr(relation, "label", None) not in _EXPRESSION_FEATURE_RELATION_LABELS):
+            continue
+        obj_sf = getattr(obj, "short_form", None)
+        if obj_sf and obj_sf.startswith(_STOCK_FEATURE_PREFIXES) and obj_sf not in feature_ids:
+            feature_ids.append(obj_sf)
+    return feature_ids
+
+
+def _stock_features_via_parent_pattern(vfbTerm):
+    """Feature IDs for an expression-pattern instance with no driver edge.
+
+    Split-GAL4 image instances carry no ``expresses``/``has_hemidriver`` edge
+    of their own, but their term_info already names the expression-pattern
+    class(es) they instantiate among ``parents`` (a cached link, no query).
+    Follow that link to each class's term_info and read its driver edges with
+    the same relationship walker — no short_form parsing, and the class page is
+    typically already cached.
+    """
+    feature_ids = []
+    for parent in (getattr(vfbTerm, "parents", None) or []):
+        if "Expression_pattern" not in (getattr(parent, "types", None) or []):
+            continue
+        parent_sf = getattr(parent, "short_form", None)
+        parent_term = _load_term_info(parent_sf) if parent_sf else None
+        if parent_term is None:
+            continue
+        for fb_id in _stock_features_from_relationships(parent_term):
+            if fb_id not in feature_ids:
+                feature_ids.append(fb_id)
+    return feature_ids
 
 
 def serialize_solr_output(results):
@@ -4960,23 +5074,12 @@ def _short_form_to_iri(short_form: str) -> str:
         return f"http://purl.obolibrary.org/obo/{short_form}"
     
     # For other cases, query SOLR to get the IRI from term_info
-    try:
-        results = vfb_solr.search(
-            q=f'id:{short_form}',
-            fl='term_info',
-            rows=1
-        )
-        
-        if results.docs and 'term_info' in results.docs[0]:
-            term_info_str = results.docs[0]['term_info'][0]
-            term_info = json.loads(term_info_str)
-            iri = term_info.get('term', {}).get('core', {}).get('iri')
-            if iri:
-                return iri
-    except Exception as e:
-        # If SOLR query fails, fall back to OBO default
-        print(f"Warning: Could not fetch IRI for {short_form} from SOLR: {e}")
-    
+    term_info = _load_term_info_dict(short_form)
+    if term_info:
+        iri = term_info.get('term', {}).get('core', {}).get('iri')
+        if iri:
+            return iri
+
     # Default to OBO for other IDs (FBbi_, etc.)
     return f"http://purl.obolibrary.org/obo/{short_form}"
 
@@ -7191,11 +7294,9 @@ def get_hierarchy(short_form, relationship='part_of', direction='both', max_dept
     def _term_info_parents(term_id):
         """Return [(parent_sf, parent_label), ...] from SOLR term_info."""
         try:
-            results = vfb_solr.search(f'id:{term_id}', fl='term_info', rows=1)
-            if not results.docs or 'term_info' not in results.docs[0]:
+            ti = _load_term_info_dict(term_id)
+            if ti is None:
                 return []
-            raw = results.docs[0]['term_info']
-            ti = json.loads(raw[0] if isinstance(raw, list) else raw)
             if relationship == 'subclass_of':
                 return [(p['short_form'], p.get('label', p['short_form'])) for p in ti.get('parents', [])]
             else:
@@ -7381,11 +7482,9 @@ SELECT DISTINCT ?child ?childLabel ?parent ?parentLabel WHERE {{
         visited.add(term_id)
 
         try:
-            results = vfb_solr.search(f'id:{term_id}', fl='term_info', rows=1)
-            if not results.docs or 'term_info' not in results.docs[0]:
+            ti = _load_term_info_dict(term_id)
+            if ti is None:
                 return []
-            raw = results.docs[0]['term_info']
-            ti = json.loads(raw[0] if isinstance(raw, list) else raw)
             parents = ti.get('parents', [])
         except Exception:
             return []

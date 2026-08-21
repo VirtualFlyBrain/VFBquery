@@ -42,7 +42,10 @@ class TestAnatomyExpressedIn(unittest.TestCase):
 
     def test_anatomy_expressed_in_formatted_output(self):
         """Test query returns properly formatted dictionary output"""
-        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=False)
+        # limit the enrichment (per-row Stage/Template/Technique/Thumbnail
+        # walks) to keep this structural check fast; `count` is independent of
+        # the limit so the printed total is still the full result size.
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=False, limit=5)
 
         self.assertIsInstance(result, dict, "Should return dictionary when return_dataframe=False")
 
@@ -51,21 +54,29 @@ class TestAnatomyExpressedIn(unittest.TestCase):
         self.assertIn('count', result, "Result should contain 'count'")
 
         headers = result['headers']
-        expected_headers = ['id', 'name', 'tags', 'pubs']
-        for header in expected_headers:
+        # v1.14.2: full column shape (Name / Reference / Gross_Type / Stage /
+        # Template_Space / Imaging_Technique / Images).
+        expected_types = {
+            'id': 'selection_id',
+            'name': 'markdown',
+            'pubs': 'markdown',
+            'tags': 'tags',
+            'stages': 'text',
+            'template': 'markdown',
+            'technique': 'text',
+            'thumbnail': 'markdown',
+        }
+        for header, expected_type in expected_types.items():
             self.assertIn(header, headers, f"Headers should contain '{header}'")
             self.assertIn('title', headers[header], f"Header '{header}' should have 'title'")
             self.assertIn('type', headers[header], f"Header '{header}' should have 'type'")
             self.assertIn('order', headers[header], f"Header '{header}' should have 'order'")
-
-        self.assertEqual(headers['id']['type'], 'selection_id')
-        self.assertEqual(headers['name']['type'], 'markdown')
-        self.assertEqual(headers['tags']['type'], 'tags')
-        self.assertEqual(headers['pubs']['type'], 'metadata')
+            self.assertEqual(headers[header]['type'], expected_type,
+                             f"Header '{header}' should be type '{expected_type}'")
 
         if result['rows']:
             first_row = result['rows'][0]
-            for key in expected_headers:
+            for key in expected_types:
                 self.assertIn(key, first_row, f"Row should contain '{key}'")
 
             print(f"\nFormatted output contains {result['count']} anatomy classes")
@@ -89,26 +100,28 @@ class TestAnatomyExpressedIn(unittest.TestCase):
         print(f"\nEmpty result handling works correctly")
 
     def test_anatomy_expressed_in_publication_data(self):
-        """Test that publication data is properly formatted when present"""
+        """Test that publication data is formatted as markdown links when present.
+
+        v1.14.7: the pubs column is a `; `-joined string of `[label](id)`
+        markdown links (rendered by V2's QueryLinkArrayComponent), not the
+        legacy list-of-pub-dicts. An anatomy row with no citation is an empty
+        string.
+        """
         result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=10)
 
         if not result.empty:
             self.assertIn('pubs', result.columns, "Should have 'pubs' column")
 
             for idx, row in result.iterrows():
-                if row['pubs']:
-                    pubs = row['pubs']
-                    self.assertIsInstance(pubs, list, "Publications should be a list")
-
-                    if pubs:
-                        first_pub = pubs[0]
-                        self.assertIsInstance(first_pub, dict, "Publication should be a dict")
-
-                        if 'core' in first_pub:
-                            self.assertIn('short_form', first_pub['core'], "Publication should have short_form")
-
-                        print(f"\nPublication data properly structured")
-                        break
+                pubs = row['pubs']
+                self.assertIsInstance(pubs, str, "Publications should be a markdown string")
+                if pubs:
+                    # Each entry is a `[label](id)` markdown link.
+                    self.assertIn('[', pubs, "Publication should contain markdown link start")
+                    self.assertIn('](', pubs, "Publication should contain markdown link separator")
+                    self.assertIn(')', pubs, "Publication should contain markdown link end")
+                    print(f"\nPublication data properly structured: {pubs}")
+                    break
 
     def test_anatomy_expressed_in_markdown_encoding(self):
         """Test that markdown links are properly formatted"""
@@ -159,7 +172,12 @@ class TestAnatomyExpressedInSchema(unittest.TestCase):
         self.assertEqual(schema.function, "get_expression_overlaps_here")
         self.assertIn("Anatomy where", schema.label)
         self.assertEqual(schema.preview, 5)
-        self.assertEqual(schema.preview_columns, ["id", "name", "tags", "pubs"])
+        # v1.14.2: gained Stage / Template / Imaging Technique / Thumbnail
+        # columns to match the legacy ExpressionOverlapsHere column shape.
+        self.assertEqual(
+            schema.preview_columns,
+            ["id", "name", "pubs", "tags", "stages", "template", "technique", "thumbnail"],
+        )
 
         # takes constrains the input to an expression pattern (or fragment)
         self.assertIn("short_form", schema.takes)

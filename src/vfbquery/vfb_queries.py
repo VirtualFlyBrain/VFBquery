@@ -6685,7 +6685,23 @@ def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit:
     Imaging_Technique, Images, Image_count). Closes the v2 parity gap
     flagged in projects/geppetto-vfbquery-migration/V2_V2DEV_PARITY_SWEEP.md.
     """
-    count_query = f"MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) RETURN count(ds) AS count"
+    # Anchor the MATCH on the template (indexed short_form) and walk OUT to the
+    # datasets, rather than `MATCH (ds:DataSet) WHERE <path back to template>`.
+    # The old dataset-anchored form let the planner enumerate every DataSet and
+    # verify the path per dataset — which walks that dataset's whole image set,
+    # so cost scaled with the graph's total aligned-image volume (tens of
+    # thousands) regardless of the handful of datasets that actually match. The
+    # template-anchored form only touches images aligned to THIS template:
+    # measured 6.6s -> 0.6s (count) and 22.4s -> 0.9s (main) on the Hemibrain,
+    # same rows. `count(DISTINCT ds)` because the path now expands to one row
+    # per aligned image, not one existence-check per dataset.
+    template_datasets_match = (
+        f"MATCH (:Template:Individual {{short_form:'{template_short_form}'}})"
+        "<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)"
+        "-[:depicts]->(:Individual)-[:has_source]->(ds:DataSet:Individual) "
+        "WHERE NOT ds:Deprecated"
+    )
+    count_query = f"{template_datasets_match} RETURN count(DISTINCT ds) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
 
@@ -6695,7 +6711,7 @@ def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit:
     # the limit only trims afterwards. That blew past the THRESHOLD_MEDIUM
     # (3 s) perf-test budget on CI.
     limit_clause = f"LIMIT {limit}" if limit != -1 else ""
-    main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
+    main_query = f"""{template_datasets_match}
         WITH DISTINCT ds
         ORDER BY coalesce(ds.label, ds.short_form)
         {limit_clause}

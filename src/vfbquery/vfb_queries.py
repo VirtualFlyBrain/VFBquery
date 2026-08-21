@@ -3755,8 +3755,12 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
             WITH anat
             OPTIONAL MATCH (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH anat, i, template_anat, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
+            // input anat for which it yields no rows is dropped entirely. Anatomy
+            // classes rarely have this image path, so the filter emptied the whole
+            // table (count 79 -> 0 rows) and desynced it from count_query. The
+            // all-null row is stripped to '' by the REPLACE below, so the anat
+            // still returns a row (empty thumbnail/template/technique).
             WITH anat, i, template_anat, technique, irw LIMIT 5
             WITH anat, collect({{i: i, template_anat: template_anat, technique: technique, irw: irw}}) AS imgs
             WITH anat, imgs, head(imgs) AS rep
@@ -6597,8 +6601,11 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
             WITH {ds_var}
             OPTIONAL MATCH ({ds_var})<-[:has_source]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH {ds_var}, i, templ, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so a
+            // {ds_var} for which it yields no rows is dropped entirely. A dataset
+            // with no aligned image would vanish from the results (and desync
+            // from any count); the all-null row is stripped to '' by the REPLACE
+            // below, so the dataset still returns a row (empty thumbnail).
             WITH {ds_var}, i, templ, technique, irw LIMIT 5
             WITH {ds_var}, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
             WITH {ds_var}, imgs, head(imgs) AS rep
@@ -6990,8 +6997,15 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             WITH ep
             OPTIONAL MATCH (ep)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH ep, i, templ, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
+            // input ep for which it yields no rows is dropped from the result
+            // entirely. Filtering image-less EPs desynced the table from
+            // count_query (which has no image filter) and silently hid every
+            // expression pattern with no aligned image — e.g. splits targeting a
+            // neuron that carry no registered image. When there is no image the
+            // OPTIONAL MATCH yields one all-null row; the null placeholders are
+            // stripped to '' by the REPLACE below, so the ep still returns a row
+            // (empty thumbnail/template/technique) and stays in the results.
             WITH ep, i, templ, technique, irw LIMIT 5
             WITH ep, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
             WITH ep, imgs, head(imgs) AS rep

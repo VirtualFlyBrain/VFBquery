@@ -1,5 +1,9 @@
 """Root pytest configuration shared by the whole suite (``src/test`` + ``tests``).
 
+For how to WRITE a good test (assert real content, never suppress empty
+results, verify fixtures), see ``TESTING.md``. This file is the runtime
+mechanics that make those rules safe on CI.
+
 Everything here is about one thing: how the suite reacts to the live VFB
 backend (SOLR / Neo4j / Owlery / FlyBase Chado) being unreachable on CI.
 

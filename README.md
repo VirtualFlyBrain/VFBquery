@@ -9,6 +9,11 @@ pip install --upgrade vfbquery
 HTTP API, the `/combine` set-algebra reference, the lightweight `vfbquery-client` package, and the
 query catalogue, all rendered and cross-linked. This README is the quick start.
 
+🧪 **Adding or changing a test?** Read **[TESTING.md](TESTING.md)** first. The suite runs live
+queries against the VFB backend, so tests must assert real content (never suppress an empty result,
+never swallow errors, always verify fixtures return data). Those rules exist because a batch of
+silently-passing tests was found and fixed — the doc is how we keep them fixed.
+
 ## 🚀 Performance & Caching
 
 VFBquery includes intelligent SOLR-based caching for optimal performance:

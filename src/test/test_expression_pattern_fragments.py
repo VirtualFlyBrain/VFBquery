@@ -6,12 +6,17 @@ fragment images that are part of a specified expression pattern.
 
 FIXED: Query now works correctly with proper IRI resolution for VFBexp_* IDs.
 
-NOTE: Some expression patterns cause Owlery server timeouts (>120s). This appears
-to be a server-side performance issue with large result sets. The query implementation
-is correct - confirmed by URL construction and smaller test cases.
+The three execution tests below were skipped for a period because the Owlery
+/instances endpoint exceeded the 300 s per-test budget for epFrag on every
+expression pattern tried. That was a server-side limitation, not a code defect,
+and it has since been resolved: the reference query now answers in ~4 s.
 
-Test URL that times out:
-http://owl.virtualflybrain.org/kbs/vfb/instances?object=<http://purl.obolibrary.org/obo/BFO_0000050> some <http://virtualflybrain.org/reports/VFBexp_FBtp0022557>
+    http://owl.virtualflybrain.org/kbs/vfb/instances?object=<http://purl.obolibrary.org/obo/BFO_0000050> some <http://virtualflybrain.org/reports/VFBexp_FBtp0022557>
+
+returns 5823 instances well inside the budget, so the skips are removed and
+these tests run for real again. If Owlery regresses, the honest response is to
+fix Owlery — re-adding a skip here would hide the regression behind a green
+check, which is exactly what TESTING.md forbids.
 """
 
 import unittest
@@ -38,16 +43,6 @@ class TestExpressionPatternFragments(unittest.TestCase):
         # part_of a Class Expression_pattern, via the Owlery /instances endpoint.
         self.test_expression_pattern = "VFBexp_FBtp0022557"  # P{VGlut-GAL4.D} expression pattern
 
-    # The Owlery /instances endpoint reliably exceeds the 300s per-test budget
-    # for epFrag on every expression pattern tried (small ones included), and the
-    # client's own timeout is 40min, so these would hit the pytest-timeout and
-    # FAIL rather than skip. They are skipped explicitly (visible in the skip
-    # count / CI skip warning) rather than silently passing. The assertions are
-    # kept so the tests are correct if run against a faster Owlery. This is a
-    # backend performance limitation, not a code bug — the wiring is covered by
-    # test_term_info_integration and the schema by test_schema_generation.
-    _OWLERY_EPFRAG_SKIP = "Owlery /instances times out (>300s) for epFrag on all expression patterns tested"
-
     def test_schema_generation(self):
         """Test that the schema function generates correct Query object."""
         schema = epFrag_to_schema("test expression pattern", {"short_form": self.test_expression_pattern})
@@ -59,7 +54,6 @@ class TestExpressionPatternFragments(unittest.TestCase):
         self.assertIn("id", schema.preview_columns)
         self.assertIn("thumbnail", schema.preview_columns)
 
-    @unittest.skip(_OWLERY_EPFRAG_SKIP)
     def test_expression_pattern_fragments_execution(self):
         """Test that expression pattern fragments query executes and returns results."""
         result = get_expression_pattern_fragments(self.test_expression_pattern)
@@ -78,7 +72,6 @@ class TestExpressionPatternFragments(unittest.TestCase):
                              f"Expected at least 1 result for {self.test_expression_pattern}")
             print(f"\n✓ Query returned {len(result)} expression pattern fragments")
 
-    @unittest.skip(_OWLERY_EPFRAG_SKIP)
     def test_return_dataframe_parameter(self):
         """Test that return_dataframe parameter works correctly."""
         df_result = get_expression_pattern_fragments(self.test_expression_pattern, return_dataframe=True, limit=5)
@@ -89,7 +82,6 @@ class TestExpressionPatternFragments(unittest.TestCase):
         self.assertIsInstance(dict_result, dict)
         self.assertTrue(dict_result.get('rows'), "expression pattern should have fragments")
 
-    @unittest.skip(_OWLERY_EPFRAG_SKIP)
     def test_limit_parameter(self):
         """Test that limit parameter restricts results."""
         limited_result = get_expression_pattern_fragments(self.test_expression_pattern, return_dataframe=True, limit=3)

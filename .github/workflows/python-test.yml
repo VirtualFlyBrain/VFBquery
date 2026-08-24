@@ -19,13 +19,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          # Match the Performance Test workflow (the repo's other pytest runner)
+          # rather than the retired 3.8 this job used when it ran a single
+          # unittest file, so pytest / pytest-xdist resolve the same versions.
+          python-version: '3.10'
       - name: Install dependencies
         run: |
          python -m pip install -U pip
          python -m pip install -U -r requirements.txt
+         python -m pip install pytest-xdist
          python -m pip install .
-      - name: Run term_info_queries_test
+      - name: Run full test suite
         env:
           VFBQUERY_CACHE_ENABLED: 'false'
           MPLBACKEND: 'Agg'
@@ -33,4 +37,19 @@ jobs:
           VISPY_USE_EGL: '0'
         run: |
           export PYTHONPATH=$PYTHONPATH:$PWD/
-          python -m unittest -v src/test/term_info_queries_test.py
+          # Full correctness suite across src/test and tests (was: only
+          # term_info_queries_test.py). Parallel via pytest-xdist, grouped per
+          # file (--dist loadscope) so each file's backend connections stay on
+          # one worker; the 300s per-test timeout from pyproject.toml bounds any
+          # single hung upstream call. `-ra` prints a summary of skips/failures.
+          # Excludes: test_query_performance.py — wall-clock threshold
+          # assertions that flap under parallel load, already gated by the
+          # dedicated "Performance Test" workflow; and test_examples_diff.py /
+          # test_examples_code.py — README-example scripts (no pytest tests,
+          # pull in deepdiff/colorama) run by the "Test VFBquery examples"
+          # workflow instead.
+          pytest -v -ra -n auto --dist loadscope \
+            --ignore=src/test/test_query_performance.py \
+            --ignore=src/test/test_examples_diff.py \
+            --ignore=src/test/test_examples_code.py \
+            src/test tests

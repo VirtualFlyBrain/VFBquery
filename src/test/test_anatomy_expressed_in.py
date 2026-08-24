@@ -11,11 +11,13 @@ Query: AnatomyExpressedIn ("Anatomy where $NAME is expressed")
 """
 
 import unittest
+import os
 import sys
 import pandas as pd
 
-# Add src directory to path for imports
-sys.path.insert(0, '/Users/rcourt/GIT/VFBquery/src')
+# Add the repo's src directory to the path for imports (relative to this file,
+# not a hardcoded developer path).
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from vfbquery import vfb_queries as vq
 

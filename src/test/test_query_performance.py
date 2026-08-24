@@ -75,28 +75,47 @@ class QueryPerformanceTest(unittest.TestCase):
         
         self.results = []
         
-    def _time_query(self, query_name, query_func, *args, **kwargs):
-        """Helper to time a query execution"""
+    @staticmethod
+    def _result_size(result):
+        """Row count for the various result shapes these queries return."""
+        import pandas as pd
+        if isinstance(result, pd.DataFrame):
+            return len(result)
+        if isinstance(result, dict):
+            if 'rows' in result:
+                return len(result['rows'])
+            if 'count' in result:
+                return result['count']
+            return 1 if result else 0   # e.g. a term_info dict
+        if isinstance(result, list):
+            return len(result)
+        return 1 if result is not None else 0
+
+    def _time_query(self, query_name, query_func, *args, allow_empty=False, **kwargs):
+        """Time a query AND assert it actually did its job.
+
+        Exceptions are NOT swallowed: a backend outage is turned into a skip
+        upstream by conftest.py, and any other error fails the test — the old
+        try/except turned both into a silent success. Unless allow_empty=True,
+        the result must be non-empty, because a timing check alone let a query
+        that returned 0 rows (or None) pass.
+        """
         start_time = time.time()
-        try:
-            result = query_func(*args, **kwargs)
-            duration = time.time() - start_time
-            success = result is not None
-            error = None
-        except Exception as e:
-            duration = time.time() - start_time
-            success = False
-            result = None
-            error = str(e)
-        
+        result = query_func(*args, **kwargs)
+        duration = time.time() - start_time
+
+        self.assertIsNotNone(result, f"{query_name} returned None")
+        if not allow_empty:
+            self.assertGreater(self._result_size(result), 0,
+                               f"{query_name} returned no rows")
+
         self.results.append({
             'name': query_name,
             'duration': duration,
-            'success': success,
-            'error': error
+            'success': True,
+            'error': None,
         })
-        
-        return result, duration, success
+        return result, duration, True
     
     def test_01_term_info_queries(self):
         """Test term info query performance"""
@@ -221,7 +240,8 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "SubclassesOf",
             get_subclasses_of,
-            test_term,
+            "FBbt_00048516",  # wedge projection neuron has ~56 subclasses
+            # (mushroom body / test_term is a leaf with none, which returned 0)
             return_dataframe=False,
             limit=-1  # Enable caching for performance tests
         )
@@ -302,6 +322,9 @@ class QueryPerformanceTest(unittest.TestCase):
             "epFrag",
             get_expression_pattern_fragments,
             "FBtp0000001",  # expression pattern example
+            allow_empty=True,  # epFrag goes through the Owlery /instances endpoint,
+            # which is unreliable/slow for all inputs (see test_expression_pattern_
+            # fragments.py) — this is a timing probe only, not a content check.
             return_dataframe=False,
             limit=-1  # Enable caching for performance tests
         )
@@ -527,57 +550,46 @@ class QueryPerformanceTest(unittest.TestCase):
             print(f"  └─ Found {count} total clusters" + (", returned 10" if count > 10 else ""))
         self.assertLess(duration, self.THRESHOLD_SLOW, "anatScRNAseqQuery exceeded threshold")
         
-        # clusterExpression - test with a cluster ID (may return empty if cluster doesn't exist)
-        # Using a dummy ID - test will pass even with empty results
-        try:
-            result, duration, success = self._time_query(
-                "clusterExpression (example cluster)",
-                get_cluster_expression,
-                "FBlc0005370",  # Example cluster ID
-                return_dataframe=False,
-                limit=10
-            )
-            print(f"clusterExpression: {duration:.4f}s {'✅' if success else '❌'}")
-            if success and result:
-                count = result.get('count', 0)
-                print(f"  └─ Found {count} genes expressed" + (", returned 10" if count > 10 else ""))
-            self.assertLess(duration, self.THRESHOLD_SLOW, "clusterExpression exceeded threshold")
-        except Exception as e:
-            print(f"clusterExpression: Skipped (test data may not exist): {e}")
-        
-        # expressionCluster - test with a gene ID (may return empty if no scRNAseq data)
-        try:
-            result, duration, success = self._time_query(
-                "expressionCluster (example gene)",
-                get_expression_cluster,
-                "FBgn0034223",  # Example gene ID
-                return_dataframe=False,
-                limit=10
-            )
-            print(f"expressionCluster: {duration:.4f}s {'✅' if success else '❌'}")
-            if success and result:
-                count = result.get('count', 0)
-                print(f"  └─ Found {count} clusters expressing gene" + (", returned 10" if count > 10 else ""))
-            self.assertLess(duration, self.THRESHOLD_SLOW, "expressionCluster exceeded threshold")
-        except Exception as e:
-            print(f"expressionCluster: Skipped (test data may not exist): {e}")
-        
-        # scRNAdatasetData - test with a dataset ID (may return empty if dataset doesn't exist)
-        try:
-            result, duration, success = self._time_query(
-                "scRNAdatasetData (example dataset)",
-                get_scrnaseq_dataset_data,
-                "FBlc0005362",  # Example dataset ID
-                return_dataframe=False,
-                limit=10
-            )
-            print(f"scRNAdatasetData: {duration:.4f}s {'✅' if success else '❌'}")
-            if success and result:
-                count = result.get('count', 0)
-                print(f"  └─ Found {count} clusters in dataset" + (", returned 10" if count > 10 else ""))
-            self.assertLess(duration, self.THRESHOLD_SLOW, "scRNAdatasetData exceeded threshold")
-        except Exception as e:
-            print(f"scRNAdatasetData: Skipped (test data may not exist): {e}")
+        # clusterExpression - these FBlc/FBgn ids are real and return data
+        # (4588 / 9 / 13); no try/except-Skipped swallow, so a real failure or an
+        # empty result now fails (a backend outage is skipped upstream).
+        result, duration, success = self._time_query(
+            "clusterExpression (example cluster)",
+            get_cluster_expression,
+            "FBlc0005370",  # cluster with expression data
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"clusterExpression: {duration:.4f}s {'✅' if success else '❌'}")
+        count = result.get('count', 0)
+        print(f"  └─ Found {count} genes expressed" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_SLOW, "clusterExpression exceeded threshold")
+
+        # expressionCluster
+        result, duration, success = self._time_query(
+            "expressionCluster (example gene)",
+            get_expression_cluster,
+            "FBgn0034223",  # gene with scRNAseq expression clusters
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"expressionCluster: {duration:.4f}s {'✅' if success else '❌'}")
+        count = result.get('count', 0)
+        print(f"  └─ Found {count} clusters expressing gene" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_SLOW, "expressionCluster exceeded threshold")
+
+        # scRNAdatasetData
+        result, duration, success = self._time_query(
+            "scRNAdatasetData (example dataset)",
+            get_scrnaseq_dataset_data,
+            "FBlc0005362",  # scRNAseq dataset with clusters
+            return_dataframe=False,
+            limit=10
+        )
+        print(f"scRNAdatasetData: {duration:.4f}s {'✅' if success else '❌'}")
+        count = result.get('count', 0)
+        print(f"  └─ Found {count} clusters in dataset" + (", returned 10" if count > 10 else ""))
+        self.assertLess(duration, self.THRESHOLD_SLOW, "scRNAdatasetData exceeded threshold")
     
     def test_12_nblast_queries(self):
         """Test NBLAST similarity queries"""
@@ -620,7 +632,7 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "SimilarMorphologyToPartOf",
             get_similar_morphology_part_of,
-            "VFB_jrchjwmw",
+            "VFB_00016103",  # neuron with NBLASTexp matches (VFB_jrchjwmw had none)
             return_dataframe=False,
             limit=10
         )
@@ -634,7 +646,7 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "SimilarMorphologyToPartOfexp",
             get_similar_morphology_part_of_exp,
-            "VFB_jrchjwmw",
+            "VFB_001012yj",  # expression pattern with reverse-NBLASTexp matches
             return_dataframe=False,
             limit=10
         )

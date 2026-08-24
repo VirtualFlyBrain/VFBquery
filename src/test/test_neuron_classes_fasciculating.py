@@ -46,16 +46,16 @@ class NeuronClassesFasciculatingTest(unittest.TestCase):
         self.assertIsNotNone(result, "Query should return a result")
         self.assertIsInstance(result, dict, "Result should be a dictionary")
         
-        # Check for expected keys
-        if result:
-            print(f"Query returned {len(result.get('data', []))} results")
-            
-            # Validate data structure
-            if 'data' in result and len(result['data']) > 0:
-                first_result = result['data'][0]
-                self.assertIn('id', first_result, "Result should contain 'id' field")
-                self.assertIn('label', first_result, "Result should contain 'label' field")
-                print(f"First result: {first_result.get('label', 'N/A')} ({first_result.get('id', 'N/A')})")
+        # FBbt_00003987 is innervated/fasciculated by neuron classes, so an empty
+        # result is a defect. (The old guard checked a 'data' key the query never
+        # returns — the key is 'rows' — so it passed vacuously regardless.)
+        rows = result.get('rows', [])
+        self.assertTrue(rows, f"{self.test_tract} should have fasciculating neuron classes")
+        print(f"Query returned {result.get('count', len(rows))} results")
+        first_result = rows[0]
+        self.assertIn('id', first_result, "Result should contain 'id' field")
+        self.assertIn('label', first_result, "Result should contain 'label' field")
+        print(f"First result: {first_result.get('label', 'N/A')} ({first_result.get('id', 'N/A')})")
         
     def test_schema_generation(self):
         """Test schema function generates correct structure"""
@@ -159,19 +159,14 @@ class NeuronClassesFasciculatingTest(unittest.TestCase):
         
         for tract_id, tract_name in test_tracts:
             print(f"\nTesting {tract_name} ({tract_id})...")
-            
-            try:
-                result = get_neuron_classes_fasciculating_here(tract_id, return_dataframe=False, limit=3)
-                
-                if result and 'data' in result:
-                    print(f"  ✓ Query successful, found {len(result['data'])} results")
-                else:
-                    print(f"  ✓ Query successful, no results found")
-                    
-            except Exception as e:
-                print(f"  ✗ Query failed: {str(e)}")
-                # Don't fail the test, just log the error
-                # raise
+            # No try/except swallow, and assert real content: each of these
+            # tracts has fasciculating neuron classes (counts 1 / 13 / 115), so
+            # an empty result is a defect. A backend outage is skipped upstream
+            # (conftest.py). The result key is 'rows', not 'data'.
+            result = get_neuron_classes_fasciculating_here(tract_id, return_dataframe=False, limit=3)
+            rows = result.get('rows', [])
+            self.assertTrue(rows, f"{tract_name} ({tract_id}) should have fasciculating neuron classes")
+            print(f"  ✓ Query successful, found {result.get('count', len(rows))} results")
 
 
 def run_tests():

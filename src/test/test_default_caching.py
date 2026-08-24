@@ -66,10 +66,10 @@ class TestDefaultCaching(unittest.TestCase):
         result1 = vfbquery.get_term_info(test_term)
         cold_time = time.time() - start_time
 
-        # Verify we got a result
+        # Verify we got a real result (not just non-None)
         self.assertIsNotNone(result1)
-        if result1 is not None:
-            self.assertIn('Name', result1)
+        self.assertIn('Name', result1)
+        self.assertTrue(result1['Name'], "medulla term_info should have a Name")
 
         # Second call (warm - should hit cache)
         start_time = time.time()
@@ -133,11 +133,12 @@ class TestDefaultCaching(unittest.TestCase):
         solr_cache = vfbquery.get_solr_cache()
         self.assertIsNotNone(solr_cache)
 
-        # Check that TTL is configured (we can't easily check the exact value without accessing private attributes)
-        # But we can verify the cache object exists and has expected methods
-        self.assertTrue(hasattr(solr_cache, 'ttl_hours'))
+        # Assert the actual 3-month TTL contract this file's docstring claims
+        # (2160h = 90 days), not just that the attribute exists.
         self.assertTrue(hasattr(solr_cache, 'cache_result'))
         self.assertTrue(hasattr(solr_cache, 'get_cached_result'))
+        self.assertEqual(solr_cache.ttl_hours, 2160,
+                         "SOLR cache should use the 3-month (2160h) TTL")
     
     def test_transparent_caching(self):
         """Test that regular VFBquery functions are transparently cached."""
@@ -146,12 +147,15 @@ class TestDefaultCaching(unittest.TestCase):
         # Test that get_term_info and get_instances are using cached versions
         test_term = 'FBbt_00003748'
 
-        # These should work with caching transparently
+        # These should work with caching transparently AND return real content.
         term_info = vfbquery.get_term_info(test_term)
         self.assertIsNotNone(term_info)
+        self.assertTrue(term_info.get('Name'), "medulla term_info should have a Name")
 
         instances = vfbquery.get_instances(test_term, limit=5)
         self.assertIsNotNone(instances)
+        rows = instances.get('rows', []) if isinstance(instances, dict) else instances
+        self.assertTrue(len(rows) > 0, "medulla should have instances")
 
         # SOLR cache should be accessible
         solr_stats = vfbquery.get_solr_cache_stats_func()

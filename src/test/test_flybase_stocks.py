@@ -141,9 +141,11 @@ class TestFindStocksCollectionFilter:
 class TestFindStocksAllele:
     @pytest.mark.integration
     def test_known_allele(self):
-        # dpp[hr4] = FBal0000469
-        stocks = find_stocks("FBal0000469")
+        # bcd[25] = FBal0034227, held in stocks (dpp[hr4]/FBal0000469 has none,
+        # so the old fixture made this test pass without checking anything).
+        stocks = find_stocks("FBal0034227")
         assert isinstance(stocks, list)
+        assert len(stocks) > 0, "bcd[25] (FBal0034227) should be held in at least one stock"
 
 
 class TestFindStocksInsertion:

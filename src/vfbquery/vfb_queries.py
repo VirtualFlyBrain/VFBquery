@@ -1543,10 +1543,13 @@ def term_info_parse_object(results, short_form):
 
             termInfo["Publications"] = publications
 
-        # Add Synonyms for Class entities. pub_syn holds one entry per
-        # (synonym, pub); get_merged_synonyms() collapses these to one entry per
-        # synonym with the combined refs and drops the Unattributed placeholder.
-        if termInfo["SuperTypes"] and "Class" in termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
+        # Add Synonyms from pub_syn — for Classes AND Individuals. An image
+        # individual can carry a pub-attributed synonym (e.g. VFB_00101385 =
+        # "MEon JRC_FlyEM_Hemibrain"); gating this on "Class" dropped those.
+        # pub_syn holds one entry per (synonym, pub); get_merged_synonyms()
+        # collapses these to one entry per synonym with the combined refs and
+        # drops the Unattributed placeholder.
+        if vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
             synonyms = vfbTerm.get_merged_synonyms()
             # Only add the synonyms if we found any
             if synonyms:

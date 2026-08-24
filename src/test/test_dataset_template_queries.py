@@ -39,8 +39,12 @@ class DatasetTemplateQueriesTest(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.template_term = 'VFBc_00050000'  # Adult Brain template
-        self.dataset_term = 'VFBc_00101384'  # Example dataset
+        # Real fixtures: the previous values (VFBc_00050000 / VFBc_00101384)
+        # were Channel nodes, so every query returned 0 and the guards below
+        # passed vacuously. VFB_00017894 is the adult brain template (58 painted
+        # domains, 21 aligned datasets); Takagi2017 is a dataset with images.
+        self.template_term = 'VFB_00017894'  # adult brain template
+        self.dataset_term = 'Takagi2017'     # a dataset with images
         
     def test_get_painted_domains(self):
         """Test get_painted_domains query"""
@@ -48,20 +52,20 @@ class DatasetTemplateQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result, "Result should not be None")
         
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} painted domains for {self.template_term}")
-            self.assertIn('id', result.columns)
-            self.assertIn('label', result.columns)
-            self.assertIn('thumbnail', result.columns)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.template_term} should have painted domains")
+        print(f"\n✓ Found {len(result)} painted domains for {self.template_term}")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('thumbnail', result.columns)
             
     def test_get_painted_domains_formatted(self):
         """Test get_painted_domains with formatted output"""
         result = get_painted_domains(self.template_term, return_dataframe=False, limit=5)
-        self.assertIsNotNone(result)
-        
-        if isinstance(result, dict):
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertTrue(result['rows'], f"{self.template_term} should have painted domains")
             
     def test_get_dataset_images(self):
         """Test get_dataset_images query"""
@@ -69,9 +73,10 @@ class DatasetTemplateQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result)
         
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} images in dataset {self.dataset_term}")
-            self.assertIn('id', result.columns)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.dataset_term} should have images")
+        print(f"\n✓ Found {len(result)} images in dataset {self.dataset_term}")
+        self.assertIn('id', result.columns)
             
     def test_get_all_aligned_images(self):
         """Test get_all_aligned_images query"""
@@ -79,8 +84,9 @@ class DatasetTemplateQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result)
         
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} aligned images for {self.template_term}")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.template_term} should have aligned images")
+        print(f"\n✓ Found {len(result)} aligned images for {self.template_term}")
             
     def test_get_aligned_datasets(self):
         """Test get_aligned_datasets query"""
@@ -88,8 +94,9 @@ class DatasetTemplateQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result)
         
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} aligned datasets for {self.template_term}")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.template_term} should have aligned datasets")
+        print(f"\n✓ Found {len(result)} aligned datasets for {self.template_term}")
             
     def test_get_all_datasets(self):
         """Test get_all_datasets query (no parameters)"""

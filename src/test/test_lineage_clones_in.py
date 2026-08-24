@@ -46,18 +46,16 @@ class LineageClonesInTest(unittest.TestCase):
         self.assertIsNotNone(result, "Query should return a result")
         self.assertIsInstance(result, dict, "Result should be a dictionary")
         
-        # Check for expected keys
-        if result:
-            print(f"Query returned {len(result.get('data', []))} results")
-            
-            # Validate data structure
-            if 'data' in result and len(result['data']) > 0:
-                first_result = result['data'][0]
-                self.assertIn('id', first_result, "Result should contain 'id' field")
-                self.assertIn('label', first_result, "Result should contain 'label' field")
-                print(f"First result: {first_result.get('label', 'N/A')} ({first_result.get('id', 'N/A')})")
-            else:
-                print("No results found (this is OK if no clones overlap this neuropil)")
+        # FBbt_00007401 (antennal lobe) has lineage clones overlapping it, so an
+        # empty result is a defect. (The old guard checked a 'data' key the query
+        # never returns — the key is 'rows' — so it passed vacuously regardless.)
+        rows = result.get('rows', [])
+        self.assertTrue(rows, "antennal lobe should have overlapping lineage clones")
+        print(f"Query returned {result.get('count', len(rows))} results")
+        first_result = rows[0]
+        self.assertIn('id', first_result, "Result should contain 'id' field")
+        self.assertIn('label', first_result, "Result should contain 'label' field")
+        print(f"First result: {first_result.get('label', 'N/A')} ({first_result.get('id', 'N/A')})")
         
     def test_schema_generation(self):
         """Test schema function generates correct structure"""
@@ -76,7 +74,7 @@ class LineageClonesInTest(unittest.TestCase):
         self.assertEqual(schema.preview, 5, "Preview should be 10")
         
         # Check preview columns
-        expected_columns = ["id", "label", "tags", "thumbnail"]
+        expected_columns = ["id", "label", "tags", "template", "technique", "thumbnail"]
         self.assertEqual(schema.preview_columns, expected_columns, f"Preview columns should be {expected_columns}")
         
         print(f"Schema generated successfully: {schema.label}")

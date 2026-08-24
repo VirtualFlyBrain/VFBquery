@@ -39,33 +39,30 @@ class TestImagesThatDevelopFrom(unittest.TestCase):
         self.assertIn("thumbnail", schema.preview_columns)
         
     def test_get_images_that_develop_from_execution(self):
-        """Test that the query executes without errors."""
-        try:
-            # Execute query with limit to keep test fast
-            result = get_images_that_develop_from(self.test_neuroblast, return_dataframe=True, limit=10)
-            
-            # Result should be either a DataFrame or dict
-            self.assertIsNotNone(result)
-            
-            # If we get results, check structure
-            if hasattr(result, 'empty'):  # DataFrame
-                if not result.empty:
-                    self.assertIn('id', result.columns)
-                    self.assertIn('label', result.columns)
-            elif isinstance(result, dict):  # Dict format
-                # Check for either 'data' or 'rows' key
-                self.assertTrue('data' in result or 'rows' in result,
-                              "Result dict should have 'data' or 'rows' key")
-                
-            print(f"\n✅ ImagesThatDevelopFrom query executed successfully")
-            if isinstance(result, dict):
-                count = result.get('count', len(result.get('rows', result.get('data', []))))
-                print(f"  Result count: {count} neurons")
-            elif hasattr(result, 'shape'):
-                print(f"  Result count: {len(result)} neurons")
-                
-        except Exception as e:
-            self.fail(f"Query execution failed: {str(e)}")
+        """Test that the query executes and returns results."""
+        # No blanket try/except -> self.fail here: it would turn a backend
+        # connection failure into a hard failure, defeating the conftest.py
+        # skip-on-outage hook. Let exceptions propagate (connection -> skip,
+        # anything else -> a real error).
+        result = get_images_that_develop_from(self.test_neuroblast, return_dataframe=True, limit=10)
+        self.assertIsNotNone(result)
+
+        # FBbt_00001419 (neuroblast MNB) has images that develop from it, so an
+        # empty result is a defect.
+        if hasattr(result, 'empty'):  # DataFrame
+            self.assertFalse(result.empty, f"{self.test_neuroblast} should have images that develop from it")
+            self.assertIn('id', result.columns)
+            self.assertIn('label', result.columns)
+        elif isinstance(result, dict):  # Dict format
+            self.assertTrue(result.get('rows') or result.get('data'),
+                            f"{self.test_neuroblast} should have images that develop from it")
+
+        print(f"\n✅ ImagesThatDevelopFrom query executed successfully")
+        if isinstance(result, dict):
+            count = result.get('count', len(result.get('rows', result.get('data', []))))
+            print(f"  Result count: {count} neurons")
+        elif hasattr(result, 'shape'):
+            print(f"  Result count: {len(result)} neurons")
     
     def test_return_dataframe_parameter(self):
         """Test that return_dataframe parameter works correctly."""

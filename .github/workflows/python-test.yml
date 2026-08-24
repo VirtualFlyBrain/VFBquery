@@ -37,11 +37,15 @@ jobs:
           VISPY_USE_EGL: '0'
         run: |
           export PYTHONPATH=$PYTHONPATH:$PWD/
+          set -o pipefail
           # Full correctness suite across src/test and tests (was: only
           # term_info_queries_test.py). Parallel via pytest-xdist, grouped per
           # file (--dist loadscope) so each file's backend connections stay on
           # one worker; the 300s per-test timeout from pyproject.toml bounds any
           # single hung upstream call. `-ra` prints a summary of skips/failures.
+          # A backend outage SKIPS the affected tests (see conftest.py) rather
+          # than failing them; empty-but-connected results still fail. The next
+          # step turns any skips into a PR-visible warning.
           # Excludes: test_query_performance.py — wall-clock threshold
           # assertions that flap under parallel load, already gated by the
           # dedicated "Performance Test" workflow; and test_examples_diff.py /
@@ -52,4 +56,20 @@ jobs:
             --ignore=src/test/test_query_performance.py \
             --ignore=src/test/test_examples_diff.py \
             --ignore=src/test/test_examples_code.py \
-            src/test tests
+            src/test tests 2>&1 | tee pytest_output.log
+      - name: Flag skipped tests (backend unavailable)
+        if: always()
+        run: |
+          # Skips are invisible on the PR otherwise (a pass+skip run is a green
+          # check). Surface them as a warning annotation so a backend outage —
+          # which the conftest.py skip hook turns into skips rather than a false
+          # red — is visible without opening the Actions logs.
+          if [ ! -f pytest_output.log ]; then
+            echo "No test output captured."; exit 0
+          fi
+          summary=$(grep -Eo '[0-9]+ skipped' pytest_output.log | tail -1 || true)
+          if [ -n "$summary" ]; then
+            echo "::warning title=Tests skipped::${summary} — likely the VFB backend was unreachable, so those queries were not verified this run. See the job log for the list."
+          else
+            echo "No tests skipped."
+          fi

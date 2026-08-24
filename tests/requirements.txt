@@ -1,0 +1,40 @@
+# Test-only dependencies.
+#
+# The three dependency sets in this repo, and what each is for:
+#
+#   setup.py `install_requires`  what `pip install vfbquery` pulls in — the
+#                                library's actual runtime imports, nothing else.
+#   requirements.txt             the same runtime set, pinned for CI and the
+#                                Docker image build (Dockerfile COPYs it).
+#   tests/requirements.txt       this file — tooling that only ever runs under
+#                                CI or a local test run.
+#
+# Nothing listed here is imported by anything under src/vfbquery, so keeping it
+# out of requirements.txt keeps test tooling out of the published package and
+# out of the runtime container image. Previously pytest and pytest-timeout sat
+# in requirements.txt and pytest-xdist / deepdiff / colorama were `pip install`ed
+# ad hoc inside individual workflow steps, so no single file described what a
+# test run needs.
+#
+# Install alongside the runtime set:
+#
+#     pip install -r requirements.txt -r tests/requirements.txt
+#
+# Covers both test trees: src/test (library query tests) and tests (API/preview
+# endpoint tests).
+
+pytest
+
+# Enforces the 300 s per-test ceiling configured in pyproject.toml. Without it
+# pytest warns about an unknown option and carries on unbounded, so a hung
+# upstream call takes the whole job down with nothing naming the stuck test.
+pytest-timeout
+
+# Provides -n / --dist for the parallel test runs in the "Run Tests" and
+# "Performance Test" workflows.
+pytest-xdist
+
+# src/test/test_examples_diff.py only — structural comparison of the outputs
+# produced by the README examples, run by the "Test VFBquery Examples" workflow.
+deepdiff
+colorama

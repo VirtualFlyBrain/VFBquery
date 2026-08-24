@@ -1,3 +1,8 @@
+# Runtime dependencies only — this file mirrors setup.py's `install_requires`
+# for CI and for the Docker image build (see Dockerfile). Test tooling (pytest,
+# pytest-timeout, pytest-xdist, deepdiff, colorama) lives in
+# tests/requirements.txt so it stays out of the runtime image; install both with
+#     pip install -r requirements.txt -r tests/requirements.txt
 vfb_connect
 dataclasses-json
 dacite
@@ -6,5 +11,3 @@ pysolr
 get_version
 aiohttp
 psycopg[binary]>=3.0
-pytest
-pytest-timeout

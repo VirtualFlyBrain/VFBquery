@@ -10,6 +10,12 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:
 
+# Purely static — no backend involved — but there is no value in finishing a
+# lint of a commit that has already been superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-lint:
     name: "Test conventions"

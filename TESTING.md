@@ -9,12 +9,31 @@ exists so they don't come back.
 
 Read this before adding or changing a test.
 
+## Installing the test dependencies
+
+Test tooling is declared in `tests/requirements.txt`, separately from the
+runtime dependencies in `requirements.txt`. Install both:
+
+```bash
+pip install -r requirements.txt -r tests/requirements.txt
+pip install -e .
+```
+
+The split exists so that test tooling never reaches an end user: `requirements.txt`
+mirrors `setup.py`'s `install_requires` and is what the `Dockerfile` copies into
+the runtime image, while `tests/requirements.txt` holds pytest, `pytest-timeout`
+(which enforces the 300 s per-test ceiling from `pyproject.toml`), `pytest-xdist`
+(the `-n` parallel runner) and the `deepdiff`/`colorama` pair used only by
+`src/test/test_examples_diff.py`. If you add a test-only dependency, put it in
+`tests/requirements.txt` — not in `requirements.txt`, and not as an ad-hoc
+`pip install` inside a workflow step.
+
 ## Running the suite
 
 ```bash
 export PYTHONPATH=$PYTHONPATH:$PWD/
 export VFBQUERY_CACHE_ENABLED=false            # test the code, not the cache
-pytest -v -ra -n auto --dist loadscope src/test tests
+pytest -v -ra -n 4 --dist loadscope src/test tests
 ```
 
 - The whole suite runs on every PR via `.github/workflows/python-test.yml`.
@@ -22,7 +41,14 @@ pytest -v -ra -n auto --dist loadscope src/test tests
   (`test_query_performance.py`), because their thresholds only hold with the
   cache warm.
 - `-ra` prints a summary of skips at the end; the CI job turns any skips into a
-  PR **warning** so a backend outage can't hide behind a green check.
+  PR **warning** so a backend outage can't hide behind a green check. A green
+  check *with* that warning means the run was incomplete because the VFB backend
+  was unavailable — it is a report on backend health, not on the branch. Re-run
+  it once the backend is answering before treating the branch as verified.
+- Every live-backend workflow sets a `concurrency` group keyed on the branch, so
+  a run is cancelled when a newer commit supersedes it. Parallelism is pinned at
+  `-n 4` (the hosted runner's vCPU count) rather than `-n auto`, to keep the
+  number of concurrent query streams aimed at production explicit and stable.
 - A separate **Test Lint** check (`test-lint.yml` → `scripts/lint_tests.py`)
   fails the PR if it introduces any of the anti-patterns below. It only inspects
   the lines your PR *adds*. For a genuine exception (a deliberate empty-result

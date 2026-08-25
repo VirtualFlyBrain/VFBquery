@@ -9,6 +9,23 @@ on:
   schedule:
     - cron: '0 0 2 * *'  # Runs at 00:00 UTC on the 2nd day of every month
 
+# One live run per branch. Every run drives the full correctness suite against
+# the production VFB backend (Neo4j / SOLR / Owlery), so a series of quick
+# pushes to a PR would otherwise stack several full suites against production
+# simultaneously. Superseded runs are cancelled — only the newest commit's
+# result is meaningful anyway.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Needed by the "Comment skip warning on PR" step to post/update a sticky
+# comment on the PR conversation. (A ::warning:: annotation alone only shows on
+# the Checks/Files tabs — the conversation timeline stays green despite skips.)
+permissions:
+  contents: read
+  pull-requests: write   # sticky skip-warning comment on the PR conversation
+  checks: write          # a neutral (grey) "Backend coverage" check when skipped
+
 jobs:
   notebooks:
     name: "Run Tests"
@@ -19,13 +36,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          # Match the Performance Test workflow (the repo's other pytest runner)
+          # rather than the retired 3.8 this job used when it ran a single
+          # unittest file, so pytest / pytest-xdist resolve the same versions.
+          python-version: '3.10'
       - name: Install dependencies
         run: |
          python -m pip install -U pip
-         python -m pip install -U -r requirements.txt
+         # Runtime set + test tooling (pytest, pytest-timeout, pytest-xdist).
+         # See tests/requirements.txt for why the two are separate files.
+         python -m pip install -U -r requirements.txt -r tests/requirements.txt
          python -m pip install .
-      - name: Run term_info_queries_test
+      - name: Run full test suite
         env:
           VFBQUERY_CACHE_ENABLED: 'false'
           MPLBACKEND: 'Agg'
@@ -33,4 +55,135 @@ jobs:
           VISPY_USE_EGL: '0'
         run: |
           export PYTHONPATH=$PYTHONPATH:$PWD/
-          python -m unittest -v src/test/term_info_queries_test.py
+          set -o pipefail
+          # Full correctness suite across src/test and tests (was: only
+          # term_info_queries_test.py). Parallel via pytest-xdist, grouped per
+          # file (--dist loadscope) so each file's backend connections stay on
+          # one worker; the 300s per-test timeout from pyproject.toml bounds any
+          # single hung upstream call. `-ra` prints a summary of skips/failures.
+          # A backend outage SKIPS the affected tests (see conftest.py) rather
+          # than failing them; empty-but-connected results still fail. The next
+          # step turns any skips into a PR-visible warning.
+          # Excludes: test_query_performance.py — wall-clock threshold
+          # assertions that flap under parallel load, already gated by the
+          # dedicated "Performance Test" workflow; and test_examples_diff.py /
+          # test_examples_code.py — README-example scripts (no pytest tests,
+          # pull in deepdiff/colorama) run by the "Test VFBquery examples"
+          # workflow instead.
+          # -n 4 rather than -n auto: an explicit cap on how many concurrent
+          # query streams one run points at production. `auto` happens to be 4
+          # on today's GitHub-hosted ubuntu runner, so this is not a slowdown —
+          # it just stops the load on VFB infra changing silently if the hosted
+          # runner spec grows.
+          pytest -v -ra -n 4 --dist loadscope \
+            --ignore=src/test/test_query_performance.py \
+            --ignore=src/test/test_examples_diff.py \
+            --ignore=src/test/test_examples_code.py \
+            src/test tests 2>&1 | tee pytest_output.log
+      - name: Flag skipped tests (backend unavailable)
+        if: always()
+        run: |
+          # Skips are invisible on the PR otherwise (a pass+skip run is a green
+          # check). Surface them as a warning annotation so a backend outage —
+          # which the conftest.py skip hook turns into skips rather than a false
+          # red — is visible without opening the Actions logs.
+          if [ ! -f pytest_output.log ]; then
+            echo "No test output captured."; exit 0
+          fi
+          summary=$(grep -Eo '[0-9]+ skipped' pytest_output.log | tail -1 || true)
+          if [ -n "$summary" ]; then
+            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. See the job log for the list."
+          else
+            echo "No tests skipped."
+          fi
+      - name: Comment skip warning on PR
+        # The ::warning:: above only surfaces on the Checks/Files tabs; the PR
+        # conversation still shows a green check. Post a sticky comment there so a
+        # skipped (== incomplete) run is visible without opening the Actions logs.
+        # Same-repo PRs only — a fork PR gets a read-only token and can't comment.
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- vfb-skipped-tests-warning -->';
+
+            let skipped = 0, summary = '';
+            try {
+              const log = fs.readFileSync('pytest_output.log', 'utf8');
+              const s = [...log.matchAll(/(\d+) skipped/g)];
+              if (s.length) skipped = parseInt(s[s.length - 1][1], 10);
+              const line = log.match(/^=+ (.+ in [\d.]+s.*?) =+\s*$/gm);
+              if (line) summary = line[line.length - 1].replace(/=/g, '').trim();
+            } catch (e) {
+              core.info('No pytest_output.log to read: ' + e.message);
+            }
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Direct link to THIS run so the reader re-runs the right thing: the
+            // "Run Tests" job (this "${{ github.workflow }}" workflow), NOT the
+            // neutral status check below — that check has no job behind it, so
+            // re-running it would do nothing.
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const rerun = `To re-run: open [this workflow run](${runUrl}) and click ` +
+              `**Re-run all jobs** once the backend is healthy (re-running the ` +
+              `“Run completeness” check itself does nothing — it has no job behind it).`;
+
+            // A neutral (grey) status check so the PR's checks box stops reading
+            // as a plain green pass when the run was actually incomplete. Neutral
+            // does not fail the PR or block merge — it just isn't "success". Named
+            // "Run completeness" (a verdict, not a runnable job) so it isn't
+            // mistaken for the thing to re-run.
+            const head_sha = context.payload.pull_request.head.sha;
+            await github.rest.checks.create({
+              owner, repo, head_sha,
+              name: 'Run completeness',
+              status: 'completed',
+              conclusion: skipped > 0 ? 'neutral' : 'success',
+              details_url: runUrl,
+              output: {
+                title: skipped > 0
+                  ? `${skipped} test(s) skipped — backend unreachable (incomplete run)`
+                  : 'All backend tests ran',
+                summary: skipped > 0
+                  ? (`**${skipped}** test(s) were skipped because the VFB backend ` +
+                     `(Neo4j / SOLR / Owlery) did not answer, so those queries went ` +
+                     `unverified. This is not a branch failure — but the run is ` +
+                     `incomplete.\n\n${rerun}` +
+                     (summary ? '\n\n```\n' + summary + '\n```' : ''))
+                  : 'Every backend-dependent test reached the VFB backend and ran.',
+              },
+            });
+            const comments = await github.paginate(github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (skipped > 0) {
+              const body = [
+                marker,
+                `### ⚠️ ${skipped} test(s) skipped — VFB backend was unreachable`,
+                '',
+                `The full suite ran, but **${skipped}** test(s) were **skipped** because the ` +
+                `VFB backend (Neo4j / SOLR / Owlery) did not answer during this run.`,
+                '',
+                'These are **not failures** and **not a problem with this branch** — but those ' +
+                'queries went **unverified**, so a green check here is an *incomplete* run.',
+                '',
+                '> ' + rerun,
+                summary ? '\n```\n' + summary + '\n```' : '',
+                '',
+                '<sub>Posted automatically. This comment is removed once a run completes with zero skips.</sub>',
+              ].join('\n');
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              }
+              core.warning(`${skipped} test(s) skipped — posted PR comment.`);
+            } else if (existing) {
+              // Clean run: drop the stale warning so the conversation reflects reality.
+              await github.rest.issues.deleteComment({ owner, repo, comment_id: existing.id });
+              core.info('Zero skips — removed the previous skip-warning comment.');
+            }

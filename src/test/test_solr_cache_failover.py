@@ -43,12 +43,21 @@ class SolrResultCacheFailoverTest(unittest.TestCase):
     def test_cache_invalidated_on_major_version_change(self):
         cache = SolrResultCache()
         cache._solr_available = MagicMock(return_value=True)
-        cache._package_version = "1.8.1"
+        # current 2.0.0 vs cached 1.8.0 is a genuine major.minor change (the old
+        # 1.8.1-vs-1.8.0 both normalise to 1.8 — a patch change that is correctly
+        # RETAINED, so this test only "passed" via the swallowed-TypeError bug).
+        cache._package_version = "2.0.0"
 
         cached_data = {
             "result": {"foo": "bar"},
-            "cached_at": datetime.now().isoformat(),
-            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            # Timezone-AWARE, matching what the cache actually stores
+            # (solr_result_cache stores datetime.now().astimezone()). A naive
+            # timestamp here made get_cached_result raise TypeError comparing
+            # naive vs aware, which was swallowed to None — silently breaking the
+            # "cache hit" tests (and letting the invalidation tests pass for the
+            # wrong reason).
+            "cached_at": datetime.now().astimezone().isoformat(),
+            "expires_at": (datetime.now().astimezone() + timedelta(hours=1)).isoformat(),
             "params": {"limit": -1},
             "hit_count": 0,
             "cache_version": "1.0",
@@ -71,8 +80,14 @@ class SolrResultCacheFailoverTest(unittest.TestCase):
 
         cached_data = {
             "result": {"foo": "bar"},
-            "cached_at": datetime.now().isoformat(),
-            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            # Timezone-AWARE, matching what the cache actually stores
+            # (solr_result_cache stores datetime.now().astimezone()). A naive
+            # timestamp here made get_cached_result raise TypeError comparing
+            # naive vs aware, which was swallowed to None — silently breaking the
+            # "cache hit" tests (and letting the invalidation tests pass for the
+            # wrong reason).
+            "cached_at": datetime.now().astimezone().isoformat(),
+            "expires_at": (datetime.now().astimezone() + timedelta(hours=1)).isoformat(),
             "params": {"limit": -1},
             "hit_count": 0,
             "cache_version": "1.0",
@@ -95,8 +110,14 @@ class SolrResultCacheFailoverTest(unittest.TestCase):
 
         cached_data = {
             "result": {"foo": "bar"},
-            "cached_at": datetime.now().isoformat(),
-            "expires_at": (datetime.now() + timedelta(hours=1)).isoformat(),
+            # Timezone-AWARE, matching what the cache actually stores
+            # (solr_result_cache stores datetime.now().astimezone()). A naive
+            # timestamp here made get_cached_result raise TypeError comparing
+            # naive vs aware, which was swallowed to None — silently breaking the
+            # "cache hit" tests (and letting the invalidation tests pass for the
+            # wrong reason).
+            "cached_at": datetime.now().astimezone().isoformat(),
+            "expires_at": (datetime.now().astimezone() + timedelta(hours=1)).isoformat(),
             "params": {"limit": -1},
             "hit_count": 0,
             "cache_version": "1.0",

@@ -11,11 +11,13 @@ Query: AnatomyExpressedIn ("Anatomy where $NAME is expressed")
 """
 
 import unittest
+import os
 import sys
 import pandas as pd
 
-# Add src directory to path for imports
-sys.path.insert(0, '/Users/rcourt/GIT/VFBquery/src')
+# Add the repo's src directory to the path for imports (relative to this file,
+# not a hardcoded developer path).
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from vfbquery import vfb_queries as vq
 
@@ -25,24 +27,34 @@ class TestAnatomyExpressedIn(unittest.TestCase):
 
     def test_anatomy_expressed_in_basic_dataframe(self):
         """Test basic query returns DataFrame with expected columns"""
-        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True)
+        # limit=5 keeps this structural check fast and robust: at limit=-1 the
+        # per-row enrichment over all ~79 overlapping anatomy classes can time
+        # out under parallel CI load and come back empty, which this test (now
+        # asserting non-empty) would read as a failure.
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=5)
 
         self.assertIsInstance(result, pd.DataFrame, "Should return pandas DataFrame")
 
-        if not result.empty:
-            expected_columns = ['id', 'name', 'tags', 'pubs']
-            for col in expected_columns:
-                self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
+        # VFBexp_FBtp0001321 is a known-populated expression pattern: an empty
+        # result is a defect, not an acceptable outcome (a backend outage skips
+        # this test upstream via conftest.py rather than reaching here empty).
+        self.assertFalse(result.empty, "Query for a known-populated expression pattern returned no rows")
+        expected_columns = ['id', 'name', 'tags', 'pubs']
+        for col in expected_columns:
+            self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
 
-            self.assertTrue(all(isinstance(x, str) for x in result['id']), "IDs should be strings")
-            self.assertTrue(all(isinstance(x, str) for x in result['name']), "Names should be strings")
+        self.assertTrue(all(isinstance(x, str) for x in result['id']), "IDs should be strings")
+        self.assertTrue(all(isinstance(x, str) for x in result['name']), "Names should be strings")
 
-            print(f"\nFound {len(result)} anatomy classes where VFBexp_FBtp0001321 is expressed")
-            print(f"Sample results: {result.head(3)[['id', 'name']].to_dict('records')}")
+        print(f"\nFound {len(result)} anatomy classes where VFBexp_FBtp0001321 is expressed")
+        print(f"Sample results: {result.head(3)[['id', 'name']].to_dict('records')}")
 
     def test_anatomy_expressed_in_formatted_output(self):
         """Test query returns properly formatted dictionary output"""
-        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=False)
+        # limit the enrichment (per-row Stage/Template/Technique/Thumbnail
+        # walks) to keep this structural check fast; `count` is independent of
+        # the limit so the printed total is still the full result size.
+        result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=False, limit=5)
 
         self.assertIsInstance(result, dict, "Should return dictionary when return_dataframe=False")
 
@@ -51,34 +63,42 @@ class TestAnatomyExpressedIn(unittest.TestCase):
         self.assertIn('count', result, "Result should contain 'count'")
 
         headers = result['headers']
-        expected_headers = ['id', 'name', 'tags', 'pubs']
-        for header in expected_headers:
+        # v1.14.2: full column shape (Name / Reference / Gross_Type / Stage /
+        # Template_Space / Imaging_Technique / Images).
+        expected_types = {
+            'id': 'selection_id',
+            'name': 'markdown',
+            'pubs': 'markdown',
+            'tags': 'tags',
+            'stages': 'text',
+            'template': 'markdown',
+            'technique': 'text',
+            'thumbnail': 'markdown',
+        }
+        for header, expected_type in expected_types.items():
             self.assertIn(header, headers, f"Headers should contain '{header}'")
             self.assertIn('title', headers[header], f"Header '{header}' should have 'title'")
             self.assertIn('type', headers[header], f"Header '{header}' should have 'type'")
             self.assertIn('order', headers[header], f"Header '{header}' should have 'order'")
+            self.assertEqual(headers[header]['type'], expected_type,
+                             f"Header '{header}' should be type '{expected_type}'")
 
-        self.assertEqual(headers['id']['type'], 'selection_id')
-        self.assertEqual(headers['name']['type'], 'markdown')
-        self.assertEqual(headers['tags']['type'], 'tags')
-        self.assertEqual(headers['pubs']['type'], 'metadata')
+        self.assertTrue(result['rows'], "Query for a known-populated expression pattern returned no rows")
+        first_row = result['rows'][0]
+        for key in expected_types:
+            self.assertIn(key, first_row, f"Row should contain '{key}'")
 
-        if result['rows']:
-            first_row = result['rows'][0]
-            for key in expected_headers:
-                self.assertIn(key, first_row, f"Row should contain '{key}'")
-
-            print(f"\nFormatted output contains {result['count']} anatomy classes")
-            print(f"Sample row keys: {list(first_row.keys())}")
+        print(f"\nFormatted output contains {result['count']} anatomy classes")
+        print(f"Sample row keys: {list(first_row.keys())}")
 
     def test_anatomy_expressed_in_limit(self):
         """Test limit parameter restricts number of results"""
         limit = 3
         result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=limit)
 
-        if not result.empty:
-            self.assertLessEqual(len(result), limit, f"Should return at most {limit} results")
-            print(f"\nLimit parameter working: requested {limit}, got {len(result)}")
+        self.assertFalse(result.empty, "Query for a known-populated expression pattern returned no rows")
+        self.assertLessEqual(len(result), limit, f"Should return at most {limit} results")
+        print(f"\nLimit parameter working: requested {limit}, got {len(result)}")
 
     def test_anatomy_expressed_in_empty_result(self):
         """Test query with an id that has no expression overlaps"""
@@ -89,51 +109,54 @@ class TestAnatomyExpressedIn(unittest.TestCase):
         print(f"\nEmpty result handling works correctly")
 
     def test_anatomy_expressed_in_publication_data(self):
-        """Test that publication data is properly formatted when present"""
+        """Test that publication data is formatted as markdown links when present.
+
+        v1.14.7: the pubs column is a `; `-joined string of `[label](id)`
+        markdown links (rendered by V2's QueryLinkArrayComponent), not the
+        legacy list-of-pub-dicts. An anatomy row with no citation is an empty
+        string.
+        """
         result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=10)
 
-        if not result.empty:
-            self.assertIn('pubs', result.columns, "Should have 'pubs' column")
+        self.assertFalse(result.empty, "Query for a known-populated expression pattern returned no rows")
+        self.assertIn('pubs', result.columns, "Should have 'pubs' column")
 
-            for idx, row in result.iterrows():
-                if row['pubs']:
-                    pubs = row['pubs']
-                    self.assertIsInstance(pubs, list, "Publications should be a list")
-
-                    if pubs:
-                        first_pub = pubs[0]
-                        self.assertIsInstance(first_pub, dict, "Publication should be a dict")
-
-                        if 'core' in first_pub:
-                            self.assertIn('short_form', first_pub['core'], "Publication should have short_form")
-
-                        print(f"\nPublication data properly structured")
-                        break
+        for idx, row in result.iterrows():
+            pubs = row['pubs']
+            self.assertIsInstance(pubs, str, "Publications should be a markdown string")
+            if pubs:
+                # Each entry is a `[label](id)` markdown link.
+                self.assertIn('[', pubs, "Publication should contain markdown link start")
+                self.assertIn('](', pubs, "Publication should contain markdown link separator")
+                self.assertIn(')', pubs, "Publication should contain markdown link end")
+                print(f"\nPublication data properly structured: {pubs}")
+                break
 
     def test_anatomy_expressed_in_markdown_encoding(self):
         """Test that markdown links are properly formatted"""
         result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=5)
 
-        if not result.empty:
-            for name in result['name']:
-                self.assertIn('[', name, "Name should contain markdown link start")
-                self.assertIn('](', name, "Name should contain markdown link separator")
-                self.assertIn(')', name, "Name should contain markdown link end")
+        self.assertFalse(result.empty, "Query for a known-populated expression pattern returned no rows")
+        for name in result['name']:
+            self.assertIn('[', name, "Name should contain markdown link start")
+            self.assertIn('](', name, "Name should contain markdown link separator")
+            self.assertIn(')', name, "Name should contain markdown link end")
 
-            print(f"\nMarkdown links properly formatted")
+        print(f"\nMarkdown links properly formatted")
 
     def test_anatomy_expressed_in_tags_format(self):
         """Test that tags are properly formatted as pipe-separated strings"""
         result = vq.get_expression_overlaps_here('VFBexp_FBtp0001321', return_dataframe=True, limit=5)
 
-        if not result.empty and 'tags' in result.columns:
-            for tags in result['tags']:
-                if pd.notna(tags) and tags:
-                    self.assertIsInstance(tags, str, "Tags should be string type")
-                    parts = tags.split('|')
-                    self.assertTrue(all(isinstance(p, str) for p in parts), "Tag parts should be strings")
+        self.assertFalse(result.empty, "Query for a known-populated expression pattern returned no rows")
+        self.assertIn('tags', result.columns, "Should have 'tags' column")
+        for tags in result['tags']:
+            if pd.notna(tags) and tags:
+                self.assertIsInstance(tags, str, "Tags should be string type")
+                parts = tags.split('|')
+                self.assertTrue(all(isinstance(p, str) for p in parts), "Tag parts should be strings")
 
-            print(f"\nTags format verified")
+        print(f"\nTags format verified")
 
 
 class TestAnatomyExpressedInSchema(unittest.TestCase):
@@ -159,7 +182,12 @@ class TestAnatomyExpressedInSchema(unittest.TestCase):
         self.assertEqual(schema.function, "get_expression_overlaps_here")
         self.assertIn("Anatomy where", schema.label)
         self.assertEqual(schema.preview, 5)
-        self.assertEqual(schema.preview_columns, ["id", "name", "tags", "pubs"])
+        # v1.14.2: gained Stage / Template / Imaging Technique / Thumbnail
+        # columns to match the legacy ExpressionOverlapsHere column shape.
+        self.assertEqual(
+            schema.preview_columns,
+            ["id", "name", "pubs", "tags", "stages", "template", "technique", "thumbnail"],
+        )
 
         # takes constrains the input to an expression pattern (or fragment)
         self.assertIn("short_form", schema.takes)

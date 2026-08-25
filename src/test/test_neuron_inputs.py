@@ -46,14 +46,15 @@ class NeuronInputsTest(unittest.TestCase):
         self.assertIsInstance(result, dict, "Result should be a dictionary")
         print(f"Query returned {result.get('count', 0)} total results")
         
-        if 'rows' in result and len(result['rows']) > 0:
-            first_result = result['rows'][0]
-            self.assertIn('id', first_result, "Result should contain 'id' field")
-            self.assertIn('Neurotransmitter', first_result, "Result should contain 'Neurotransmitter' field")
-            self.assertIn('Weight', first_result, "Result should contain 'Weight' field")
-            print(f"First result: {first_result.get('Neurotransmitter', 'N/A')} (weight: {first_result.get('Weight', 0)})")
-        else:
-            print("No input neurons found (this is OK if none exist)")
+        # VFB_jrchk00s (LPC1) is a known connectome neuron with inputs, so an
+        # empty result is a defect. A backend outage skips this upstream
+        # (conftest.py) rather than reaching here empty.
+        self.assertTrue(result.get('rows'), "Query for a neuron with known inputs returned no rows")
+        first_result = result['rows'][0]
+        self.assertIn('id', first_result, "Result should contain 'id' field")
+        self.assertIn('Neurotransmitter', first_result, "Result should contain 'Neurotransmitter' field")
+        self.assertIn('Weight', first_result, "Result should contain 'Weight' field")
+        print(f"First result: {first_result.get('Neurotransmitter', 'N/A')} (weight: {first_result.get('Weight', 0)})")
 
     def test_schema_generation(self):
         """Test that the schema function works correctly"""
@@ -108,20 +109,18 @@ class NeuronInputsTest(unittest.TestCase):
             limit=5
         )
         
-        if 'rows' in result and len(result['rows']) > 0:
-            # Check that all expected columns exist in the results
-            expected_columns = ['id', 'Neurotransmitter', 'Weight', 'Name']
-            for item in result['rows']:
-                for col in expected_columns:
-                    self.assertIn(col, item, f"Result should contain '{col}' field")
-            
-            print(f"✓ All {len(result['rows'])} results have required columns")
-            
-            # Print sample results
-            for i, item in enumerate(result['rows'][:3], 1):
-                print(f"{i}. {item.get('Name', 'N/A')} - {item.get('Neurotransmitter', 'N/A')} (weight: {item.get('Weight', 0)})")
-        else:
-            print("No preview data available (query returned no results)")
+        self.assertTrue(result.get('rows'), "Query for a neuron with known inputs returned no rows")
+        # Check that all expected columns exist in the results
+        expected_columns = ['id', 'Neurotransmitter', 'Weight', 'Name']
+        for item in result['rows']:
+            for col in expected_columns:
+                self.assertIn(col, item, f"Result should contain '{col}' field")
+
+        print(f"✓ All {len(result['rows'])} results have required columns")
+
+        # Print sample results
+        for i, item in enumerate(result['rows'][:3], 1):
+            print(f"{i}. {item.get('Name', 'N/A')} - {item.get('Neurotransmitter', 'N/A')} (weight: {item.get('Weight', 0)})")
 
     def test_neurotransmitter_info(self):
         """Test that neurotransmitter information is included"""
@@ -132,19 +131,17 @@ class NeuronInputsTest(unittest.TestCase):
             limit=10
         )
         
-        if 'rows' in result and len(result['rows']) > 0:
-            # Check that neurotransmitter field exists and has values
-            neurotransmitters = set()
-            for row in result['rows']:
-                nt = row.get('Neurotransmitter', '')
-                if nt:
-                    neurotransmitters.add(nt)
-            
-            print(f"✓ Found {len(neurotransmitters)} different neurotransmitter type(s)")
-            if neurotransmitters:
-                print(f"  Types: {', '.join(list(neurotransmitters)[:5])}")
-        else:
-            print("No results to check neurotransmitter information")
+        self.assertTrue(result.get('rows'), "Query for a neuron with known inputs returned no rows")
+        # Check that neurotransmitter field exists and has values
+        neurotransmitters = set()
+        for row in result['rows']:
+            nt = row.get('Neurotransmitter', '')
+            if nt:
+                neurotransmitters.add(nt)
+
+        print(f"✓ Found {len(neurotransmitters)} different neurotransmitter type(s)")
+        if neurotransmitters:
+            print(f"  Types: {', '.join(list(neurotransmitters)[:5])}")
 
     def test_summary_mode(self):
         """Test that summary mode works correctly"""
@@ -158,13 +155,11 @@ class NeuronInputsTest(unittest.TestCase):
         self.assertIsNotNone(result, "Summary mode should return a result")
         self.assertIsInstance(result, dict, "Result should be a dictionary")
         
-        if 'rows' in result and len(result['rows']) > 0:
-            # In summary mode, results are grouped by neurotransmitter type
-            print(f"✓ Summary mode returned {len(result['rows'])} neurotransmitter types")
-            for i, item in enumerate(result['rows'][:3], 1):
-                print(f"{i}. {item.get('Neurotransmitter', 'N/A')} - Total weight: {item.get('Weight', 0)}")
-        else:
-            print("No summary data available")
+        self.assertTrue(result.get('rows'), "Summary mode for a neuron with known inputs returned no rows")
+        # In summary mode, results are grouped by neurotransmitter type
+        print(f"✓ Summary mode returned {len(result['rows'])} neurotransmitter types")
+        for i, item in enumerate(result['rows'][:3], 1):
+            print(f"{i}. {item.get('Neurotransmitter', 'N/A')} - Total weight: {item.get('Weight', 0)}")
 
     def test_dataframe_output(self):
         """Test that DataFrame output format works"""
@@ -178,17 +173,14 @@ class NeuronInputsTest(unittest.TestCase):
         # Should return a pandas DataFrame
         import pandas as pd
         self.assertIsInstance(result, pd.DataFrame, "Should return DataFrame when return_dataframe=True")
-        
-        if not result.empty:
-            # Check for expected columns
-            expected_columns = ['id', 'Neurotransmitter', 'Weight']
-            for col in expected_columns:
-                self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
-            
-            print(f"✓ DataFrame has {len(result)} rows and {len(result.columns)} columns")
-            print(f"  Columns: {list(result.columns)}")
-        else:
-            print("DataFrame is empty (no input neurons found)")
+        self.assertFalse(result.empty, "Query for a neuron with known inputs returned no rows")
+        # Check for expected columns
+        expected_columns = ['id', 'Neurotransmitter', 'Weight']
+        for col in expected_columns:
+            self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
+
+        print(f"✓ DataFrame has {len(result)} rows and {len(result.columns)} columns")
+        print(f"  Columns: {list(result.columns)}")
 
 
 if __name__ == '__main__':

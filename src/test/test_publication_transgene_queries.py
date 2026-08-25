@@ -30,7 +30,10 @@ class PublicationTransgeneQueriesTest(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.pub_term = 'DOI_10_7554_eLife_04577'  # Example publication
+        # FBrf0227179 = Aso et al. 2014, eLife 3:e04577 (86 terms). The previous
+        # value 'DOI_10_7554_eLife_04577' was not a node in the graph, so
+        # get_terms_for_pub returned 0 and the guards below passed vacuously.
+        self.pub_term = 'FBrf0227179'  # a publication with referenced terms
         self.anatomy_term = 'FBbt_00003748'  # mushroom body
         
     def test_get_terms_for_pub(self):
@@ -39,38 +42,38 @@ class PublicationTransgeneQueriesTest(unittest.TestCase):
         self.assertIsNotNone(result, "Result should not be None")
         
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} terms for publication {self.pub_term}")
-            self.assertIn('id', result.columns)
-            self.assertIn('label', result.columns)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.pub_term} should have referenced terms")
+        print(f"\n✓ Found {len(result)} terms for publication {self.pub_term}")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
             
     def test_get_terms_for_pub_formatted(self):
         """Test get_terms_for_pub with formatted output"""
         result = get_terms_for_pub(self.pub_term, return_dataframe=False, limit=5)
-        self.assertIsNotNone(result)
-        
-        if isinstance(result, dict):
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
-            
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertTrue(result['rows'], f"{self.pub_term} should have referenced terms")
+
     def test_get_transgene_expression_here(self):
         """Test get_transgene_expression_here query"""
         result = get_transgene_expression_here(self.anatomy_term, return_dataframe=True, limit=10)
         self.assertIsNotNone(result, "Result should not be None")
-        
+
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} transgene expressions in {self.anatomy_term}")
-            self.assertIn('id', result.columns)
-            
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.anatomy_term} should have transgene expression")
+        print(f"\n✓ Found {len(result)} transgene expressions in {self.anatomy_term}")
+        self.assertIn('id', result.columns)
+
     def test_get_transgene_expression_formatted(self):
         """Test get_transgene_expression_here with formatted output"""
         result = get_transgene_expression_here(self.anatomy_term, return_dataframe=False, limit=5)
-        self.assertIsNotNone(result)
-        
-        if isinstance(result, dict):
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertTrue(result['rows'], f"{self.anatomy_term} should have transgene expression")
             
     def test_schema_functions_exist(self):
         """Test that publication/transgene schema functions exist and are callable"""
@@ -85,10 +88,11 @@ class PublicationTransgeneQueriesTest(unittest.TestCase):
     def test_limit_parameter(self):
         """Test that limit parameter works correctly"""
         result = get_terms_for_pub(self.pub_term, return_dataframe=True, limit=3)
-        
+
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            self.assertLessEqual(len(result), 3, "Result should respect limit parameter")
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.pub_term} should have referenced terms")
+        self.assertLessEqual(len(result), 3, "Result should respect limit parameter")
             
     def test_empty_results_handling(self):
         """Test that queries handle empty results gracefully"""

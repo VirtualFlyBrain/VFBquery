@@ -115,5 +115,6 @@ class TestComboPubsTableSchema:
         fbrf = result["headers"]["fbrf"]
         assert fbrf["type"] == "text"
         assert fbrf["order"] >= 0
-        if result["rows"]:
-            assert result["rows"][0]["id"] == result["rows"][0]["fbrf"]
+        # FBco0000052 has publications, so an empty result is a defect.
+        assert result["rows"], "KNOWN_COMBO_ID should have publications"
+        assert result["rows"][0]["id"] == result["rows"][0]["fbrf"]

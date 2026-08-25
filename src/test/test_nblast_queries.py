@@ -42,62 +42,64 @@ class NBLASTQueriesTest(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.nblast_term = 'VFB_00101567'  # Has NBLAST matches
-        self.neuron_term = 'VFB_00050000'  # Example neuron
+        # Real fixtures. The old values (VFB_00101567 / VFB_00050000) were
+        # TEMPLATES, not neurons, so every NBLAST query returned 0 and the
+        # len>0 guards below passed vacuously. Verified counts: NBLAST 215,
+        # NeuronBridge 15, NBLASTexp 20, reverse-NBLASTexp 14, NB-exp 40.
+        self.nblast_term = 'VFB_jrchk00s'     # neuron with NBLAST + NeuronBridge matches
+        self.nblastexp_term = 'VFB_00016103'  # neuron with NBLASTexp matches
+        self.exp_term = 'VFB_001012yj'        # expression pattern with NBLASTexp + NeuronBridge
         
     def test_get_similar_morphology(self):
         """Test get_similar_morphology query"""
-        result = get_similar_morphology(self.nblast_term, return_dataframe=True, limit=5)
-        self.assertIsNotNone(result, "Result should not be None")
-        
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} NBLAST matches for {self.nblast_term}")
-            self.assertIn('id', result.columns)
-            self.assertIn('label', result.columns)
-            self.assertIn('score', result.columns)
-            
+        result = get_similar_morphology(self.nblast_term, return_dataframe=True, limit=5)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.nblast_term} should have NBLAST matches")
+        print(f"\n✓ Found {len(result)} NBLAST matches for {self.nblast_term}")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('score', result.columns)
+
     def test_get_similar_morphology_formatted(self):
         """Test get_similar_morphology with formatted output"""
         result = get_similar_morphology(self.nblast_term, return_dataframe=False, limit=3)
-        self.assertIsNotNone(result)
-        
-        if isinstance(result, dict):
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
-            
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertTrue(result['rows'], f"{self.nblast_term} should have NBLAST matches")
+
     def test_get_similar_morphology_part_of(self):
         """Test get_similar_morphology_part_of (NBLASTexp)"""
-        result = get_similar_morphology_part_of(self.neuron_term, return_dataframe=True, limit=5)
-        self.assertIsNotNone(result)
-        
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} NBLASTexp matches for {self.neuron_term}")
-            
+        result = get_similar_morphology_part_of(self.nblastexp_term, return_dataframe=True, limit=5)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.nblastexp_term} should have NBLASTexp matches")
+        print(f"\n✓ Found {len(result)} NBLASTexp matches for {self.nblastexp_term}")
+
     def test_get_similar_morphology_part_of_exp(self):
         """Test get_similar_morphology_part_of_exp (reverse NBLASTexp)"""
-        result = get_similar_morphology_part_of_exp(self.neuron_term, return_dataframe=True, limit=5)
-        self.assertIsNotNone(result)
-        
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} reverse NBLASTexp matches")
-            
+        result = get_similar_morphology_part_of_exp(self.exp_term, return_dataframe=True, limit=5)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.exp_term} should have reverse-NBLASTexp matches")
+        print(f"\n✓ Found {len(result)} reverse NBLASTexp matches")
+
     def test_get_similar_morphology_nb(self):
         """Test get_similar_morphology_nb (NeuronBridge)"""
-        result = get_similar_morphology_nb(self.neuron_term, return_dataframe=True, limit=5)
-        self.assertIsNotNone(result)
-        
         import pandas as pd
-        if isinstance(result, pd.DataFrame) and len(result) > 0:
-            print(f"\n✓ Found {len(result)} NeuronBridge matches")
-            self.assertIn('score', result.columns)
-            
+        result = get_similar_morphology_nb(self.nblast_term, return_dataframe=True, limit=5)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.nblast_term} should have NeuronBridge matches")
+        print(f"\n✓ Found {len(result)} NeuronBridge matches")
+        self.assertIn('score', result.columns)
+
     def test_get_similar_morphology_nb_exp(self):
         """Test get_similar_morphology_nb_exp (NeuronBridge for expression)"""
-        result = get_similar_morphology_nb_exp(self.neuron_term, return_dataframe=True, limit=5)
-        self.assertIsNotNone(result)
+        import pandas as pd
+        result = get_similar_morphology_nb_exp(self.exp_term, return_dataframe=True, limit=5)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.exp_term} should have NeuronBridge-exp matches")
         
     def test_schema_functions_exist(self):
         """Test that all NBLAST schema functions exist and are callable"""

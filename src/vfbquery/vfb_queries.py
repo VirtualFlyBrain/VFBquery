@@ -1543,10 +1543,13 @@ def term_info_parse_object(results, short_form):
 
             termInfo["Publications"] = publications
 
-        # Add Synonyms for Class entities. pub_syn holds one entry per
-        # (synonym, pub); get_merged_synonyms() collapses these to one entry per
-        # synonym with the combined refs and drops the Unattributed placeholder.
-        if termInfo["SuperTypes"] and "Class" in termInfo["SuperTypes"] and vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
+        # Add Synonyms from pub_syn — for Classes AND Individuals. An image
+        # individual can carry a pub-attributed synonym (e.g. VFB_00101385 =
+        # "MEon JRC_FlyEM_Hemibrain"); gating this on "Class" dropped those.
+        # pub_syn holds one entry per (synonym, pub); get_merged_synonyms()
+        # collapses these to one entry per synonym with the combined refs and
+        # drops the Unattributed placeholder.
+        if vfbTerm.pub_syn and len(vfbTerm.pub_syn) > 0:
             synonyms = vfbTerm.get_merged_synonyms()
             # Only add the synonyms if we found any
             if synonyms:
@@ -3755,8 +3758,12 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
             WITH anat
             OPTIONAL MATCH (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH anat, i, template_anat, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
+            // input anat for which it yields no rows is dropped entirely. Anatomy
+            // classes rarely have this image path, so the filter emptied the whole
+            // table (count 79 -> 0 rows) and desynced it from count_query. The
+            // all-null row is stripped to '' by the REPLACE below, so the anat
+            // still returns a row (empty thumbnail/template/technique).
             WITH anat, i, template_anat, technique, irw LIMIT 5
             WITH anat, collect({{i: i, template_anat: template_anat, technique: technique, irw: irw}}) AS imgs
             WITH anat, imgs, head(imgs) AS rep
@@ -6597,8 +6604,11 @@ def _dataset_enrichment_cypher(ds_var: str = "ds") -> str:
             WITH {ds_var}
             OPTIONAL MATCH ({ds_var})<-[:has_source]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH {ds_var}, i, templ, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so a
+            // {ds_var} for which it yields no rows is dropped entirely. A dataset
+            // with no aligned image would vanish from the results (and desync
+            // from any count); the all-null row is stripped to '' by the REPLACE
+            // below, so the dataset still returns a row (empty thumbnail).
             WITH {ds_var}, i, templ, technique, irw LIMIT 5
             WITH {ds_var}, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
             WITH {ds_var}, imgs, head(imgs) AS rep
@@ -6678,7 +6688,23 @@ def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit:
     Imaging_Technique, Images, Image_count). Closes the v2 parity gap
     flagged in projects/geppetto-vfbquery-migration/V2_V2DEV_PARITY_SWEEP.md.
     """
-    count_query = f"MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds) RETURN count(ds) AS count"
+    # Anchor the MATCH on the template (indexed short_form) and walk OUT to the
+    # datasets, rather than `MATCH (ds:DataSet) WHERE <path back to template>`.
+    # The old dataset-anchored form let the planner enumerate every DataSet and
+    # verify the path per dataset — which walks that dataset's whole image set,
+    # so cost scaled with the graph's total aligned-image volume (tens of
+    # thousands) regardless of the handful of datasets that actually match. The
+    # template-anchored form only touches images aligned to THIS template:
+    # measured 6.6s -> 0.6s (count) and 22.4s -> 0.9s (main) on the Hemibrain,
+    # same rows. `count(DISTINCT ds)` because the path now expands to one row
+    # per aligned image, not one existence-check per dataset.
+    template_datasets_match = (
+        f"MATCH (:Template:Individual {{short_form:'{template_short_form}'}})"
+        "<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)"
+        "-[:depicts]->(:Individual)-[:has_source]->(ds:DataSet:Individual) "
+        "WHERE NOT ds:Deprecated"
+    )
+    count_query = f"{template_datasets_match} RETURN count(DISTINCT ds) AS count"
     count_results = vc.nc.commit_list([count_query])
     total_count = get_dict_cursor()(count_results)[0]['count'] if count_results else 0
 
@@ -6688,7 +6714,7 @@ def get_aligned_datasets(template_short_form: str, return_dataframe=True, limit:
     # the limit only trims afterwards. That blew past the THRESHOLD_MEDIUM
     # (3 s) perf-test budget on CI.
     limit_clause = f"LIMIT {limit}" if limit != -1 else ""
-    main_query = f"""MATCH (ds:DataSet:Individual) WHERE NOT ds:Deprecated AND (:Template:Individual {{short_form:'{template_short_form}'}})<-[:depicts]-(:Template:Individual)-[:in_register_with]-(:Individual)-[:depicts]->(:Individual)-[:has_source]->(ds)
+    main_query = f"""{template_datasets_match}
         WITH DISTINCT ds
         ORDER BY coalesce(ds.label, ds.short_form)
         {limit_clause}
@@ -6990,8 +7016,15 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             WITH ep
             OPTIONAL MATCH (ep)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
             OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            WITH ep, i, templ, technique, irw
-            WHERE i IS NOT NULL
+            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
+            // input ep for which it yields no rows is dropped from the result
+            // entirely. Filtering image-less EPs desynced the table from
+            // count_query (which has no image filter) and silently hid every
+            // expression pattern with no aligned image — e.g. splits targeting a
+            // neuron that carry no registered image. When there is no image the
+            // OPTIONAL MATCH yields one all-null row; the null placeholders are
+            // stripped to '' by the REPLACE below, so the ep still returns a row
+            // (empty thumbnail/template/technique) and stays in the results.
             WITH ep, i, templ, technique, irw LIMIT 5
             WITH ep, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
             WITH ep, imgs, head(imgs) AS rep

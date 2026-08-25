@@ -37,30 +37,30 @@ class ImagesNeuronsTest(unittest.TestCase):
         
         # Check result type - handle both DataFrame and dict (from cache)
         import pandas as pd
+        # The antennal lobe (FBbt_00007401) has individual neuron images, so an
+        # empty result is a defect. A backend outage skips this upstream
+        # (conftest.py) rather than reaching here empty.
         if isinstance(result, pd.DataFrame):
-            # DataFrame result
-            if len(result) > 0:
-                print(f"\n✓ Found {len(result)} individual neuron images for {self.test_term}")
-                
-                # Verify DataFrame has expected columns
-                self.assertIn('id', result.columns, "Result should have 'id' column")
-                self.assertIn('label', result.columns, "Result should have 'label' column")
-                
-                # Print first few results for verification
-                print("\nSample results:")
-                for idx, row in result.head(3).iterrows():
-                    print(f"  - {row.get('label', 'N/A')} ({row.get('id', 'N/A')})")
-            else:
-                print(f"\n⚠ No individual neuron images found for {self.test_term} (this may be expected)")
+            self.assertFalse(result.empty, f"{self.test_term} should have neuron images")
+            print(f"\n✓ Found {len(result)} individual neuron images for {self.test_term}")
+
+            # Verify DataFrame has expected columns
+            self.assertIn('id', result.columns, "Result should have 'id' column")
+            self.assertIn('label', result.columns, "Result should have 'label' column")
+
+            # Print first few results for verification
+            print("\nSample results:")
+            for idx, row in result.head(3).iterrows():
+                print(f"  - {row.get('label', 'N/A')} ({row.get('id', 'N/A')})")
         elif isinstance(result, dict):
             # Dict result (from cache)
             count = result.get('count', 0)
             rows = result.get('rows', [])
+            self.assertTrue(rows, f"{self.test_term} should have neuron images")
             print(f"\n✓ Found {count} total individual neuron images for {self.test_term} (showing {len(rows)})")
-            if rows:
-                print("\nSample results:")
-                for row in rows[:3]:
-                    print(f"  - {row.get('label', 'N/A')} ({row.get('id', 'N/A')})")
+            print("\nSample results:")
+            for row in rows[:3]:
+                print(f"  - {row.get('label', 'N/A')} ({row.get('id', 'N/A')})")
         else:
             self.fail(f"Unexpected result type: {type(result)}")
     
@@ -122,13 +122,11 @@ class ImagesNeuronsTest(unittest.TestCase):
         self.assertIn('headers', result, "Result should have 'headers' key")
         self.assertIn('count', result, "Result should have 'count' key")
         
-        if result['count'] > 0:
-            print(f"\n✓ Preview format validated")
-            print(f"  Total count: {result['count']}")
-            print(f"  Returned rows: {len(result['rows'])}")
-            print(f"  Headers: {list(result['headers'].keys())}")
-        else:
-            print(f"\n⚠ No results in preview (this may be expected)")
+        self.assertGreater(result['count'], 0, f"{self.test_term} should have neuron images")
+        print(f"\n✓ Preview format validated")
+        print(f"  Total count: {result['count']}")
+        print(f"  Returned rows: {len(result['rows'])}")
+        print(f"  Headers: {list(result['headers'].keys())}")
     
     def test_multiple_terms(self):
         """Test query with multiple synaptic neuropil terms"""

@@ -37,6 +37,9 @@ class TestNeuronsSynaptic(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_neurons_synaptic_has_expected_columns(self):
         """Test that result has expected column structure"""
@@ -80,6 +83,9 @@ class TestNeuronsPresynapticHere(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_neurons_presynaptic_has_expected_columns(self):
         """Test that result has expected column structure"""
@@ -123,6 +129,9 @@ class TestNeuronsPostsynapticHere(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_neurons_postsynaptic_has_expected_columns(self):
         """Test that result has expected column structure"""
@@ -166,6 +175,9 @@ class TestComponentsOf(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_components_of_has_expected_columns(self):
         """Test that result has expected column structure"""
@@ -209,6 +221,9 @@ class TestPartsOf(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_parts_of_has_expected_columns(self):
         """Test that result has expected column structure"""
@@ -252,6 +267,9 @@ class TestSubclassesOf(unittest.TestCase):
         self.assertIn('headers', result)
         self.assertIn('rows', result)
         self.assertIn('count', result)
+        # Known-populated term: an empty result is a defect (the empty branch
+        # still returns headers/rows/count, so key-presence alone passes vacuously).
+        self.assertGreater(result['count'], 0, "known-populated term should return results")
     
     def test_subclasses_of_has_expected_columns(self):
         """Test that result has expected column structure"""

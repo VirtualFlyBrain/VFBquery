@@ -9,6 +9,15 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
 
+# One live run per branch. This job hammers production VFB infra for up to two
+# hours; several stacked runs of it are the heaviest load this repo can put on
+# the backend. cancel-in-progress is limited to pull_request events because the
+# push and scheduled runs commit the refreshed performance.md back to main —
+# cancelling one of those loses the measurement rather than just duplicating it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   performance:
     name: "Performance Test"
@@ -35,12 +44,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade -r requirements.txt
+          # Runtime set + test tooling (pytest, pytest-timeout, pytest-xdist —
+          # the last powers the parallel Connectivity Tests step below). The two
+          # files are separate so test tooling stays out of the published
+          # package and the Docker image; see tests/requirements.txt.
+          python -m pip install --upgrade -r requirements.txt -r tests/requirements.txt
           python -m pip install -e .  # Editable install ensures we test the actual source code
-          # pytest-xdist powers the `-n auto` parallel run in the
-          # Connectivity Tests step below. Installed here rather than in
-          # requirements.txt because it's only needed at test time.
-          python -m pip install pytest-xdist
       
       - name: Test Owlery Connectivity
         run: |
@@ -127,12 +136,15 @@ jobs:
         run: |
           # These files are pytest-style (plain classes + @pytest.mark.integration).
           # Run with pytest so the markers are honoured and collection works.
-          # `-n auto` parallelises across all available CPU cores via
-          # pytest-xdist (typically 2-4 on GitHub-hosted ubuntu runners). The
-          # connectivity tests hit the live upstream and don't share fixtures
-          # or in-process state, so they parallelise cleanly. SOLR cache writes
-          # are idempotent so a race between two cold workers on the same
-          # term_id just produces two identical writes.
+          # `-n 4` parallelises via pytest-xdist. The connectivity tests hit the
+          # live upstream and don't share fixtures or in-process state, so they
+          # parallelise cleanly; SOLR cache writes are idempotent, so a race
+          # between two cold workers on the same term_id just produces two
+          # identical writes.
+          # Capped at 4 (was 8): the GitHub-hosted ubuntu runner only has 4
+          # vCPUs, so 8 workers bought no extra throughput — it just doubled the
+          # number of concurrent connectomics queries pointed at production
+          # Neo4j. 4 matches the runner and the "Run Tests" workflow.
           # Auto-retry once on failure — same rationale as Run Performance Test.
           # Per-step log is concatenated into the canonical
           # performance_test_output.log only after the final (possibly retried)
@@ -140,7 +152,7 @@ jobs:
           # grades on the last attempt only.
           set +e
           echo "=== Connectivity test attempt 1/2 (parallel) ==="
-          pytest -v -s -n 8 \
+          pytest -v -s -n 4 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \
@@ -154,7 +166,7 @@ jobs:
           fi
           echo ""
           echo "=== Connectivity attempt 1 failed (exit $FIRST_EXIT). Retrying once with warm cache. ==="
-          pytest -v -s -n 8 \
+          pytest -v -s -n 4 \
             src/test/test_neuron_neuron_connectivity.py \
             src/test/test_neuron_region_connectivity.py \
             src/test/test_upstream_class_connectivity.py \

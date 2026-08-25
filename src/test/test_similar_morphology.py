@@ -48,14 +48,15 @@ class SimilarMorphologyTest(unittest.TestCase):
         self.assertIsInstance(result, dict, "Result should be a dictionary")
         print(f"Query returned {result.get('count', 0)} total results")
         
-        if 'rows' in result and len(result['rows']) > 0:
-            first_result = result['rows'][0]
-            self.assertIn('id', first_result, "Result should contain 'id' field")
-            self.assertIn('name', first_result, "Result should contain 'name' field")
-            self.assertIn('score', first_result, "Result should contain 'score' field")
-            print(f"First result: {first_result.get('name', 'N/A')} (score: {first_result.get('score', 0)})")
-        else:
-            print("No similar neurons found (this is OK if none exist)")
+        # VFB_jrchk00s (LPC1) is documented as having NBLAST data, so an empty
+        # result is a defect. A backend outage skips this upstream (conftest.py)
+        # rather than reaching here empty.
+        self.assertTrue(result.get('rows'), "Query for a neuron with known NBLAST data returned no rows")
+        first_result = result['rows'][0]
+        self.assertIn('id', first_result, "Result should contain 'id' field")
+        self.assertIn('name', first_result, "Result should contain 'name' field")
+        self.assertIn('score', first_result, "Result should contain 'score' field")
+        print(f"First result: {first_result.get('name', 'N/A')} (score: {first_result.get('score', 0)})")
 
     def test_schema_generation(self):
         """Test that the schema function works correctly"""
@@ -107,20 +108,18 @@ class SimilarMorphologyTest(unittest.TestCase):
             limit=5
         )
         
-        if 'rows' in result and len(result['rows']) > 0:
-            # Check that all preview columns exist in the results
-            expected_columns = ['id', 'name', 'score', 'tags']
-            for item in result['rows']:
-                for col in expected_columns:
-                    self.assertIn(col, item, f"Result should contain '{col}' field")
-            
-            print(f"✓ All {len(result['rows'])} results have required preview columns")
-            
-            # Print sample results
-            for i, item in enumerate(result['rows'][:3], 1):
-                print(f"{i}. {item.get('name', 'N/A')} - Score: {item.get('score', 0)}")
-        else:
-            print("No preview data available (query returned no results)")
+        self.assertTrue(result.get('rows'), "Query for a neuron with known NBLAST data returned no rows")
+        # Check that all preview columns exist in the results
+        expected_columns = ['id', 'name', 'score', 'tags']
+        for item in result['rows']:
+            for col in expected_columns:
+                self.assertIn(col, item, f"Result should contain '{col}' field")
+
+        print(f"✓ All {len(result['rows'])} results have required preview columns")
+
+        # Print sample results
+        for i, item in enumerate(result['rows'][:3], 1):
+            print(f"{i}. {item.get('name', 'N/A')} - Score: {item.get('score', 0)}")
 
     def test_score_ordering(self):
         """Test that results are ordered by score descending"""
@@ -132,20 +131,19 @@ class SimilarMorphologyTest(unittest.TestCase):
             limit=10
         )
         
-        if 'rows' in result and len(result['rows']) > 1:
-            scores = [float(row.get('score', 0)) for row in result['rows']]
-            # Check that scores are in descending order
-            for i in range(len(scores) - 1):
-                self.assertGreaterEqual(
-                    scores[i], 
-                    scores[i + 1],
-                    f"Scores should be in descending order: {scores[i]} >= {scores[i+1]}"
-                )
-            print(f"✓ Scores are properly ordered (descending)")
-            print(f"  Highest score: {scores[0]}")
-            print(f"  Lowest score: {scores[-1]}")
-        else:
-            print("Not enough results to test ordering")
+        self.assertTrue(result.get('rows'), "Query for a neuron with known NBLAST data returned no rows")
+        scores = [float(row.get('score', 0)) for row in result['rows']]
+        # Check that scores are in descending order (a single-row result trivially
+        # satisfies this; the query for this neuron returns many).
+        for i in range(len(scores) - 1):
+            self.assertGreaterEqual(
+                scores[i],
+                scores[i + 1],
+                f"Scores should be in descending order: {scores[i]} >= {scores[i+1]}"
+            )
+        print(f"✓ Scores are properly ordered (descending)")
+        print(f"  Highest score: {scores[0]}")
+        print(f"  Lowest score: {scores[-1]}")
 
     def test_dataframe_output(self):
         """Test that DataFrame output format works"""
@@ -160,17 +158,14 @@ class SimilarMorphologyTest(unittest.TestCase):
         # Should return a pandas DataFrame
         import pandas as pd
         self.assertIsInstance(result, pd.DataFrame, "Should return DataFrame when return_dataframe=True")
-        
-        if not result.empty:
-            # Check for expected columns
-            expected_columns = ['id', 'name', 'score', 'tags']
-            for col in expected_columns:
-                self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
-            
-            print(f"✓ DataFrame has {len(result)} rows and {len(result.columns)} columns")
-            print(f"  Columns: {list(result.columns)}")
-        else:
-            print("DataFrame is empty (no similar neurons found)")
+        self.assertFalse(result.empty, "Query for a neuron with known NBLAST data returned no rows")
+        # Check for expected columns
+        expected_columns = ['id', 'name', 'score', 'tags']
+        for col in expected_columns:
+            self.assertIn(col, result.columns, f"DataFrame should contain '{col}' column")
+
+        print(f"✓ DataFrame has {len(result)} rows and {len(result.columns)} columns")
+        print(f"  Columns: {list(result.columns)}")
 
 
 if __name__ == '__main__':

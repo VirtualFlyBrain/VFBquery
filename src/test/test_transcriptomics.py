@@ -20,29 +20,30 @@ class TranscriptomicsQueriesTest(unittest.TestCase):
     
     # Test data - known terms with scRNAseq data
     # These are examples from the VFB knowledge base
-    ANATOMY_WITH_SCRNASEQ = "FBbt_00003982"  # adult brain - should have scRNAseq data
-    CLUSTER_ID = "VFBc_00101567"  # Example cluster ID (may need to be updated with real data)
-    GENE_ID = "FBgn_00000024"  # Example gene ID (may need to be updated with real data)
-    DATASET_ID = "VFBds_00001234"  # Example dataset ID (may need to be updated with real data)
+    # Real fixtures (the previous values were placeholders / a Channel node, so
+    # every query returned 0 or raised, and the guards below passed vacuously or
+    # skipped). Verified counts: anatomy 3, cluster 2647, gene 3290, dataset 555.
+    ANATOMY_WITH_SCRNASEQ = "FBbt_00100163"  # a cell type with scRNAseq clusters
+    CLUSTER_ID = "FBlc0006181"   # an scRNAseq cluster
+    GENE_ID = "FBgn0283521"      # a gene expressed across clusters
+    DATASET_ID = "FBlc0004785"   # an scRNAseq dataset
     
     def test_anatomy_scrnaseq_basic_dataframe(self):
         """Test anatScRNAseqQuery returns DataFrame"""
         result = vfb.get_anatomy_scrnaseq(self.ANATOMY_WITH_SCRNASEQ, return_dataframe=True)
         
         self.assertIsInstance(result, pd.DataFrame)
-        
-        # If data exists, check structure
-        if not result.empty:
-            self.assertIn('id', result.columns)
-            self.assertIn('name', result.columns)
-            self.assertIn('tags', result.columns)
-            self.assertIn('dataset', result.columns)
-            self.assertIn('pubs', result.columns)
-            
-            # Check that all IDs start with expected prefix
-            for idx, row in result.iterrows():
-                self.assertTrue(row['id'].startswith('VFB'), 
-                              f"Cluster ID should start with VFB, got: {row['id']}")
+        self.assertFalse(result.empty, f"{self.ANATOMY_WITH_SCRNASEQ} should have scRNAseq clusters")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('tags', result.columns)
+        self.assertIn('dataset', result.columns)
+        self.assertIn('pubs', result.columns)
+
+        # Cluster IDs are FlyBase library-cluster ids (FBlc...).
+        for idx, row in result.iterrows():
+            self.assertTrue(row['id'].startswith('FBlc'),
+                            f"Cluster ID should start with FBlc, got: {row['id']}")
     
     def test_anatomy_scrnaseq_formatted_output(self):
         """Test anatScRNAseqQuery returns properly formatted dict"""
@@ -64,120 +65,95 @@ class TranscriptomicsQueriesTest(unittest.TestCase):
     def test_anatomy_scrnaseq_limit(self):
         """Test anatScRNAseqQuery respects limit parameter"""
         result = vfb.get_anatomy_scrnaseq(self.ANATOMY_WITH_SCRNASEQ, return_dataframe=True, limit=5)
-        
+
         self.assertIsInstance(result, pd.DataFrame)
-        if not result.empty:
-            self.assertLessEqual(len(result), 5)
+        self.assertFalse(result.empty, f"{self.ANATOMY_WITH_SCRNASEQ} should have scRNAseq clusters")
+        self.assertLessEqual(len(result), 5)
     
     def test_cluster_expression_basic_dataframe(self):
         """Test clusterExpression returns DataFrame"""
-        # Note: This test may need adjustment based on actual cluster IDs in the database
-        # For now, we'll just test that the function runs without error
-        try:
-            result = vfb.get_cluster_expression(self.CLUSTER_ID, return_dataframe=True)
-            self.assertIsInstance(result, pd.DataFrame)
-            
-            # If data exists, check structure
-            if not result.empty:
-                self.assertIn('id', result.columns)
-                self.assertIn('name', result.columns)
-                self.assertIn('tags', result.columns)
-                self.assertIn('expression_level', result.columns)
-                self.assertIn('expression_extent', result.columns)
-                self.assertIn('anatomy', result.columns)
-        except Exception as e:
-            # Skip test if cluster ID doesn't exist in current database
-            self.skipTest(f"Cluster ID {self.CLUSTER_ID} may not exist in database: {e}")
+        # No try/except -> skipTest here: with a real fixture, a raised error is
+        # a genuine problem (a backend outage is skipped upstream by conftest.py).
+        result = vfb.get_cluster_expression(self.CLUSTER_ID, return_dataframe=True)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.CLUSTER_ID} should have expression data")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('tags', result.columns)
+        self.assertIn('expression_level', result.columns)
+        self.assertIn('expression_extent', result.columns)
+        self.assertIn('anatomy', result.columns)
     
     def test_cluster_expression_formatted_output(self):
         """Test clusterExpression returns properly formatted dict"""
-        try:
-            result = vfb.get_cluster_expression(self.CLUSTER_ID, return_dataframe=False)
-            
-            self.assertIsInstance(result, dict)
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
-            self.assertIn('count', result)
-            
-            # Check headers structure
-            headers = result['headers']
-            self.assertIn('id', headers)
-            self.assertIn('name', headers)
-            self.assertIn('expression_level', headers)
-            self.assertIn('expression_extent', headers)
-        except Exception as e:
-            self.skipTest(f"Cluster ID {self.CLUSTER_ID} may not exist in database: {e}")
+        result = vfb.get_cluster_expression(self.CLUSTER_ID, return_dataframe=False)
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertIn('count', result)
+        self.assertTrue(result['rows'], f"{self.CLUSTER_ID} should have expression data")
+
+        # Check headers structure
+        headers = result['headers']
+        self.assertIn('id', headers)
+        self.assertIn('name', headers)
+        self.assertIn('expression_level', headers)
+        self.assertIn('expression_extent', headers)
     
     def test_expression_cluster_basic_dataframe(self):
         """Test expressionCluster returns DataFrame"""
-        try:
-            result = vfb.get_expression_cluster(self.GENE_ID, return_dataframe=True)
-            self.assertIsInstance(result, pd.DataFrame)
-            
-            # If data exists, check structure
-            if not result.empty:
-                self.assertIn('id', result.columns)
-                self.assertIn('name', result.columns)
-                self.assertIn('tags', result.columns)
-                self.assertIn('expression_level', result.columns)
-                self.assertIn('expression_extent', result.columns)
-                self.assertIn('anatomy', result.columns)
-        except Exception as e:
-            self.skipTest(f"Gene ID {self.GENE_ID} may not exist in database: {e}")
+        result = vfb.get_expression_cluster(self.GENE_ID, return_dataframe=True)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.GENE_ID} should have expression clusters")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('tags', result.columns)
+        self.assertIn('expression_level', result.columns)
+        self.assertIn('expression_extent', result.columns)
+        self.assertIn('anatomy', result.columns)
     
     def test_expression_cluster_formatted_output(self):
         """Test expressionCluster returns properly formatted dict"""
-        try:
-            result = vfb.get_expression_cluster(self.GENE_ID, return_dataframe=False)
-            
-            self.assertIsInstance(result, dict)
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
-            self.assertIn('count', result)
-            
-            # Check headers structure
-            headers = result['headers']
-            self.assertIn('id', headers)
-            self.assertIn('name', headers)
-            self.assertIn('expression_level', headers)
-            self.assertIn('expression_extent', headers)
-        except Exception as e:
-            self.skipTest(f"Gene ID {self.GENE_ID} may not exist in database: {e}")
+        result = vfb.get_expression_cluster(self.GENE_ID, return_dataframe=False)
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertIn('count', result)
+        self.assertTrue(result['rows'], f"{self.GENE_ID} should have expression clusters")
+
+        # Check headers structure
+        headers = result['headers']
+        self.assertIn('id', headers)
+        self.assertIn('name', headers)
+        self.assertIn('expression_level', headers)
+        self.assertIn('expression_extent', headers)
     
     def test_scrnaseq_dataset_basic_dataframe(self):
         """Test scRNAdatasetData returns DataFrame"""
-        try:
-            result = vfb.get_scrnaseq_dataset_data(self.DATASET_ID, return_dataframe=True)
-            self.assertIsInstance(result, pd.DataFrame)
-            
-            # If data exists, check structure
-            if not result.empty:
-                self.assertIn('id', result.columns)
-                self.assertIn('name', result.columns)
-                self.assertIn('tags', result.columns)
-                self.assertIn('anatomy', result.columns)
-                self.assertIn('pubs', result.columns)
-        except Exception as e:
-            self.skipTest(f"Dataset ID {self.DATASET_ID} may not exist in database: {e}")
+        result = vfb.get_scrnaseq_dataset_data(self.DATASET_ID, return_dataframe=True)
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertFalse(result.empty, f"{self.DATASET_ID} should have scRNAseq data")
+        self.assertIn('id', result.columns)
+        self.assertIn('name', result.columns)
+        self.assertIn('tags', result.columns)
+        self.assertIn('anatomy', result.columns)
+        self.assertIn('pubs', result.columns)
     
     def test_scrnaseq_dataset_formatted_output(self):
         """Test scRNAdatasetData returns properly formatted dict"""
-        try:
-            result = vfb.get_scrnaseq_dataset_data(self.DATASET_ID, return_dataframe=False)
-            
-            self.assertIsInstance(result, dict)
-            self.assertIn('headers', result)
-            self.assertIn('rows', result)
-            self.assertIn('count', result)
-            
-            # Check headers structure
-            headers = result['headers']
-            self.assertIn('id', headers)
-            self.assertIn('name', headers)
-            self.assertIn('anatomy', headers)
-            self.assertIn('pubs', headers)
-        except Exception as e:
-            self.skipTest(f"Dataset ID {self.DATASET_ID} may not exist in database: {e}")
+        result = vfb.get_scrnaseq_dataset_data(self.DATASET_ID, return_dataframe=False)
+        self.assertIsInstance(result, dict)
+        self.assertIn('headers', result)
+        self.assertIn('rows', result)
+        self.assertIn('count', result)
+        self.assertTrue(result['rows'], f"{self.DATASET_ID} should have scRNAseq data")
+
+        # Check headers structure
+        headers = result['headers']
+        self.assertIn('id', headers)
+        self.assertIn('name', headers)
+        self.assertIn('anatomy', headers)
+        self.assertIn('pubs', headers)
     
     def test_anatomy_scrnaseq_empty_result(self):
         """Test anatScRNAseqQuery with anatomy that has no scRNAseq data"""

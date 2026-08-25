@@ -599,7 +599,13 @@ def _linkify_citations(text, pub_map, term_id="", field=""):
     items.sort(key=lambda x: len(x[0]), reverse=True)
     linked = text
     for author, year, sf in items:
-        pat = re.compile(r"(?<!\[)" + re.escape(author) + r"(?:,\s*|\s+\(|\s+)" + year + r"\)?(?!\])")
+        # Only consume a closing ')' when the citation itself opened one — the
+        # "Author (2020)" form, where the parens belong to the citation. For the
+        # "(Author, 2020)" form the ')' belongs to the surrounding sentence and
+        # must be left in place (a bare `\)?` swallowed it, dropping the ')').
+        # `(\()` captures the citation's own '(' (group 1); `(?(1)\)|)` requires a
+        # ')' only when that '(' was matched.
+        pat = re.compile(r"(?<!\[)" + re.escape(author) + r"(?:,\s*|\s+(\()|\s+)" + year + r"(?(1)\)|)(?!\])")
         linked = pat.sub("[" + author + ", " + year + "](" + sf + ")", linked)
     # Flag citations in the prose we could not link -- they should also be in References.
     matched_keys = {(a, y) for a, y, _ in items}

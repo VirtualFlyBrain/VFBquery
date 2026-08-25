@@ -633,17 +633,25 @@ class VfbTerminfo:
         return list()
 
     def get_merged_synonyms(self) -> List[dict]:
-        """Merge pub_syn into one entry per (scope, label) with the combined
-        list of refs.
+        """Merge pub_syn into one entry per (scope, label, type) with the
+        combined list of refs.
 
         The same synonym is often asserted by several datasets/papers, so
         pub_syn holds one entry per (synonym, pub). This collapses them so each
-        synonym is shown once with the combined refs:
+        distinct (synonym, type) pair is shown on its own line:
 
+        - a synonym named under several systems (name_in_banc, name_in_flywire,
+          ...) gets one line per naming system, and an untyped assertion of a
+          label is a distinct line from any typed assertion of the same label;
         - any pub with a real id/short_form is rendered as a markdown link;
-        - the 'Unattributed' placeholder pub is never linked, but if the entry
-          carries a synonym type (e.g. name_in_banc) that type is shown as a
-          plain-text ref, since it is useful provenance for the user;
+        - the synonym type (name_in_banc, VFB_SYMBOL, ...) is ALWAYS shown as a
+          plain-text provenance token, whether or not that assertion is
+          pub-attributed — the naming system is useful provenance in its own
+          right, so a typed-but-attributed synonym no longer hides its type;
+        - grouping by type collapses an attributed and an 'Unattributed'
+          assertion of the SAME (type, synonym): the attributed pub supplies the
+          link, the Unattributed placeholder adds nothing and is dropped (no
+          'Unattributed' text, no empty ref);
         - a synonym backed only by Unattributed with no type is shown with no
           ref at all.
         """
@@ -678,33 +686,46 @@ class VfbTerminfo:
                 continue
             label = getattr(syn.synonym, 'label', "") or ""
             scope = getattr(syn.synonym, 'scope', "") or "exact"
-            stype = getattr(syn.synonym, 'type', "") or "synonym"
-            key = (scope, label)
+            raw_type = getattr(syn.synonym, 'type', "") or ""
+            # Key on the type too, so a synonym named under several systems gets
+            # one line per naming system, an untyped assertion is distinct from a
+            # typed one, and an attributed + Unattributed assertion of the SAME
+            # (type, synonym) collapse into a single entry.
+            key = (scope, label, raw_type)
             if key not in grouped:
-                grouped[key] = {"label": label, "scope": scope, "type": stype, "refs": []}
+                grouped[key] = {"label": label, "scope": scope,
+                                "type": raw_type or "synonym",
+                                "type_token": type_token(syn), "refs": []}
                 order.append(key)
             entry = grouped[key]
             entry_pubs = list(getattr(syn, 'pubs', None) or [])
             if getattr(syn, 'pub', None):
                 entry_pubs.append(syn.pub)
-            real_refs = [r for r in (pub_ref(p) for p in entry_pubs) if r]
-            if real_refs:
-                for ref in real_refs:
-                    if ref not in entry["refs"]:
-                        entry["refs"].append(ref)
-            else:
-                # no attributed pub for this assertion: fall back to the
-                # synonym type as an unlinked ref (e.g. name_in_banc)
-                tok = type_token(syn)
-                if tok and tok not in entry["refs"]:
-                    entry["refs"].append(tok)
+            # Attributed pubs become markdown links; the Unattributed placeholder
+            # yields '' and so adds nothing — when an attributed assertion of the
+            # same type exists it is thereby dropped rather than shown separately.
+            for ref in (pub_ref(p) for p in entry_pubs):
+                if ref and ref not in entry["refs"]:
+                    entry["refs"].append(ref)
 
         result = []
         for key in order:
             entry = grouped[key]
             synonym = {"label": entry["label"], "scope": entry["scope"], "type": entry["type"]}
-            if entry["refs"]:
-                synonym["publication"] = ", ".join(entry["refs"])
+            # Type first, then its pub link(s): the synonym type as an unlinked
+            # provenance token (name_in_banc, VFB_SYMBOL, ...) leads, so each line
+            # reads "<naming system>, <the pub that attributes it>". The type is
+            # always shown for a typed synonym, even when its only assertion is
+            # pub-attributed.
+            refs = []
+            tok = entry["type_token"]
+            if tok:
+                refs.append(tok)
+            for ref in entry["refs"]:
+                if ref not in refs:
+                    refs.append(ref)
+            if refs:
+                synonym["publication"] = ", ".join(refs)
             result.append(synonym)
         return result
 

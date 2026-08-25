@@ -122,15 +122,27 @@ jobs:
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
 
-            // A neutral (grey) check run so the PR's checks box stops reading as
-            // a plain green pass when the run was actually incomplete. Neutral
-            // does not fail the PR or block merge — it just isn't "success".
+            // Direct link to THIS run so the reader re-runs the right thing: the
+            // "Run Tests" job (this "${{ github.workflow }}" workflow), NOT the
+            // neutral status check below — that check has no job behind it, so
+            // re-running it would do nothing.
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const rerun = `To re-run: open [this workflow run](${runUrl}) and click ` +
+              `**Re-run all jobs** once the backend is healthy (re-running the ` +
+              `“Run completeness” check itself does nothing — it has no job behind it).`;
+
+            // A neutral (grey) status check so the PR's checks box stops reading
+            // as a plain green pass when the run was actually incomplete. Neutral
+            // does not fail the PR or block merge — it just isn't "success". Named
+            // "Run completeness" (a verdict, not a runnable job) so it isn't
+            // mistaken for the thing to re-run.
             const head_sha = context.payload.pull_request.head.sha;
             await github.rest.checks.create({
               owner, repo, head_sha,
-              name: 'Backend coverage',
+              name: 'Run completeness',
               status: 'completed',
               conclusion: skipped > 0 ? 'neutral' : 'success',
+              details_url: runUrl,
               output: {
                 title: skipped > 0
                   ? `${skipped} test(s) skipped — backend unreachable (incomplete run)`
@@ -138,8 +150,8 @@ jobs:
                 summary: skipped > 0
                   ? (`**${skipped}** test(s) were skipped because the VFB backend ` +
                      `(Neo4j / SOLR / Owlery) did not answer, so those queries went ` +
-                     `unverified. This is not a branch failure — but treat the run as ` +
-                     `incomplete and re-run once the backend is healthy.` +
+                     `unverified. This is not a branch failure — but the run is ` +
+                     `incomplete.\n\n${rerun}` +
                      (summary ? '\n\n```\n' + summary + '\n```' : ''))
                   : 'Every backend-dependent test reached the VFB backend and ran.',
               },
@@ -159,7 +171,7 @@ jobs:
                 'These are **not failures** and **not a problem with this branch** — but those ' +
                 'queries went **unverified**, so a green check here is an *incomplete* run.',
                 '',
-                '> **Re-run this workflow once the backend is healthy** before relying on it.',
+                '> ' + rerun,
                 summary ? '\n```\n' + summary + '\n```' : '',
                 '',
                 '<sub>Posted automatically. This comment is removed once a run completes with zero skips.</sub>',

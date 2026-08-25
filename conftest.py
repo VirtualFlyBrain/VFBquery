@@ -25,11 +25,22 @@ only when that probe shows Neo4j is down do we make ``commit_list`` raise on
 ``False`` (so it routes into the skip path). When Neo4j is up, a ``False`` means
 a real server/query error and is left to fail. This shim is test-only; the
 library's production behaviour is untouched.
+
+Finally, a mid-run circuit breaker: if the backend dies PART-WAY through a run
+(healthy at session start, so the shim above never armed), the remaining
+backend tests would each burn their full 300s timeout. Instead, the first
+connection failure / timeout sets a shared latch; subsequent tests do a short
+health probe and skip fast while the backend stays down, resuming the moment it
+answers again. Zero cost on a healthy run.
 """
+import os
 import socket
+import tempfile
+import time
 import concurrent.futures
 
 import pytest
+import requests
 
 
 # --------------------------------------------------------------------------
@@ -78,18 +89,33 @@ def _is_connection_failure(exc):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Turn a transport-level failure into a skip (never an empty result)."""
+    """Turn a transport-level failure into a skip (never an empty result), and
+    arm the mid-run circuit breaker on a connection failure or a timeout."""
     outcome = yield
     rep = outcome.get_result()
     if rep.when in ("setup", "call") and rep.failed and call.excinfo is not None:
-        if _is_connection_failure(call.excinfo.value):
+        exc = call.excinfo.value
+        if _is_connection_failure(exc):
             rep.outcome = "skipped"
             rep.longrepr = (
                 str(item.fspath),
                 item.location[1] or 0,
-                f"VFB backend unreachable: "
-                f"{type(call.excinfo.value).__name__}: {call.excinfo.value}",
+                f"VFB backend unreachable: {type(exc).__name__}: {exc}",
             )
+            _mark_outage()
+        elif "pytest-timeout" in str(exc):
+            # A test hit the per-test ceiling. If the backend is currently down
+            # this is an outage casualty, not a slow query — record it and let
+            # it read as a skip; otherwise it's a genuine perf failure, untouched.
+            _mark_outage()
+            if _backend_down():
+                rep.outcome = "skipped"
+                rep.longrepr = (
+                    str(item.fspath),
+                    item.location[1] or 0,
+                    "VFB backend outage: test timed out and a health probe "
+                    "confirms the backend is down",
+                )
 
 
 # --------------------------------------------------------------------------
@@ -129,3 +155,91 @@ def _neo4j_connection_shim():
         yield
     finally:
         nc.commit_list = original
+
+
+# --------------------------------------------------------------------------
+# Mid-run outage circuit breaker (see module docstring)
+# --------------------------------------------------------------------------
+
+# Shared across xdist workers via a file — each worker is a separate process, so
+# in-memory state would not be seen by the others. Keyed on the run so parallel
+# invocations don't collide.
+_OUTAGE_LATCH = os.path.join(
+    tempfile.gettempdir(),
+    "vfbquery_outage_" + os.environ.get("PYTEST_XDIST_TESTRUNUID", str(os.getppid())),
+)
+_OUTAGE_RECENT_S = 60      # a failure newer than this means "trouble right now"
+_PROBE_CACHE_S = 10        # re-probe at most this often, per worker
+_PROBE_TIMEOUT_S = 5
+
+# Cheap health endpoints. Any HTTP answer — even Owlery's 404 on the base path —
+# means the host is reachable; a 5xx or a transport error means it is not.
+_PROBE_URLS = (
+    "http://solr.virtualflybrain.org/solr/vfb_json/admin/ping",
+    "http://pdb.virtualflybrain.org/",
+    "http://owl.virtualflybrain.org/kbs/vfb/",
+)
+_probe_cache = {"at": 0.0, "down": False}
+
+
+def pytest_sessionstart(session):
+    # Start every run with a clean latch — the latch path can be reused across
+    # runs launched from the same shell, and a stale one would make the first
+    # tests probe needlessly.
+    _clear_outage()
+
+
+def _mark_outage():
+    try:
+        with open(_OUTAGE_LATCH, "w") as fh:
+            fh.write(repr(time.time()))
+    except OSError:
+        pass
+
+
+def _outage_signalled_recently():
+    try:
+        with open(_OUTAGE_LATCH) as fh:
+            return (time.time() - float(fh.read().strip())) < _OUTAGE_RECENT_S
+    except (OSError, ValueError):
+        return False
+
+
+def _clear_outage():
+    try:
+        os.remove(_OUTAGE_LATCH)
+    except OSError:
+        pass
+
+
+def _backend_down():
+    """Short, per-worker-cached health probe. True if any VFB backend is
+    unreachable or returning 5xx. Errs toward 'down' so a partial outage still
+    trips the breaker rather than letting those tests time out."""
+    now = time.time()
+    if now - _probe_cache["at"] < _PROBE_CACHE_S:
+        return _probe_cache["down"]
+    down = False
+    for url in _PROBE_URLS:
+        try:
+            if requests.get(url, timeout=_PROBE_TIMEOUT_S).status_code >= 500:
+                down = True
+                break
+        except requests.RequestException:
+            down = True
+            break
+    _probe_cache.update(at=now, down=down)
+    return down
+
+
+def pytest_runtest_setup(item):
+    """Fast-skip a test when a backend outage was signalled recently AND a fresh
+    probe confirms the backend is still down — rather than letting it burn the
+    full per-test timeout. Clears the latch and resumes once the backend answers
+    again, so a transient blip only pauses the suite briefly."""
+    if _outage_signalled_recently():
+        if _backend_down():
+            pytest.skip("VFB backend outage detected mid-run — skipping to avoid "
+                        "per-test timeouts; re-run once the backend is healthy")
+        else:
+            _clear_outage()

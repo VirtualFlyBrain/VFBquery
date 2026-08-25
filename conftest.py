@@ -104,11 +104,19 @@ def pytest_runtest_makereport(item, call):
             )
             _mark_outage()
         elif "pytest-timeout" in str(exc):
-            # A test hit the per-test ceiling. If the backend is currently down
-            # this is an outage casualty, not a slow query — record it and let
-            # it read as a skip; otherwise it's a genuine perf failure, untouched.
+            # A test hit the per-test ceiling. If the backend is down this is an
+            # outage casualty, not a slow query — record it and let it read as a
+            # skip; otherwise it's a genuine hang/perf failure, left untouched.
+            #
+            # A single instantaneous probe is not enough here: a heavy query
+            # (term-info fan-out) hangs the moment the backend degrades, but the
+            # lightweight HTTP health endpoints keep answering for up to ~a
+            # minute after — so the first in-flight tests to hit the 300s ceiling
+            # would see a "healthy" ping and be left as failures while every
+            # later test correctly skipped. Poll for a short window so the lagging
+            # transport symptom is caught and the canary tests skip too.
             _mark_outage()
-            if _backend_down():
+            if _backend_down_confirm():
                 rep.outcome = "skipped"
                 rep.longrepr = (
                     str(item.fspath),
@@ -230,6 +238,30 @@ def _backend_down():
             break
     _probe_cache.update(at=now, down=down)
     return down
+
+
+# How long, and how often, to keep re-probing after a pytest-timeout before
+# concluding the backend is genuinely healthy (so the hang was a real code
+# defect, not an outage). Sized to cover the observed lag between a heavy query
+# hanging and the HTTP health endpoints degrading (~40-70s in run 32834691217).
+_CONFIRM_WINDOW_S = 90
+_CONFIRM_INTERVAL_S = 5
+
+
+def _backend_down_confirm():
+    """Stronger version of :func:`_backend_down` used only after a pytest
+    timeout. An outage's transport symptoms can lag a heavy query's hang by up
+    to a minute, so poll the health endpoints for a short window and report
+    down as soon as any probe fails; only conclude 'healthy' (a real hang, kept
+    as a failure) after the whole window stays up."""
+    deadline = time.time() + _CONFIRM_WINDOW_S
+    while True:
+        _probe_cache["at"] = 0.0  # bypass the 10s cache — we want a fresh read
+        if _backend_down():
+            return True
+        if time.time() >= deadline:
+            return False
+        time.sleep(_CONFIRM_INTERVAL_S)
 
 
 def pytest_runtest_setup(item):

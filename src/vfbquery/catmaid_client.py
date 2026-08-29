@@ -45,7 +45,10 @@ CATMAID response alone.
 Only some instances have skid xrefs in the VFB KB (currently the FAFB,
 FANC and L1EM projects). On instances without xrefs the pass-through
 still works with plain skids; passing a VFB id there raises a clear
-error instead of guessing.
+error instead of guessing. larva1099 will gain xrefs once its neurons
+are loaded into VFB; the remaining instances (abd1.5, iav-robo, iav-tnt,
+l3vnc) host mutant specimens, which sit outside VFB's wildtype-based
+data model, so they are expected to stay skid-only.
 """
 
 import json

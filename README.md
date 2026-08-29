@@ -82,6 +82,9 @@ CATMAID verbatim (use CATMAID's own parameter names, e.g. `boolean_op='AND'`).
 
 Only instances with skid cross-references in the KB (currently the FAFB, FANC
 and L1EM projects) can take VFB ids; the others work with plain skids.
+larva1099 will gain xrefs once its neurons are loaded into VFB; abd1.5,
+iav-robo, iav-tnt and l3vnc are mutant specimens, which sit outside VFB's
+wildtype-based data model, so they are expected to stay skid-only.
 
 The same surface is served over HTTP by the HA API (`python -m
 vfbquery.ha_api`):

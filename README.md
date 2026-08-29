@@ -53,11 +53,12 @@ through the knowledge graph's cross-references before the request is made.
 
 ```python
 import vfbquery as vfb
+from vfbquery import catmaid
 
 vfb.list_catmaid_instances()          # hosted instances + tokens + projects
 vfb.list_catmaid_commands()           # the curated read-only command registry
 
-fafb = vfb.catmaid('fafb')            # optionally catmaid('fanc', project=2)
+fafb = catmaid('fafb')                # optionally catmaid('fanc', project=2)
 fafb.commands()                       # {command: doc}
 
 # Mixed VFB ids and skids; the envelope carries the id mapping both ways:

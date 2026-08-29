@@ -42,6 +42,61 @@ bypass (used by the tests), and version-based invalidation; and
 [RELEASING.md](RELEASING.md) for how the single-source version (`_version.py`) is
 bumped from the release tag.
 
+## 🕸️ CATMAID pass-through
+
+VFB hosts public, read-only CATMAID servers for several connectomics datasets
+(FAFB, FANC, L1EM, ...; registry at
+<https://virtualflybrain.org/data/EM/catmaid.json>). `vfbquery` exposes their
+query API directly, and anywhere a command takes skeleton ids you can pass
+CATMAID skids, VFB ids (`VFB_xxxxxxxx`) or a mixed list — VFB ids are converted
+through the knowledge graph's cross-references before the request is made.
+
+```python
+import vfbquery as vfb
+from vfbquery import catmaid
+
+vfb.list_catmaid_instances()          # hosted instances + tokens + projects
+vfb.list_catmaid_commands()           # the curated read-only command registry
+
+fafb = catmaid('fafb')                # optionally catmaid('fanc', project=2)
+fafb.commands()                       # {command: doc}
+
+# Mixed VFB ids and skids; the envelope carries the id mapping both ways:
+fafb.connectivity(ids=['VFB_001011rj', 10603863], boolean_op='OR')
+fafb.neuron_names(ids=['VFB_001011rj'])
+fafb.swc(id='VFB_001011rj')           # single-id commands take id=
+fafb.swc_alignments(id='VFB_001011rj')  # spaces an SWC is available in
+fafb.swc(id='VFB_001011rj', aligned='JRC2018Unisex')  # VFB's template-registered copy
+#   (aligned=<template short_form or label>; aligned='vfb' while there is only
+#    one registration; aligned='original' or omitted = the CATMAID original)
+
+# Untouched CATMAID response instead of the VFB envelope:
+fafb.neuron_names(ids=['VFB_001011rj'], raw=True)
+```
+
+By default results come back wrapped as
+`{instance, project_id, command, xref_db, id_map, unmatched, reverse_map,
+result}` where `result` is the untouched CATMAID payload, `id_map` maps the
+VFB ids you passed to skids, and `reverse_map` maps skids found in the result
+back to VFB ids where the knowledge graph knows them. `raw=True` skips the
+envelope. Parameters not interpreted by the pass-through are forwarded to
+CATMAID verbatim (use CATMAID's own parameter names, e.g. `boolean_op='AND'`).
+
+Only instances with skid cross-references in the KB (currently the FAFB, FANC
+and L1EM projects) can take VFB ids; the others work with plain skids.
+larva1099 will gain xrefs once its neurons are loaded into VFB; abd1.5,
+iav-robo, iav-tnt and l3vnc are mutant specimens, which sit outside VFB's
+wildtype-based data model, so they are expected to stay skid-only.
+
+The same surface is served over HTTP by the HA API (`python -m
+vfbquery.ha_api`):
+
+```
+GET /catmaid                                    # hosted instances
+GET /catmaid/{instance}                         # metadata + commands
+GET /catmaid/{instance}/{command}?ids=VFB_001011rj,10603863[&project=1][&raw=true]
+```
+
 To get term info for a term:
 get_term_info(ID)
 

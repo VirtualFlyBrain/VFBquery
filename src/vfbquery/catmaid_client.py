@@ -72,10 +72,12 @@ CATMAID_JSON_URL = os.getenv(
     "VFBQUERY_CATMAID_JSON_URL",
     "https://virtualflybrain.org/data/EM/catmaid.json")
 
-#: How long the fetched catmaid.json is trusted, seconds. Instances are
-#: added rarely, and a stale token only ever fails loudly (401), so an
-#: hour is comfortable.
-CATMAID_CONFIG_TTL = float(os.getenv("VFBQUERY_CATMAID_CONFIG_TTL", "3600"))
+#: How long the fetched catmaid.json is trusted, seconds. 0 (the default)
+#: means for the whole run: instances are added rarely and tokens only ever
+#: fail loudly (401), so one fetch per process is enough. Set a positive
+#: TTL for a long-lived server that should pick up new instances without a
+#: restart, or use get_catmaid_config(force_refresh=True).
+CATMAID_CONFIG_TTL = float(os.getenv("VFBQUERY_CATMAID_CONFIG_TTL", "0"))
 
 #: How long the KB-derived (instance, project) -> xref-site map is trusted.
 CATMAID_SITES_TTL = float(os.getenv("VFBQUERY_CATMAID_SITES_TTL", "3600"))
@@ -257,7 +259,9 @@ CATMAID_COMMANDS = {
     # -- single-skeleton queries (id= accepts one skid or VFB id) -----------
     "swc": {
         "method": "GET", "path": "/{project_id}/skeleton/{skeleton_id}/swc",
-        "doc": "Skeleton as SWC text.",
+        "doc": "Skeleton as SWC text. aligned=true returns VFB's template-"
+               "registered copy instead of the original EM-space skeleton "
+               "(template= picks the space when there is more than one).",
         "id_path": {"slot": "skeleton_id", "kind": "skid"}, "returns": "text"},
     "eswc": {
         "method": "GET", "path": "/{project_id}/skeleton/{skeleton_id}/eswc",
@@ -359,7 +363,8 @@ def get_catmaid_config(force_refresh=False):
     now = time.monotonic()
     with _config_lock:
         if (not force_refresh and _config_cache["data"] is not None
-                and now - _config_cache["fetched"] < CATMAID_CONFIG_TTL):
+                and (CATMAID_CONFIG_TTL <= 0
+                     or now - _config_cache["fetched"] < CATMAID_CONFIG_TTL)):
             return _config_cache["data"]
         try:
             resp = _http_session().get(CATMAID_JSON_URL, timeout=CATMAID_TIMEOUT)
@@ -511,6 +516,33 @@ def skids_to_vfb_ids(skids, site):
     return {str(row["acc"]): row["vfb_id"] for row in rows or []}
 
 
+def _truthy(value):
+    """Truthiness that also understands HTTP-style string flags."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes")
+    return bool(value)
+
+
+def list_aligned_templates(vfb_id):
+    """Template registrations of one VFB individual's image.
+
+    :return: list of ``{"template": short_form, "label": label,
+        "folder": url}`` — one entry per template space VFB has this
+        image registered to. The aligned SWC, where one exists, is
+        ``folder + 'volume.swc'``.
+    """
+    if not _VFB_ID_RE.match(vfb_id or ""):
+        raise ValueError("'%s' is not a VFB id" % vfb_id)
+    query = (
+        "MATCH (n:Individual {short_form: '%s'})<-[:depicts]-(c:Individual)"
+        "-[ir:in_register_with]->(tc:Individual)-[:depicts]->(t:Individual) "
+        "RETURN t.short_form AS template, t.label AS label, "
+        "ir.folder[0] AS folder" % vfb_id)
+    rows = dict_cursor(_get_nc().commit_list([query]))
+    return [{"template": r["template"], "label": r.get("label"),
+             "folder": r["folder"]} for r in rows or [] if r.get("folder")]
+
+
 def _collect_skid_like_keys(obj, found, limit):
     """Recursively collect dict keys that look like skids (bounded)."""
     if len(found) >= limit:
@@ -620,6 +652,92 @@ class CatmaidInstance:
         raise ValueError("CATMAID has no neuron for skeleton id %s on '%s'"
                          % (skid, self.instance))
 
+    # -- aligned SWC from the VFB image store -------------------------------
+
+    def _aligned_swc(self, id, template=None, raw=False, extra=None):
+        """VFB's template-registered SWC for one neuron.
+
+        CATMAID serves skeletons in the dataset's own EM space; VFB also
+        stores a copy registered to a standard template (``volume.swc`` in
+        the image's ``in_register_with`` folder). ``template`` (a template
+        short_form, e.g. VFB_00101567 for JRC2018Unisex) picks the space
+        when the image is registered to more than one.
+        """
+        if extra:
+            raise ValueError(
+                "aligned=true takes only id= and template= — unexpected: %s"
+                % ", ".join(sorted(extra)))
+        items = _as_id_list(id)
+        if len(items) != 1:
+            raise ValueError("aligned=true takes exactly one id")
+        item = items[0]
+        id_map = {}
+        if _VFB_ID_RE.match(item):
+            vfb_id = item
+        else:
+            site = self.xref_db
+            if site is None:
+                raise ValueError(
+                    "Instance '%s' (project %d) has no VFB skid cross-"
+                    "references, so an aligned copy cannot be looked up "
+                    "from a skeleton id — none exists without a VFB record"
+                    % (self.instance, self.project_id))
+            mapping = skids_to_vfb_ids([item], site)
+            if item not in mapping:
+                raise ValueError(
+                    "Skeleton id %s has no VFB record on '%s', so VFB "
+                    "holds no aligned copy" % (item, self.instance))
+            vfb_id = mapping[item]
+            id_map = {vfb_id: item}
+
+        registrations = list_aligned_templates(vfb_id)
+        if not registrations:
+            raise ValueError("VFB holds no template-registered image for %s"
+                             % vfb_id)
+        if template:
+            chosen = [r for r in registrations if r["template"] == template]
+            if not chosen:
+                raise ValueError(
+                    "%s is not registered to template '%s'. Available: %s"
+                    % (vfb_id, template,
+                       ", ".join("%s (%s)" % (r["template"], r["label"])
+                                 for r in registrations)))
+        elif len(registrations) == 1:
+            chosen = registrations
+        else:
+            raise ValueError(
+                "%s is registered to %d templates — pass template=<short_"
+                "form>: %s"
+                % (vfb_id, len(registrations),
+                   ", ".join("%s (%s)" % (r["template"], r["label"])
+                             for r in registrations)))
+        reg = chosen[0]
+        url = reg["folder"].rstrip("/") + "/volume.swc"
+        if url.startswith("http://"):
+            url = "https://" + url[len("http://"):]
+        resp = _http_session().get(url, timeout=CATMAID_TIMEOUT)
+        if resp.status_code != 200:
+            raise ValueError(
+                "No aligned SWC for %s in %s (%s returned %d) — the image "
+                "may not have a skeleton representation"
+                % (vfb_id, reg["label"], url, resp.status_code))
+        swc_text = resp.content.decode("utf-8", "replace")
+        if raw:
+            return swc_text
+        return {
+            "instance": self.instance,
+            "project_id": self.project_id,
+            "command": "swc",
+            "aligned": True,
+            "template": {"short_form": reg["template"], "label": reg["label"]},
+            "xref_db": self.xref_db,
+            "id_map": id_map,
+            "unmatched": [],
+            "reverse_map": {v: k for k, v in id_map.items()},
+            "notes": ["aligned SWC served from the VFB image store: %s" % url],
+            "result": swc_text,
+        }
+
     # -- HTTP ---------------------------------------------------------------
 
     def _request(self, method, path, params):
@@ -658,6 +776,14 @@ class CatmaidInstance:
             raise ValueError(
                 "Unknown CATMAID command '%s'. Available: %s"
                 % (command, ", ".join(sorted(CATMAID_COMMANDS))))
+
+        # swc has one option CATMAID itself cannot serve: VFB's template-
+        # registered copy of the skeleton, downloaded from the VFB image
+        # store instead of CATMAID.
+        if command == "swc" and _truthy(kwargs.pop("aligned", False)):
+            return self._aligned_swc(kwargs.pop("id", None),
+                                     template=kwargs.pop("template", None),
+                                     raw=raw, extra=kwargs)
 
         path_slots = {"project_id": self.project_id}
         params = {}

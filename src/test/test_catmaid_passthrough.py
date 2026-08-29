@@ -311,3 +311,104 @@ def test_live_skid_only_instance_refuses_vfb_ids():
         l3vnc.neuron_names(ids=["VFB_00101567"])
     projects = l3vnc.projects(raw=True)
     assert isinstance(projects, list) and projects
+
+
+# ---------------------------------------------------------------------------
+# Aligned SWC option
+# ---------------------------------------------------------------------------
+
+def test_truthy_understands_http_flags():
+    assert cm._truthy(True) and cm._truthy("true") and cm._truthy("1")
+    assert not cm._truthy(False) and not cm._truthy("false")
+    assert not cm._truthy("") and not cm._truthy(None)
+
+
+class _FakeResp:
+    def __init__(self, status_code=200, content=b"# SWC\n1 0 0 0 0 1 -1\n"):
+        self.status_code = status_code
+        self.content = content
+
+
+def test_aligned_swc_from_vfb_store(monkeypatch, fake_instance):
+    fafb, _ = fake_instance
+    urls = []
+    monkeypatch.setattr(cm, "list_aligned_templates", lambda vfb_id: [
+        {"template": "VFB_00101567", "label": "JRC2018Unisex",
+         "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/000a/"
+                   "VFB_00101567/"}])
+
+    class FakeSession:
+        def get(self, url, **kw):
+            urls.append(url)
+            return _FakeResp()
+
+    monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
+    envelope = fafb.swc(id="VFB_0010000a", aligned=True)
+    assert envelope["aligned"] is True
+    assert envelope["template"]["label"] == "JRC2018Unisex"
+    assert envelope["result"].startswith("# SWC")
+    assert urls == ["https://www.virtualflybrain.org/data/VFB/i/0010/000a/"
+                    "VFB_00101567/volume.swc"]           # https swap + file
+    assert fafb.swc(id="VFB_0010000a", aligned="true",
+                    raw=True).startswith("# SWC")
+
+
+def test_aligned_swc_multiple_templates_need_a_choice(monkeypatch,
+                                                      fake_instance):
+    fafb, _ = fake_instance
+    regs = [{"template": "VFB_1", "label": "A", "folder": "http://x/a/"},
+            {"template": "VFB_2", "label": "B", "folder": "http://x/b/"}]
+    monkeypatch.setattr(cm, "list_aligned_templates", lambda vfb_id: regs)
+    with pytest.raises(ValueError, match="pass template="):
+        fafb.swc(id="VFB_0010000a", aligned=True)
+
+    class FakeSession:
+        def get(self, url, **kw):
+            assert url == "https://x/b/volume.swc"
+            return _FakeResp()
+
+    monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
+    envelope = fafb.swc(id="VFB_0010000a", aligned=True, template="VFB_2")
+    assert envelope["template"]["short_form"] == "VFB_2"
+    with pytest.raises(ValueError, match="not registered to template"):
+        fafb.swc(id="VFB_0010000a", aligned=True, template="VFB_9")
+
+
+def test_aligned_swc_rejects_stray_params_and_id_lists(fake_instance):
+    fafb, _ = fake_instance
+    with pytest.raises(ValueError, match="takes only id= and template="):
+        fafb.swc(id="VFB_0010000a", aligned=True, with_tags=1)
+    with pytest.raises(ValueError, match="exactly one id"):
+        fafb.swc(id="VFB_0010000a,VFB_0010000b", aligned=True)
+
+
+def test_catmaid_config_cached_for_whole_run_by_default(monkeypatch):
+    fetches = []
+
+    class FakeSession:
+        def get(self, url, **kw):
+            fetches.append(url)
+            resp = _FakeResp()
+            resp.raise_for_status = lambda: None
+            resp.json = lambda: {"instances": [{"id": "x"}]}
+            return resp
+
+    monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
+    monkeypatch.setattr(cm, "CATMAID_CONFIG_TTL", 0.0)
+    monkeypatch.setattr(cm, "_config_cache", {"fetched": 0.0, "data": None})
+    assert cm.get_catmaid_config()["instances"] == [{"id": "x"}]
+    assert cm.get_catmaid_config()["instances"] == [{"id": "x"}]
+    assert len(fetches) == 1                     # one fetch per process
+    cm.get_catmaid_config(force_refresh=True)
+    assert len(fetches) == 2
+
+
+@pytest.mark.integration
+def test_live_aligned_swc_on_fafb():
+    fafb = cm.catmaid("fafb")
+    envelope = fafb.swc(id="VFB_0010009u", aligned=True)
+    assert envelope["aligned"] is True
+    assert envelope["template"]["short_form"] == "VFB_00101567"  # JRC2018U
+    assert envelope["result"].lstrip().startswith("#")
+    original = fafb.swc(id="VFB_0010009u", raw=True)
+    assert original[:200] != envelope["result"][:200]   # different space

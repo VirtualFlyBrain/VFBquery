@@ -64,6 +64,7 @@ fafb.commands()                       # {command: doc}
 fafb.connectivity(ids=['VFB_001011rj', 10603863], boolean_op='OR')
 fafb.neuron_names(ids=['VFB_001011rj'])
 fafb.swc(id='VFB_001011rj')           # single-id commands take id=
+fafb.swc(id='VFB_001011rj', aligned=True)   # VFB's template-registered copy
 
 # Untouched CATMAID response instead of the VFB envelope:
 fafb.neuron_names(ids=['VFB_001011rj'], raw=True)

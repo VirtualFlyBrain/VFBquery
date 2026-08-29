@@ -356,11 +356,16 @@ def test_aligned_swc_from_vfb_store(monkeypatch, fake_instance):
 def test_aligned_swc_multiple_templates_need_a_choice(monkeypatch,
                                                       fake_instance):
     fafb, _ = fake_instance
-    regs = [{"template": "VFB_1", "label": "A", "folder": "http://x/a/"},
-            {"template": "VFB_2", "label": "B", "folder": "http://x/b/"}]
+    regs = [{"template": "VFB_1", "label": "JRC2018Unisex",
+             "folder": "http://x/a/"},
+            {"template": "VFB_2", "label": "JRC2018UnifiedCNS",
+             "folder": "http://x/b/"}]
     monkeypatch.setattr(cm, "list_aligned_templates", lambda vfb_id: regs)
-    with pytest.raises(ValueError, match="pass template="):
+    # generic "the VFB copy" is ambiguous once there are two registrations
+    with pytest.raises(ValueError, match="pass aligned="):
         fafb.swc(id="VFB_0010000a", aligned=True)
+    with pytest.raises(ValueError, match="pass aligned="):
+        fafb.swc(id="VFB_0010000a", aligned="vfb")
 
     class FakeSession:
         def get(self, url, **kw):
@@ -368,18 +373,30 @@ def test_aligned_swc_multiple_templates_need_a_choice(monkeypatch,
             return _FakeResp()
 
     monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
-    envelope = fafb.swc(id="VFB_0010000a", aligned=True, template="VFB_2")
+    # pick by template short_form or by label, case-insensitively
+    envelope = fafb.swc(id="VFB_0010000a", aligned="VFB_2")
+    assert envelope["template"]["short_form"] == "VFB_2"
+    envelope = fafb.swc(id="VFB_0010000a", aligned="jrc2018unifiedcns")
     assert envelope["template"]["short_form"] == "VFB_2"
     with pytest.raises(ValueError, match="not registered to template"):
-        fafb.swc(id="VFB_0010000a", aligned=True, template="VFB_9")
+        fafb.swc(id="VFB_0010000a", aligned="VFB_9")
 
 
 def test_aligned_swc_rejects_stray_params_and_id_lists(fake_instance):
     fafb, _ = fake_instance
-    with pytest.raises(ValueError, match="takes only id= and template="):
+    with pytest.raises(ValueError, match="takes only id="):
         fafb.swc(id="VFB_0010000a", aligned=True, with_tags=1)
     with pytest.raises(ValueError, match="exactly one id"):
         fafb.swc(id="VFB_0010000a,VFB_0010000b", aligned=True)
+
+
+def test_aligned_original_means_catmaid(fake_instance):
+    fafb, calls = fake_instance
+    fafb.swc(id="555", aligned="original", raw=True)
+    method, path, _ = calls[-1]
+    assert (method, path) == ("GET", "/1/skeleton/555/swc")
+    fafb.swc(id="555", aligned="false", raw=True)
+    assert calls[-1][1] == "/1/skeleton/555/swc"
 
 
 def test_catmaid_config_cached_for_whole_run_by_default(monkeypatch):

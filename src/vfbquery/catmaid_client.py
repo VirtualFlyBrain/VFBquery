@@ -259,9 +259,11 @@ CATMAID_COMMANDS = {
     # -- single-skeleton queries (id= accepts one skid or VFB id) -----------
     "swc": {
         "method": "GET", "path": "/{project_id}/skeleton/{skeleton_id}/swc",
-        "doc": "Skeleton as SWC text. aligned=true returns VFB's template-"
-               "registered copy instead of the original EM-space skeleton "
-               "(template= picks the space when there is more than one).",
+        "doc": "Skeleton as SWC text. aligned=<template short_form or label> "
+               "returns VFB's copy registered to that template instead of "
+               "the original EM-space skeleton (aligned=vfb picks the VFB "
+               "copy while there is only one; aligned=original or omitted "
+               "is the CATMAID original).",
         "id_path": {"slot": "skeleton_id", "kind": "skid"}, "returns": "text"},
     "eswc": {
         "method": "GET", "path": "/{project_id}/skeleton/{skeleton_id}/eswc",
@@ -654,22 +656,26 @@ class CatmaidInstance:
 
     # -- aligned SWC from the VFB image store -------------------------------
 
-    def _aligned_swc(self, id, template=None, raw=False, extra=None):
+    def _aligned_swc(self, id, choice, raw=False, extra=None):
         """VFB's template-registered SWC for one neuron.
 
         CATMAID serves skeletons in the dataset's own EM space; VFB also
         stores a copy registered to a standard template (``volume.swc`` in
-        the image's ``in_register_with`` folder). ``template`` (a template
-        short_form, e.g. VFB_00101567 for JRC2018Unisex) picks the space
-        when the image is registered to more than one.
+        the image's ``in_register_with`` folder). ``choice`` names the
+        template — short_form (``VFB_00101567``) or label
+        (``JRC2018Unisex``), case-insensitively — or is one of the generic
+        values (``vfb``/``true``), which work only while the image is
+        registered to a single template; once a neuron has several
+        registrations (e.g. JRC2018U plus a unified brain+VNC space) the
+        generic form errors and lists the choices instead of guessing.
         """
         if extra:
             raise ValueError(
-                "aligned=true takes only id= and template= — unexpected: %s"
+                "aligned= takes only id= — unexpected: %s"
                 % ", ".join(sorted(extra)))
         items = _as_id_list(id)
         if len(items) != 1:
-            raise ValueError("aligned=true takes exactly one id")
+            raise ValueError("aligned= takes exactly one id")
         item = items[0]
         id_map = {}
         if _VFB_ID_RE.match(item):
@@ -694,23 +700,26 @@ class CatmaidInstance:
         if not registrations:
             raise ValueError("VFB holds no template-registered image for %s"
                              % vfb_id)
-        if template:
-            chosen = [r for r in registrations if r["template"] == template]
+        available = ", ".join("%s (%s)" % (r["template"], r["label"])
+                              for r in registrations)
+        generic = (choice is True or
+                   str(choice).strip().lower() in ("true", "1", "yes", "vfb"))
+        if generic:
+            if len(registrations) > 1:
+                raise ValueError(
+                    "%s is registered to %d templates — pass "
+                    "aligned=<template short_form or label>: %s"
+                    % (vfb_id, len(registrations), available))
+            chosen = registrations
+        else:
+            want = str(choice).strip().lower()
+            chosen = [r for r in registrations
+                      if r["template"].lower() == want
+                      or (r.get("label") or "").lower() == want]
             if not chosen:
                 raise ValueError(
                     "%s is not registered to template '%s'. Available: %s"
-                    % (vfb_id, template,
-                       ", ".join("%s (%s)" % (r["template"], r["label"])
-                                 for r in registrations)))
-        elif len(registrations) == 1:
-            chosen = registrations
-        else:
-            raise ValueError(
-                "%s is registered to %d templates — pass template=<short_"
-                "form>: %s"
-                % (vfb_id, len(registrations),
-                   ", ".join("%s (%s)" % (r["template"], r["label"])
-                             for r in registrations)))
+                    % (vfb_id, choice, available))
         reg = chosen[0]
         url = reg["folder"].rstrip("/") + "/volume.swc"
         if url.startswith("http://"):
@@ -779,11 +788,16 @@ class CatmaidInstance:
 
         # swc has one option CATMAID itself cannot serve: VFB's template-
         # registered copy of the skeleton, downloaded from the VFB image
-        # store instead of CATMAID.
-        if command == "swc" and _truthy(kwargs.pop("aligned", False)):
-            return self._aligned_swc(kwargs.pop("id", None),
-                                     template=kwargs.pop("template", None),
-                                     raw=raw, extra=kwargs)
+        # store instead of CATMAID. aligned= names the template (short_form
+        # or label); "original"/"catmaid"/falsy mean the CATMAID original.
+        if command == "swc":
+            choice = kwargs.pop("aligned", None)
+            if choice is not None and not (
+                    choice is False or
+                    str(choice).strip().lower() in
+                    ("", "false", "0", "no", "original", "catmaid")):
+                return self._aligned_swc(kwargs.pop("id", None), choice,
+                                         raw=raw, extra=kwargs)
 
         path_slots = {"project_id": self.project_id}
         params = {}

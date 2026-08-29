@@ -1,7 +1,7 @@
 import re
 
 # Read README
-with open('README.md', 'r') as f:
+with open('src/test/example_queries.md', 'r') as f:
     content = f.read()
 
 # Read the correct JSON blocks
@@ -26,7 +26,7 @@ for i, new_json in enumerate(json_blocks):
     new_content = new_content.replace(old_full, new_full, 1)
 
 # Write back
-with open('README.md', 'w') as f:
+with open('src/test/example_queries.md', 'w') as f:
     f.write(new_content)
 
 print('README updated')

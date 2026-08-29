@@ -5,11 +5,12 @@ import os.path
 
 def extract_code_blocks(readme_path):
     """
-    Extracts Python code blocks and JSON blocks from a README.md file
+    Extracts Python code blocks and JSON blocks from a markdown file
+    (normally ``src/test/example_queries.md``, the validated example fixture)
     and returns them as separate lists.
     """
     if not os.path.isfile(readme_path):
-        raise FileNotFoundError(f"README file not found at {readme_path}")
+        raise FileNotFoundError(f"Examples file not found at {readme_path}")
         
     with open(readme_path, 'r') as f:
         content = f.read()
@@ -108,7 +109,7 @@ def generate_json_file(json_blocks, output_path):
 
 def process_readme(readme_path, python_output_path, code_strings_output_path, json_output_path):
     """
-    Process the README file and generate the test files.
+    Process the examples fixture and generate the test files.
     """
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     generate_python_file(python_blocks, python_output_path)
@@ -119,7 +120,7 @@ def process_readme(readme_path, python_output_path, code_strings_output_path, js
 
 if __name__ == "__main__":
     # Example usage
-    readme_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'README.md')
+    readme_path = os.path.join(os.path.dirname(__file__), 'example_queries.md')
     python_blocks, json_blocks = extract_code_blocks(readme_path)
     
     python_path = os.path.join(os.path.dirname(__file__), 'test_examples.py')

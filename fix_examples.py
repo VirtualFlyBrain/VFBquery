@@ -1,6 +1,6 @@
 import re
 
-with open('README.md', 'r') as f:
+with open('src/test/example_queries.md', 'r') as f:
     content = f.read()
 
 # Fix the thumbnail lines
@@ -24,7 +24,7 @@ for i, line in enumerate(lines):
 
 content = '\n'.join(lines)
 
-with open('README.md', 'w') as f:
+with open('src/test/example_queries.md', 'w') as f:
     f.write(content)
 
 print('Fixed README')

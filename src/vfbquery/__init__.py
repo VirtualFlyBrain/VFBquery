@@ -4,6 +4,8 @@ from .flybase_stocks import resolve_entity, find_stocks
 from .flybase_combo_pubs import resolve_combination, find_combo_publications
 from .vfb_connectivity import list_connectome_datasets, query_connectivity
 from .graph_builder import build_graph, batch_lookup_ids
+from .catmaid_client import (catmaid, CatmaidInstance, list_catmaid_instances,
+                             list_catmaid_commands, run_catmaid_command)
 
 # SOLR-based caching (simplified single-layer approach)
 try:

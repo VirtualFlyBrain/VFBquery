@@ -25,6 +25,9 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /search?query=<free_text>                      # canonical website search
     GET /facets[?contains=<text>]                      # type names /search accepts
     GET /xref?id=<VFB id> | ?accession=<external id>[&db=<site>]
+    GET /catmaid                                       # hosted CATMAID instances
+    GET /catmaid/{instance}                            # metadata + commands
+    GET /catmaid/{instance}/{command}?ids=<skids/VFB ids>[&project=][&raw=true]
     GET /health
     GET /status          — queue depth, cache stats & worker utilisation
 
@@ -489,7 +492,13 @@ ALLOWED_PATHS = frozenset({
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
     "/search", "/facets", "/xref", "/combine", "/get_hierarchy",
+    "/catmaid",
 })
+
+#: Prefixes under which *dynamic* routes are allowed. Exact-match only would
+#: 404 every /catmaid/{instance}/{command} path; anything under a prefix here
+#: is passed to normal routing (unknown sub-paths still 404 via the router).
+ALLOWED_PATH_PREFIXES = ("/catmaid/",)
 # /facets belongs here because /search's four type parameters 400 with
 # "did you mean" suggestions on an unrecognised name and point the caller at
 # /facets for the full list — an allowlist that 404s the endpoint the error
@@ -546,7 +555,7 @@ def unreachable_routes(app):
     registered = set()
     for route in app.router.routes():
         path = getattr(route.resource, "canonical", None)
-        if path:
+        if path and not path.startswith(ALLOWED_PATH_PREFIXES):
             registered.add(path)
     return sorted(registered - set(ALLOWED_PATHS))
 
@@ -568,7 +577,9 @@ async def security_middleware(request, handler):
     block and is passed to normal routing -- an unknown path still 404s via the
     router, but is not counted or logged as a probe.
     """
-    if request.path not in ALLOWED_PATHS and not _is_trusted_remote(request.remote):
+    if (request.path not in ALLOWED_PATHS
+            and not request.path.startswith(ALLOWED_PATH_PREFIXES)
+            and not _is_trusted_remote(request.remote)):
         probes = request.app.get("_scanner_probes")
         if probes is None:
             probes = {"count": 0}
@@ -1725,7 +1736,7 @@ def _spawn_compute(app, coalescer, tracker, fut, cache_key, worker_fn, args,
 
 
 async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None,
-                            known_params=None):
+                            known_params=None, client_error_types=()):
     """Shared dispatch logic for new endpoints — cache, coalesce, queue, run.
 
     If *post_fn* is given it is called on the result **after** cache
@@ -1735,6 +1746,13 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None,
     When the result comes from cache, *post_fn* runs in-process (no
     worker needed) because graph builders are lightweight CPU work plus
     a single Neo4j batch lookup.
+
+    *client_error_types* is a tuple of exception types that mean "the caller
+    asked for something that does not exist or does not parse" — they come
+    back as a 400 with the exception's message rather than a 500. Only
+    handlers whose workers validate input (the /catmaid family, whose
+    instance list lives on a remote server the event loop should not fetch
+    synchronously) set this; everything else keeps the old contract.
 
     *known_params* is the set of query-string keys the calling handler reads.
     Anything else the caller sent is reported back as a warning rather than
@@ -1774,6 +1792,8 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None,
         except Overloaded as exc:
             return _overloaded_response(exc)
         except Exception as exc:
+            if client_error_types and isinstance(exc, client_error_types):
+                return web.json_response({"error": str(exc)}, status=400)
             return _failure_response("Query failed", exc, cache_key, coalesced=True)
 
     tracker = request.app["tracker"]
@@ -1794,6 +1814,8 @@ async def _dispatch_to_pool(request, cache_key, worker_fn, *args, post_fn=None,
     except Overloaded as exc:
         return _overloaded_response(exc)
     except Exception as exc:
+        if client_error_types and isinstance(exc, client_error_types):
+            return web.json_response({"error": str(exc)}, status=400)
         return _failure_response("Query failed", exc, cache_key)
 
 
@@ -3708,6 +3730,125 @@ async def handle_combine(request):
 
 
 # ---------------------------------------------------------------------------
+# /catmaid — pass-through to the VFB-hosted CATMAID instances
+#
+# GET /catmaid                        list hosted instances (catmaid.json + KB
+#                                     xref sites)
+# GET /catmaid/{instance}             one instance's metadata + the command
+#                                     registry
+# GET /catmaid/{instance}/{command}   run one read-only CATMAID command;
+#                                     `ids` (comma-separated) accepts CATMAID
+#                                     skeleton ids and/or VFB ids, `project`
+#                                     picks a project id, `raw=true` returns
+#                                     the untouched CATMAID response, and any
+#                                     other parameter is forwarded to CATMAID
+#                                     verbatim.
+#
+# The heavy lifting — instance registry, id conversion through the KB xrefs,
+# neuron-id bridging and the response envelope — lives in catmaid_client;
+# these handlers only parse the URL and ride the shared dispatch machinery
+# (cache, coalescing, queue, compute budget). The envelope is what gets
+# cached; `raw` is applied by post_fn so both views share one cache entry.
+# ---------------------------------------------------------------------------
+
+#: Query-string keys the /catmaid/{instance}/{command} handler itself reads.
+#: Everything else is forwarded to CATMAID, so no unknown-param warnings.
+_CATMAID_CONTROL_PARAMS = frozenset({"project", "raw"})
+
+_CATMAID_INSTANCE_RE = re.compile(r"^[a-z0-9][a-z0-9.\-]{0,31}$")
+_CATMAID_COMMAND_RE = re.compile(r"^[a-z0-9_]{1,64}$")
+
+
+def _run_catmaid_instances():
+    """Execute list_catmaid_instances in a worker process."""
+    from .catmaid_client import list_catmaid_instances
+    return list_catmaid_instances()
+
+
+def _run_catmaid_instance(instance):
+    """One instance's metadata plus the command registry, in a worker."""
+    from .catmaid_client import list_catmaid_instances, list_catmaid_commands
+    listing = list_catmaid_instances()
+    match = [i for i in listing["instances"] if i["id"] == instance]
+    if not match:
+        raise ValueError(
+            "Unknown CATMAID instance '%s'. Hosted instances: %s"
+            % (instance,
+               ", ".join(sorted(i["id"] for i in listing["instances"]))))
+    return {"instance": match[0], "commands": list_catmaid_commands(),
+            "usage": "/catmaid/%s/{command}?ids=<skids and/or VFB ids>"
+                     "[&project=<pid>][&raw=true]" % instance}
+
+
+def _run_catmaid_command(instance, command, project, params):
+    """Execute one CATMAID pass-through command in a worker process."""
+    from .catmaid_client import run_catmaid_command
+    return run_catmaid_command(instance, command, project=project, **params)
+
+
+def _catmaid_raw_view(result):
+    """post_fn for raw=true: unwrap the envelope, leave anything else alone."""
+    if isinstance(result, dict) and "result" in result and "command" in result:
+        return result["result"]
+    return result
+
+
+async def handle_catmaid_instances(request):
+    """GET /catmaid — the hosted CATMAID instances and their metadata."""
+    return await _dispatch_to_pool(
+        request, "catmaid|instances", _run_catmaid_instances,
+        known_params=frozenset(), client_error_types=(ValueError,))
+
+
+async def handle_catmaid_instance(request):
+    """GET /catmaid/{instance} — instance metadata + available commands."""
+    instance = request.match_info["instance"].lower()
+    if not _CATMAID_INSTANCE_RE.match(instance):
+        return web.json_response({"error": "Malformed instance name"},
+                                 status=400)
+    return await _dispatch_to_pool(
+        request, "catmaid|instance|%s" % instance, _run_catmaid_instance,
+        instance, known_params=frozenset(), client_error_types=(ValueError,))
+
+
+async def handle_catmaid_command(request):
+    """GET /catmaid/{instance}/{command} — run one pass-through command."""
+    instance = request.match_info["instance"].lower()
+    command = request.match_info["command"].lower()
+    if not _CATMAID_INSTANCE_RE.match(instance):
+        return web.json_response({"error": "Malformed instance name"},
+                                 status=400)
+    if not _CATMAID_COMMAND_RE.match(command):
+        return web.json_response({"error": "Malformed command name"},
+                                 status=400)
+
+    project = (request.query.get("project") or "").strip() or None
+    if project is not None and not project.isdigit():
+        return web.json_response({"error": "project must be a numeric "
+                                           "CATMAID project id"}, status=400)
+    raw = (request.query.get("raw") or "").strip().lower() in (
+        "1", "true", "yes")
+
+    params = {}
+    for key in set(request.query.keys()) - _CATMAID_CONTROL_PARAMS:
+        values = request.query.getall(key)
+        params[key] = values[0] if len(values) == 1 else values
+
+    # `raw` is deliberately NOT part of the key: both views come from the
+    # one cached envelope, unwrapped by post_fn after cache retrieval.
+    cache_key = "catmaid|%s|%s|%s|%s" % (
+        instance, command, project or "",
+        json.dumps(sorted(params.items()), separators=(",", ":")))
+
+    return await _dispatch_to_pool(
+        request, cache_key, _run_catmaid_command,
+        instance, command, project, params,
+        post_fn=_catmaid_raw_view if raw else None,
+        known_params=None,  # everything unrecognised is forwarded to CATMAID
+        client_error_types=(ValueError,))
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 
@@ -3771,6 +3912,14 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
 
     # Set algebra over query results
     app.router.add_get("/combine", handle_combine)
+
+    # CATMAID pass-through
+    app.router.add_get("/catmaid", handle_catmaid_instances)
+    app.router.add_get("/catmaid/", handle_catmaid_instances)
+    app.router.add_get("/catmaid/{instance}", handle_catmaid_instance)
+    app.router.add_get("/catmaid/{instance}/", handle_catmaid_instance)
+    app.router.add_get("/catmaid/{instance}/{command}", handle_catmaid_command)
+    app.router.add_get("/catmaid/{instance}/{command}/", handle_catmaid_command)
 
     _warn_unreachable_routes(app)
 

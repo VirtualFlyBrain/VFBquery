@@ -64,6 +64,7 @@ fafb.commands()                       # {command: doc}
 fafb.connectivity(ids=['VFB_001011rj', 10603863], boolean_op='OR')
 fafb.neuron_names(ids=['VFB_001011rj'])
 fafb.swc(id='VFB_001011rj')           # single-id commands take id=
+fafb.swc_alignments(id='VFB_001011rj')  # spaces an SWC is available in
 fafb.swc(id='VFB_001011rj', aligned='JRC2018Unisex')  # VFB's template-registered copy
 #   (aligned=<template short_form or label>; aligned='vfb' while there is only
 #    one registration; aligned='original' or omitted = the CATMAID original)

@@ -268,6 +268,14 @@ CATMAID_COMMANDS = {
                "copy while there is only one; aligned=original or omitted "
                "is the CATMAID original).",
         "id_path": {"slot": "skeleton_id", "kind": "skid"}, "returns": "text"},
+    "swc_alignments": {
+        "method": "GET", "path": "(served by VFBquery, not CATMAID)",
+        "local": True,
+        "doc": "List the spaces an swc download is available in for one "
+               "neuron: the original EM space plus any VFB template-"
+               "registered copies. Each row carries the aligned= value to "
+               "pass to swc.",
+        "id_path": {"slot": "skeleton_id", "kind": "skid"}},
     "eswc": {
         "method": "GET", "path": "/{project_id}/skeleton/{skeleton_id}/eswc",
         "doc": "Skeleton as extended SWC text (creator/edit metadata).",
@@ -750,6 +758,96 @@ class CatmaidInstance:
             "result": swc_text,
         }
 
+    def _swc_alignments(self, id, raw=False, extra=None):
+        """The spaces an SWC download is available in for one neuron.
+
+        Always lists the original EM-space skeleton (CATMAID); adds one row
+        per VFB template registration, each checked for an actual
+        ``volume.swc`` in the image store. Every row carries the ``aligned=``
+        value that fetches it through the ``swc`` command.
+        """
+        if extra:
+            raise ValueError(
+                "swc_alignments takes only id= — unexpected: %s"
+                % ", ".join(sorted(extra)))
+        items = _as_id_list(id)
+        if len(items) != 1:
+            raise ValueError("swc_alignments takes exactly one id")
+        item = items[0]
+        site = self.xref_db
+        id_map, notes = {}, []
+        if _VFB_ID_RE.match(item):
+            vfb_id = item
+            skid = None
+            if site:
+                mapping = vfb_ids_to_skids([item], site)
+                skid = mapping.get(item)
+            if skid is None:
+                raise ValueError(
+                    "%s has no skeleton id on '%s' (project %d)%s"
+                    % (item, self.instance, self.project_id,
+                       "" if site else " — this instance has no VFB skid "
+                                       "cross-references"))
+            id_map = {vfb_id: skid}
+        else:
+            skid = item
+            vfb_id = None
+            if site:
+                vfb_id = skids_to_vfb_ids([item], site).get(item)
+                if vfb_id:
+                    id_map = {vfb_id: skid}
+            if vfb_id is None:
+                notes.append(
+                    "skeleton id %s has no VFB record on '%s', so only the "
+                    "original EM-space skeleton is available" % (skid,
+                                                                 self.instance))
+
+        alignments = [{
+            "aligned": "original",
+            "label": "%s EM space (CATMAID original)" % self._meta.get(
+                "name", self.instance),
+            "source": "catmaid",
+            "swc_available": True,
+        }]
+        if vfb_id:
+            for reg in list_aligned_templates(vfb_id):
+                url = reg["folder"].rstrip("/") + "/volume.swc"
+                if url.startswith("http://"):
+                    url = "https://" + url[len("http://"):]
+                try:
+                    ok = _http_session().head(
+                        url, allow_redirects=True,
+                        timeout=CATMAID_TIMEOUT).status_code == 200
+                except Exception as exc:
+                    log.warning("HEAD %s failed: %s", url, exc)
+                    ok = False
+                alignments.append({
+                    "aligned": reg["template"],
+                    "label": reg.get("label"),
+                    "template": reg["template"],
+                    "source": "vfb",
+                    "swc_available": ok,
+                    "url": url,
+                })
+
+        result = {"id": item, "vfb_id": vfb_id, "skid": skid,
+                  "alignments": alignments}
+        if raw:
+            return result
+        envelope = {
+            "instance": self.instance,
+            "project_id": self.project_id,
+            "command": "swc_alignments",
+            "xref_db": site,
+            "id_map": id_map,
+            "unmatched": [],
+            "reverse_map": {v: k for k, v in id_map.items()},
+            "result": result,
+        }
+        if notes:
+            envelope["notes"] = notes
+        return envelope
+
     # -- HTTP ---------------------------------------------------------------
 
     def _request(self, method, path, params):
@@ -788,6 +886,11 @@ class CatmaidInstance:
             raise ValueError(
                 "Unknown CATMAID command '%s'. Available: %s"
                 % (command, ", ".join(sorted(CATMAID_COMMANDS))))
+
+        # Local commands are answered by VFBquery itself, not CATMAID.
+        if command == "swc_alignments":
+            return self._swc_alignments(kwargs.pop("id", None), raw=raw,
+                                        extra=kwargs)
 
         # swc has one option CATMAID itself cannot serve: VFB's template-
         # registered copy of the skeleton, downloaded from the VFB image
@@ -969,7 +1072,8 @@ def list_catmaid_commands():
         takes.extend(spec.get("path_params") or [])
         out[name] = {"method": spec["method"], "path": spec["path"],
                      "doc": spec["doc"], "takes_ids": takes,
-                     "returns": spec.get("returns", "json")}
+                     "returns": spec.get("returns", "json"),
+                     "local": bool(spec.get("local"))}
     return out
 
 

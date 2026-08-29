@@ -33,6 +33,8 @@ def test_registry_paths_format_cleanly():
              "treenode_id": 4, "connector_id": 5, "node_type": "treenode",
              "node_id": 6}
     for name, spec in cm.CATMAID_COMMANDS.items():
+        if spec.get("local"):        # answered by VFBquery, not CATMAID
+            continue
         path = spec["path"].format(**slots)
         assert "{" not in path and "}" not in path, name
         assert path.startswith("/"), name
@@ -44,7 +46,8 @@ def test_registry_id_specs_are_well_formed():
             assert "{i}" in wire, (name, public)
         if spec.get("id_path"):
             assert spec["id_path"]["kind"] in ("skid", "neuron_id"), name
-            assert "{%s}" % spec["id_path"]["slot"] in spec["path"], name
+            if not spec.get("local"):
+                assert "{%s}" % spec["id_path"]["slot"] in spec["path"], name
         assert spec.get("returns", "json") in ("json", "text", "bytes"), name
 
 
@@ -429,3 +432,73 @@ def test_live_aligned_swc_on_fafb():
     assert envelope["result"].lstrip().startswith("#")
     original = fafb.swc(id="VFB_0010009u", raw=True)
     assert original[:200] != envelope["result"][:200]   # different space
+
+
+# ---------------------------------------------------------------------------
+# swc_alignments
+# ---------------------------------------------------------------------------
+
+def test_swc_alignments_lists_original_plus_vfb(monkeypatch, fake_instance):
+    fafb, _ = fake_instance
+    monkeypatch.setattr(cm, "list_aligned_templates", lambda vfb_id: [
+        {"template": "VFB_1", "label": "JRC2018Unisex",
+         "folder": "http://x/a/"}])
+
+    class FakeSession:
+        def head(self, url, **kw):
+            assert url == "https://x/a/volume.swc"
+            return _FakeResp()
+
+    monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
+    envelope = fafb.swc_alignments(id="VFB_0010000a")
+    rows = envelope["result"]["alignments"]
+    assert rows[0]["aligned"] == "original"
+    assert rows[0]["source"] == "catmaid" and rows[0]["swc_available"]
+    assert rows[1]["aligned"] == "VFB_1" and rows[1]["source"] == "vfb"
+    assert rows[1]["swc_available"] is True
+    assert envelope["result"]["skid"] == "100"      # from the fake xref map
+    assert envelope["id_map"] == {"VFB_0010000a": "100"}
+
+
+def test_swc_alignments_skid_without_vfb_record(monkeypatch, fake_instance):
+    fafb, _ = fake_instance
+    monkeypatch.setattr(cm, "skids_to_vfb_ids", lambda skids, site: {})
+    envelope = fafb.swc_alignments(id="555")
+    rows = envelope["result"]["alignments"]
+    assert [r["aligned"] for r in rows] == ["original"]
+    assert envelope["result"]["vfb_id"] is None
+    assert any("no VFB record" in n for n in envelope["notes"])
+
+
+def test_swc_alignments_marks_missing_store_files(monkeypatch, fake_instance):
+    fafb, _ = fake_instance
+    monkeypatch.setattr(cm, "list_aligned_templates", lambda vfb_id: [
+        {"template": "VFB_1", "label": "A", "folder": "http://x/a/"}])
+
+    class FakeSession:
+        def head(self, url, **kw):
+            return _FakeResp(status_code=404)
+
+    monkeypatch.setattr(cm, "_http_session", lambda: FakeSession())
+    rows = fafb.swc_alignments(id="VFB_0010000a", raw=True)["alignments"]
+    assert rows[1]["swc_available"] is False
+
+
+def test_swc_alignments_input_validation(fake_instance):
+    fafb, _ = fake_instance
+    with pytest.raises(ValueError, match="takes only id="):
+        fafb.swc_alignments(id="555", nonsense=1)
+    with pytest.raises(ValueError, match="exactly one id"):
+        fafb.swc_alignments(id="1,2")
+
+
+@pytest.mark.integration
+def test_live_swc_alignments_on_fafb():
+    fafb = cm.catmaid("fafb")
+    envelope = fafb.swc_alignments(id="VFB_0010009u")
+    rows = envelope["result"]["alignments"]
+    assert rows[0]["aligned"] == "original"
+    vfb_rows = [r for r in rows if r["source"] == "vfb"]
+    assert any(r["template"] == "VFB_00101567" and r["swc_available"]
+               for r in vfb_rows)                     # JRC2018U copy exists
+    assert envelope["result"]["skid"] == "13146"

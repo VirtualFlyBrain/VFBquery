@@ -296,7 +296,8 @@ ENDPOINT_GROUPS = [
                     "parameters are forwarded to CATMAID verbatim. For swc, "
                     "aligned= names a template space for VFB's registered "
                     "copy, and the swc_alignments command lists the spaces "
-                    "available."),
+                    "available. Every command also has its own runnable "
+                    "card in the expanded section below."),
                 "path_params": [
                     {"name": "instance", "required": True,
                      "doc": "Instance id (see /catmaid)",
@@ -439,9 +440,7 @@ button.run:hover{filter:brightness(1.08)}
 .meta .ok{color:var(--ok);font-weight:600}
 .meta .bad{color:var(--err);font-weight:600}
 pre.result{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:9px;padding:12px;max-height:440px;overflow:auto;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
-.cmds{font-size:13px;margin-top:8px}
-.cmds td{padding:3px 12px 3px 0;border-bottom:1px solid var(--line-soft);vertical-align:top}
-.cmds code{color:var(--brand-ink)}
+.ep .body .ep{margin:12px 0;background:var(--bg)}
 footer{border-top:1px solid var(--line);margin-top:40px;padding:22px 20px;color:var(--muted);font-size:13px;text-align:center}
 </style>
 </head>
@@ -571,19 +570,111 @@ async function run(root, endpoint){
   }
 }
 
-function catmaidCommandTable(commands){
-  const table = el("table", {class: "cmds"});
-  for (const [name, info] of Object.entries(commands)){
-    table.append(el("tr", null,
-      el("td", null, el("code", {text: name})),
-      el("td", {text: (info.local ? "(VFBquery) " : info.method + " " + info.path)}),
-      el("td", {class: "desc", text: info.doc || ""})));
+function endpointCard(endpoint){
+  const body = el("div", {class: "body"});
+  if (endpoint.upstream) body.append(el("p", {class: "desc"},
+    el("code", {text: endpoint.upstream})));
+  if (endpoint.description) body.append(el("p", {class: "desc", text: endpoint.description}));
+  const table = el("table", {class: "params"});
+  const pathParams = endpoint.path_params || [];
+  const queryParams = endpoint.params || [];
+  if (pathParams.length + queryParams.length){
+    table.append(el("tr", null, el("th", {text: "parameter"}),
+                                el("th", {text: ""}), el("th", {text: "value"})));
+    for (const param of pathParams) table.append(paramRow(param, "path"));
+    for (const param of queryParams) table.append(paramRow(param, "query"));
+    table.append(paramRow({name: "extra", doc:
+      "Additional parameters, passed verbatim (name=value&name2=value2)"}, "extra"));
+    body.append(table);
   }
-  const details = el("details", null,
-    el("summary", {text: "Command registry (" + Object.keys(commands).length + " commands)",
-                   style: "cursor:pointer;color:var(--brand-ink);font-size:13.5px;margin-top:8px"}),
-    table);
+  const meta = el("span", {class: "meta"});
+  const runBtn = el("button", {class: "run", text: "Run"});
+  body.append(el("div", {class: "runrow"}, runBtn, meta),
+              el("div", {class: "url"}),
+              el("pre", {class: "result", hidden: "hidden"}));
+  const details = el("details", {class: "ep", id: slug(endpoint.path)},
+    el("summary", null,
+      el("span", {class: "method", text: "GET"}),
+      el("span", {class: "path", text: endpoint.path}),
+      el("span", {class: "summ", text: endpoint.summary || ""})),
+    body);
+  runBtn.addEventListener("click", () => run(body, endpoint));
   return details;
+}
+
+//  One runnable card per CATMAID registry command, from the vocabulary the
+//  spec already carries — the same instance dropdown, id conversion and
+//  pass-through parameters as the generic /catmaid/{instance}/{command}
+//  entry, but pre-shaped to each command's own parameters.
+const CATMAID_ID_EXAMPLES = {
+  ids: "VFB_001011rj,10603863",
+  id: "VFB_001011rj",
+  rows: "VFB_0010009u",
+  columns: "VFB_001011rj,VFB_0010018c",
+};
+
+function catmaidCommandEndpoint(name, info){
+  const params = [];
+  for (const taker of info.takes_ids || []){
+    if (taker === "ids"){
+      params.push({name: "ids", required: true, example: CATMAID_ID_EXAMPLES.ids,
+        doc: "Skeleton ids and/or VFB ids, comma-separated"});
+    } else if (taker === "id"){
+      params.push({name: "id", required: true, example: CATMAID_ID_EXAMPLES.id,
+        doc: "One skeleton id or VFB id"});
+    } else if (taker === "rows" || taker === "columns"){
+      params.push({name: taker, required: true, example: CATMAID_ID_EXAMPLES[taker],
+        doc: "Skeleton ids and/or VFB ids (" + taker + " of the matrix)"});
+    } else {
+      params.push({name: taker, required: true, example: "",
+        doc: "Raw CATMAID id (not converted)"});
+    }
+  }
+  if (name === "swc")
+    params.push({name: "aligned", example: "",
+      doc: "Template space for VFB's registered copy (short_form or label); " +
+           "vfb = the VFB copy while only one exists; original/empty = the " +
+           "CATMAID original"});
+  params.push(
+    {name: "project", example: "",
+     doc: "CATMAID project id (defaults to the instance's first project)"},
+    {name: "raw", example: "",
+     doc: "true returns the untouched CATMAID response"});
+  return {
+    path: "/catmaid/{instance}/" + name,
+    summary: info.local ? "answered by VFBquery" : info.method + " " + info.path,
+    upstream: info.local ? "(served by VFBquery, not CATMAID)"
+                         : "CATMAID: " + info.method + " " + info.path,
+    description: info.doc || "",
+    path_params: [{name: "instance", required: true, example: "fafb",
+                   doc: "Instance id (see /catmaid)",
+                   enum: "dynamic:catmaid_instances"}],
+    params: params,
+  };
+}
+
+function renderCatmaidCommands(toc, groupsBox){
+  const commands = SPEC.vocabularies.catmaid_commands || {};
+  const names = Object.keys(commands).sort();
+  if (!names.length) return;
+  const inner = el("div", {class: "body"});
+  inner.append(el("p", {class: "desc", text:
+    "Every registry command as its own runnable card. Commands taking " +
+    "skeleton ids accept CATMAID skids, VFB ids or a mixed list; " +
+    "parameters not listed on a card are forwarded to CATMAID verbatim " +
+    "via the extra field."}));
+  for (const name of names)
+    inner.append(endpointCard(catmaidCommandEndpoint(name, commands[name])));
+  const wrap = el("details", {class: "ep", id: "ep-catmaid-commands"},
+    el("summary", null,
+      el("span", {class: "method", text: "GET"}),
+      el("span", {class: "path", text: "/catmaid/{instance}/…"}),
+      el("span", {class: "summ",
+                  text: "All " + names.length + " commands, expanded"})),
+    inner);
+  groupsBox.append(wrap);
+  toc.append(el("a", {href: "#ep-catmaid-commands",
+                      text: "… all " + names.length + " commands"}));
 }
 
 function render(){
@@ -598,36 +689,10 @@ function render(){
     groupsBox.append(heading);
     for (const endpoint of group.endpoints){
       toc.append(el("a", {href: "#" + slug(endpoint.path), text: endpoint.path}));
-      const body = el("div", {class: "body"});
-      if (endpoint.description) body.append(el("p", {class: "desc", text: endpoint.description}));
-      const table = el("table", {class: "params"});
-      const pathParams = endpoint.path_params || [];
-      const queryParams = endpoint.params || [];
-      if (pathParams.length + queryParams.length){
-        table.append(el("tr", null, el("th", {text: "parameter"}),
-                                    el("th", {text: ""}), el("th", {text: "value"})));
-        for (const param of pathParams) table.append(paramRow(param, "path"));
-        for (const param of queryParams) table.append(paramRow(param, "query"));
-        table.append(paramRow({name: "extra", doc:
-          "Additional parameters, passed verbatim (name=value&name2=value2)"}, "extra"));
-        body.append(table);
-      }
-      if (endpoint.path === "/catmaid/{instance}/{command}")
-        body.append(catmaidCommandTable(SPEC.vocabularies.catmaid_commands || {}));
-      const meta = el("span", {class: "meta"});
-      const runBtn = el("button", {class: "run", text: "Run"});
-      body.append(el("div", {class: "runrow"}, runBtn, meta),
-                  el("div", {class: "url"}),
-                  el("pre", {class: "result", hidden: "hidden"}));
-      const details = el("details", {class: "ep", id: slug(endpoint.path)},
-        el("summary", null,
-          el("span", {class: "method", text: "GET"}),
-          el("span", {class: "path", text: endpoint.path}),
-          el("span", {class: "summ", text: endpoint.summary || ""})),
-        body);
-      runBtn.addEventListener("click", () => run(body, endpoint));
-      groupsBox.append(details);
+      groupsBox.append(endpointCard(endpoint));
     }
+    if (group.group === "CATMAID pass-through")
+      renderCatmaidCommands(toc, groupsBox);
   }
   fillCatmaidInstances();
 }

@@ -63,6 +63,10 @@ def test_html_is_self_contained():
     html = api_docs.DOCS_HTML
     assert "docs.json" in html
     assert "Virtual Fly Brain" in html
+    # the CATMAID group expands into one runnable card per registry command
+    assert "renderCatmaidCommands" in html
+    assert "ep-catmaid-commands" in html
+    assert "catmaidCommandEndpoint" in html
     # Self-contained: no external scripts, styles or images.
     assert 'src="http' not in html and "src='http" not in html
     assert '<link' not in html

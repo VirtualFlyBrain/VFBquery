@@ -31,7 +31,14 @@ timeout = 300
 # vfb_connect / dataclasses-json) still trigger them. Hiding the
 # library-internal noise — but NOT user-code DeprecationWarnings —
 # keeps performance.md readable.
+#
+# Filtered by category + source module rather than by naming marshmallow's
+# own warning classes: pytest resolves a named class at startup and ERRORS
+# (exit 4, nothing collected) when it does not exist — which is what broke
+# the Python 3.8 examples job, whose older marshmallow predates
+# ChangedInMarshmallow4Warning. Both classes subclass DeprecationWarning,
+# and the module field pins the filter to warnings raised from inside
+# marshmallow, so user-code DeprecationWarnings still show.
 filterwarnings = [
-    "ignore::marshmallow.warnings.RemovedInMarshmallow4Warning",
-    "ignore::marshmallow.warnings.ChangedInMarshmallow4Warning",
+    "ignore::DeprecationWarning:marshmallow.*",
 ]

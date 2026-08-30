@@ -33,7 +33,9 @@ connection failure / timeout sets a shared latch; subsequent tests do a short
 health probe and skip fast while the backend stays down, resuming the moment it
 answers again. Zero cost on a healthy run.
 """
+import json
 import os
+import re
 import socket
 import tempfile
 import time
@@ -87,6 +89,47 @@ def _is_connection_failure(exc):
     return False
 
 
+_URL_RE = re.compile(r"https?://[^\s'\"<>)\]]+")
+
+
+def _item_context(item):
+    """file, line and first docstring line for a test item — the report
+    reader should learn what a test does and where it lives without
+    opening the source tree."""
+    doc = ""
+    try:
+        import inspect
+        doc = (inspect.getdoc(getattr(item, "obj", None)) or "").strip()
+        doc = doc.split("\n")[0].strip()
+    except Exception:
+        pass
+    location = getattr(item, "location", ("", 0, ""))
+    return {"file": str(location[0]).replace("\\", "/"),
+            "line": (location[1] or 0) + 1, "doc": doc[:240]}
+
+
+def _failure_url(exc):
+    """Best-effort URL of the call behind a transport failure.
+
+    Walks the exception chain looking for the attributes ``requests`` (and
+    friends) hang the request on, then falls back to the first URL printed in
+    any message in the chain. Returns None when nothing URL-shaped is found —
+    the report then still carries the exception text.
+    """
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        for attr in ("request", "response"):
+            url = getattr(getattr(exc, attr, None), "url", None)
+            if url:
+                return str(url)
+        match = _URL_RE.search(str(exc))
+        if match:
+            return match.group(0).rstrip(".,;:")
+        exc = exc.__cause__ or exc.__context__
+    return None
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Turn a transport-level failure into a skip (never an empty result), and
@@ -96,13 +139,18 @@ def pytest_runtest_makereport(item, call):
     if rep.when in ("setup", "call") and rep.failed and call.excinfo is not None:
         exc = call.excinfo.value
         if _is_connection_failure(exc):
+            url = _failure_url(exc)
+            suffix = f" (call: {url})" if url else ""
             rep.outcome = "skipped"
             rep.longrepr = (
                 str(item.fspath),
                 item.location[1] or 0,
-                f"VFB backend unreachable: {type(exc).__name__}: {exc}",
+                f"VFB backend unreachable: {type(exc).__name__}: {exc}{suffix}",
             )
             _mark_outage()
+            _record_event("trigger", test=item.nodeid, kind="connection-failure",
+                          error=f"{type(exc).__name__}: {str(exc)[:300]}",
+                          url=url, **_item_context(item))
         elif "pytest-timeout" in str(exc):
             # A test hit the per-test ceiling. If the backend is down this is an
             # outage casualty, not a slow query — record it and let it read as a
@@ -122,8 +170,29 @@ def pytest_runtest_makereport(item, call):
                     str(item.fspath),
                     item.location[1] or 0,
                     "VFB backend outage: test timed out and a health probe "
-                    "confirms the backend is down",
+                    "confirms the backend is down"
+                    + _probe_failure_suffix(),
                 )
+                _record_event("trigger", test=item.nodeid, kind="timeout",
+                              error=str(exc)[:300], url=None,
+                              **_item_context(item))
+
+    # Record EVERY skipped test — whatever caused the skip — with its
+    # reason, its location, and the first line of its docstring, so the
+    # report answers "which tests, doing what, and why?" without opening
+    # the source. A marker skip, a skipif, an imperative ``pytest.skip``
+    # and the breaker's own skips all land here; xfails are not skips
+    # and stay out.
+    if rep.skipped and not hasattr(rep, "wasxfail"):
+        longrepr = rep.longrepr
+        if isinstance(longrepr, tuple) and len(longrepr) == 3:
+            reason = str(longrepr[2])
+        else:
+            reason = str(longrepr) if longrepr is not None else ""
+        if reason.startswith("Skipped: "):
+            reason = reason[len("Skipped: "):]
+        _record_event("skipped", test=item.nodeid, when=rep.when,
+                      reason=reason[:400], **_item_context(item))
 
 
 # --------------------------------------------------------------------------
@@ -180,6 +249,27 @@ _OUTAGE_RECENT_S = 60      # a failure newer than this means "trouble right now"
 _PROBE_CACHE_S = 10        # re-probe at most this often, per worker
 _PROBE_TIMEOUT_S = 5
 
+#: Shared event log for the skip report — same run-keyed scheme as the
+#: latch, JSON-lines so xdist workers can append concurrently. The session
+#: master aggregates it into skipped_tests_report.md/.json at session end.
+_OUTAGE_EVENTS = _OUTAGE_LATCH + "_events.jsonl"
+
+#: Where the aggregated report lands (the invocation directory, so CI steps
+#: can pick it up next to pytest_output.log).
+SKIP_REPORT_MD = "skipped_tests_report.md"
+SKIP_REPORT_JSON = "skipped_tests_report.json"
+
+
+def _record_event(event, **fields):
+    """Append one outage event; never let reporting break the run."""
+    fields.update(event=event, time=time.time(),
+                  worker=os.environ.get("PYTEST_XDIST_WORKER", "master"))
+    try:
+        with open(_OUTAGE_EVENTS, "a") as fh:
+            fh.write(json.dumps(fields) + "\n")
+    except OSError:
+        pass
+
 # Cheap health endpoints. Any HTTP answer — even Owlery's 404 on the base path —
 # means the host is reachable; a 5xx or a transport error means it is not.
 _PROBE_URLS = (
@@ -193,8 +283,14 @@ _probe_cache = {"at": 0.0, "down": False}
 def pytest_sessionstart(session):
     # Start every run with a clean latch — the latch path can be reused across
     # runs launched from the same shell, and a stale one would make the first
-    # tests probe needlessly.
+    # tests probe needlessly. The event log is cleared too (only here, never
+    # on mid-run recovery: an outage that came and went still gets reported).
     _clear_outage()
+    if not os.environ.get("PYTEST_XDIST_WORKER"):
+        try:
+            os.remove(_OUTAGE_EVENTS)
+        except OSError:
+            pass
 
 
 def _mark_outage():
@@ -223,21 +319,48 @@ def _clear_outage():
 def _backend_down():
     """Short, per-worker-cached health probe. True if any VFB backend is
     unreachable or returning 5xx. Errs toward 'down' so a partial outage still
-    trips the breaker rather than letting those tests time out."""
+    trips the breaker rather than letting those tests time out.
+
+    Alongside the boolean, every probe's outcome (URL, status or error,
+    elapsed time) is kept in ``_probe_cache["detail"]`` and recorded to the
+    outage report whenever the answer is 'down' — the report is the place a
+    person decides whether to debug or to ignore, and it needs to say which
+    backend failed and how, not just that one did.
+    """
     now = time.time()
     if now - _probe_cache["at"] < _PROBE_CACHE_S:
         return _probe_cache["down"]
     down = False
+    detail = []
     for url in _PROBE_URLS:
+        started = time.time()
         try:
-            if requests.get(url, timeout=_PROBE_TIMEOUT_S).status_code >= 500:
-                down = True
-                break
-        except requests.RequestException:
+            status = requests.get(url, timeout=_PROBE_TIMEOUT_S).status_code
+            entry = {"url": url, "ok": status < 500, "status": status,
+                     "elapsed_s": round(time.time() - started, 2)}
+        except requests.RequestException as exc:
+            entry = {"url": url, "ok": False, "status": None,
+                     "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                     "elapsed_s": round(time.time() - started, 2)}
+        detail.append(entry)
+        if not entry["ok"]:
             down = True
             break
-    _probe_cache.update(at=now, down=down)
+    _probe_cache.update(at=now, down=down, detail=detail)
+    if down:
+        _record_event("probe", probes=detail)
     return down
+
+
+def _probe_failure_suffix():
+    """One-line ' (probe: <url> -> <how it failed>)' for skip messages, from
+    the most recent probe round; empty when no failing probe is on record."""
+    for entry in _probe_cache.get("detail") or []:
+        if not entry.get("ok"):
+            how = entry.get("error") or f"HTTP {entry.get('status')}"
+            return " (probe: %s -> %s after %ss)" % (
+                entry["url"], how, entry.get("elapsed_s"))
+    return ""
 
 
 # How long, and how often, to keep re-probing after a pytest-timeout before
@@ -272,6 +395,144 @@ def pytest_runtest_setup(item):
     if _outage_signalled_recently():
         if _backend_down():
             pytest.skip("VFB backend outage detected mid-run — skipping to avoid "
-                        "per-test timeouts; re-run once the backend is healthy")
+                        "per-test timeouts; re-run once the backend is healthy"
+                        + _probe_failure_suffix())
         else:
             _clear_outage()
+
+
+
+# --------------------------------------------------------------------------
+# Outage report — aggregate the events into something a person can act on
+# --------------------------------------------------------------------------
+
+def _md_link(url):
+    return "[%s](%s)" % (url, url)
+
+
+def _test_ref(event):
+    """One report line's worth of test identity: the nodeid — linked to
+    the exact file and line at this run's commit when the GitHub Actions
+    environment says where that is — followed by the first line of the
+    test's docstring, so the reader learns what the test does without
+    opening the source."""
+    label = "`%s`" % event.get("test")
+    server = os.environ.get("GITHUB_SERVER_URL")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    sha = os.environ.get("GITHUB_SHA")
+    if server and repo and sha and event.get("file"):
+        label = "[%s](%s/%s/blob/%s/%s#L%s)" % (
+            label, server, repo, sha, event["file"], event.get("line") or 1)
+    doc = (event.get("doc") or "").strip()
+    return label + (" — %s" % doc if doc else "")
+
+
+def build_skip_report(events):
+    """(markdown, summary_line) from the recorded events.
+
+    The markdown is what the CI steps embed in the job summary and the
+    sticky PR comment, so URLs are rendered as links: the point of the
+    report is that the person reading it can see every skipped test with
+    the reason it skipped — and, for backend failures, click the failing
+    call and see how it failed — then decide between debugging and
+    ignoring.
+    """
+    triggers, skipped, probes = [], {}, []
+    seen_triggers = set()
+    for event in events:
+        if event.get("event") == "trigger" and event.get("test") not in seen_triggers:
+            seen_triggers.add(event.get("test"))
+            triggers.append(event)
+        elif event.get("event") == "skipped":
+            skipped.setdefault(event.get("test"), event)
+        elif event.get("event") == "probe":
+            probes.append(event)
+
+    breaker = sum(1 for event in skipped.values()
+                  if event.get("reason", "").startswith(
+                      "VFB backend outage detected mid-run"))
+    summary = "%d test(s) skipped" % len(skipped)
+    if triggers or breaker:
+        summary += (" — %d hit the backend directly and failed, %d were "
+                    "fast-skipped by the circuit breaker"
+                    % (len(triggers), breaker))
+
+    lines = ["## Skipped tests report", "",
+             summary + ". Every skip is listed below with its reason; for "
+             "backend failures the failing call and the health-probe "
+             "verdicts say what to debug — a transport error against a "
+             "known-good URL is an outage (re-run later); anything else "
+             "deserves a look.", ""]
+
+    if triggers:
+        lines += ["### What failed first", ""]
+        for event in sorted(triggers, key=lambda e: e.get("time", 0)):
+            call = (" — call: " + _md_link(event["url"])) if event.get("url") else ""
+            lines.append("- %s\n  %s: %s%s"
+                         % (_test_ref(event), event.get("kind"),
+                            event.get("error", "").replace("\n", " "), call))
+        lines.append("")
+
+    if probes:
+        lines += ["### Health probes at detection", ""]
+        # The latest round is the decisive one; earlier rounds add nothing.
+        for entry in probes[-1].get("probes", []):
+            if entry.get("ok"):
+                lines.append("- OK — %s (HTTP %s in %ss)"
+                             % (_md_link(entry["url"]), entry.get("status"),
+                                entry.get("elapsed_s")))
+            else:
+                how = entry.get("error") or ("HTTP %s" % entry.get("status"))
+                lines.append("- **FAILED** — %s: %s after %ss"
+                             % (_md_link(entry["url"]), how,
+                                entry.get("elapsed_s")))
+        lines.append("")
+
+    if skipped:
+        by_reason = {}
+        for event in skipped.values():
+            by_reason.setdefault(event.get("reason") or "(no reason recorded)",
+                                 []).append(event)
+        lines += ["### All skipped tests (%d), by reason" % len(skipped), ""]
+        for reason, group in sorted(by_reason.items(),
+                                    key=lambda kv: -len(kv[1])):
+            lines += ["<details><summary>%d × %s</summary>"
+                      % (len(group), reason.replace("\n", " ")), ""]
+            lines += ["- " + _test_ref(event)
+                      for event in sorted(group,
+                                          key=lambda e: e.get("test", ""))]
+            lines += ["", "</details>", ""]
+
+    return "\n".join(lines), summary
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """On the session master, turn the shared event log into
+    ``skipped_tests_report.md`` / ``skipped_tests_report.json`` beside the
+    invocation directory's pytest output, for the CI skip report to embed.
+    Written whenever anything skipped; absent on a fully-run session."""
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        return                               # workers report; the master writes
+    events = []
+    try:
+        with open(_OUTAGE_EVENTS) as fh:
+            for line in fh:
+                try:
+                    events.append(json.loads(line))
+                except ValueError:
+                    continue
+    except OSError:
+        return                               # no outage this run — no report
+    if not events:
+        return
+    outdir = str(session.config.invocation_params.dir)
+    markdown, summary = build_skip_report(events)
+    try:
+        with open(os.path.join(outdir, SKIP_REPORT_MD), "w") as fh:
+            fh.write(markdown)
+        with open(os.path.join(outdir, SKIP_REPORT_JSON), "w") as fh:
+            json.dump(events, fh, indent=1)
+        print("\n%s.\nSkip report written to %s (markdown) and %s "
+              "(raw events)." % (summary, SKIP_REPORT_MD, SKIP_REPORT_JSON))
+    except OSError:
+        pass

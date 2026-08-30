@@ -38,6 +38,7 @@ The tests reach the undecorated ``get_term_info`` body directly (see
 Solr are involved; the decorator tests drive the real wrapper with a fake cache
 object.
 """
+import os
 import threading
 import time
 
@@ -535,6 +536,28 @@ def test_the_cooldown_is_configurable():
             "the cooldown must stay env-tunable")
 
 
+_PATCH_CHAIN_ASSERTS = """
+import inspect
+import vfbquery
+from vfbquery import cached_functions
+import vfbquery.vfb_queries as vq
+
+assert hasattr(vq, '_original_get_term_info'), 'patch layer never armed'
+assert vfbquery.get_term_info is cached_functions.get_term_info_cached
+assert vq.get_term_info is cached_functions.get_term_info_cached
+# The delegate declares force_refresh and hands it on explicitly, so a
+# refresh survives the extra hop rather than being defaulted away.
+params = inspect.signature(cached_functions.get_term_info_cached).parameters
+assert 'force_refresh' in params and params['force_refresh'].default is False
+src_text = inspect.getsource(cached_functions.get_term_info_cached)
+assert 'force_refresh=force_refresh' in src_text
+# And what it delegates to is the decorated original, not a second cache
+# layer -- double-decorating was its own bug (two Solr reads per request).
+assert hasattr(vq._original_get_term_info, '__wrapped__')
+assert '_original_get_term_info' in src_text
+"""
+
+
 def test_the_public_entry_point_reaches_the_decorated_original():
     """The warm calls ``vfbquery.get_term_info``, which is not the function in
     this module: with caching enabled, ``cached_functions`` rebinds it to
@@ -542,29 +565,30 @@ def test_the_public_entry_point_reaches_the_decorated_original():
     chain -- public name, delegate, ``with_solr_cache``, body -- so the chain is
     asserted rather than assumed.
 
-    Skipped when caching is disabled, because then no patching happens and
-    there is no delegation to check.
+    This test used to skip whenever ``VFBQUERY_CACHE_ENABLED=false`` — which
+    the Run Tests workflow always sets, so CI never verified the chain and
+    the skip sat unexplained in every run. Caching-off is a property of this
+    *process*, not of the code under test: when the ambient import ran
+    unpatched, the same assertions run in a subprocess that imports vfbquery
+    with caching enabled — the real import-time patch path, production's
+    default — so the chain is verified on every run, everywhere. No backend
+    is contacted either way: the assertions only inspect bindings.
     """
-    import vfbquery
-    from vfbquery import cached_functions
+    if hasattr(vq, '_original_get_term_info'):
+        # Patched in this process (the default of a plain `pytest tests/`):
+        # assert directly.
+        exec(compile(_PATCH_CHAIN_ASSERTS, "<patch-chain-asserts>", "exec"), {})
+        return
 
-    if not hasattr(vq, '_original_get_term_info'):
-        pytest.skip("caching disabled: no patch layer to verify")
-
-    assert vfbquery.get_term_info is cached_functions.get_term_info_cached
-    assert vq.get_term_info is cached_functions.get_term_info_cached
-    # The delegate declares force_refresh and hands it on explicitly, so a
-    # refresh survives the extra hop rather than being defaulted away.
-    import inspect
-    params = inspect.signature(cached_functions.get_term_info_cached).parameters
-    assert 'force_refresh' in params and params['force_refresh'].default is False
-    src_text = inspect.getsource(cached_functions.get_term_info_cached)
-    assert 'force_refresh=force_refresh' in src_text
-    # And what it delegates to is the decorated original, not a second cache
-    # layer -- double-decorating was its own bug (two Solr reads per request).
-    original = vq._original_get_term_info
-    assert hasattr(original, '__wrapped__')
-    assert '_original_get_term_info' in src_text
+    import subprocess
+    import sys
+    env = dict(os.environ, VFBQUERY_CACHE_ENABLED="true")
+    proc = subprocess.run(
+        [sys.executable, "-c", _PATCH_CHAIN_ASSERTS], env=env,
+        capture_output=True, text=True, timeout=240)
+    assert proc.returncode == 0, (
+        "patch-chain assertions failed in a caching-enabled interpreter:\n"
+        "stdout:\n%s\nstderr:\n%s" % (proc.stdout[-2000:], proc.stderr[-2000:]))
 
 
 def test_the_stale_self_healing_claim_is_gone():

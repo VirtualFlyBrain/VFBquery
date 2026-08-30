@@ -285,6 +285,7 @@ ENDPOINT_GROUPS = [
             },
             {
                 "path": "/catmaid/{instance}/{command}",
+                "methods": ["GET", "POST"],
                 "summary": "Run a read-only CATMAID command",
                 "description": (
                     "The curated CATMAID query surface. Commands taking "
@@ -297,7 +298,17 @@ ENDPOINT_GROUPS = [
                     "aligned= names a template space for VFB's registered "
                     "copy, and the swc_alignments command lists the spaces "
                     "available. Every command also has its own runnable "
-                    "card in the expanded section below."),
+                    "card in the expanded section below. Also accepts POST: "
+                    "put the same parameters in a JSON object body (or an "
+                    "application/x-www-form-urlencoded/multipart form) "
+                    "instead of the query string — the only way to send an "
+                    "id list too long for a URL. project and raw stay on "
+                    "the query string either way; a GET and the equivalent "
+                    "POST share one cache entry. The Run button below only "
+                    "exercises GET — for example, "
+                    "curl -X POST '/catmaid/fafb/annotations_for_skeletons' "
+                    "-H 'Content-Type: application/json' "
+                    "-d '{\"ids\": [1, 2, 3]}'."),
                 "path_params": [
                     {"name": "instance", "required": True,
                      "doc": "Instance id (see /catmaid)",
@@ -589,12 +600,18 @@ function endpointCard(endpoint){
   }
   const meta = el("span", {class: "meta"});
   const runBtn = el("button", {class: "run", text: "Run"});
+  const methods = endpoint.methods || ["GET"];
+  if (methods.length > 1) body.append(el("p", {class: "desc"},
+    "The Run button below sends a ", el("code", {text: "GET"}),
+    " — the other method",
+    methods.length > 2 ? "s take" : " takes", " the same parameters, "
+    + "either as a JSON body or a form body; see the description above."));
   body.append(el("div", {class: "runrow"}, runBtn, meta),
               el("div", {class: "url"}),
               el("pre", {class: "result", hidden: "hidden"}));
   const details = el("details", {class: "ep", id: slug(endpoint.path)},
     el("summary", null,
-      el("span", {class: "method", text: "GET"}),
+      ...methods.map((m) => el("span", {class: "method", text: m})),
       el("span", {class: "path", text: endpoint.path}),
       el("span", {class: "summ", text: endpoint.summary || ""})),
     body);
@@ -642,6 +659,10 @@ function catmaidCommandEndpoint(name, info){
      doc: "true returns the untouched CATMAID response"});
   return {
     path: "/catmaid/{instance}/" + name,
+    // Client-facing transport: every command runs through the generic
+    // GET-or-POST route, regardless of which method it uses against
+    // CATMAID itself (that's info.method, shown in upstream/summary below).
+    methods: ["GET", "POST"],
     summary: info.local ? "answered by VFBquery" : info.method + " " + info.path,
     upstream: info.local ? "(served by VFBquery, not CATMAID)"
                          : "CATMAID: " + info.method + " " + info.path,
@@ -668,6 +689,7 @@ function renderCatmaidCommands(toc, groupsBox){
   const wrap = el("details", {class: "ep", id: "ep-catmaid-commands"},
     el("summary", null,
       el("span", {class: "method", text: "GET"}),
+      el("span", {class: "method", text: "POST"}),
       el("span", {class: "path", text: "/catmaid/{instance}/…"}),
       el("span", {class: "summ",
                   text: "All " + names.length + " commands, expanded"})),

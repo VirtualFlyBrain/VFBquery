@@ -681,3 +681,21 @@ def test_live_swc_alignments_on_fafb():
     assert any(r["template"] == "VFB_00101567" and r["swc_available"]
                for r in vfb_rows)                     # JRC2018U copy exists
     assert envelope["result"]["skid"] == "13146"
+
+
+# ---------------------------------------------------------------------------
+# Docs page: the generic /catmaid/{instance}/{command} card must say POST
+# is supported too, not just GET — this is what /docs.json and the
+# interactive docs page at "/" are built from.
+# ---------------------------------------------------------------------------
+
+def test_docs_spec_advertises_post_on_the_generic_catmaid_command():
+    import vfbquery.api_docs as api_docs
+
+    spec = api_docs.build_docs_spec("0.0.0-test")
+    group = next(g for g in spec["groups"]
+                if g["group"] == "CATMAID pass-through")
+    entry = next(e for e in group["endpoints"]
+                if e["path"] == "/catmaid/{instance}/{command}")
+    assert entry.get("methods") == ["GET", "POST"]
+    assert "POST" in entry["description"]

@@ -1,9 +1,10 @@
-"""The outage report the root conftest builds when the circuit breaker trips.
+"""The skip report the root conftest builds whenever tests skip.
 
 The report exists so a person reading "N tests skipped" can decide between
-debugging and ignoring: it must name the tests, carry the URL of the call
-that failed or timed out (as a clickable link), and say how it failed.
-These tests pin that contract without needing an outage.
+debugging and ignoring: it must name EVERY skipped test with its reason,
+and for backend failures carry the URL of the call that failed or timed
+out (as a clickable link) and how it failed. These tests pin that
+contract without needing an outage.
 """
 
 import importlib.util
@@ -118,16 +119,26 @@ def _sample_events():
             {"url": "http://pdb.virtualflybrain.org/", "ok": False,
              "status": None, "error": "ReadTimeout: Read timed out.",
              "elapsed_s": 5.0}], "time": 4.0},
-        {"event": "skip", "test": "src/test/test_c.py::test_three", "time": 5.0},
-        {"event": "skip", "test": "src/test/test_c.py::test_three", "time": 5.5},
-        {"event": "skip", "test": "src/test/test_d.py::test_four", "time": 6.0},
+        {"event": "skipped", "test": "src/test/test_c.py::test_three",
+         "reason": "VFB backend outage detected mid-run — skipping to avoid "
+                   "per-test timeouts (probe: http://pdb.virtualflybrain.org/ "
+                   "-> ReadTimeout after 5s)", "time": 5.0},
+        {"event": "skipped", "test": "src/test/test_c.py::test_three",
+         "reason": "duplicate — first reason wins", "time": 5.5},
+        {"event": "skipped", "test": "src/test/test_d.py::test_four",
+         "reason": "VFB backend outage detected mid-run — skipping to avoid "
+                   "per-test timeouts (probe: http://pdb.virtualflybrain.org/ "
+                   "-> ReadTimeout after 5s)", "time": 6.0},
+        {"event": "skipped", "test": "tests/test_preview_warm.py::test_patch",
+         "reason": "caching disabled: no patch layer to verify", "time": 7.0},
     ]
 
 
 def test_report_names_tests_urls_and_failure_modes(guard):
-    markdown, summary = guard.build_outage_report(_sample_events())
-    assert "2 test(s) hit the backend directly" in summary
-    assert "2 more were fast-skipped" in summary
+    markdown, summary = guard.build_skip_report(_sample_events())
+    assert "3 test(s) skipped" in summary
+    assert "2 hit the backend directly" in summary
+    assert "2 were fast-skipped" in summary
     # the triggering tests, deduplicated, with kind and error
     assert markdown.count("test_a.py::test_one") == 1
     assert "connection-failure" in markdown and "timeout" in markdown
@@ -138,9 +149,13 @@ def test_report_names_tests_urls_and_failure_modes(guard):
     assert "**FAILED** — [http://pdb.virtualflybrain.org/]" in markdown
     assert "OK — [http://solr.virtualflybrain.org" in markdown
     assert "ReadTimeout" in markdown
-    # every fast-skipped test is listed, once, inside a details fold
+    # EVERY skipped test is listed once, grouped by reason, in details folds
     assert markdown.count("test_c.py::test_three") == 1
     assert "test_d.py::test_four" in markdown
+    assert "duplicate — first reason wins" not in markdown   # dedupe kept first
+    assert "2 × VFB backend outage detected mid-run" in markdown
+    assert "1 × caching disabled: no patch layer to verify" in markdown
+    assert "test_preview_warm.py::test_patch" in markdown
     assert "<details>" in markdown
 
 
@@ -158,9 +173,9 @@ def test_sessionfinish_writes_the_report_files(guard, tmp_path, monkeypatch):
 
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     guard.pytest_sessionfinish(Session(), 0)
-    markdown = (tmp_path / guard.OUTAGE_REPORT_MD).read_text()
-    assert "VFB backend outage report" in markdown
-    events = json.loads((tmp_path / guard.OUTAGE_REPORT_JSON).read_text())
+    markdown = (tmp_path / guard.SKIP_REPORT_MD).read_text()
+    assert "Skipped tests report" in markdown
+    events = json.loads((tmp_path / guard.SKIP_REPORT_JSON).read_text())
     assert len(events) == len(_sample_events())
 
 
@@ -174,4 +189,4 @@ def test_sessionfinish_silent_when_no_outage(guard, tmp_path, monkeypatch):
 
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     guard.pytest_sessionfinish(Session(), 0)
-    assert not (tmp_path / guard.OUTAGE_REPORT_MD).exists()
+    assert not (tmp_path / guard.SKIP_REPORT_MD).exists()

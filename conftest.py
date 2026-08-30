@@ -215,15 +215,15 @@ _OUTAGE_RECENT_S = 60      # a failure newer than this means "trouble right now"
 _PROBE_CACHE_S = 10        # re-probe at most this often, per worker
 _PROBE_TIMEOUT_S = 5
 
-#: Shared event log for the outage report — same run-keyed scheme as the
+#: Shared event log for the skip report — same run-keyed scheme as the
 #: latch, JSON-lines so xdist workers can append concurrently. The session
-#: master aggregates it into outage_report.md/.json at session end.
+#: master aggregates it into skipped_tests_report.md/.json at session end.
 _OUTAGE_EVENTS = _OUTAGE_LATCH + "_events.jsonl"
 
 #: Where the aggregated report lands (the invocation directory, so CI steps
 #: can pick it up next to pytest_output.log).
-OUTAGE_REPORT_MD = "outage_report.md"
-OUTAGE_REPORT_JSON = "outage_report.json"
+SKIP_REPORT_MD = "skipped_tests_report.md"
+SKIP_REPORT_JSON = "skipped_tests_report.json"
 
 
 def _record_event(event, **fields):
@@ -360,12 +360,33 @@ def pytest_runtest_setup(item):
     again, so a transient blip only pauses the suite briefly."""
     if _outage_signalled_recently():
         if _backend_down():
-            _record_event("skip", test=item.nodeid)
             pytest.skip("VFB backend outage detected mid-run — skipping to avoid "
                         "per-test timeouts; re-run once the backend is healthy"
                         + _probe_failure_suffix())
         else:
             _clear_outage()
+
+
+def pytest_runtest_logreport(report):
+    """Record EVERY skipped test with its reason, whatever caused the skip.
+
+    The report answers "N skipped — which, and why?" without opening the
+    Actions log, so it cannot be limited to the circuit breaker's own
+    skips: a marker skip, a skipif, an imperative ``pytest.skip`` inside a
+    test all land here too, each with its reason string. xfails are not
+    skips and stay out.
+    """
+    if not report.skipped or hasattr(report, "wasxfail"):
+        return
+    longrepr = getattr(report, "longrepr", None)
+    if isinstance(longrepr, tuple) and len(longrepr) == 3:
+        reason = str(longrepr[2])
+    else:
+        reason = str(longrepr) if longrepr is not None else ""
+    if reason.startswith("Skipped: "):
+        reason = reason[len("Skipped: "):]
+    _record_event("skipped", test=report.nodeid, when=report.when,
+                  reason=reason[:400])
 
 
 # --------------------------------------------------------------------------
@@ -376,34 +397,41 @@ def _md_link(url):
     return "[%s](%s)" % (url, url)
 
 
-def build_outage_report(events):
+def build_skip_report(events):
     """(markdown, summary_line) from the recorded events.
 
     The markdown is what the CI steps embed in the job summary and the
     sticky PR comment, so URLs are rendered as links: the point of the
-    report is that the person reading it can click the failing call,
-    see how it failed, and decide between debugging and ignoring.
+    report is that the person reading it can see every skipped test with
+    the reason it skipped — and, for backend failures, click the failing
+    call and see how it failed — then decide between debugging and
+    ignoring.
     """
-    triggers, skips, probes = [], [], []
-    seen_triggers, seen_skips = set(), set()
+    triggers, skipped, probes = [], {}, []
+    seen_triggers = set()
     for event in events:
         if event.get("event") == "trigger" and event.get("test") not in seen_triggers:
             seen_triggers.add(event.get("test"))
             triggers.append(event)
-        elif event.get("event") == "skip" and event.get("test") not in seen_skips:
-            seen_skips.add(event.get("test"))
-            skips.append(event)
+        elif event.get("event") == "skipped":
+            skipped.setdefault(event.get("test"), event.get("reason", ""))
         elif event.get("event") == "probe":
             probes.append(event)
 
-    summary = ("%d test(s) hit the backend directly and failed; %d more were "
-               "fast-skipped by the circuit breaker"
-               % (len(triggers), len(skips)))
+    breaker = sum(1 for reason in skipped.values()
+                  if reason.startswith("VFB backend outage detected mid-run"))
+    summary = "%d test(s) skipped" % len(skipped)
+    if triggers or breaker:
+        summary += (" — %d hit the backend directly and failed, %d were "
+                    "fast-skipped by the circuit breaker"
+                    % (len(triggers), breaker))
 
-    lines = ["## VFB backend outage report", "",
-             summary + ". Details below decide between debugging and "
-             "re-running: a transport error against a known-good URL is an "
-             "outage (re-run later); anything else deserves a look.", ""]
+    lines = ["## Skipped tests report", "",
+             summary + ". Every skip is listed below with its reason; for "
+             "backend failures the failing call and the health-probe "
+             "verdicts say what to debug — a transport error against a "
+             "known-good URL is an outage (re-run later); anything else "
+             "deserves a look.", ""]
 
     if triggers:
         lines += ["### What failed first", ""]
@@ -429,20 +457,27 @@ def build_outage_report(events):
                                 entry.get("elapsed_s")))
         lines.append("")
 
-    if skips:
-        names = sorted(event.get("test", "") for event in skips)
-        lines += ["### Tests fast-skipped by the circuit breaker (%d)" % len(names),
-                  "", "<details><summary>Full list</summary>", ""]
-        lines += ["- `%s`" % name for name in names]
-        lines += ["", "</details>", ""]
+    if skipped:
+        by_reason = {}
+        for test, reason in skipped.items():
+            by_reason.setdefault(reason or "(no reason recorded)",
+                                 []).append(test)
+        lines += ["### All skipped tests (%d), by reason" % len(skipped), ""]
+        for reason, tests in sorted(by_reason.items(),
+                                    key=lambda kv: -len(kv[1])):
+            lines += ["<details><summary>%d × %s</summary>"
+                      % (len(tests), reason.replace("\n", " ")), ""]
+            lines += ["- `%s`" % test for test in sorted(tests)]
+            lines += ["", "</details>", ""]
 
     return "\n".join(lines), summary
 
 
 def pytest_sessionfinish(session, exitstatus):
     """On the session master, turn the shared event log into
-    ``outage_report.md`` / ``outage_report.json`` beside the invocation
-    directory's pytest output, for the CI skip report to embed."""
+    ``skipped_tests_report.md`` / ``skipped_tests_report.json`` beside the
+    invocation directory's pytest output, for the CI skip report to embed.
+    Written whenever anything skipped; absent on a fully-run session."""
     if os.environ.get("PYTEST_XDIST_WORKER"):
         return                               # workers report; the master writes
     events = []
@@ -458,14 +493,13 @@ def pytest_sessionfinish(session, exitstatus):
     if not events:
         return
     outdir = str(session.config.invocation_params.dir)
-    markdown, summary = build_outage_report(events)
+    markdown, summary = build_skip_report(events)
     try:
-        with open(os.path.join(outdir, OUTAGE_REPORT_MD), "w") as fh:
+        with open(os.path.join(outdir, SKIP_REPORT_MD), "w") as fh:
             fh.write(markdown)
-        with open(os.path.join(outdir, OUTAGE_REPORT_JSON), "w") as fh:
+        with open(os.path.join(outdir, SKIP_REPORT_JSON), "w") as fh:
             json.dump(events, fh, indent=1)
-        print("\nVFB backend outage detected this run: %s.\n"
-              "Report written to %s (markdown) and %s (raw events)."
-              % (summary, OUTAGE_REPORT_MD, OUTAGE_REPORT_JSON))
+        print("\n%s.\nSkip report written to %s (markdown) and %s "
+              "(raw events)." % (summary, SKIP_REPORT_MD, SKIP_REPORT_JSON))
     except OSError:
         pass

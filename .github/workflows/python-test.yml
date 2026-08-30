@@ -90,21 +90,22 @@ jobs:
             echo "No test output captured."; exit 0
           fi
           summary=$(grep -Eo '[0-9]+ skipped' pytest_output.log | tail -1 || true)
-          # conftest.py writes outage_report.md when the circuit breaker
-          # tripped: which test hit the backend first, the URL of the call
-          # that failed or timed out and how, the health-probe verdicts, and
-          # the full list of fast-skipped tests. Embed it wherever the skip
-          # is reported so the reader can debug or decide to ignore.
+          # conftest.py writes skipped_tests_report.md whenever anything
+          # skipped: every skipped test grouped by reason, and — when the
+          # circuit breaker tripped — which test hit the backend first, the
+          # URL of the call that failed or timed out and how, and the
+          # health-probe verdicts. Embed it wherever the skip is reported
+          # so the reader can debug or decide to ignore.
           digest=""
-          if [ -f outage_report.md ]; then
-            digest=$(grep -m1 -oE 'call: \[[^]]+\]|FAILED[^|]*' outage_report.md | head -1 || true)
+          if [ -f skipped_tests_report.md ]; then
+            digest=$(grep -m1 -oE 'call: \[[^]]+\]|FAILED[^|]*' skipped_tests_report.md | head -1 || true)
             {
               echo ""
-              cat outage_report.md
+              cat skipped_tests_report.md
             } >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ -n "$summary" ]; then
-            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. ${digest:+First failure: ${digest}. }These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. Full detail (failing URLs, probe verdicts, skipped-test list): the job summary and the PR comment."
+            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. ${digest:+First failure: ${digest}. }These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. Full detail (every skipped test with its reason; failing URLs and probe verdicts for backend failures): the job summary and the PR comment."
           else
             echo "No tests skipped."
           fi
@@ -131,13 +132,14 @@ jobs:
               core.info('No pytest_output.log to read: ' + e.message);
             }
 
-            // conftest.py's outage report: the failing calls (as clickable
-            // links), the probe verdicts, and the fast-skipped test list.
+            // conftest.py's skip report: every skipped test grouped by
+            // reason, plus — for backend failures — the failing calls (as
+            // clickable links) and the probe verdicts.
             let outage = '';
             try {
-              outage = fs.readFileSync('outage_report.md', 'utf8').trim();
+              outage = fs.readFileSync('skipped_tests_report.md', 'utf8').trim();
             } catch (e) {
-              core.info('No outage_report.md (breaker never tripped).');
+              core.info('No skipped_tests_report.md (nothing skipped).');
             }
 
             const { owner, repo } = context.repo;

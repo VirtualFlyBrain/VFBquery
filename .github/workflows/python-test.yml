@@ -90,8 +90,21 @@ jobs:
             echo "No test output captured."; exit 0
           fi
           summary=$(grep -Eo '[0-9]+ skipped' pytest_output.log | tail -1 || true)
+          # conftest.py writes outage_report.md when the circuit breaker
+          # tripped: which test hit the backend first, the URL of the call
+          # that failed or timed out and how, the health-probe verdicts, and
+          # the full list of fast-skipped tests. Embed it wherever the skip
+          # is reported so the reader can debug or decide to ignore.
+          digest=""
+          if [ -f outage_report.md ]; then
+            digest=$(grep -m1 -oE 'call: \[[^]]+\]|FAILED[^|]*' outage_report.md | head -1 || true)
+            {
+              echo ""
+              cat outage_report.md
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -n "$summary" ]; then
-            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. See the job log for the list."
+            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. ${digest:+First failure: ${digest}. }These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. Full detail (failing URLs, probe verdicts, skipped-test list): the job summary and the PR comment."
           else
             echo "No tests skipped."
           fi
@@ -116,6 +129,15 @@ jobs:
               if (line) summary = line[line.length - 1].replace(/=/g, '').trim();
             } catch (e) {
               core.info('No pytest_output.log to read: ' + e.message);
+            }
+
+            // conftest.py's outage report: the failing calls (as clickable
+            // links), the probe verdicts, and the fast-skipped test list.
+            let outage = '';
+            try {
+              outage = fs.readFileSync('outage_report.md', 'utf8').trim();
+            } catch (e) {
+              core.info('No outage_report.md (breaker never tripped).');
             }
 
             const { owner, repo } = context.repo;
@@ -151,7 +173,8 @@ jobs:
                      `(Neo4j / SOLR / Owlery) did not answer, so those queries went ` +
                      `unverified. This is not a branch failure — but the run is ` +
                      `incomplete.\n\n${rerun}` +
-                     (summary ? '\n\n```\n' + summary + '\n```' : ''))
+                     (summary ? '\n\n```\n' + summary + '\n```' : '') +
+                     (outage ? '\n\n' + outage : ''))
                   : 'Every backend-dependent test reached the VFB backend and ran.',
               },
             });
@@ -172,6 +195,7 @@ jobs:
                 '',
                 '> ' + rerun,
                 summary ? '\n```\n' + summary + '\n```' : '',
+                outage ? '\n' + outage : '',
                 '',
                 '<sub>Posted automatically. This comment is removed once a run completes with zero skips.</sub>',
               ].join('\n');

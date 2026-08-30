@@ -130,7 +130,9 @@ def _sample_events():
                    "per-test timeouts (probe: http://pdb.virtualflybrain.org/ "
                    "-> ReadTimeout after 5s)", "time": 6.0},
         {"event": "skipped", "test": "tests/test_preview_warm.py::test_patch",
-         "reason": "caching disabled: no patch layer to verify", "time": 7.0},
+         "reason": "caching disabled: no patch layer to verify",
+         "doc": "The public entry point delegates to the decorated original.",
+         "file": "tests/test_preview_warm.py", "line": 540, "time": 7.0},
     ]
 
 
@@ -156,7 +158,34 @@ def test_report_names_tests_urls_and_failure_modes(guard):
     assert "2 × VFB backend outage detected mid-run" in markdown
     assert "1 × caching disabled: no patch layer to verify" in markdown
     assert "test_preview_warm.py::test_patch" in markdown
+    # the docstring's first line tells the reader what the test does
+    assert ("— The public entry point delegates to the decorated original."
+            in markdown)
     assert "<details>" in markdown
+
+
+def test_report_links_tests_to_source_on_github_actions(guard, monkeypatch):
+    monkeypatch.setenv("GITHUB_SERVER_URL", "https://github.com")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "VirtualFlyBrain/VFBquery")
+    monkeypatch.setenv("GITHUB_SHA", "abc123")
+    markdown, _ = guard.build_skip_report(_sample_events())
+    assert ("[`tests/test_preview_warm.py::test_patch`]"
+            "(https://github.com/VirtualFlyBrain/VFBquery/blob/abc123/"
+            "tests/test_preview_warm.py#L540)") in markdown
+
+
+def test_item_context_reads_docstring_and_location(guard):
+    class Item:
+        def obj(self):
+            pass
+        obj.__doc__ = """Checks the thing.
+
+        Longer detail that must not leak into the one-line summary."""
+        location = ("tests/test_x.py", 41, "test_checks")
+
+    context = guard._item_context(Item())
+    assert context == {"file": "tests/test_x.py", "line": 42,
+                       "doc": "Checks the thing."}
 
 
 def test_sessionfinish_writes_the_report_files(guard, tmp_path, monkeypatch):

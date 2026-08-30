@@ -92,6 +92,22 @@ def _is_connection_failure(exc):
 _URL_RE = re.compile(r"https?://[^\s'\"<>)\]]+")
 
 
+def _item_context(item):
+    """file, line and first docstring line for a test item — the report
+    reader should learn what a test does and where it lives without
+    opening the source tree."""
+    doc = ""
+    try:
+        import inspect
+        doc = (inspect.getdoc(getattr(item, "obj", None)) or "").strip()
+        doc = doc.split("\n")[0].strip()
+    except Exception:
+        pass
+    location = getattr(item, "location", ("", 0, ""))
+    return {"file": str(location[0]).replace("\\", "/"),
+            "line": (location[1] or 0) + 1, "doc": doc[:240]}
+
+
 def _failure_url(exc):
     """Best-effort URL of the call behind a transport failure.
 
@@ -134,7 +150,7 @@ def pytest_runtest_makereport(item, call):
             _mark_outage()
             _record_event("trigger", test=item.nodeid, kind="connection-failure",
                           error=f"{type(exc).__name__}: {str(exc)[:300]}",
-                          url=url)
+                          url=url, **_item_context(item))
         elif "pytest-timeout" in str(exc):
             # A test hit the per-test ceiling. If the backend is down this is an
             # outage casualty, not a slow query — record it and let it read as a
@@ -158,7 +174,25 @@ def pytest_runtest_makereport(item, call):
                     + _probe_failure_suffix(),
                 )
                 _record_event("trigger", test=item.nodeid, kind="timeout",
-                              error=str(exc)[:300], url=None)
+                              error=str(exc)[:300], url=None,
+                              **_item_context(item))
+
+    # Record EVERY skipped test — whatever caused the skip — with its
+    # reason, its location, and the first line of its docstring, so the
+    # report answers "which tests, doing what, and why?" without opening
+    # the source. A marker skip, a skipif, an imperative ``pytest.skip``
+    # and the breaker's own skips all land here; xfails are not skips
+    # and stay out.
+    if rep.skipped and not hasattr(rep, "wasxfail"):
+        longrepr = rep.longrepr
+        if isinstance(longrepr, tuple) and len(longrepr) == 3:
+            reason = str(longrepr[2])
+        else:
+            reason = str(longrepr) if longrepr is not None else ""
+        if reason.startswith("Skipped: "):
+            reason = reason[len("Skipped: "):]
+        _record_event("skipped", test=item.nodeid, when=rep.when,
+                      reason=reason[:400], **_item_context(item))
 
 
 # --------------------------------------------------------------------------
@@ -367,27 +401,6 @@ def pytest_runtest_setup(item):
             _clear_outage()
 
 
-def pytest_runtest_logreport(report):
-    """Record EVERY skipped test with its reason, whatever caused the skip.
-
-    The report answers "N skipped — which, and why?" without opening the
-    Actions log, so it cannot be limited to the circuit breaker's own
-    skips: a marker skip, a skipif, an imperative ``pytest.skip`` inside a
-    test all land here too, each with its reason string. xfails are not
-    skips and stay out.
-    """
-    if not report.skipped or hasattr(report, "wasxfail"):
-        return
-    longrepr = getattr(report, "longrepr", None)
-    if isinstance(longrepr, tuple) and len(longrepr) == 3:
-        reason = str(longrepr[2])
-    else:
-        reason = str(longrepr) if longrepr is not None else ""
-    if reason.startswith("Skipped: "):
-        reason = reason[len("Skipped: "):]
-    _record_event("skipped", test=report.nodeid, when=report.when,
-                  reason=reason[:400])
-
 
 # --------------------------------------------------------------------------
 # Outage report — aggregate the events into something a person can act on
@@ -395,6 +408,23 @@ def pytest_runtest_logreport(report):
 
 def _md_link(url):
     return "[%s](%s)" % (url, url)
+
+
+def _test_ref(event):
+    """One report line's worth of test identity: the nodeid — linked to
+    the exact file and line at this run's commit when the GitHub Actions
+    environment says where that is — followed by the first line of the
+    test's docstring, so the reader learns what the test does without
+    opening the source."""
+    label = "`%s`" % event.get("test")
+    server = os.environ.get("GITHUB_SERVER_URL")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    sha = os.environ.get("GITHUB_SHA")
+    if server and repo and sha and event.get("file"):
+        label = "[%s](%s/%s/blob/%s/%s#L%s)" % (
+            label, server, repo, sha, event["file"], event.get("line") or 1)
+    doc = (event.get("doc") or "").strip()
+    return label + (" — %s" % doc if doc else "")
 
 
 def build_skip_report(events):
@@ -414,12 +444,13 @@ def build_skip_report(events):
             seen_triggers.add(event.get("test"))
             triggers.append(event)
         elif event.get("event") == "skipped":
-            skipped.setdefault(event.get("test"), event.get("reason", ""))
+            skipped.setdefault(event.get("test"), event)
         elif event.get("event") == "probe":
             probes.append(event)
 
-    breaker = sum(1 for reason in skipped.values()
-                  if reason.startswith("VFB backend outage detected mid-run"))
+    breaker = sum(1 for event in skipped.values()
+                  if event.get("reason", "").startswith(
+                      "VFB backend outage detected mid-run"))
     summary = "%d test(s) skipped" % len(skipped)
     if triggers or breaker:
         summary += (" — %d hit the backend directly and failed, %d were "
@@ -437,8 +468,8 @@ def build_skip_report(events):
         lines += ["### What failed first", ""]
         for event in sorted(triggers, key=lambda e: e.get("time", 0)):
             call = (" — call: " + _md_link(event["url"])) if event.get("url") else ""
-            lines.append("- `%s` (%s): %s%s"
-                         % (event.get("test"), event.get("kind"),
+            lines.append("- %s\n  %s: %s%s"
+                         % (_test_ref(event), event.get("kind"),
                             event.get("error", "").replace("\n", " "), call))
         lines.append("")
 
@@ -459,15 +490,17 @@ def build_skip_report(events):
 
     if skipped:
         by_reason = {}
-        for test, reason in skipped.items():
-            by_reason.setdefault(reason or "(no reason recorded)",
-                                 []).append(test)
+        for event in skipped.values():
+            by_reason.setdefault(event.get("reason") or "(no reason recorded)",
+                                 []).append(event)
         lines += ["### All skipped tests (%d), by reason" % len(skipped), ""]
-        for reason, tests in sorted(by_reason.items(),
+        for reason, group in sorted(by_reason.items(),
                                     key=lambda kv: -len(kv[1])):
             lines += ["<details><summary>%d × %s</summary>"
-                      % (len(tests), reason.replace("\n", " ")), ""]
-            lines += ["- `%s`" % test for test in sorted(tests)]
+                      % (len(group), reason.replace("\n", " ")), ""]
+            lines += ["- " + _test_ref(event)
+                      for event in sorted(group,
+                                          key=lambda e: e.get("test", ""))]
             lines += ["", "</details>", ""]
 
     return "\n".join(lines), summary

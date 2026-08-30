@@ -99,11 +99,12 @@ The endpoint surface mirrors the Python package: `/get_term_info`,
 ## Development
 
 Tests live in `src/test/` (package-level, run against the live VFB backend)
-and `tests/` (HA-API unit tests). The worked examples with their expected
-result shapes are a validated fixture at
-[`src/test/example_queries.md`](src/test/example_queries.md): CI executes
-every code block in it against production and diffs the results against the
-recorded JSON, so the examples cannot rot. `pip install -r requirements.txt
+and `tests/` (HA-API unit tests). The canonical worked examples are a real
+test, [`src/test/test_example_queries.py`](src/test/test_example_queries.py):
+CI runs them against production and compares each result's shape to the
+recording in `src/test/example_expected/`, so the examples cannot rot; when
+a schema change is intentional, `python -m src.test.test_example_queries
+--record` refreshes the recordings. `pip install -r requirements.txt
 -r tests/requirements.txt`, then `pytest`.
 
 ## Licence

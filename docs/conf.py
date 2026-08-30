@@ -5,9 +5,9 @@ Two things about this repo shape the config, and both are deliberate:
 1. **Most of the documentation predates the site.** `README.md`, `CACHING.md`,
    `RELEASING.md`, `schema.md`, `performance.md` and `VFB_QUERIES_REFERENCE.md`
    live at the repo root and are read there, on GitHub, by people who never
-   open the docs site. (`README.md` used to be *generated*; the validated
-   example blocks now live in `src/test/example_queries.md` as a test fixture
-   and the README is hand-written.) `_sync_root_docs` copies the root
+   open the docs site. (`README.md` used to be *generated*; the worked
+   examples are now a real test, `src/test/test_example_queries.py`, and
+   the README is hand-written.) `_sync_root_docs` copies the root
    documents into `docs/_root/` at build time. Copying rather than `{include}`-ing keeps the links *between*
    them working: `CACHING.md` links to `RELEASING.md` as a sibling, and in
    `_root/` they still are siblings. `docs/_root/` is generated and gitignored.

@@ -22,9 +22,9 @@ pip install -e .
 The split exists so that test tooling never reaches an end user: `requirements.txt`
 mirrors `setup.py`'s `install_requires` and is what the `Dockerfile` copies into
 the runtime image, while `tests/requirements.txt` holds pytest, `pytest-timeout`
-(which enforces the 300 s per-test ceiling from `pyproject.toml`), `pytest-xdist`
-(the `-n` parallel runner) and the `deepdiff`/`colorama` pair used only by
-`src/test/test_examples_diff.py`. If you add a test-only dependency, put it in
+(which enforces the 300 s per-test ceiling from `pyproject.toml`) and
+`pytest-xdist` (the `-n` parallel runner). If you add a test-only dependency,
+put it in
 `tests/requirements.txt` — not in `requirements.txt`, and not as an ad-hoc
 `pip install` inside a workflow step.
 
@@ -169,9 +169,10 @@ existed because they checked keys that never appear:
 ### 6. Wire new test files into CI
 
 `python-test.yml` runs `pytest src/test tests` — a new `test_*.py` under either
-directory is picked up automatically. If you add a file that is a script rather
-than a pytest module, or a pure-timing test, add an explicit `--ignore` there
-with a comment (see the existing `test_examples_*` / `test_query_performance`
+directory is picked up automatically. If you add a file that belongs to a
+dedicated workflow instead (a pure-timing test, or one that duplicates live
+load another job already generates), add an explicit `--ignore` there with a
+comment (see the existing `test_example_queries` / `test_query_performance`
 ignores).
 
 ## Checklist for a new backend test

@@ -66,10 +66,10 @@ jobs:
           # step turns any skips into a PR-visible warning.
           # Excludes: test_query_performance.py — wall-clock threshold
           # assertions that flap under parallel load, already gated by the
-          # dedicated "Performance Test" workflow; and test_examples_diff.py /
-          # test_examples_code.py — README-example scripts (no pytest tests,
-          # pull in deepdiff/colorama) run by the "Test VFBquery examples"
-          # workflow instead.
+          # dedicated "Performance Test" workflow; and
+          # test_example_queries.py — the canonical worked examples, run
+          # by the "Test VFBquery examples" workflow instead so this job
+          # does not double the live load they put on production.
           # -n 4 rather than -n auto: an explicit cap on how many concurrent
           # query streams one run points at production. `auto` happens to be 4
           # on today's GitHub-hosted ubuntu runner, so this is not a slowdown —
@@ -77,8 +77,7 @@ jobs:
           # runner spec grows.
           pytest -v -ra -n 4 --dist loadscope \
             --ignore=src/test/test_query_performance.py \
-            --ignore=src/test/test_examples_diff.py \
-            --ignore=src/test/test_examples_code.py \
+            --ignore=src/test/test_example_queries.py \
             src/test tests 2>&1 | tee pytest_output.log
       - name: Flag skipped tests (backend unavailable)
         if: always()

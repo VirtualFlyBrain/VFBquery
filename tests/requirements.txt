@@ -33,8 +33,3 @@ pytest-timeout
 # Provides -n / --dist for the parallel test runs in the "Run Tests" and
 # "Performance Test" workflows.
 pytest-xdist
-
-# src/test/test_examples_diff.py only — structural comparison of the outputs
-# produced by the README examples, run by the "Test VFBquery Examples" workflow.
-deepdiff
-colorama

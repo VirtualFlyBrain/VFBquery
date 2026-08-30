@@ -1,0 +1,1379 @@
+{
+ "Name": "JRC2018U",
+ "Id": "VFB_00101567",
+ "SuperTypes": [
+  "Entity",
+  "Individual",
+  "VFB",
+  "Adult",
+  "Anatomy",
+  "Nervous_system",
+  "Template",
+  "has_image"
+ ],
+ "Meta": {
+  "Name": "[JRC2018Unisex](VFB_00101567)",
+  "Symbol": "[JRC2018U](VFB_00101567)",
+  "Description": "Janelia 2018 unisex, averaged adult brain template",
+  "Comment": "",
+  "Types": "[adult brain](FBbt_00003624)"
+ },
+ "Tags": [
+  "Adult",
+  "Nervous_system"
+ ],
+ "Queries": [
+  {
+   "query": "PaintedDomains",
+   "label": "Painted domains for JRC2018U",
+   "function": "get_painted_domains",
+   "takes": {
+    "short_form": {
+     "$and": [
+      "Template",
+      "Individual"
+     ]
+    },
+    "default": {
+     "short_form": "VFB_00101567"
+    }
+   },
+   "preview": 10,
+   "preview_columns": [
+    "id",
+    "name",
+    "type",
+    "description",
+    "thumbnail"
+   ],
+   "preview_results": {
+    "status": "complete",
+    "headers": {
+     "id": {
+      "title": "ID",
+      "type": "selection_id",
+      "order": -1
+     },
+     "name": {
+      "title": "Domain",
+      "type": "markdown",
+      "order": 0
+     },
+     "type": {
+      "title": "Type",
+      "type": "text",
+      "order": 1
+     },
+     "description": {
+      "title": "Definition",
+      "type": "text",
+      "order": 2
+     },
+     "thumbnail": {
+      "title": "Thumbnail",
+      "type": "markdown",
+      "order": 9
+     }
+    },
+    "rows": [
+     {
+      "id": "VFB_00102282",
+      "name": "[NO on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102282)",
+      "type": [
+       "nodulus"
+      ],
+      "description": "Paired synaptic neuropil domain of the adult brain located just caudal to the ellipsoid body and ventral to the fan-shaped body, on either side of the midline (Hanesch et al., 1989). There are three of these structures, stacked on top of each other from dorsal to ventral, and at least two can be further divided into compartments (Wolff et al., 2015; Wolff and Rubin, 2018). There is asymmetry between the noduli, with one set always lying slightly more anterior than the other (Ito et al., 2014).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102281",
+      "name": "[GA on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102281)",
+      "type": [
+       "gall"
+      ],
+      "description": "A small region that protrudes from the superior-lateral tip of the lateral accessory lobe, just medial to the ventro-lateral protocerebrum and beneath the spur of the mushroom body. It is densely packed with synapses and sparsely surrounded by glia. Three distinct subunits can be recognized: ventral, dorsal and tip.",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102276",
+      "name": "[PRW on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102276)",
+      "type": [
+       "prow"
+      ],
+      "description": "Anteriormost and superior synaptic neuropil domain below the esophagus (Ito et al., 2014). It lies inferior and anterior to the opening of the esophageal foramen (Ito et al., 2014). It houses the superior pharyngeal sensory center (SPhS), containing the terminals of peripheral axons from the pharyngeal nerve (Ito et al., 2014). It forms the ventral part of the tritocerebrum, developing from the ventromedial domain of the larval tritocerebrum (Hartenstein et al., 2018).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102218",
+      "name": "[IPS on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102218)",
+      "type": [
+       "inferior posterior slope"
+      ],
+      "description": "Inferior (ventral) part of the posterior slope. It flanks both sides of the esophagus, and is posterior and medial to the wedge. Below the plane of the inferior VLP commissure and the posterior optic commissure.",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102185",
+      "name": "[IB on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102185)",
+      "type": [
+       "inferior bridge"
+      ],
+      "description": "Posterior-most synaptic neuropil domain of the midline. It is the only synaptic neuropil domain outside of the central complex that is fused across the midline. It is located behind the fan-shaped body and below the protocerebral bridge.",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102171",
+      "name": "[CRE on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102171)",
+      "type": [
+       "adult crepine"
+      ],
+      "description": "A thin, bilaterally paired synaptic neuropil domain that wraps around the medial lobe of the mushroom body. Many neurons in this domain enter the lobes to form extensive connections with Kenyon cell fibers.",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102133",
+      "name": "[gL on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102133)",
+      "type": [
+       "adult mushroom body gamma-lobe"
+      ],
+      "description": "Subregion of the adult mushroom body medial lobe (Ito et al., 2014). It is composed of the axons of gamma Kenyon cells (Ito et al., 2014).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102123",
+      "name": "[bL on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102123)",
+      "type": [
+       "adult mushroom body beta-lobe"
+      ],
+      "description": "Subregion of the adult mushroom body medial lobe (Ito et al., 2014). It is composed of the medial branches of alpha/beta Kenyon cells (Ito et al., 2014).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102108",
+      "name": "[AME on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102108)",
+      "type": [
+       "accessory medulla"
+      ],
+      "description": "A small area of neuropil on the frontomedial edge of the medulla, close to the outgoing fibers running from the serpentine layer to the posterior optic commissure. It is the descendant of the larval optic neuropil (Sprecher et al., 2011).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567//thumbnailT.png"
+     },
+     {
+      "id": "VFB_00102107",
+      "name": "[ME on JRC2018Unisex adult brain](https://virtualflybrain.org/reports/VFB_00102107)",
+      "type": [
+       "medulla"
+      ],
+      "description": "The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014).",
+      "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567//thumbnailT.png"
+     }
+    ]
+   },
+   "output_format": "table",
+   "count": 46
+  },
+  {
+   "query": "AllAlignedImages",
+   "label": "All images aligned to JRC2018U",
+   "function": "get_all_aligned_images",
+   "takes": {
+    "short_form": {
+     "$and": [
+      "Template",
+      "Individual"
+     ]
+    },
+    "default": {
+     "short_form": "VFB_00101567"
+    }
+   },
+   "preview": 10,
+   "preview_columns": [
+    "id",
+    "name",
+    "tags",
+    "type",
+    "template",
+    "technique",
+    "thumbnail"
+   ],
+   "preview_results": {
+    "status": "complete",
+    "headers": {
+     "id": {
+      "title": "ID",
+      "type": "selection_id",
+      "order": -1
+     },
+     "name": {
+      "title": "Image",
+      "type": "markdown",
+      "order": 0
+     },
+     "tags": {
+      "title": "Tags",
+      "type": "tags",
+      "order": 1
+     },
+     "type": {
+      "title": "Type",
+      "type": "markdown",
+      "order": 2
+     },
+     "template": {
+      "title": "Template",
+      "type": "markdown",
+      "order": 3
+     },
+     "technique": {
+      "title": "Imaging Technique",
+      "type": "text",
+      "order": 4
+     },
+     "thumbnail": {
+      "title": "Thumbnail",
+      "type": "markdown",
+      "order": 9
+     }
+    },
+    "rows": [
+     {
+      "id": "VFB_00000010",
+      "name": "[fru-M-200327](https://virtualflybrain.org/reports/VFB_00000010)",
+      "tags": "Peptidergic|Expression_pattern_fragment|lineage_MBp|Adult|Cholinergic",
+      "type": "[adult gamma Kenyon cell](FBbt_00049828) | [expression pattern fragment](VFBext_0000004) | [adult fruitless MB neuron](FBbt_00110575)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200327 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0010/VFB_00101567/thumbnail.png 'fru-M-200327 aligned to JRC2018U')](VFB_00101567,VFB_00000010) | [![fru-M-200327 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0010/VFB_00017894/thumbnail.png 'fru-M-200327 aligned to JFRC2')](VFB_00017894,VFB_00000010)"
+     },
+     {
+      "id": "VFB_00000009",
+      "name": "[fru-M-200326](https://virtualflybrain.org/reports/VFB_00000009)",
+      "tags": "Expression_pattern_fragment|lineage_DM6_CM3|Neuron|Adult",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult DM6 lineage neuron](FBbt_00050144)",
+      "template": "[JFRC2](VFB_00017894) | [JRC2018U](VFB_00101567)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200326 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0009/VFB_00017894/thumbnail.png 'fru-M-200326 aligned to JFRC2')](VFB_00017894,VFB_00000009) | [![fru-M-200326 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0009/VFB_00101567/thumbnail.png 'fru-M-200326 aligned to JRC2018U')](VFB_00101567,VFB_00000009)"
+     },
+     {
+      "id": "VFB_00000008",
+      "name": "[fru-M-200325](https://virtualflybrain.org/reports/VFB_00000008)",
+      "tags": "Expression_pattern_fragment|lineage_ALl1_BAlc|Neuron|Auditory_system|Adult",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult fruitless aDT-e (male) neuron](FBbt_00110583) | [antennal mechanosensory and motor center B1 projection neuron](FBbt_00110120)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200325 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0008/VFB_00101567/thumbnail.png 'fru-M-200325 aligned to JRC2018U')](VFB_00101567,VFB_00000008) | [![fru-M-200325 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0008/VFB_00017894/thumbnail.png 'fru-M-200325 aligned to JFRC2')](VFB_00017894,VFB_00000008)"
+     },
+     {
+      "id": "VFB_00000007",
+      "name": "[fru-M-200324](https://virtualflybrain.org/reports/VFB_00000007)",
+      "tags": "Expression_pattern_fragment|lineage_DM6_CM3|Neuron|Adult",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult fruitless pMP-f (male) neuron](FBbt_00110623)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200324 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0007/VFB_00101567/thumbnail.png 'fru-M-200324 aligned to JRC2018U')](VFB_00101567,VFB_00000007) | [![fru-M-200324 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0007/VFB_00017894/thumbnail.png 'fru-M-200324 aligned to JFRC2')](VFB_00017894,VFB_00000007)"
+     },
+     {
+      "id": "VFB_00000006",
+      "name": "[fru-M-100217](https://virtualflybrain.org/reports/VFB_00000006)",
+      "tags": "Nervous_system|Expression_pattern_fragment|Neuron|Adult",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult fruitless pMP-c (male) neuron](FBbt_00110619)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-100217 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0006/VFB_00101567/thumbnail.png 'fru-M-100217 aligned to JRC2018U')](VFB_00101567,VFB_00000006) | [![fru-M-100217 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0006/VFB_00017894/thumbnail.png 'fru-M-100217 aligned to JFRC2')](VFB_00017894,VFB_00000006)"
+     },
+     {
+      "id": "VFB_00000005",
+      "name": "[fru-M-900070](https://virtualflybrain.org/reports/VFB_00000005)",
+      "tags": "Expression_pattern_fragment|Neuron|Adult|lineage_DL1_CP2",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult fruitless pIP-e (male) neuron](FBbt_00110611)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-900070 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0005/VFB_00101567/thumbnail.png 'fru-M-900070 aligned to JRC2018U')](VFB_00101567,VFB_00000005) | [![fru-M-900070 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0005/VFB_00017894/thumbnail.png 'fru-M-900070 aligned to JFRC2')](VFB_00017894,VFB_00000005)"
+     },
+     {
+      "id": "VFB_00000004",
+      "name": "[fru-M-600101](https://virtualflybrain.org/reports/VFB_00000004)",
+      "tags": "Expression_pattern_fragment|lineage_ALl1_BAlc|Neuron|Adult",
+      "type": "[expression pattern fragment](VFBext_0000004) | [adult fruitless aDT-e (male) neuron](FBbt_00110583) | [antennal mechanosensory and motor center AMMC-IVLP projection neuron 1](FBbt_00110632)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-600101 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0004/VFB_00101567/thumbnail.png 'fru-M-600101 aligned to JRC2018U')](VFB_00101567,VFB_00000004) | [![fru-M-600101 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0004/VFB_00017894/thumbnail.png 'fru-M-600101 aligned to JFRC2')](VFB_00017894,VFB_00000004)"
+     },
+     {
+      "id": "VFB_00000003",
+      "name": "[fru-M-700150](https://virtualflybrain.org/reports/VFB_00000003)",
+      "tags": "Expression_pattern_fragment|Neuron|lineage_VLPp1_BLP2|Adult",
+      "type": "[adult fruitless pIP-c neuron](FBbt_00110483) | [expression pattern fragment](VFBext_0000004)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-700150 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0003/VFB_00101567/thumbnail.png 'fru-M-700150 aligned to JRC2018U')](VFB_00101567,VFB_00000003) | [![fru-M-700150 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0003/VFB_00017894/thumbnail.png 'fru-M-700150 aligned to JFRC2')](VFB_00017894,VFB_00000003)"
+     },
+     {
+      "id": "VFB_00000002",
+      "name": "[fru-M-200267](https://virtualflybrain.org/reports/VFB_00000002)",
+      "tags": "Peptidergic|Expression_pattern_fragment|lineage_MBp|Adult|Cholinergic",
+      "type": "[adult fruitless MB neuron](FBbt_00110575) | [alpha/beta core Kenyon cell](FBbt_00110929) | [expression pattern fragment](VFBext_0000004)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200267 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0002/VFB_00101567/thumbnail.png 'fru-M-200267 aligned to JRC2018U')](VFB_00101567,VFB_00000002) | [![fru-M-200267 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0002/VFB_00017894/thumbnail.png 'fru-M-200267 aligned to JFRC2')](VFB_00017894,VFB_00000002)"
+     },
+     {
+      "id": "VFB_00000001",
+      "name": "[fru-M-200266](https://virtualflybrain.org/reports/VFB_00000001)",
+      "tags": "Expression_pattern_fragment|lineage_DM6_CM3|Neuron|Adult",
+      "type": "[adult DM6 lineage neuron](FBbt_00050144) | [expression pattern fragment](VFBext_0000004)",
+      "template": "[JRC2018U](VFB_00101567) | [JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![fru-M-200266 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00101567/thumbnail.png 'fru-M-200266 aligned to JRC2018U')](VFB_00101567,VFB_00000001) | [![fru-M-200266 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0000/0001/VFB_00017894/thumbnail.png 'fru-M-200266 aligned to JFRC2')](VFB_00017894,VFB_00000001)"
+     }
+    ]
+   },
+   "output_format": "table",
+   "count": 507435
+  },
+  {
+   "query": "AlignedDatasets",
+   "label": "Datasets aligned to JRC2018U",
+   "function": "get_aligned_datasets",
+   "takes": {
+    "short_form": {
+     "$and": [
+      "Template",
+      "Individual"
+     ]
+    },
+    "default": {
+     "short_form": "VFB_00101567"
+    }
+   },
+   "preview": 10,
+   "preview_columns": [
+    "id",
+    "name",
+    "pubs",
+    "tags",
+    "license",
+    "template",
+    "technique",
+    "thumbnail",
+    "image_count"
+   ],
+   "preview_results": {
+    "status": "complete",
+    "headers": {
+     "id": {
+      "title": "ID",
+      "type": "selection_id",
+      "order": -1
+     },
+     "name": {
+      "title": "Dataset",
+      "type": "markdown",
+      "order": 0
+     },
+     "pubs": {
+      "title": "Reference",
+      "type": "metadata",
+      "order": 1
+     },
+     "tags": {
+      "title": "Tags",
+      "type": "tags",
+      "order": 2
+     },
+     "license": {
+      "title": "License",
+      "type": "markdown",
+      "order": 3
+     },
+     "template": {
+      "title": "Template",
+      "type": "markdown",
+      "order": 4
+     },
+     "technique": {
+      "title": "Imaging Technique",
+      "type": "text",
+      "order": 5
+     },
+     "thumbnail": {
+      "title": "Thumbnail",
+      "type": "markdown",
+      "order": 6
+     },
+     "image_count": {
+      "title": "Image_count",
+      "type": "numeric",
+      "order": 7
+     }
+    },
+    "rows": [
+     {
+      "id": "Matsuo2016",
+      "name": "[AMMC local and projection neurons (Matsuo2016)](https://virtualflybrain.org/reports/Matsuo2016)",
+      "pubs": "[Matsuo et al., 2016, J. Comp. Neurol. 524(6): 1099--1164](FBrf0230862)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![Di1 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0778/VFB_00017894/thumbnail.png 'Di1 aligned to JFRC2')](VFB_00017894,VFB_00030778) | [![Di1 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0003/0778/VFB_00101567/thumbnail.png 'Di1 aligned to JRC2018U')](VFB_00101567,VFB_00030778) | [![AMMC-B1 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0003/0746/VFB_00101567/thumbnail.png 'AMMC-B1 aligned to JRC2018U')](VFB_00101567,VFB_00030746) | [![AMMC-B1 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0746/VFB_00017894/thumbnail.png 'AMMC-B1 aligned to JFRC2')](VFB_00017894,VFB_00030746) | [![Bi8 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0767/VFB_00017894/thumbnail.png 'Bi8 aligned to JFRC2')](VFB_00017894,VFB_00030767)",
+      "image_count": 41
+     },
+     {
+      "id": "FafbDolan2019",
+      "name": "[EM FAFB Dolan et al. 2019](https://virtualflybrain.org/reports/FafbDolan2019)",
+      "pubs": "[Dolan et al., 2019, eLife 8: e43079](FBrf0242477)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JRC2018U](VFB_00101567)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![LHPV4d3#2 (FAFB:2372530) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/12cf/VFB_00101567/thumbnail.png 'LHPV4d3#2 (FAFB:2372530) aligned to JRC2018U')](VFB_00101567,VFB_001012cf) | [![VES002#1 (FAFB:4017748) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1338/VFB_00101567/thumbnail.png 'VES002#1 (FAFB:4017748) aligned to JRC2018U')](VFB_00101567,VFB_00101338) | [![LHPV4a2#1 (FAFB:7483643) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1364/VFB_00101567/thumbnail.png 'LHPV4a2#1 (FAFB:7483643) aligned to JRC2018U')](VFB_00101567,VFB_00101364) | [![WEDPN5#1 (FAFB:4672476) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1348/VFB_00101567/thumbnail.png 'WEDPN5#1 (FAFB:4672476) aligned to JRC2018U')](VFB_00101567,VFB_00101348) | [![LHAD1b1#1 (FAFB:6536624) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1361/VFB_00101567/thumbnail.png 'LHAD1b1#1 (FAFB:6536624) aligned to JRC2018U')](VFB_00101567,VFB_00101361)",
+      "image_count": 113
+     },
+     {
+      "id": "Dolan2018",
+      "name": "[EM FAFB Dolan and Belliart-Guerin et al. 2018](https://virtualflybrain.org/reports/Dolan2018)",
+      "pubs": "[Dolan et al., 2018, Neuron 100(3): 651--668.e8](FBrf0240600)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JRC2018U](VFB_00101567)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![LHPD2a1#5 (FAFB:11547665) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1283/VFB_00101567/thumbnail.png 'LHPD2a1#5 (FAFB:11547665) aligned to JRC2018U')](VFB_00101567,VFB_00101283) | [![LHPD2a1#2 (FAFB:2205218) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1281/VFB_00101567/thumbnail.png 'LHPD2a1#2 (FAFB:2205218) aligned to JRC2018U')](VFB_00101567,VFB_00101281) | [![LHPD2b1#1 (FAFB:1606113) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1280/VFB_00101567/thumbnail.png 'LHPD2b1#1 (FAFB:1606113) aligned to JRC2018U')](VFB_00101567,VFB_00101280) | [![MBON-ap2_R (FAFB:1540941) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1284/VFB_00101567/thumbnail.png 'MBON-ap2_R (FAFB:1540941) aligned to JRC2018U')](VFB_00101567,VFB_00101284) | [![LHPD2a1#1 (FAFB:1299700) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1277/VFB_00101567/thumbnail.png 'LHPD2a1#1 (FAFB:1299700) aligned to JRC2018U')](VFB_00101567,VFB_00101277)",
+      "image_count": 10
+     },
+     {
+      "id": "Dickson_VT",
+      "name": "[Dickson lab VT line collection - VDRC images](https://virtualflybrain.org/reports/Dickson_VT)",
+      "pubs": "[Tirian and Dickson, 2017, The VT GAL4, LexA, and split-GAL4 driver line collections for targeted expression in the Drosophila nervous system.](FBrf0236875)",
+      "tags": "DataSet",
+      "license": "[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![VDRC_VT038602_GAL4_attP2_2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0004/1320/VFB_00017894/thumbnail.png 'VDRC_VT038602_GAL4_attP2_2 aligned to JFRC2')](VFB_00017894,VFB_00041320) | [![VDRC_VT038602_GAL4_attP2_2 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0004/1320/VFB_00101567/thumbnail.png 'VDRC_VT038602_GAL4_attP2_2 aligned to JRC2018U')](VFB_00101567,VFB_00041320) | [![VDRC_VT043162_LexAGAD_attP2_3 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0004/3033/VFB_00017894/thumbnail.png 'VDRC_VT043162_LexAGAD_attP2_3 aligned to JFRC2')](VFB_00017894,VFB_00043033) | [![VDRC_VT043162_LexAGAD_attP2_3 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0004/3033/VFB_00101567/thumbnail.png 'VDRC_VT043162_LexAGAD_attP2_3 aligned to JRC2018U')](VFB_00101567,VFB_00043033) | [![VDRC_VT017655_GAL4_attP2_6 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/9535/VFB_00101567/thumbnail.png 'VDRC_VT017655_GAL4_attP2_6 aligned to JRC2018U')](VFB_00101567,VFB_00029535)",
+      "image_count": 18016
+     },
+     {
+      "id": "Dickson2017",
+      "name": "[Dickson lab VT lines - FlyLight/Janelia images (2017)](https://virtualflybrain.org/reports/Dickson2017)",
+      "pubs": "[Tirian and Dickson, 2017, The VT GAL4, LexA, and split-GAL4 driver line collections for targeted expression in the Drosophila nervous system.](FBrf0236875)",
+      "tags": "DataSet",
+      "license": "[CC-BY-NC-SA_4.0](VFBlicense_CC_BY_NC_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![VT000845 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0006/3321/VFB_00017894/thumbnail.png 'VT000845 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2')](VFB_00017894,VFB_00063321) | [![VT000845 GAL4 in the Adult Brain Dickson2017 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0006/3321/VFB_00101567/thumbnail.png 'VT000845 GAL4 in the Adult Brain Dickson2017 aligned to JRC2018U')](VFB_00101567,VFB_00063321) | [![VT058561 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0006/8106/VFB_00017894/thumbnail.png 'VT058561 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2')](VFB_00017894,VFB_00068106) | [![VT058561 GAL4 in the Adult Brain Dickson2017 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0006/8106/VFB_00101567/thumbnail.png 'VT058561 GAL4 in the Adult Brain Dickson2017 aligned to JRC2018U')](VFB_00101567,VFB_00068106) | [![VT007747 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0006/8801/VFB_00017894/thumbnail.png 'VT007747 GAL4 in the Adult Brain Dickson2017 aligned to JFRC2')](VFB_00017894,VFB_00068801)",
+      "image_count": 5378
+     },
+     {
+      "id": "Coates2020",
+      "name": "[EM FAFB Coates et al 2020](https://virtualflybrain.org/reports/Coates2020)",
+      "pubs": "[Coates et al., 2020, J. Neurosci. 40(33): 6309--6327](FBrf0246448)",
+      "tags": "DataSet",
+      "license": "[CC-BY_4.0](VFBlicense_CC_BY_4_0)",
+      "template": "[JRC2018U](VFB_00101567)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![LN #6 (FAFB:5111160) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11lv/VFB_00101567/thumbnail.png 'LN #6 (FAFB:5111160) aligned to JRC2018U')](VFB_00101567,VFB_001011lv) | [![WPNB3#2 (FAFB:6478900) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11ml/VFB_00101567/thumbnail.png 'WPNB3#2 (FAFB:6478900) aligned to JRC2018U')](VFB_00101567,VFB_001011ml) | [![WPNB1#2 (FAFB:3601125) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11l3/VFB_00101567/thumbnail.png 'WPNB1#2 (FAFB:3601125) aligned to JRC2018U')](VFB_00101567,VFB_001011l3) | [![DM1 ORN #1 (FAFB:11161904) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11p2/VFB_00101567/thumbnail.png 'DM1 ORN #1 (FAFB:11161904) aligned to JRC2018U')](VFB_00101567,VFB_001011p2) | [![DM5 ORN #12 (FAFB:8677211) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11o9/VFB_00101567/thumbnail.png 'DM5 ORN #12 (FAFB:8677211) aligned to JRC2018U')](VFB_00101567,VFB_001011o9)",
+      "image_count": 191
+     },
+     {
+      "id": "Cachero2010",
+      "name": "[Adult Brain fru clones (Cachero2010)](https://virtualflybrain.org/reports/Cachero2010)",
+      "pubs": "[Cachero et al., 2010, Curr. Biol. 20(18): 1589--1601](FBrf0211926)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![aSP-h_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7918/VFB_00017894/thumbnail.png 'aSP-h_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017918) | [![aSP-h_M clone of Cachero 2010 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0001/7918/VFB_00101567/thumbnail.png 'aSP-h_M clone of Cachero 2010 aligned to JRC2018U')](VFB_00101567,VFB_00017918) | [![pIP-h_M clone of Cachero 2010 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0001/7931/VFB_00101567/thumbnail.png 'pIP-h_M clone of Cachero 2010 aligned to JRC2018U')](VFB_00101567,VFB_00017931) | [![pIP-h_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7931/VFB_00017894/thumbnail.png 'pIP-h_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017931) | [![aSP-d_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7914/VFB_00017894/thumbnail.png 'aSP-d_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017914)",
+      "image_count": 119
+     },
+     {
+      "id": "BatesSchlegel2020",
+      "name": "[EM FAFB Bates and Schlegel et al 2020](https://virtualflybrain.org/reports/BatesSchlegel2020)",
+      "pubs": "[Bates et al., 2020, Curr. Biol. 30(16): 3183--3199.e6](FBrf0246460)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JRC2018U](VFB_00101567)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![Multiglomerular mALT adPN#R5 (FAFB:57254) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1156/VFB_00101567/thumbnail.png 'Multiglomerular mALT adPN#R5 (FAFB:57254) aligned to JRC2018U')](VFB_00101567,VFB_00101156) | [![Uniglomerular mALT DL3 lPN#R3 (FAFB:57459) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/11zr/VFB_00101567/thumbnail.png 'Uniglomerular mALT DL3 lPN#R3 (FAFB:57459) aligned to JRC2018U')](VFB_00101567,VFB_001011zr) | [![LHAD1b2#12 (FAFB:1703751) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/1298/VFB_00101567/thumbnail.png 'LHAD1b2#12 (FAFB:1703751) aligned to JRC2018U')](VFB_00101567,VFB_00101298) | [![Uniglomerular mALT DL2d adPN#L1 (FAFB:3933200) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/125v/VFB_00101567/thumbnail.png 'Uniglomerular mALT DL2d adPN#L1 (FAFB:3933200) aligned to JRC2018U')](VFB_00101567,VFB_0010125v) | [![Uniglomerular mALT D adPN#L2 (FAFB:11067958) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/129x/VFB_00101567/thumbnail.png 'Uniglomerular mALT D adPN#L2 (FAFB:11067958) aligned to JRC2018U')](VFB_00101567,VFB_0010129x)",
+      "image_count": 583
+     },
+     {
+      "id": "Bates2025",
+      "name": "[Brain and Nerve Cord (BANC) version 626 connectome neurons from Bates et al. (2025).](https://virtualflybrain.org/reports/Bates2025)",
+      "pubs": "[Bates et al., 2025](doi_10_1101_2025_07_31_667571)",
+      "tags": "DataSet",
+      "license": "[CC-BY_4.0](VFBlicense_CC_BY_4_0)",
+      "template": "[JRCVNC2018U](VFB_00200000)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![BANC_626:720575941432269271 aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ata/VFB_00200000/thumbnail.png 'BANC_626:720575941432269271 aligned to JRCVNC2018U')](VFB_00200000,VFB_00106ata) | [![BANC_626:720575941432269271 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ata/VFB_00101567/thumbnail.png 'BANC_626:720575941432269271 aligned to JRC2018U')](VFB_00101567,VFB_00106ata) | [![BANC_626:720575941535965923 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/5jxs/VFB_00101567/thumbnail.png 'BANC_626:720575941535965923 aligned to JRC2018U')](VFB_00101567,VFB_00105jxs) | [![BANC_626:720575941514224633 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/5sp4/VFB_00101567/thumbnail.png 'BANC_626:720575941514224633 aligned to JRC2018U')](VFB_00101567,VFB_00105sp4) | [![BANC_626:720575941391648406 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ejz/VFB_00101567/thumbnail.png 'BANC_626:720575941391648406 aligned to JRC2018U')](VFB_00101567,VFB_00106ejz)",
+      "image_count": 80003
+     },
+     {
+      "id": "Baltruschat2021",
+      "name": "[EM FAFB Baltruschat et al 2021](https://virtualflybrain.org/reports/Baltruschat2021)",
+      "pubs": "[Baltruschat et al., 2021, Cell Rep. 34(11): 108871](FBrf0248487)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JRC2018U](VFB_00101567)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![KC#1510-ym (FAFB:245402) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/14wd/VFB_00101567/thumbnail.png 'KC#1510-ym (FAFB:245402) aligned to JRC2018U')](VFB_00101567,VFB_001014wd) | [![KC#379-y (FAFB:531058) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/00is/VFB_00101567/thumbnail.png 'KC#379-y (FAFB:531058) aligned to JRC2018U')](VFB_00101567,VFB_001000is) | [![KC#1508-a\\'b\\'ap (FAFB:538602) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/14wf/VFB_00101567/thumbnail.png 'KC#1508-a\\'b\\'ap (FAFB:538602) aligned to JRC2018U')](VFB_00101567,VFB_001014wf) | [![KC#287-y (FAFB:205686) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/00e0/VFB_00101567/thumbnail.png 'KC#287-y (FAFB:205686) aligned to JRC2018U')](VFB_00101567,VFB_001000e0) | [![KC#1512-ym (FAFB:541622) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/14wh/VFB_00101567/thumbnail.png 'KC#1512-ym (FAFB:541622) aligned to JRC2018U')](VFB_00101567,VFB_001014wh)",
+      "image_count": 20
+     }
+    ]
+   },
+   "output_format": "table",
+   "count": 91
+  },
+  {
+   "query": "AllDatasets",
+   "label": "All available datasets",
+   "function": "get_all_datasets",
+   "takes": {
+    "short_form": {
+     "$and": [
+      "Template"
+     ]
+    },
+    "default": {
+     "short_form": "VFB_00101567"
+    }
+   },
+   "preview": 10,
+   "preview_columns": [
+    "id",
+    "name",
+    "pubs",
+    "tags",
+    "license",
+    "template",
+    "technique",
+    "thumbnail",
+    "image_count"
+   ],
+   "preview_results": {
+    "status": "complete",
+    "headers": {
+     "id": {
+      "title": "ID",
+      "type": "selection_id",
+      "order": -1
+     },
+     "name": {
+      "title": "Dataset",
+      "type": "markdown",
+      "order": 0
+     },
+     "pubs": {
+      "title": "Reference",
+      "type": "metadata",
+      "order": 1
+     },
+     "tags": {
+      "title": "Tags",
+      "type": "tags",
+      "order": 2
+     },
+     "license": {
+      "title": "License",
+      "type": "markdown",
+      "order": 3
+     },
+     "template": {
+      "title": "Template",
+      "type": "markdown",
+      "order": 4
+     },
+     "technique": {
+      "title": "Imaging Technique",
+      "type": "text",
+      "order": 5
+     },
+     "thumbnail": {
+      "title": "Thumbnail",
+      "type": "markdown",
+      "order": 6
+     },
+     "image_count": {
+      "title": "Image_count",
+      "type": "numeric",
+      "order": 7
+     }
+    },
+    "rows": [
+     {
+      "id": "Valdes_Aleman2021",
+      "name": "[Comparative Connectomics Reveals How Partner Identity, Location, and Activity Specify Synaptic Connectivity in Drosophila (Valdes-Aleman et al. 2021)](https://virtualflybrain.org/reports/Valdes_Aleman2021)",
+      "pubs": "[Valdes-Aleman et al., 2021, Neuron 109(1): 105--122.e7](FBrf0247750)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[L1 larval CNS ssTEM - Cardona/Janelia](VFB_00050000)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![Basin3_a1 (L1EM:10179501) aligned to L1 larval CNS ssTEM - Cardona/Janelia](https://www.virtualflybrain.org/data/VFB/i/0010/0694/VFB_00050000/thumbnail.png 'Basin3_a1 (L1EM:10179501) aligned to L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000,VFB_00100694) | [![chos_vchAB2_a1 (L1EM:7796832) aligned to L1 larval CNS ssTEM - Cardona/Janelia](https://www.virtualflybrain.org/data/VFB/i/0010/0682/VFB_00050000/thumbnail.png 'chos_vchAB2_a1 (L1EM:7796832) aligned to L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000,VFB_00100682) | [![Griddle-2 a1r (L1EM:7683401) aligned to L1 larval CNS ssTEM - Cardona/Janelia](https://www.virtualflybrain.org/data/VFB/i/0010/0709/VFB_00050000/thumbnail.png 'Griddle-2 a1r (L1EM:7683401) aligned to L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000,VFB_00100709) | [![chos_vchAB2_a1 (L1EM:9771412) aligned to L1 larval CNS ssTEM - Cardona/Janelia](https://www.virtualflybrain.org/data/VFB/i/0010/0691/VFB_00050000/thumbnail.png 'chos_vchAB2_a1 (L1EM:9771412) aligned to L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000,VFB_00100691) | [![Basin1_a1 (L1EM:3034133) aligned to L1 larval CNS ssTEM - Cardona/Janelia](https://www.virtualflybrain.org/data/VFB/i/0010/0612/VFB_00050000/thumbnail.png 'Basin1_a1 (L1EM:3034133) aligned to L1 larval CNS ssTEM - Cardona/Janelia')](VFB_00050000,VFB_00100612)",
+      "image_count": 37
+     },
+     {
+      "id": "Matsuo2016",
+      "name": "[AMMC local and projection neurons (Matsuo2016)](https://virtualflybrain.org/reports/Matsuo2016)",
+      "pubs": "[Matsuo et al., 2016, J. Comp. Neurol. 524(6): 1099--1164](FBrf0230862)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![Di1 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0778/VFB_00017894/thumbnail.png 'Di1 aligned to JFRC2')](VFB_00017894,VFB_00030778) | [![Di1 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0003/0778/VFB_00101567/thumbnail.png 'Di1 aligned to JRC2018U')](VFB_00101567,VFB_00030778) | [![AMMC-B1 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0003/0746/VFB_00101567/thumbnail.png 'AMMC-B1 aligned to JRC2018U')](VFB_00101567,VFB_00030746) | [![AMMC-B1 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0746/VFB_00017894/thumbnail.png 'AMMC-B1 aligned to JFRC2')](VFB_00017894,VFB_00030746) | [![Bi8 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0767/VFB_00017894/thumbnail.png 'Bi8 aligned to JFRC2')](VFB_00017894,VFB_00030767)",
+      "image_count": 41
+     },
+     {
+      "id": "Mamiya2022",
+      "name": "[Biomechanical origins of proprioceptive maps in the Drosophila leg](https://virtualflybrain.org/reports/Mamiya2022)",
+      "pubs": "[Mamiya et al., 2023, Neuron 111(20): 3230--3243.e14](FBrf0257853)",
+      "tags": "DataSet",
+      "license": "[CC-BY_4.0](VFBlicense_CC_BY_4_0)",
+      "template": "[Adult T1 Leg (Kuan2020)](VFB_00120000)",
+      "technique": "X-ray computed tomography",
+      "thumbnail": "[![FeCO medial tendon (T1LEG:1688887) aligned to Adult T1 Leg (Kuan2020)](https://www.virtualflybrain.org/data/VFB/i/0010/2efe/VFB_00120000/thumbnail.png 'FeCO medial tendon (T1LEG:1688887) aligned to Adult T1 Leg (Kuan2020)')](VFB_00120000,VFB_00102efe) | [![arculum outline (T1LEG:1688874) aligned to Adult T1 Leg (Kuan2020)](https://www.virtualflybrain.org/data/VFB/i/0010/2efd/VFB_00120000/thumbnail.png 'arculum outline (T1LEG:1688874) aligned to Adult T1 Leg (Kuan2020)')](VFB_00120000,VFB_00102efd) | [![FeCO lateral tendon (T1LEG:1688899) aligned to Adult T1 Leg (Kuan2020)](https://www.virtualflybrain.org/data/VFB/i/0010/2eff/VFB_00120000/thumbnail.png 'FeCO lateral tendon (T1LEG:1688899) aligned to Adult T1 Leg (Kuan2020)')](VFB_00120000,VFB_00102eff) | [![arculum midline (T1LEG:1688860) aligned to Adult T1 Leg (Kuan2020)](https://www.virtualflybrain.org/data/VFB/i/0010/2efc/VFB_00120000/thumbnail.png 'arculum midline (T1LEG:1688860) aligned to Adult T1 Leg (Kuan2020)')](VFB_00120000,VFB_00102efc)",
+      "image_count": 4
+     },
+     {
+      "id": "Knowles_Barley2010",
+      "name": "[BrainTrap lines (Knowles-Barley2010)](https://virtualflybrain.org/reports/Knowles_Barley2010)",
+      "pubs": "[Knowles-Barley et al., 2010, Database (Oxford) 2010: baq005](FBrf0211243)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![FBti0144025 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/3944/VFB_00017894/thumbnail.png 'FBti0144025 aligned to JFRC2')](VFB_00017894,VFB_00023944) | [![FBti0143571 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/3893/VFB_00017894/thumbnail.png 'FBti0143571 aligned to JFRC2')](VFB_00017894,VFB_00023893) | [![FBti0144095 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/4072/VFB_00017894/thumbnail.png 'FBti0144095 aligned to JFRC2')](VFB_00017894,VFB_00024072) | [![FBti0144070 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/3820/VFB_00017894/thumbnail.png 'FBti0144070 aligned to JFRC2')](VFB_00017894,VFB_00023820) | [![FBti0143879 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/4064/VFB_00017894/thumbnail.png 'FBti0143879 aligned to JFRC2')](VFB_00017894,VFB_00024064)",
+      "image_count": 501
+     },
+     {
+      "id": "JenettShinomya_BrainName",
+      "name": "[BrainName neuropils on adult brain JFRC2 (Jenett, Shinomya)](https://virtualflybrain.org/reports/JenettShinomya_BrainName)",
+      "pubs": "[Ito et al., 2014, Neuron 81(4): 755--765](FBrf0224194)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "computer graphic",
+      "thumbnail": "[![gall on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0607/VFB_00017894/thumbnail.png 'gall on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030607) | [![lateral accessory lobe on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0605/VFB_00017894/thumbnail.png 'lateral accessory lobe on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030605) | [![fan-shaped body on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0633/VFB_00017894/thumbnail.png 'fan-shaped body on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030633) | [![adult cerebral ganglion on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0849/VFB_00017894/thumbnail.png 'adult cerebral ganglion on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030849) | [![crepine on adult brain template JFRC2 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0003/0606/VFB_00017894/thumbnail.png 'crepine on adult brain template JFRC2 aligned to JFRC2')](VFB_00017894,VFB_00030606)",
+      "image_count": 58
+     },
+     {
+      "id": "Court2020",
+      "name": "[Adult VNC neuropils (Court2020)](https://virtualflybrain.org/reports/Court2020)",
+      "pubs": "[Court et al., 2020, Neuron 107(6): 1071--1079.e2](FBrf0246815)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JRCVNC2018U](VFB_00200000)",
+      "technique": "computer graphic",
+      "thumbnail": "[![wing tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/thumbnail.png 'wing tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U')](VFB_00200000,VFB_00104653) | [![medial ventral association center on adult VNC, JRC2018VU aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/thumbnail.png 'medial ventral association center on adult VNC, JRC2018VU aligned to JRCVNC2018U')](VFB_00200000,VFB_00104650) | [![intermediate tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/thumbnail.png 'intermediate tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U')](VFB_00200000,VFB_00104646) | [![dorsal lateral tract on adult VNC, JRC2018VU aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/thumbnail.png 'dorsal lateral tract on adult VNC, JRC2018VU aligned to JRCVNC2018U')](VFB_00200000,VFB_00104633) | [![haltere tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/thumbnail.png 'haltere tectulum on adult VNC, JRC2018VU aligned to JRCVNC2018U')](VFB_00200000,VFB_00104645)",
+      "image_count": 21
+     },
+     {
+      "id": "Court2017",
+      "name": "[Adult VNS neuropils (Court2017)](https://virtualflybrain.org/reports/Court2017)",
+      "pubs": "[Court et al., 2020, Neuron 107(6): 1071--1079.e2](FBrf0246815)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[COURT2018VNS](VFB_00100000)",
+      "technique": "computer graphic",
+      "thumbnail": "[![posterior dorsal mesothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS](https://www.virtualflybrain.org/data/VFB/i/0010/0017/VFB_00100000/thumbnail.png 'posterior dorsal mesothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS')](VFB_00100000,VFB_00100017) | [![accessory prothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS](https://www.virtualflybrain.org/data/VFB/i/0010/0015/VFB_00100000/thumbnail.png 'accessory prothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS')](VFB_00100000,VFB_00100015) | [![accessory mesothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS](https://www.virtualflybrain.org/data/VFB/i/0010/0018/VFB_00100000/thumbnail.png 'accessory mesothoracic nerve on adult VNS template, Court2018 aligned to COURT2018VNS')](VFB_00100000,VFB_00100018) | [![adult accessory mesothoracic neuromere on adult VNS template, Court2018 aligned to COURT2018VNS](https://www.virtualflybrain.org/data/VFB/i/0010/0020/VFB_00100000/thumbnail.png 'adult accessory mesothoracic neuromere on adult VNS template, Court2018 aligned to COURT2018VNS')](VFB_00100000,VFB_00100020) | [![adult abdominal neuromere on adult VNS template, Court2018 aligned to COURT2018VNS](https://www.virtualflybrain.org/data/VFB/i/0010/0005/VFB_00100000/thumbnail.png 'adult abdominal neuromere on adult VNS template, Court2018 aligned to COURT2018VNS')](VFB_00100000,VFB_00100005)",
+      "image_count": 23
+     },
+     {
+      "id": "Cachero2010",
+      "name": "[Adult Brain fru clones (Cachero2010)](https://virtualflybrain.org/reports/Cachero2010)",
+      "pubs": "[Cachero et al., 2010, Curr. Biol. 20(18): 1589--1601](FBrf0211926)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[JFRC2](VFB_00017894)",
+      "technique": "confocal microscopy",
+      "thumbnail": "[![aSP-h_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7918/VFB_00017894/thumbnail.png 'aSP-h_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017918) | [![aSP-h_M clone of Cachero 2010 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0001/7918/VFB_00101567/thumbnail.png 'aSP-h_M clone of Cachero 2010 aligned to JRC2018U')](VFB_00101567,VFB_00017918) | [![pIP-h_M clone of Cachero 2010 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0001/7931/VFB_00101567/thumbnail.png 'pIP-h_M clone of Cachero 2010 aligned to JRC2018U')](VFB_00101567,VFB_00017931) | [![pIP-h_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7931/VFB_00017894/thumbnail.png 'pIP-h_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017931) | [![aSP-d_M clone of Cachero 2010 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0001/7914/VFB_00017894/thumbnail.png 'aSP-d_M clone of Cachero 2010 aligned to JFRC2')](VFB_00017894,VFB_00017914)",
+      "image_count": 119
+     },
+     {
+      "id": "BrainName_Ito_half_brain",
+      "name": "[BrainName neuropils and tracts - Ito half-brain](https://virtualflybrain.org/reports/BrainName_Ito_half_brain)",
+      "pubs": "[Ito et al., 2014, Neuron 81(4): 755--765](FBrf0224194)",
+      "tags": "DataSet",
+      "license": "[CC-BY-SA_4.0](VFBlicense_CC_BY_SA_4_0)",
+      "template": "[adult brain template Ito2014](VFB_00030786)",
+      "technique": "computer graphic",
+      "thumbnail": "[![medial equatorial fascicle on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0851/VFB_00030786/thumbnail.png 'medial equatorial fascicle on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030851) | [![anterior optic tubercle on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0819/VFB_00030786/thumbnail.png 'anterior optic tubercle on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030819) | [![horizontal ventrolateral protocerebral fascicle on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0842/VFB_00030786/thumbnail.png 'horizontal ventrolateral protocerebral fascicle on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030842) | [![median bundle on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0852/VFB_00030786/thumbnail.png 'median bundle on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030852) | [![posterior lateral protocerebrum on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0818/VFB_00030786/thumbnail.png 'posterior lateral protocerebrum on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030786,VFB_00030818)",
+      "image_count": 76
+     },
+     {
+      "id": "Bates2025",
+      "name": "[Brain and Nerve Cord (BANC) version 626 connectome neurons from Bates et al. (2025).](https://virtualflybrain.org/reports/Bates2025)",
+      "pubs": "[Bates et al., 2025](doi_10_1101_2025_07_31_667571)",
+      "tags": "DataSet",
+      "license": "[CC-BY_4.0](VFBlicense_CC_BY_4_0)",
+      "template": "[JRCVNC2018U](VFB_00200000)",
+      "technique": "transmission electron microscopy (TEM)",
+      "thumbnail": "[![BANC_626:720575941432269271 aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ata/VFB_00200000/thumbnail.png 'BANC_626:720575941432269271 aligned to JRCVNC2018U')](VFB_00200000,VFB_00106ata) | [![BANC_626:720575941432269271 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ata/VFB_00101567/thumbnail.png 'BANC_626:720575941432269271 aligned to JRC2018U')](VFB_00101567,VFB_00106ata) | [![BANC_626:720575941535965923 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/5jxs/VFB_00101567/thumbnail.png 'BANC_626:720575941535965923 aligned to JRC2018U')](VFB_00101567,VFB_00105jxs) | [![BANC_626:720575941514224633 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/5sp4/VFB_00101567/thumbnail.png 'BANC_626:720575941514224633 aligned to JRC2018U')](VFB_00101567,VFB_00105sp4) | [![BANC_626:720575941391648406 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/6ejz/VFB_00101567/thumbnail.png 'BANC_626:720575941391648406 aligned to JRC2018U')](VFB_00101567,VFB_00106ejz)",
+      "image_count": 80003
+     }
+    ]
+   },
+   "output_format": "table",
+   "count": 135
+  }
+ ],
+ "RelatedTools": [],
+ "IsIndividual": true,
+ "Images": {
+  "VFB_00101567": [
+   {
+    "id": "VFB_00101567",
+    "label": "JRC2018Unisex",
+    "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
+    "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png",
+    "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",
+    "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
+    "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj",
+    "index": 0,
+    "center": {
+     "X": 605.0,
+     "Y": 283.0,
+     "Z": 87.0
+    },
+    "extent": {
+     "X": 1211.0,
+     "Y": 567.0,
+     "Z": 175.0
+    },
+    "voxel": {
+     "X": 0.5189161,
+     "Y": 0.5189161,
+     "Z": 1.0
+    },
+    "orientation": "LPS"
+   }
+  ]
+ },
+ "IsClass": false,
+ "Examples": {},
+ "IsTemplate": true,
+ "IsPaintedDomain": false,
+ "Domains": {
+  "0": {
+   "id": "VFB_00101567",
+   "label": "JRC2018U",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj",
+   "index": 0,
+   "center": null,
+   "type_label": "adult brain",
+   "type_id": "FBbt_00003624"
+  },
+  "3": {
+   "id": "VFB_00102107",
+   "label": "ME on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj",
+   "index": 3,
+   "center": null,
+   "type_label": "medulla",
+   "type_id": "FBbt_00003748"
+  },
+  "4": {
+   "id": "VFB_00102108",
+   "label": "AME on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume_man.obj",
+   "index": 4,
+   "center": null,
+   "type_label": "accessory medulla",
+   "type_id": "FBbt_00045003"
+  },
+  "5": {
+   "id": "VFB_00102109",
+   "label": "LO on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume_man.obj",
+   "index": 5,
+   "center": null,
+   "type_label": "lobula",
+   "type_id": "FBbt_00003852"
+  },
+  "6": {
+   "id": "VFB_00102110",
+   "label": "LOP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume_man.obj",
+   "index": 6,
+   "center": null,
+   "type_label": "lobula plate",
+   "type_id": "FBbt_00003885"
+  },
+  "7": {
+   "id": "VFB_00102114",
+   "label": "CA on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume_man.obj",
+   "index": 7,
+   "center": null,
+   "type_label": "calyx of adult mushroom body",
+   "type_id": "FBbt_00007385"
+  },
+  "10": {
+   "id": "VFB_00102118",
+   "label": "PED on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume_man.obj",
+   "index": 10,
+   "center": null,
+   "type_label": "pedunculus of adult mushroom body",
+   "type_id": "FBbt_00007453"
+  },
+  "11": {
+   "id": "VFB_00102119",
+   "label": "aL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume_man.obj",
+   "index": 11,
+   "center": null,
+   "type_label": "adult mushroom body alpha-lobe",
+   "type_id": "FBbt_00110657"
+  },
+  "12": {
+   "id": "VFB_00102121",
+   "label": "a'L on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume_man.obj",
+   "index": 12,
+   "center": null,
+   "type_label": "adult mushroom body alpha'-lobe",
+   "type_id": "FBbt_00013691"
+  },
+  "13": {
+   "id": "VFB_00102123",
+   "label": "bL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume_man.obj",
+   "index": 13,
+   "center": null,
+   "type_label": "adult mushroom body beta-lobe",
+   "type_id": "FBbt_00110658"
+  },
+  "14": {
+   "id": "VFB_00102124",
+   "label": "b'L on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume_man.obj",
+   "index": 14,
+   "center": null,
+   "type_label": "adult mushroom body beta'-lobe",
+   "type_id": "FBbt_00013694"
+  },
+  "15": {
+   "id": "VFB_00102133",
+   "label": "gL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume_man.obj",
+   "index": 15,
+   "center": null,
+   "type_label": "adult mushroom body gamma-lobe",
+   "type_id": "FBbt_00013695"
+  },
+  "16": {
+   "id": "VFB_00102134",
+   "label": "FB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume_man.obj",
+   "index": 16,
+   "center": null,
+   "type_label": "fan-shaped body",
+   "type_id": "FBbt_00003679"
+  },
+  "18": {
+   "id": "VFB_00102135",
+   "label": "EB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume_man.obj",
+   "index": 18,
+   "center": null,
+   "type_label": "ellipsoid body",
+   "type_id": "FBbt_00003678"
+  },
+  "19": {
+   "id": "VFB_00102137",
+   "label": "PB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume_man.obj",
+   "index": 19,
+   "center": null,
+   "type_label": "protocerebral bridge",
+   "type_id": "FBbt_00003668"
+  },
+  "21": {
+   "id": "VFB_00102139",
+   "label": "BU on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume_man.obj",
+   "index": 21,
+   "center": null,
+   "type_label": "bulb",
+   "type_id": "FBbt_00003682"
+  },
+  "22": {
+   "id": "VFB_00102140",
+   "label": "LAL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume_man.obj",
+   "index": 22,
+   "center": null,
+   "type_label": "adult lateral accessory lobe",
+   "type_id": "FBbt_00003681"
+  },
+  "23": {
+   "id": "VFB_00102141",
+   "label": "AOTU on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume_man.obj",
+   "index": 23,
+   "center": null,
+   "type_label": "anterior optic tubercle",
+   "type_id": "FBbt_00007059"
+  },
+  "24": {
+   "id": "VFB_00102146",
+   "label": "AVLP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume_man.obj",
+   "index": 24,
+   "center": null,
+   "type_label": "anterior ventrolateral protocerebrum",
+   "type_id": "FBbt_00040043"
+  },
+  "25": {
+   "id": "VFB_00102148",
+   "label": "PVLP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume_man.obj",
+   "index": 25,
+   "center": null,
+   "type_label": "posterior ventrolateral protocerebrum",
+   "type_id": "FBbt_00040042"
+  },
+  "26": {
+   "id": "VFB_00102152",
+   "label": "PLP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume_man.obj",
+   "index": 26,
+   "center": null,
+   "type_label": "posterior lateral protocerebrum",
+   "type_id": "FBbt_00040044"
+  },
+  "27": {
+   "id": "VFB_00102154",
+   "label": "WED on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume_man.obj",
+   "index": 27,
+   "center": null,
+   "type_label": "wedge",
+   "type_id": "FBbt_00045027"
+  },
+  "28": {
+   "id": "VFB_00102159",
+   "label": "LH on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume_man.obj",
+   "index": 28,
+   "center": null,
+   "type_label": "adult lateral horn",
+   "type_id": "FBbt_00007053"
+  },
+  "29": {
+   "id": "VFB_00102162",
+   "label": "SLP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume_man.obj",
+   "index": 29,
+   "center": null,
+   "type_label": "superior lateral protocerebrum",
+   "type_id": "FBbt_00007054"
+  },
+  "30": {
+   "id": "VFB_00102164",
+   "label": "SIP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume_man.obj",
+   "index": 30,
+   "center": null,
+   "type_label": "superior intermediate protocerebrum",
+   "type_id": "FBbt_00045032"
+  },
+  "31": {
+   "id": "VFB_00102170",
+   "label": "SMP on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume_man.obj",
+   "index": 31,
+   "center": null,
+   "type_label": "superior medial protocerebrum",
+   "type_id": "FBbt_00007055"
+  },
+  "32": {
+   "id": "VFB_00102171",
+   "label": "CRE on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume_man.obj",
+   "index": 32,
+   "center": null,
+   "type_label": "adult crepine",
+   "type_id": "FBbt_00045037"
+  },
+  "33": {
+   "id": "VFB_00102174",
+   "label": "ROB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume_man.obj",
+   "index": 33,
+   "center": null,
+   "type_label": "adult round body",
+   "type_id": "FBbt_00048509"
+  },
+  "34": {
+   "id": "VFB_00102175",
+   "label": "RUB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume_man.obj",
+   "index": 34,
+   "center": null,
+   "type_label": "rubus",
+   "type_id": "FBbt_00040038"
+  },
+  "35": {
+   "id": "VFB_00102176",
+   "label": "SCL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume_man.obj",
+   "index": 35,
+   "center": null,
+   "type_label": "superior clamp",
+   "type_id": "FBbt_00040048"
+  },
+  "36": {
+   "id": "VFB_00102179",
+   "label": "ICL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume_man.obj",
+   "index": 36,
+   "center": null,
+   "type_label": "inferior clamp",
+   "type_id": "FBbt_00040049"
+  },
+  "37": {
+   "id": "VFB_00102185",
+   "label": "IB on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume_man.obj",
+   "index": 37,
+   "center": null,
+   "type_label": "inferior bridge",
+   "type_id": "FBbt_00040050"
+  },
+  "38": {
+   "id": "VFB_00102190",
+   "label": "ATL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume_man.obj",
+   "index": 38,
+   "center": null,
+   "type_label": "antler",
+   "type_id": "FBbt_00045039"
+  },
+  "39": {
+   "id": "VFB_00102201",
+   "label": "AL on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume_man.obj",
+   "index": 39,
+   "center": null,
+   "type_label": "adult antennal lobe",
+   "type_id": "FBbt_00007401"
+  },
+  "40": {
+   "id": "VFB_00102212",
+   "label": "VES on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume_man.obj",
+   "index": 40,
+   "center": null,
+   "type_label": "vest",
+   "type_id": "FBbt_00040041"
+  },
+  "41": {
+   "id": "VFB_00102213",
+   "label": "EPA on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume_man.obj",
+   "index": 41,
+   "center": null,
+   "type_label": "epaulette",
+   "type_id": "FBbt_00040040"
+  },
+  "42": {
+   "id": "VFB_00102214",
+   "label": "GOR on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume_man.obj",
+   "index": 42,
+   "center": null,
+   "type_label": "gorget",
+   "type_id": "FBbt_00040039"
+  },
+  "43": {
+   "id": "VFB_00102215",
+   "label": "SPS on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume_man.obj",
+   "index": 43,
+   "center": null,
+   "type_label": "superior posterior slope",
+   "type_id": "FBbt_00045040"
+  },
+  "44": {
+   "id": "VFB_00102218",
+   "label": "IPS on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume_man.obj",
+   "index": 44,
+   "center": null,
+   "type_label": "inferior posterior slope",
+   "type_id": "FBbt_00045046"
+  },
+  "45": {
+   "id": "VFB_00102271",
+   "label": "SAD on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume_man.obj",
+   "index": 45,
+   "center": null,
+   "type_label": "saddle",
+   "type_id": "FBbt_00045048"
+  },
+  "46": {
+   "id": "VFB_00102273",
+   "label": "AMMC on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume_man.obj",
+   "index": 46,
+   "center": null,
+   "type_label": "antennal mechanosensory and motor center",
+   "type_id": "FBbt_00003982"
+  },
+  "47": {
+   "id": "VFB_00102274",
+   "label": "FLA on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume_man.obj",
+   "index": 47,
+   "center": null,
+   "type_label": "flange",
+   "type_id": "FBbt_00045050"
+  },
+  "48": {
+   "id": "VFB_00102275",
+   "label": "CAN on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume_man.obj",
+   "index": 48,
+   "center": null,
+   "type_label": "cantle",
+   "type_id": "FBbt_00045051"
+  },
+  "49": {
+   "id": "VFB_00102276",
+   "label": "PRW on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume_man.obj",
+   "index": 49,
+   "center": null,
+   "type_label": "prow",
+   "type_id": "FBbt_00040051"
+  },
+  "50": {
+   "id": "VFB_00102280",
+   "label": "GNG on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume_man.obj",
+   "index": 50,
+   "center": null,
+   "type_label": "adult gnathal ganglion",
+   "type_id": "FBbt_00014013"
+  },
+  "59": {
+   "id": "VFB_00102281",
+   "label": "GA on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume_man.obj",
+   "index": 59,
+   "center": null,
+   "type_label": "gall",
+   "type_id": "FBbt_00040060"
+  },
+  "94": {
+   "id": "VFB_00102282",
+   "label": "NO on JRC2018Unisex adult brain",
+   "thumbnail": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnail.png",
+   "thumbnail_transparent": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnailT.png",
+   "nrrd": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume.nrrd",
+   "wlz": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume.wlz",
+   "obj": "https://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume_man.obj",
+   "index": 94,
+   "center": null,
+   "type_label": "nodulus",
+   "type_id": "FBbt_00003680"
+  }
+ },
+ "Licenses": {
+  "0": {
+   "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_NC_SA_4_0",
+   "short_form": "VFBlicense_CC_BY_NC_SA_4_0",
+   "label": "CC-BY-NC-SA_4.0",
+   "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png",
+   "source": "JRC 2018 templates & ROIs",
+   "source_iri": "http://virtualflybrain.org/reports/JRC2018"
+  }
+ },
+ "Publications": [],
+ "Technique": []
+}

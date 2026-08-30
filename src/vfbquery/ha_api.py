@@ -13,6 +13,8 @@ Backpressure features:
     - Queue depth limit:   returns 503 when the backlog exceeds a threshold
 
 Endpoints (mirrors v3-cached.virtualflybrain.org):
+    GET /                # interactive API documentation (this list, runnable)
+    GET /docs.json       # machine-readable endpoint catalogue
     GET /get_term_info?id=<short_form>
     GET /run_query?id=<short_form>&query_type=<QueryType>
     GET /resolve_entity?query=<name_or_symbol>         # IDs rewritten to names
@@ -487,6 +489,7 @@ class QueueTracker:
 # ---------------------------------------------------------------------------
 
 ALLOWED_PATHS = frozenset({
+    "/", "/docs.json",
     "/get_term_info", "/run_query", "/health", "/status",
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
@@ -3730,6 +3733,43 @@ async def handle_combine(request):
 
 
 # ---------------------------------------------------------------------------
+# / and /docs.json — interactive API documentation
+#
+# The server's default page (in the style of the VFB-hosted CATMAID /apis/
+# pages): every endpoint with its parameters, pre-filled runnable examples
+# and live results. Content lives in api_docs.py; these handlers only
+# assemble the vocabularies the spec cannot know statically (the run_query
+# query types and the CATMAID command registry — both in-process, no
+# network) and cache the result for the life of the process.
+# ---------------------------------------------------------------------------
+
+def _docs_spec():
+    global _DOCS_SPEC_CACHE
+    try:
+        return _DOCS_SPEC_CACHE
+    except NameError:
+        from . import api_docs
+        from .catmaid_client import list_catmaid_commands
+        _DOCS_SPEC_CACHE = api_docs.build_docs_spec(
+            VFBQUERY_VERSION,
+            query_types=list(QUERY_TYPE_MAP),
+            catmaid_commands=list_catmaid_commands())
+        return _DOCS_SPEC_CACHE
+
+
+async def handle_docs_html(request):
+    """GET / — interactive API documentation."""
+    from . import api_docs
+    return web.Response(text=api_docs.DOCS_HTML, content_type="text/html",
+                        charset="utf-8")
+
+
+async def handle_docs_json(request):
+    """GET /docs.json — the machine-readable endpoint catalogue."""
+    return web.json_response(_docs_spec())
+
+
+# ---------------------------------------------------------------------------
 # /catmaid — pass-through to the VFB-hosted CATMAID instances
 #
 # GET /catmaid                        list hosted instances (catmaid.json + KB
@@ -3890,6 +3930,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app = web.Application(middlewares=[security_middleware])
 
     # Routes
+    app.router.add_get("/", handle_docs_html)
+    app.router.add_get("/docs.json", handle_docs_json)
     app.router.add_get("/get_term_info", handle_get_term_info)
     app.router.add_get("/run_query", handle_run_query)
     app.router.add_get("/health", handle_health)

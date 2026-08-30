@@ -8,7 +8,7 @@ on:
   schedule:
     - cron: '0 0 1 * *'  # Runs at 00:00 UTC on the 1st day of every month
 
-# One live run per branch — the README examples run real queries against the
+# One live run per branch — the example queries run against the
 # production VFB backend, so superseded runs are cancelled rather than left to
 # pile up alongside the other live-backend workflows.
 concurrency:
@@ -49,21 +49,10 @@ jobs:
                   f.write('SOLR_AVAILABLE=false\n')
               exit(1)
           "
-      - name: Run examples from README.md
+      - name: Run the example queries against the live backend
         run: |
-          cat README.md | grep -e '```python' -e '```' -e '^[^`]*$' | sed -e '/^```python/,/^```/!d' -e '/^```/d' -e 's/\(vfb\.[^(]*([^)]*)\)/print(\1)/g' > test_examples.py
-          cat test_examples.py
           export VFBQUERY_CACHE_ENABLED=false
-          python test_examples.py
-      - name: Parse README.md and generate test files
-        run: |
-          python -m src.test.readme_parser
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        if: env.SOLR_AVAILABLE == 'true'
-      - name: Run examples from README.md and validate structure
-        run: |
-          python -m src.test.test_examples_diff
+          python -m pytest -v src/test/test_example_queries.py
         env:
           PYTHONPATH: ${{ github.workspace }}
         if: env.SOLR_AVAILABLE == 'true'

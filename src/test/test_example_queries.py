@@ -25,6 +25,7 @@ fixture diff — the successor to the old ``update_readme.py`` flow.
 """
 
 import json
+import numbers
 import os
 
 import pytest
@@ -68,14 +69,23 @@ def _expected(name):
 
 def _type_bucket(value):
     """Coarse type category for leaf comparison: content may change freely,
-    a bool becoming a string may not."""
-    if isinstance(value, bool):
+    a bool becoming a string may not.
+
+    Live results can carry numpy scalars (int64 counts out of pandas on
+    some environments) where the JSON recording holds plain numbers; both
+    are "number" — the environment's box type is not a schema property.
+    numpy scalar types register with the ``numbers`` ABCs, so no numpy
+    import is needed; ``bool_``/``str_`` are matched by name for the same
+    reason.
+    """
+    name = type(value).__name__
+    if isinstance(value, bool) or name == "bool_":
         return "bool"
-    if isinstance(value, (int, float)):
+    if isinstance(value, numbers.Number):
         return "number"
-    if isinstance(value, str):
+    if isinstance(value, str) or name == "str_":
         return "string"
-    return type(value).__name__
+    return name
 
 
 def shape_mismatches(expected, live, path="$"):
@@ -189,6 +199,14 @@ def test_shape_comparator_catches_regressions():
                                        "flag": True})
     assert shape_mismatches(recorded, {"Name": "x", "count": 1, "rows": [],
                                        "flag": True})
+
+
+def test_numpy_scalars_count_as_numbers():
+    numpy = pytest.importorskip("numpy")
+    assert not shape_mismatches({"count": 3}, {"count": numpy.int64(5)})
+    assert not shape_mismatches({"score": 0.5}, {"score": numpy.float64(1.5)})
+    assert not shape_mismatches({"flag": True}, {"flag": numpy.bool_(False)})
+    assert shape_mismatches({"count": 3}, {"count": "5"})   # still a drift
 
 
 # ---------------------------------------------------------------------------

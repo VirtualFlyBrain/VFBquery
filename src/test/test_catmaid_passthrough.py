@@ -6,10 +6,62 @@ CATMAID instances and the KB, like the rest of this suite does. Skip those
 with ``-m 'not integration'``.
 """
 
+import asyncio
+import functools
+import json
+
 import pytest
+from aiohttp.base_protocol import BaseProtocol
+from aiohttp.streams import StreamReader
+from aiohttp.test_utils import make_mocked_request
 
 import vfbquery.catmaid_client as cm
 import vfbquery.ha_api as ha_api
+
+
+def sync(fn):
+    """Run an async test body on a fresh loop.
+
+    Matches test_ha_api_dispatch.py's helper: deliberately not
+    pytest-asyncio, to avoid a test-only dependency for the handful of
+    coroutine tests in the suite.
+    """
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(fn(*args, **kwargs))
+    return wrapper
+
+
+def _post_request(path, body=b"", content_type=None, headers=None):
+    """A mocked POST request carrying *body* as an unread payload.
+
+    ``make_mocked_request`` wants a real (if empty) StreamReader for the
+    body, and ``_catmaid_body_params`` decides how to read it from
+    ``Content-Type`` — both are wired up here so callers only give the
+    bytes and the type.
+    """
+    hdrs = dict(headers or {})
+    if content_type is not None:
+        hdrs["Content-Type"] = content_type
+    loop = asyncio.get_event_loop()
+    stream = StreamReader(BaseProtocol(loop=loop), limit=2 ** 20, loop=loop)
+    if body:
+        stream.feed_data(body)
+    stream.feed_eof()
+    match_info = {}
+    parts = path.split("?", 1)[0].strip("/").split("/")
+    if len(parts) >= 3 and parts[0] == "catmaid":
+        match_info = {"instance": parts[1], "command": parts[2]}
+    return make_mocked_request("POST", path, headers=hdrs, payload=stream,
+                               match_info=match_info)
+
+
+def _get_request(path):
+    parts = path.split("?", 1)[0].strip("/").split("/")
+    match_info = {}
+    if len(parts) >= 3 and parts[0] == "catmaid":
+        match_info = {"instance": parts[1], "command": parts[2]}
+    return make_mocked_request("GET", path, match_info=match_info)
 
 
 # ---------------------------------------------------------------------------
@@ -251,6 +303,133 @@ def test_catmaid_raw_view_unwraps_envelope_only():
     assert ha_api._catmaid_raw_view(envelope) == "raw text"
     assert ha_api._catmaid_raw_view({"anything": 1}) == {"anything": 1}
     assert ha_api._catmaid_raw_view("bare") == "bare"
+
+
+# ---------------------------------------------------------------------------
+# POST support: parameters travel in the body instead of the query string
+# ---------------------------------------------------------------------------
+
+@sync
+async def test_catmaid_body_params_reads_json_object():
+    request = _post_request(
+        "/catmaid/fafb/compact_detail",
+        body=json.dumps({"ids": [1, 2, 3], "with_connectors": False}).encode(),
+        content_type="application/json")
+    params = await ha_api._catmaid_body_params(request)
+    assert params == {"ids": [1, 2, 3], "with_connectors": False}
+
+
+@sync
+async def test_catmaid_body_params_reads_form_encoded():
+    request = _post_request(
+        "/catmaid/fafb/annotations_for_skeletons",
+        body=b"ids=1&ids=2&ids=3&with_connectors=false",
+        content_type="application/x-www-form-urlencoded")
+    params = await ha_api._catmaid_body_params(request)
+    assert params == {"ids": ["1", "2", "3"], "with_connectors": "false"}
+
+
+@sync
+async def test_catmaid_body_params_single_form_value_is_scalar():
+    request = _post_request(
+        "/catmaid/fafb/skeleton_root", body=b"id=16",
+        content_type="application/x-www-form-urlencoded")
+    assert await ha_api._catmaid_body_params(request) == {"id": "16"}
+
+
+@sync
+async def test_catmaid_body_params_empty_body_is_empty_dict():
+    request = _post_request("/catmaid/fafb/projects")
+    assert await ha_api._catmaid_body_params(request) == {}
+
+
+@sync
+async def test_catmaid_body_params_rejects_non_object_json():
+    request = _post_request(
+        "/catmaid/fafb/compact_detail", body=b"[1, 2, 3]",
+        content_type="application/json")
+    with pytest.raises(ValueError, match="must be an object"):
+        await ha_api._catmaid_body_params(request)
+
+
+@sync
+async def test_catmaid_body_params_rejects_malformed_json():
+    request = _post_request(
+        "/catmaid/fafb/compact_detail", body=b"{not json",
+        content_type="application/json")
+    with pytest.raises(ValueError, match="Malformed JSON body"):
+        await ha_api._catmaid_body_params(request)
+
+
+@sync
+async def test_handle_catmaid_command_post_matches_get_cache_key(monkeypatch):
+    """A GET and the equivalent POST must build the same params and cache
+    key — that's what lets a caller move from one to the other (e.g. once
+    an id list outgrows the query string) without cache-missing every
+    query it already warmed."""
+    captured = []
+
+    async def fake_dispatch(request, cache_key, worker_fn, *args, **kwargs):
+        captured.append((cache_key, args))
+        return {"ok": True}
+
+    monkeypatch.setattr(ha_api, "_dispatch_to_pool", fake_dispatch)
+
+    get_req = _get_request(
+        "/catmaid/fafb/annotations_for_skeletons?ids=1,2,3&raw=true")
+    await ha_api.handle_catmaid_command(get_req)
+
+    post_req = _post_request(
+        "/catmaid/fafb/annotations_for_skeletons?raw=true",
+        body=json.dumps({"ids": "1,2,3"}).encode(),
+        content_type="application/json")
+    await ha_api.handle_catmaid_command(post_req)
+
+    (get_key, get_args), (post_key, post_args) = captured
+    assert get_key == post_key
+    assert get_args == post_args == ("fafb", "annotations_for_skeletons",
+                                     None, {"ids": "1,2,3"})
+
+
+@sync
+async def test_handle_catmaid_command_post_reads_project_and_raw_from_query(
+        monkeypatch):
+    """`project`/`raw` are view flags, not payload — they stay on the query
+    string for POST too, and are stripped out of the params dict."""
+    captured = []
+
+    async def fake_dispatch(request, cache_key, worker_fn, *args, post_fn=None,
+                            **kwargs):
+        captured.append((args, post_fn))
+        return {"ok": True}
+
+    monkeypatch.setattr(ha_api, "_dispatch_to_pool", fake_dispatch)
+
+    request = _post_request(
+        "/catmaid/fafb/compact_detail?project=2&raw=true",
+        body=json.dumps({"id": "16", "project": "999", "raw": "false"}).encode(),
+        content_type="application/json")
+    await ha_api.handle_catmaid_command(request)
+
+    (instance, command, project, params), post_fn = captured[0]
+    assert (instance, command, project) == ("fafb", "compact_detail", "2")
+    assert params == {"id": "16"}          # body's project/raw dropped
+    assert post_fn is ha_api._catmaid_raw_view    # raw=true from the query
+
+
+@sync
+async def test_handle_catmaid_command_post_rejects_malformed_body(monkeypatch):
+    async def fake_dispatch(*args, **kwargs):
+        raise AssertionError("should not reach dispatch on a bad body")
+
+    monkeypatch.setattr(ha_api, "_dispatch_to_pool", fake_dispatch)
+
+    request = _post_request(
+        "/catmaid/fafb/compact_detail", body=b"{not json",
+        content_type="application/json")
+    response = await ha_api.handle_catmaid_command(request)
+    assert response.status == 400
+    assert b"Malformed JSON body" in response.body
 
 
 # ---------------------------------------------------------------------------

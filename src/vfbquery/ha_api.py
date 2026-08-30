@@ -30,6 +30,10 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /catmaid                                       # hosted CATMAID instances
     GET /catmaid/{instance}                            # metadata + commands
     GET /catmaid/{instance}/{command}?ids=<skids/VFB ids>[&project=][&raw=true]
+    POST /catmaid/{instance}/{command}                 # same command, params in
+                                                        # the body (JSON or form) —
+                                                        # for id lists too long for
+                                                        # a query string
     GET /health
     GET /status          — queue depth, cache stats & worker utilisation
 
@@ -3783,12 +3787,35 @@ async def handle_docs_json(request):
 #                                     the untouched CATMAID response, and any
 #                                     other parameter is forwarded to CATMAID
 #                                     verbatim.
+# POST /catmaid/{instance}/{command}  identical to the GET, but parameters —
+#                                     `ids` in particular — travel in the
+#                                     request body instead of the query
+#                                     string: a JSON object, or an
+#                                     application/x-www-form-urlencoded /
+#                                     multipart form. `project` and `raw`
+#                                     are still read from the query string
+#                                     either way, since they are view flags
+#                                     rather than command payload. This is
+#                                     the only way to run a bulk-id command
+#                                     (`compact_detail`,
+#                                     `annotations_for_skeletons`, ...) over
+#                                     more ids than fit under a proxy's
+#                                     header/URL length limit — CATMAID
+#                                     itself already receives these as a
+#                                     POST body (see id_params in
+#                                     catmaid_client.CATMAID_COMMANDS); only
+#                                     the client-facing transport was
+#                                     GET-only. A GET and an equivalent POST
+#                                     for the same instance/command/ids
+#                                     share one cache entry (method is not
+#                                     part of the cache key).
 #
 # The heavy lifting — instance registry, id conversion through the KB xrefs,
 # neuron-id bridging and the response envelope — lives in catmaid_client;
-# these handlers only parse the URL and ride the shared dispatch machinery
-# (cache, coalescing, queue, compute budget). The envelope is what gets
-# cached; `raw` is applied by post_fn so both views share one cache entry.
+# these handlers only parse the request and ride the shared dispatch
+# machinery (cache, coalescing, queue, compute budget). The envelope is what
+# gets cached; `raw` is applied by post_fn so both views share one cache
+# entry.
 # ---------------------------------------------------------------------------
 
 #: Query-string keys the /catmaid/{instance}/{command} handler itself reads.
@@ -3851,8 +3878,54 @@ async def handle_catmaid_instance(request):
         instance, known_params=frozenset(), client_error_types=(ValueError,))
 
 
+async def _catmaid_body_params(request):
+    """Parse a POST body into a flat {name: value} dict of forward params.
+
+    Accepts a JSON object — the natural choice for a bulk ``ids`` list,
+    which travels as a real JSON array rather than a delimited string — or
+    an ``application/x-www-form-urlencoded`` / ``multipart/form-data`` body
+    (what a plain ``curl -d`` or an HTML form sends), matching whichever a
+    caller finds convenient. A body-less POST (``compact_detail`` etc. take
+    all their input via ``id=``, which can still be short enough for the
+    query string) is fine and yields ``{}``.
+
+    Raises :class:`ValueError` — turned into a 400 by the caller — on a
+    JSON body that fails to parse or is not an object; there is nothing
+    sensible to fall back to at that point.
+    """
+    if not request.can_read_body:
+        return {}
+    content_type = (request.content_type or "").split(";", 1)[0].strip().lower()
+    if content_type == "application/json":
+        try:
+            body = await request.json()
+        except ValueError as exc:
+            raise ValueError("Malformed JSON body: %s" % exc)
+        if not isinstance(body, dict):
+            raise ValueError(
+                "JSON body must be an object of {parameter: value}, "
+                "e.g. {\"ids\": [1, 2, 3]}")
+        return body
+    # Form-encoded — aiohttp reads x-www-form-urlencoded and multipart
+    # here; any other content type (or none) comes back empty, same as an
+    # unparsed GET query would.
+    form = await request.post()
+    out = {}
+    for key in form.keys():
+        values = form.getall(key)
+        out[key] = values[0] if len(values) == 1 else values
+    return out
+
+
 async def handle_catmaid_command(request):
-    """GET /catmaid/{instance}/{command} — run one pass-through command."""
+    """GET or POST /catmaid/{instance}/{command} — run one pass-through
+    command. GET takes parameters from the query string; POST additionally
+    accepts them in the request body (see :func:`_catmaid_body_params`),
+    which is what a bulk id list needs once it is too long for a URL.
+    `project` and `raw` are always read from the query string — they are
+    view flags, not command payload, so there is no reason to make POST
+    callers put them in the body too.
+    """
     instance = request.match_info["instance"].lower()
     command = request.match_info["command"].lower()
     if not _CATMAID_INSTANCE_RE.match(instance):
@@ -3874,8 +3947,21 @@ async def handle_catmaid_command(request):
         values = request.query.getall(key)
         params[key] = values[0] if len(values) == 1 else values
 
+    if request.method == "POST":
+        try:
+            body_params = await _catmaid_body_params(request)
+        except ValueError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        for key in _CATMAID_CONTROL_PARAMS:
+            body_params.pop(key, None)
+        params.update(body_params)
+
     # `raw` is deliberately NOT part of the key: both views come from the
     # one cached envelope, unwrapped by post_fn after cache retrieval.
+    # The HTTP method is deliberately NOT part of the key either: GET and
+    # POST are two transports for the same request, and a bulk id list
+    # sent as a POST body should hit the same cache entry a short-enough
+    # GET with the same ids would have.
     cache_key = "catmaid|%s|%s|%s|%s" % (
         instance, command, project or "",
         json.dumps(sorted(params.items()), separators=(",", ":")))
@@ -3962,6 +4048,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/catmaid/{instance}/", handle_catmaid_instance)
     app.router.add_get("/catmaid/{instance}/{command}", handle_catmaid_command)
     app.router.add_get("/catmaid/{instance}/{command}/", handle_catmaid_command)
+    app.router.add_post("/catmaid/{instance}/{command}", handle_catmaid_command)
+    app.router.add_post("/catmaid/{instance}/{command}/", handle_catmaid_command)
 
     _warn_unreachable_routes(app)
 

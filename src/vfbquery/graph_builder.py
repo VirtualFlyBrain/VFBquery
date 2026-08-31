@@ -17,6 +17,15 @@ from .neo4j_client import Neo4jConnect, dict_cursor
 
 MAX_NODES = 80
 MAX_EDGES = 200
+
+#: Above this many class nodes, skip the subclass-containment lookup. The
+#: transitive-reduction query is fine for a focused graph (a bounded subtree,
+#: e.g. EPG→ExR1 at ~14 classes) but explodes when a one-sided rolled-up query
+#: pulls in high-level classes up to the neuron root (hundreds of classes,
+#: broad ``SUBCLASSOF`` walks) — enough to time a query out. A big flat graph
+#: gains little from containment nesting anyway, so it degrades to the plain
+#: (non-compound) graph. See :func:`subclass_containment_edges`.
+MAX_CONTAINMENT_CLASSES = 50
 GRAPH_VERSION = 1
 
 # Neurotransmitter group colours (matching VFBchat conventions)
@@ -114,15 +123,16 @@ def subclass_containment_edges(class_ids):
     make that nesting explicit instead of leaving parent and child as unrelated
     siblings. Each edge is tagged ``relation="SUBCLASSOF"`` and carries dashed/
     muted style hints (see :data:`SUBCLASS_EDGE_STYLE`) so a renderer can style
-    it differently from the ``synapsed_to`` connectivity edges. Falls back to
-    ``[]`` on any error, so an unavailable graph DB degrades to the plain
-    (non-compound) graph rather than failing.
+    it differently from the ``synapsed_to`` connectivity edges. Returns ``[]``
+    for a graph with more than :data:`MAX_CONTAINMENT_CLASSES` class nodes (the
+    query is too costly there and the nesting adds little), and on any error, so
+    an unavailable graph DB degrades to the plain (non-compound) graph.
 
     :param class_ids: ids of the class nodes already in the graph
     :return: list of edge dicts ``{source, target, relation, ...}``
     """
     ids = [i for i in dict.fromkeys(class_ids) if i]
-    if len(ids) < 2:
+    if len(ids) < 2 or len(ids) > MAX_CONTAINMENT_CLASSES:
         return []
     id_list = str(ids)
     try:

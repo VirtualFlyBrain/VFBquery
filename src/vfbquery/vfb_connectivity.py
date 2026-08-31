@@ -66,6 +66,16 @@ DEFAULT_EXCLUDE_DBS = ["hb", "fafb"]
 #: would not be usable regardless.
 MAX_SUBCLASS_IDS = 10000
 
+#: How long to wait for Owlery's subclass reasoning before giving up and falling
+#: back to a Neo4j ``SUBCLASSOF`` closure. The Owlery client's own default is 40
+#: minutes (tuned for heavy OWL reasoning); that is far too long here, where an
+#: Owlery outage would otherwise hang every connectivity query — and the CI
+#: graph test — for the full 40 minutes. Owlery answers a neuron-class subclass
+#: query in well under this, so a miss means Owlery is unhealthy, not slow, and
+#: the Neo4j fallback (asserted SUBCLASSOF, a close approximation) keeps results
+#: correct rather than empty. See :func:`_subclass_closure`.
+OWLERY_TIMEOUT_SECONDS = 30
+
 
 _NC = None
 
@@ -227,6 +237,27 @@ def _resolve_neuron_type_label(nc, label, notes=None):
     )
 
 
+def _neo4j_subclass_ids(nc, class_id):
+    """Neo4j ``SUBCLASSOF`` closure of a neuron class (the class plus every
+    asserted subclass beneath it), used as the fallback when Owlery is
+    unavailable. Returns ``[]`` on error so the caller can still proceed with
+    the class itself.
+    """
+    quoted = _cypher_str(class_id)
+    try:
+        results = nc.commit_list([
+            f"MATCH (c:Class:Neuron {{short_form: {quoted}}})\n"
+            "OPTIONAL MATCH (c)<-[:SUBCLASSOF*0..]-(sub:Class)\n"
+            "RETURN collect(DISTINCT sub.short_form) AS ids"
+        ])
+        dc = dict_cursor(results)
+        if dc:
+            return [i for i in (dc[0].get("ids") or []) if i]
+    except Exception as e:
+        print(f"Neo4j subclass fallback failed for {class_id}: {e}")
+    return []
+
+
 def _subclass_closure(nc, class_id):
     """Return ``(label, subclass_ids, instance_count)`` for a neuron class.
 
@@ -237,19 +268,31 @@ def _subclass_closure(nc, class_id):
     is how many non-deprecated connectivity individuals are typed to any class
     in the closure, counted in Neo4j.
 
+    Owlery is called with a short timeout (:data:`OWLERY_TIMEOUT_SECONDS`), not
+    its 40-minute default: an Owlery outage must not hang every connectivity
+    query. On timeout or error we fall back to the Neo4j ``SUBCLASSOF`` closure
+    (:func:`_neo4j_subclass_ids`) — asserted rather than reasoned, but a close
+    approximation that keeps results correct instead of collapsing to the
+    queried class alone. ``subs is None`` distinguishes an Owlery failure (fall
+    back) from Owlery legitimately returning no subclasses (a leaf class).
+
     Why the count matters is worth stating plainly, since getting it wrong is a
     two-minute query instead of a half-second one: expanding *both* sides of a
     connectivity match into variable-length ``SUBCLASSOF`` walks does not
     complete in reasonable time. Driving from the smaller side and filtering
     the partner by an id list does. See :func:`_build_connectivity_cypher`.
     """
+    subs = None
     try:
         subs = _get_vc().vfb.oc.get_subclasses(
-            query=f"<{class_id}>", query_by_label=False, verbose=False
+            query=f"<{class_id}>", query_by_label=False, verbose=False,
+            timeout=OWLERY_TIMEOUT_SECONDS,
         )
     except Exception as e:
-        print(f"Owlery subclass query failed for {class_id}: {e}")
-        subs = []
+        print(f"Owlery subclass query failed for {class_id}: {e}; "
+              "falling back to Neo4j SUBCLASSOF closure")
+    if subs is None:
+        subs = _neo4j_subclass_ids(nc, class_id)
     ids = sorted(set(subs or []) | {class_id})
 
     quoted = _cypher_str(class_id)

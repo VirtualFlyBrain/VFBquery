@@ -65,8 +65,9 @@ class OwleryClient:
         """
         self.owlery_endpoint = owlery_endpoint.rstrip('/')
     
-    def get_subclasses(self, query: str, query_by_label: bool = True, 
-                      verbose: bool = False, direct: bool = False) -> List[str]:
+    def get_subclasses(self, query: str, query_by_label: bool = True,
+                      verbose: bool = False, direct: bool = False,
+                      timeout: int = 2400) -> List[str]:
         """
         Query Owlery for subclasses matching an OWL class expression.
         
@@ -129,7 +130,7 @@ class OwleryClient:
             response = session.get(
                 f"{self.owlery_endpoint}/subclasses",
                 params=params,
-                timeout=2400
+                timeout=timeout
             )
             
             if verbose:

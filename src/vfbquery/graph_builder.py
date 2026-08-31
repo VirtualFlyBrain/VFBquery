@@ -97,6 +97,68 @@ def batch_lookup_ids(ids):
         return {}
 
 
+#: Visual encoding for containment (subclass) edges, so a renderer can tell
+#: structural ``SUBCLASSOF`` edges apart from ``synapsed_to`` connectivity edges.
+#: Dashed + muted so the connectivity edges stay the focus.
+SUBCLASS_EDGE_STYLE = {"style": "dashed", "color": "#9aa4b2"}
+
+
+def subclass_containment_edges(class_ids):
+    """Containment edges (``child`` → ``parent``) among *class_ids*, as the
+    transitive reduction restricted to the present set — each class links only
+    to its *nearest present* ancestor, so the result is a clean nesting rather
+    than an edge to every ancestor.
+
+    Used to turn a rolled-up class-connectivity graph into a compound graph:
+    the same connection appears at several hierarchy levels, and these edges
+    make that nesting explicit instead of leaving parent and child as unrelated
+    siblings. Each edge is tagged ``relation="SUBCLASSOF"`` and carries dashed/
+    muted style hints (see :data:`SUBCLASS_EDGE_STYLE`) so a renderer can style
+    it differently from the ``synapsed_to`` connectivity edges. Falls back to
+    ``[]`` on any error, so an unavailable graph DB degrades to the plain
+    (non-compound) graph rather than failing.
+
+    :param class_ids: ids of the class nodes already in the graph
+    :return: list of edge dicts ``{source, target, relation, ...}``
+    """
+    ids = [i for i in dict.fromkeys(class_ids) if i]
+    if len(ids) < 2:
+        return []
+    id_list = str(ids)
+    try:
+        nc = Neo4jConnect()
+        cypher = (
+            "MATCH (child:Class)-[:SUBCLASSOF*1..]->(parent:Class) "
+            f"WHERE child.short_form IN {id_list} "
+            f"AND parent.short_form IN {id_list} AND child <> parent "
+            "AND NOT EXISTS { "
+            "MATCH (child)-[:SUBCLASSOF*1..]->(mid:Class)-[:SUBCLASSOF*1..]->(parent) "
+            f"WHERE mid.short_form IN {id_list} AND mid <> child AND mid <> parent "
+            "} "
+            "RETURN DISTINCT child.short_form AS child, parent.short_form AS parent"
+        )
+        results = nc.commit_list([cypher])
+        if not results:
+            return []
+        rows = dict_cursor(results)
+    except Exception:
+        return []
+    edges = []
+    for r in rows:
+        child, parent = r.get("child"), r.get("parent")
+        if not child or not parent:
+            continue
+        edges.append({
+            "source": child,
+            "target": parent,
+            "relation": "SUBCLASSOF",
+            "label": "subclass of",
+            "weight": 0,
+            **SUBCLASS_EDGE_STYLE,
+        })
+    return edges
+
+
 # ---------------------------------------------------------------------------
 # Group assignment
 # ---------------------------------------------------------------------------
@@ -167,9 +229,16 @@ def build_graph(nodes, edges, title=None, directed=True, layout="force"):
     orig_node_count = len(deduped_nodes)
     orig_edge_count = len(edges)
 
-    # Truncate edges — keep highest weight first
+    # Truncate edges — keep highest-weight connectivity first, but never drop
+    # structural (containment) edges: they carry no weight, so a plain weight
+    # sort would push them to the bottom and cut them, losing the nesting.
     if len(edges) > MAX_EDGES:
-        edges = sorted(edges, key=lambda e: e.get("weight") or 0, reverse=True)[:MAX_EDGES]
+        structural = [e for e in edges if e.get("relation") == "SUBCLASSOF"]
+        weighted = [e for e in edges if e.get("relation") != "SUBCLASSOF"]
+        budget = max(0, MAX_EDGES - len(structural))
+        weighted = sorted(weighted, key=lambda e: e.get("weight") or 0,
+                          reverse=True)[:budget]
+        edges = weighted + structural
 
     # Truncate nodes — keep those with highest degree
     if len(deduped_nodes) > MAX_NODES:
@@ -289,7 +358,14 @@ def graph_from_query_connectivity(connections, group_by_class,
                     "source": up_id,
                     "target": dn_id,
                     "weight": c.get("total_weight", 0),
+                    "relation": "synapsed_to",
                 })
+        # Compound graph: a rolled-up result carries the same connection at
+        # several class levels, so add containment edges linking each class to
+        # its nearest present ancestor. Tagged distinctly (dashed/muted) from
+        # the synapsed_to edges above so subclass structure reads as nesting
+        # rather than as more connectivity.
+        edges.extend(subclass_containment_edges(list(nodes.keys())))
     else:
         # Per-neuron results
         for c in connections:

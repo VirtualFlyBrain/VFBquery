@@ -138,6 +138,72 @@ class TestQueryConnectivityGroupByClass:
         assert "downstream_class" in conn
 
 
+class TestQueryConnectivityRollup:
+    """Grouped queries roll up over the subclass hierarchy, so a row appears for
+    every level with data up to each named query term — the two-ended analogue
+    of the single-ended DownstreamClassConnectivity / UpstreamClassConnectivity
+    rollup. The distinguishing case is EPG <-> ExR1: across datasets EPG is
+    typed both to its parent class and per-glomerulus, and ExR1 both to its
+    parent and to DM3/DM4 lineage, so only a rollup produces the parent-to-parent
+    row. exclude_dbs=[] keeps every dataset in scope."""
+
+    #: EPG parent and ExR1 parent. EPG has per-glomerulus subclasses; ExR1 has
+    #: DM3/DM4 lineage subclasses. Both parents have directly-typed instances in
+    #: some datasets, which is what makes the parent-to-parent row real.
+    ROLLUP_UP = "FBbt_00047030"    # EPG
+    ROLLUP_DOWN = "FBbt_00003655"  # ExR1
+
+    @pytest.fixture(scope="class")
+    def rollup_result(self):
+        return query_connectivity(
+            upstream_type=self.ROLLUP_UP,
+            downstream_type=self.ROLLUP_DOWN,
+            group_by_class=True,
+            exclude_dbs=[],
+        )
+
+    @pytest.mark.integration
+    def test_top_level_query_term_row_present(self, rollup_result):
+        # The row the non-rolled-up grouping never emitted: both sides at the
+        # named query term, aggregating every level beneath them.
+        conns = rollup_result["connections"]
+        assert conns
+        assert any(
+            c["upstream_class_id"] == self.ROLLUP_UP
+            and c["downstream_class_id"] == self.ROLLUP_DOWN
+            for c in conns
+        ), "expected a rolled-up EPG->ExR1 parent-to-parent row"
+
+    @pytest.mark.integration
+    def test_finer_levels_also_present(self, rollup_result):
+        # Rollup adds levels, it does not replace them: subclass-level rows still
+        # appear alongside the parent-to-parent row.
+        conns = rollup_result["connections"]
+        assert any(
+            c["upstream_class_id"] != self.ROLLUP_UP
+            or c["downstream_class_id"] != self.ROLLUP_DOWN
+            for c in conns
+        )
+
+    @pytest.mark.integration
+    def test_parent_row_dominates_its_children(self, rollup_result):
+        # The parent-to-parent row is a set-union over every child pair, so its
+        # weight is at least that of any single child pair sharing an endpoint.
+        conns = rollup_result["connections"]
+        top = next(
+            c for c in conns
+            if c["upstream_class_id"] == self.ROLLUP_UP
+            and c["downstream_class_id"] == self.ROLLUP_DOWN
+        )
+        children = [
+            c for c in conns
+            if c["upstream_class_id"] == self.ROLLUP_UP
+            and c["downstream_class_id"] != self.ROLLUP_DOWN
+        ]
+        for child in children:
+            assert top["total_weight"] >= child["total_weight"]
+
+
 class TestQueryConnectivityWeightFiltering:
     @pytest.mark.integration
     def test_higher_weight_fewer_results(self):

@@ -3,8 +3,8 @@
 Uses VFBquery's Neo4jConnect client to run Cypher queries directly against
 the VFB Neo4j database, without depending on vfb_connect.
 
-Two behaviours here are worth knowing before reading the code, because both
-are the difference between an empty answer and a correct one.
+Three behaviours here are worth knowing before reading the code, because each
+is the difference between an empty, wrong, or correct answer.
 
 **Queries are expanded over the subclass hierarchy.** Asking for "Kenyon cell"
 means "Kenyon cell *or any of its subclasses*". This is not a nicety: in FBbt
@@ -14,10 +14,21 @@ instances — all ~16,000 of them hang off its 37 subclasses — so matching the
 named class alone returns nothing at all for the single most obvious query in
 the mushroom body. See :func:`_subclass_closure`.
 
+**Class-aggregated queries (`group_by_class=True`) roll up over the
+hierarchy.** A connection is attributed to every (upstream level, downstream
+level) pair up to the queried type(s), so a row appears for the queried type
+itself *and* for each subclass with data — not just the directly asserted
+class. One connection therefore appears in several rows, and per-row
+``pairwise_connections`` / ``total_weight`` do not sum to the raw connection
+count. This mirrors the single-ended class-connectivity queries in
+``vfb_queries`` and ``vfb_connect``'s ``get_connected_neurons_by_type``. See
+:func:`_rollup_grouped_connections`.
+
 **Some connectome datasets are excluded by default.** See
 :data:`DEFAULT_EXCLUDE_DBS` for which, and why.
 """
 from .neo4j_client import Neo4jConnect, dict_cursor
+from .owlery_client import SimpleVFBConnect
 
 
 #: Connectome datasets excluded unless the caller says otherwise.
@@ -73,6 +84,26 @@ def _get_nc():
     if _NC is None:
         _NC = Neo4jConnect()
     return _NC
+
+
+_VC = None
+
+
+def _get_vc():
+    """Return a process-wide :class:`SimpleVFBConnect`, used only for its Owlery
+    client (``vc.vfb.oc``).
+
+    The subclass closure is taken from the Owlery reasoner rather than a Neo4j
+    ``SUBCLASSOF`` traversal so that this module's expansion matches the
+    single-ended class-connectivity queries in ``vfb_queries`` exactly — Owlery
+    is described there as the canonical subclass set used throughout VFBquery.
+    Instances are still counted in Neo4j (Owlery's ``get_instances`` has been
+    observed to hang), so only ``get_subclasses`` is used here.
+    """
+    global _VC
+    if _VC is None:
+        _VC = SimpleVFBConnect()
+    return _VC
 
 
 def _cypher_str(value):
@@ -199,11 +230,12 @@ def _resolve_neuron_type_label(nc, label, notes=None):
 def _subclass_closure(nc, class_id):
     """Return ``(label, subclass_ids, instance_count)`` for a neuron class.
 
-    ``subclass_ids`` is the class itself plus every class beneath it under
-    ``SUBCLASSOF``, and ``instance_count`` is how many non-deprecated
-    connectivity individuals are typed to any of them. Both come from one
-    round-trip because the caller needs both: the ids to query with, and the
-    count to decide which side of a two-sided query to drive from.
+    ``subclass_ids`` is the class itself plus every class beneath it, taken from
+    the **Owlery reasoner** (``get_subclasses``) so the closure matches the
+    single-ended class-connectivity queries in ``vfb_queries`` exactly. Owlery
+    excludes the queried class itself, so it is added back. ``instance_count``
+    is how many non-deprecated connectivity individuals are typed to any class
+    in the closure, counted in Neo4j.
 
     Why the count matters is worth stating plainly, since getting it wrong is a
     two-minute query instead of a half-second one: expanding *both* sides of a
@@ -211,22 +243,28 @@ def _subclass_closure(nc, class_id):
     complete in reasonable time. Driving from the smaller side and filtering
     the partner by an id list does. See :func:`_build_connectivity_cypher`.
     """
+    try:
+        subs = _get_vc().vfb.oc.get_subclasses(
+            query=f"<{class_id}>", query_by_label=False, verbose=False
+        )
+    except Exception as e:
+        print(f"Owlery subclass query failed for {class_id}: {e}")
+        subs = []
+    ids = sorted(set(subs or []) | {class_id})
+
     quoted = _cypher_str(class_id)
     results = nc.commit_list([
         f"MATCH (c:Class:Neuron) WHERE c.short_form = {quoted}\n"
         "WITH c LIMIT 1\n"
-        "OPTIONAL MATCH (c)<-[:SUBCLASSOF*0..]-(sub:Class)\n"
-        "WITH c, collect(DISTINCT sub.short_form) AS ids\n"
         "OPTIONAL MATCH (s:Class)<-[:INSTANCEOF]-"
         "(n:Individual:Neuron:has_neuron_connectivity)\n"
-        "WHERE s.short_form IN ids AND NOT n:Deprecated\n"
-        "RETURN c.label AS label, ids AS ids, count(DISTINCT n) AS instances"
+        f"WHERE s.short_form IN {_id_list(ids)} AND NOT n:Deprecated\n"
+        "RETURN c.label AS label, count(DISTINCT n) AS instances"
     ])
     dc = dict_cursor(results)
     if not dc:
-        return class_id, [class_id], 0
+        return class_id, ids, 0
     row = dc[0]
-    ids = sorted(set(row.get("ids") or []) | {class_id})
     return row.get("label") or class_id, ids, row.get("instances") or 0
 
 
@@ -318,7 +356,12 @@ def query_connectivity(upstream_type=None, downstream_type=None, weight=5,
     :param upstream_type: Presynaptic neuron type label (optional)
     :param downstream_type: Postsynaptic neuron type label (optional)
     :param weight: Minimum synapse count threshold (default 5)
-    :param group_by_class: Aggregate by neuron class (default False)
+    :param group_by_class: Aggregate by class, rolled up over the subclass
+        hierarchy (default False). A connection counts toward every (upstream
+        level, downstream level) pair up to the queried type(s), so a row
+        appears for each level with data — matching vfb_connect's
+        ``get_connected_neurons_by_type``. See
+        :func:`_rollup_grouped_connections`.
     :param exclude_dbs: Dataset symbols to exclude; defaults to
         :data:`DEFAULT_EXCLUDE_DBS`, which documents why. Pass ``[]`` for every
         dataset.
@@ -429,11 +472,22 @@ def _query_connectivity_uncached(upstream_type=None, downstream_type=None, weigh
     # For a one-sided query the supplied side is the only candidate.
     anchor = min(sides, key=lambda s: sides[s][1])
 
+    # Class-aggregated queries roll up over the subclass hierarchy so a row
+    # appears for every level with data up to each named query term — the
+    # two-ended analogue of the single-ended DownstreamClassConnectivity /
+    # UpstreamClassConnectivity rollup. See :func:`_rollup_grouped_connections`.
+    if group_by_class:
+        connections = _rollup_grouped_connections(
+            nc, resolved, sides, weight, exclude_dbs, anchor
+        )
+        return {"connections": connections, "warnings": warnings,
+                "count": len(connections), "resolved": resolved}
+
     cypher = _build_connectivity_cypher(
         upstream_ids=sides["upstream"][0] if "upstream" in sides else None,
         downstream_ids=sides["downstream"][0] if "downstream" in sides else None,
         weight=weight,
-        group_by_class=group_by_class,
+        group_by_class=False,
         exclude_dbs=exclude_dbs,
         anchor=anchor,
     )
@@ -446,6 +500,265 @@ def _query_connectivity_uncached(upstream_type=None, downstream_type=None, weigh
     dc = dict_cursor(results)
     return {"connections": dc, "warnings": warnings, "count": len(dc),
             "resolved": resolved}
+
+
+def _class_instance_membership(nc, class_ids, exclude_dbs):
+    """For each class in ``class_ids`` that has connectivity individuals, return
+    the set of individuals in its ``SUBCLASSOF`` closure plus the class label.
+
+    Individuals carry the same deprecation and dataset filters the connectivity
+    match applies, so this doubles as the ``total_upstream_count`` denominator
+    for the block (presynaptic) side: counting a neuron here that the dataset
+    filter excludes from the numerator would depress the whole class's percent.
+
+    :return: ``(class_to_instances, labels)`` — classes with no surviving
+        individuals simply do not appear.
+    """
+    if not class_ids:
+        return {}, {}
+    dbf = _db_filter_predicate("n", exclude_dbs) if exclude_dbs else None
+    q = (
+        "MATCH (c:Class)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-"
+        "(n:Individual:has_neuron_connectivity)\n"
+        f"WHERE c.short_form IN {_id_list(class_ids)}\n"
+        "AND NOT n:Deprecated"
+        + (f"\nAND {dbf}" if dbf else "")
+        + "\nRETURN c.short_form AS cid, c.label AS label, "
+        "collect(DISTINCT n.short_form) AS iids"
+    )
+    class_to_instances = {}
+    labels = {}
+    for r in dict_cursor(nc.commit_list([q])):
+        cid = r.get("cid")
+        iids = set(r.get("iids") or [])
+        if not cid or not iids:
+            continue
+        class_to_instances[cid] = iids
+        labels[cid] = r.get("label") or cid
+    return class_to_instances, labels
+
+
+def _partner_class_membership(nc, partner_instances, partner_ids):
+    """Map each partner individual to the set of neuron classes it belongs to,
+    with labels, for the set-union rollup.
+
+    Bounded by ``partner_ids`` (the partner's own subclass closure) when the
+    partner side was named, so the rollup stops at that query term; for a
+    one-sided query ``partner_ids`` is ``None`` and every ``:Neuron`` ancestor
+    is kept, walking up to the neuron root as the single-ended partner rollup
+    does. Set-union over these memberships is what keeps FBbt multi-inheritance
+    from double-counting.
+
+    :return: ``(instance_to_classes, labels)``
+    """
+    if not partner_instances:
+        return {}, {}
+    bound = ""
+    if partner_ids:
+        bound = f"\nAND c.short_form IN {_id_list(partner_ids)}"
+    q = (
+        "MATCH (n:Individual)-[:INSTANCEOF]->(:Class:Neuron)"
+        "-[:SUBCLASSOF*0..]->(c:Class:Neuron)\n"
+        f"WHERE n.short_form IN {_id_list(sorted(partner_instances))}" + bound
+        + "\nRETURN n.short_form AS iid, "
+        "collect(DISTINCT c.short_form) AS cids, "
+        "collect(DISTINCT [c.short_form, c.label]) AS labs"
+    )
+    inst_to_classes = {}
+    labels = {}
+    for r in dict_cursor(nc.commit_list([q])):
+        iid = r.get("iid")
+        if not iid:
+            continue
+        inst_to_classes[iid] = set(r.get("cids") or [])
+        for pair in r.get("labs") or []:
+            if isinstance(pair, (list, tuple)) and len(pair) == 2 and pair[0]:
+                labels[pair[0]] = pair[1] or pair[0]
+    return inst_to_classes, labels
+
+
+def _partner_class_totals(nc, class_ids, exclude_dbs):
+    """Count the connectivity individuals in each partner class's ``SUBCLASSOF``
+    closure, deprecation- and dataset-filtered.
+
+    This is the ``total_upstream_count`` denominator only when the partner side
+    is presynaptic — i.e. a downstream-only query, where the upstream partner is
+    the source of each connection. When the block side is presynaptic the
+    denominator comes from :func:`_class_instance_membership` instead.
+    """
+    if not class_ids:
+        return {}
+    dbf = _db_filter_predicate("n", exclude_dbs) if exclude_dbs else None
+    q = (
+        "MATCH (c:Class)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-"
+        "(n:Individual:has_neuron_connectivity)\n"
+        f"WHERE c.short_form IN {_id_list(class_ids)}\n"
+        "AND NOT n:Deprecated"
+        + (f"\nAND {dbf}" if dbf else "")
+        + "\nRETURN c.short_form AS cid, count(DISTINCT n) AS total"
+    )
+    totals = {}
+    for r in dict_cursor(nc.commit_list([q])):
+        cid = r.get("cid")
+        if cid:
+            totals[cid] = r.get("total") or 0
+    return totals
+
+
+def _rollup_grouped_connections(nc, resolved, sides, weight, exclude_dbs, anchor):
+    """Class-aggregated connections rolled up over the subclass hierarchy, so a
+    row appears for every level with data up to each named query term.
+
+    This is the two-ended analogue of the single-ended rollup in
+    ``vfb_queries._aggregate_class_connectivity`` (added in ca94f17), and mirrors
+    it: one side is enumerated as **blocks** — its query term first (aggregated
+    over its whole instance population), then each subclass that has data — while
+    the partner side is **rolled up** over its ancestor classes by set-union on
+    instance memberships. Together the two produce a row for every (upstream
+    level, downstream level) pair that has a connection, including the top-level
+    (query term, query term) pair the non-rolled-up grouping never emitted.
+
+    Differences from single-ended, all deliberate: edges come from the live
+    Neo4j ``synapsed_to`` match (not the Solr per-instance cache), so ``weight``
+    and ``exclude_dbs`` apply and every dataset is visible; the partner rollup is
+    bounded by the partner's own query closure when that side was named, rather
+    than always walking to the neuron root.
+
+    When both sides are named the **upstream** side supplies the blocks and the
+    downstream side is the rolled-up partner; for a one-sided query the named
+    side supplies the blocks and the partner rolls up to the neuron root.
+    ``percent_connected`` normalizes on the presynaptic side, matching the
+    non-rolled-up path and VFB_connect: the returned ``total_upstream_count`` /
+    ``connected_upstream_count`` always describe the presynaptic (upstream)
+    class of each row.
+    """
+    from collections import defaultdict
+
+    up_ids = sides["upstream"][0] if "upstream" in sides else None
+    down_ids = sides["downstream"][0] if "downstream" in sides else None
+    up_term = resolved.get("upstream", {}).get("id")
+    down_term = resolved.get("downstream", {}).get("id")
+
+    # 1. Filtered per-pair edges from the live query (same filters as the
+    #    non-grouped path). Deduplicate by (n1, n2) so a neuron with several
+    #    data-source cross-references is not counted once per source.
+    cypher = _build_connectivity_cypher(
+        upstream_ids=up_ids, downstream_ids=down_ids, weight=weight,
+        group_by_class=False, exclude_dbs=exclude_dbs, anchor=anchor,
+    )
+    edge_weight = {}
+    for r in dict_cursor(nc.commit_list([cypher])):
+        u = r.get("upstream_neuron_id")
+        d = r.get("downstream_neuron_id")
+        w = r.get("weight")
+        if not u or not d or w is None:
+            continue
+        try:
+            edge_weight[(u, d)] = float(w)
+        except (TypeError, ValueError):
+            continue
+    if not edge_weight:
+        return []
+
+    # 2. Block side = named query side (upstream when both are named); the
+    #    partner side is the other. found[block_instance] = [(partner_inst, w)].
+    block_side = "upstream" if up_ids else "downstream"
+    block_term = up_term if block_side == "upstream" else down_term
+    block_ids = up_ids if block_side == "upstream" else down_ids
+    partner_ids = down_ids if block_side == "upstream" else up_ids
+    queried_is_presynaptic = (block_side == "upstream")
+
+    found = defaultdict(list)
+    partner_instances = set()
+    for (u, d), w in edge_weight.items():
+        if block_side == "upstream":
+            found[u].append((d, w))
+            partner_instances.add(d)
+        else:
+            found[d].append((u, w))
+            partner_instances.add(u)
+
+    # 3. Memberships. Block side: (sub)class -> filtered instance set + labels
+    #    (also the presynaptic denominator). Partner side: instance -> {ancestor
+    #    classes} + labels, for the set-union rollup.
+    block_class_instances, block_labels = _class_instance_membership(
+        nc, block_ids, exclude_dbs)
+    if not block_class_instances:
+        return []
+    partner_inst_classes, partner_labels = _partner_class_membership(
+        nc, partner_instances, partner_ids)
+    partner_totals = {}
+    if not queried_is_presynaptic:
+        all_partner_classes = set()
+        for cs in partner_inst_classes.values():
+            all_partner_classes |= cs
+        partner_totals = _partner_class_totals(
+            nc, all_partner_classes, exclude_dbs)
+
+    def block_for(query_id):
+        instances = block_class_instances.get(query_id) or set()
+        if not instances:
+            return []
+        total_queried = len(instances)
+        buckets = defaultdict(lambda: {
+            "edges": set(), "weight_sum": 0.0,
+            "connected_queried": set(), "connected_partner": set(),
+        })
+        for n1 in instances:
+            for n2, w in found.get(n1, ()):
+                if w <= 0:
+                    continue
+                for c in partner_inst_classes.get(n2, ()):
+                    b = buckets[c]
+                    b["edges"].add((n1, n2))
+                    b["weight_sum"] += w
+                    b["connected_queried"].add(n1)
+                    b["connected_partner"].add(n2)
+        block = []
+        for cid, b in buckets.items():
+            pw = len(b["edges"])
+            tw = b["weight_sum"]
+            if queried_is_presynaptic:
+                total = total_queried
+                connected = len(b["connected_queried"])
+            else:
+                total = partner_totals.get(cid, 0)
+                connected = len(b["connected_partner"])
+            pct = round((connected / total) * 100) if total else 0
+            # Integer weight and integer division, matching VFB_connect's
+            # get_connected_neurons_by_type and the previous Cypher grouping
+            # (both produced integers); synapse counts are integers.
+            avg = (tw // pw) if pw else 0
+            if block_side == "upstream":
+                up_id, up_label = query_id, block_labels.get(query_id, query_id)
+                dn_id, dn_label = cid, partner_labels.get(cid, cid)
+            else:
+                up_id, up_label = cid, partner_labels.get(cid, cid)
+                dn_id, dn_label = query_id, block_labels.get(query_id, query_id)
+            block.append({
+                "upstream_class": up_label,
+                "upstream_class_id": up_id,
+                "downstream_class": dn_label,
+                "downstream_class_id": dn_id,
+                "total_upstream_count": total,
+                "connected_upstream_count": connected,
+                "percent_connected": pct,
+                "pairwise_connections": pw,
+                "total_weight": int(tw),
+                "average_weight": int(avg),
+            })
+        block.sort(
+            key=lambda r: (r["pairwise_connections"], r["average_weight"]),
+            reverse=True,
+        )
+        return block
+
+    # 4. Query term first, then one block per subclass (ordered by class id) —
+    #    the same layout as the single-ended queries.
+    rows = block_for(block_term)
+    for cid in sorted(c for c in block_class_instances if c != block_term):
+        rows.extend(block_for(cid))
+    return rows
 
 
 def _build_connectivity_cypher(upstream_ids, downstream_ids, weight,

@@ -113,7 +113,7 @@ GET /query_connectivity?upstream_type=DA1 lPN&downstream_type=Kenyon cell
 |---|---|
 | `upstream_type`, `downstream_type` | Neuron type labels, synonyms or FBbt ids. **At least one is required**; giving one asks "everything downstream of / upstream of this". |
 | `weight` | Minimum synapse count for a connection to be reported. Default 5. |
-| `group_by_class` | `true` aggregates to one row per class pair, with `pairwise_connections`, `average_weight` and `percent_connected`. Default is one row per neuron pair. |
+| `group_by_class` | `true` aggregates by class, rolled up over the subclass hierarchy: a connection counts toward **every** (upstream level, downstream level) pair up to the queried type(s), so a row appears for the queried type itself *and* for each subclass that has data — with `pairwise_connections`, `total_weight`, `average_weight` and `percent_connected`. A single connection therefore contributes to several rows, so the per-row figures do not sum to the raw connection count. This matches `vfb_connect`'s `get_connected_neurons_by_type`. Default is one row per neuron pair. |
 | `exclude_dbs` | Comma-separated datasets to leave out. Defaults to `hb,fafb` — see below. Pass `exclude_dbs=` (empty) for every dataset. A symbol (`mc`), a short_form (`male_cns_v0_9`), a label (`male-cns`) or the whole label all name the same dataset; an unrecognised one is a **400** with suggestions. |
 | `include_graph` | Attach a graph structure alongside the table. |
 | `force_refresh` | Bypass the cache. |

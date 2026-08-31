@@ -1963,7 +1963,7 @@ def SubclassesOf_to_schema(name, take_default):
 def SplitsTargeting_to_schema(name, take_default):
     """Schema for SplitsTargeting query: splits that target a neuron class.
     Matching criteria: Class + Neuron (mirrors the indexer neuron_split clause)."""
-    return Query(query="SplitsTargeting", label=f"Splits targeting {name}",
+    return Query(query="SplitsTargeting", label=f"Splits specifically targeting {name}",
                  function="get_splits_targeting",
                  takes={"short_form": {"$and": ["Class", "Neuron"]}, "default": take_default},
                  preview=5, preview_columns=["id", "label", "tags", "thumbnail"])

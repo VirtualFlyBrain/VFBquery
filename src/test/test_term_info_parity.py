@@ -134,7 +134,14 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertIsInstance(r, dict)
         self.assertGreater(r.get("count", 0), 0, "expected splits targeting MBON")
         self.assertTrue(r.get("rows"), "no preview rows")
-        self.assertTrue(all(k in r["rows"][0] for k in ("id", "label", "tags", "thumbnail")))
+        self.assertTrue(all(k in r["rows"][0]
+                            for k in ("id", "label", "tags", "template", "technique", "thumbnail")))
+        # Template_Space / Imaging_Technique columns must actually be populated
+        # (the query declares them; they were previously always blank).
+        self.assertTrue(any(row.get("template") for row in r["rows"]),
+                        "Template column empty for all splits")
+        self.assertTrue(any(row.get("technique") for row in r["rows"]),
+                        "Imaging Technique column empty for all splits")
 
     def test_neurons_targeted_by_split_returns_count(self):
         r = q.get_neurons_targeted_by_split("VFBexp_FBtp0129935FBtp0129968", return_dataframe=False, limit=5)

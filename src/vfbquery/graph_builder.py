@@ -651,8 +651,14 @@ def graph_from_downstream_class(rows, primary_id, primary_label=None):
                 "source": primary_id,
                 "target": rid,
                 "weight": weight,
+                "relation": "synapsed_to",
             })
 
+    # Partner classes are rolled up over the subclass hierarchy (the single-ended
+    # rollup walks partners to the neuron root), so add containment edges — tagged
+    # apart from the synapsed_to edges — to show that nesting rather than leaving
+    # a partner parent and its subclasses as unrelated siblings.
+    edges.extend(subclass_containment_edges([n["id"] for n in nodes]))
     disp = _node_display_label(primary_info) or primary_label or primary_id
     return build_graph(nodes, edges, title=f"Downstream of {disp}", directed=True)
 
@@ -724,7 +730,13 @@ def graph_from_upstream_class(rows, primary_id, primary_label=None):
                 "source": rid,
                 "target": primary_id,
                 "weight": weight,
+                "relation": "synapsed_to",
             })
 
+    # Partner classes are rolled up over the subclass hierarchy (the single-ended
+    # rollup walks partners to the neuron root), so add containment edges — tagged
+    # apart from the synapsed_to edges — to show that nesting rather than leaving
+    # a partner parent and its subclasses as unrelated siblings.
+    edges.extend(subclass_containment_edges([n["id"] for n in nodes]))
     disp = _node_display_label(primary_info) or primary_label or primary_id
     return build_graph(nodes, edges, title=f"Upstream of {disp}", directed=True)

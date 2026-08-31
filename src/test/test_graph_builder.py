@@ -360,6 +360,32 @@ class TestGraphFromDownstreamClass:
         assert g["edges"][0]["target"] == "FBbt_d1"
         assert g["edges"][0]["weight"] == 5000  # input-term block, not the subclass's 500
 
+    def test_compound_graph_tags_edges(self, monkeypatch):
+        """Partner classes are rolled up over the hierarchy, so containment
+        edges are added and tagged apart from the synapsed_to edges."""
+        _mock_batch_lookup(monkeypatch)
+        import vfbquery.graph_builder as gb
+        monkeypatch.setattr(gb, "subclass_containment_edges", lambda ids: [
+            {"source": "FBbt_d_child", "target": "FBbt_d_parent",
+             "relation": "SUBCLASSOF", "label": "subclass of", "weight": 0,
+             **gb.SUBCLASS_EDGE_STYLE},
+        ] if "FBbt_d_parent" in ids and "FBbt_d_child" in ids else [])
+        rows = [
+            {"id": "FBbt_d_parent", "query_id": "FBbt_primary",
+             "downstream_class": "[ExR1](FBbt_d_parent)",
+             "pairwise_connections": 200, "total_weight": 5000},
+            {"id": "FBbt_d_child", "query_id": "FBbt_primary",
+             "downstream_class": "[ExR1 DM4](FBbt_d_child)",
+             "pairwise_connections": 50, "total_weight": 1000},
+        ]
+        g = graph_from_downstream_class(rows, "FBbt_primary", "EPG")
+        rels = [e.get("relation") for e in g["edges"]]
+        assert rels.count("synapsed_to") == 2
+        assert rels.count("SUBCLASSOF") == 1
+        sub = next(e for e in g["edges"] if e["relation"] == "SUBCLASSOF")
+        assert sub["source"] == "FBbt_d_child" and sub["target"] == "FBbt_d_parent"
+        assert sub["style"] == "dashed"
+
 
 class TestGraphFromUpstreamClass:
     def test_basic(self, monkeypatch):

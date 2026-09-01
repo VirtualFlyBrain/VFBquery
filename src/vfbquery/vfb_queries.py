@@ -3989,11 +3989,15 @@ def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
     main_query = base_match + (
         f" WITH DISTINCT {var} "
         f"CALL {{ WITH {var} OPTIONAL MATCH ({var})<-[:INSTANCEOF]-(:Individual)<-[:depicts]-"
-        "(:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template) "
-        "RETURN irw, templ LIMIT 1 } "
+        "(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template) "
+        "OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class) "
+        "RETURN irw, templ, technique LIMIT 1 } "
         f"RETURN {var}.short_form AS id, "
         f"apoc.text.format(\"[%s](%s)\",[{var}.label, {var}.short_form]) AS label, "
         f"apoc.text.join(coalesce({var}.uniqueFacets,[]),'|') AS tags, "
+        "CASE WHEN templ IS NULL THEN '' ELSE "
+        "apoc.text.format(\"[%s](%s)\", [templ.label, templ.short_form]) END AS template, "
+        "coalesce(technique.label, '') AS technique, "
         f"REPLACE(apoc.text.format(\"[![%s](%s '%s')](%s)\",[{var}.label, "
         "REPLACE(REPLACE(COALESCE(irw.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),'http://','https://'), "
         f"{var}.label, templ.short_form + ',' + {var}.short_form]), "
@@ -4003,12 +4007,13 @@ def _targeting_rows(base_match, var, short_form, return_dataframe, limit):
     if limit != -1:
         main_query += f" LIMIT {limit}"
     df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([main_query])))
-    df = encode_markdown_links(df, ['label', 'thumbnail'])
+    df = encode_markdown_links(df, ['label', 'template', 'thumbnail'])
     if return_dataframe:
         return df
     return {
         "headers": _get_standard_query_headers(),
-        "rows": [{k: row.get(k) for k in ["id", "label", "tags", "thumbnail"]}
+        "rows": [{k: row.get(k)
+                  for k in ["id", "label", "tags", "template", "technique", "thumbnail"]}
                  for row in safe_to_dict(df, sort_by_id=False)],
         "count": total_count,
     }

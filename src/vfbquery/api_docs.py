@@ -23,8 +23,29 @@ a ``MANIFEST.in`` entry to forget.
 #
 # Parameter fields: name, doc, required (default False), example (pre-filled
 # in the form), enum (renders a dropdown; "dynamic:<key>" pulls the list
-# injected by build_docs_spec).
+# injected by build_docs_spec), header (renders a checkbox that sends the
+# named request header instead of a query parameter — see FORCE_REFRESH_PARAM
+# below for why force_refresh needs this).
 # ---------------------------------------------------------------------------
+
+#: Shared definition for every endpoint that honours a cache refresh signal.
+#: Rendered as a checkbox (see paramRow's "header" branch in DOCS_HTML) that
+#: sets the ``X-Force-Refresh`` request header rather than a ``force_refresh``
+#: query parameter. That distinction matters: appending ``&force_refresh=true``
+#: to the URL changes nginx's cache key, so the refreshed response is written
+#: into a *different* edge-cache slot and the canonical URL people actually
+#: call is never healed. The header leaves the URL untouched, so one ticked
+#: "Run" refreshes the v3-cached edge slot and the VFBquery-level cache
+#: together, at the URL everyone else hits next — see ha_api._FORCE_REFRESH_HEADER
+#: and CACHING.md for the server-side half of this.
+FORCE_REFRESH_PARAM = {
+    "name": "force_refresh",
+    "header": "X-Force-Refresh",
+    "doc": ("Force a cache clear: bypasses the edge cache and makes VFBquery "
+            "recompute now. Refreshes the canonical URL directly, so this "
+            "call and the very next one — even unticked — both return fresh "
+            "data."),
+}
 
 ENDPOINT_GROUPS = [
     {
@@ -42,9 +63,7 @@ ENDPOINT_GROUPS = [
                     {"name": "id", "required": True,
                      "doc": "Ontology class or individual short_form",
                      "example": "FBbt_00003748"},
-                    {"name": "force_refresh",
-                     "doc": "true bypasses the result cache",
-                     "example": ""},
+                    FORCE_REFRESH_PARAM,
                 ],
             },
             {
@@ -69,8 +88,7 @@ ENDPOINT_GROUPS = [
                     {"name": "include_graph",
                      "doc": "true adds a graph rendering of the rows",
                      "example": ""},
-                    {"name": "force_refresh",
-                     "doc": "true bypasses the result cache", "example": ""},
+                    FORCE_REFRESH_PARAM,
                 ],
             },
             {
@@ -203,6 +221,7 @@ ENDPOINT_GROUPS = [
                      "example": ""},
                     {"name": "include_graph",
                      "doc": "true adds a graph rendering", "example": ""},
+                    FORCE_REFRESH_PARAM,
                 ],
             },
         ],
@@ -512,7 +531,13 @@ function optionList(select, values, chosen){
 function paramRow(param, kind){
   const vocab = SPEC.vocabularies || {};
   let input;
-  if (param.enum && String(param.enum).startsWith("dynamic:")){
+  if (param.header){
+    // A checkbox that sends a request header instead of a query parameter —
+    // see FORCE_REFRESH_PARAM in the Python source for why force_refresh
+    // needs this rather than the plain text input below.
+    input = el("input", {type: "checkbox", "data-name": param.name,
+                         "data-kind": "header", "data-header-name": param.header});
+  } else if (param.enum && String(param.enum).startsWith("dynamic:")){
     const key = param.enum.split(":")[1];
     let values = [];
     if (key === "query_types") values = vocab.query_types || [];
@@ -537,7 +562,14 @@ function paramRow(param, kind){
 function buildUrl(root, endpoint){
   let path = endpoint.path;
   const query = new URLSearchParams();
+  const headers = {};
   for (const input of root.querySelectorAll("[data-name]")){
+    if (input.dataset.kind === "header"){
+      // Ticked -> the named header, at the unmodified URL below, never a
+      // query parameter — that's the whole point (see FORCE_REFRESH_PARAM).
+      if (input.checked) headers[input.dataset.headerName] = "true";
+      continue;
+    }
     const value = input.value.trim();
     if (input.dataset.kind === "path"){
       if (!value) return {error: input.dataset.name + " is required"};
@@ -552,7 +584,7 @@ function buildUrl(root, endpoint){
     }
   }
   const qs = query.toString();
-  return {url: path + (qs ? "?" + qs : "")};
+  return {url: path + (qs ? "?" + qs : ""), headers: headers};
 }
 
 async function run(root, endpoint){
@@ -561,13 +593,22 @@ async function run(root, endpoint){
   const out = root.querySelector("pre.result");
   const built = buildUrl(root, endpoint);
   if (built.error){ meta.innerHTML = '<span class="bad">' + built.error + "</span>"; return; }
-  urlBox.textContent = new URL(built.url, window.location.href).href;
+  // A bypass checkbox is a one-shot action, not a sticky setting: reset it to
+  // off as soon as this run has captured whether it was ticked, so a bypass
+  // never carries over into someone re-running the same card a second time
+  // (e.g. to try a different id) without deliberately ticking it again.
+  for (const box of root.querySelectorAll('[data-kind="header"]')) box.checked = false;
+  const headerNames = Object.keys(built.headers || {});
+  urlBox.textContent = new URL(built.url, window.location.href).href +
+    (headerNames.length ? "  (+ header " + headerNames.map(
+      (h) => h + ": " + built.headers[h]).join(", ") + ")" : "");
   meta.textContent = "running…";
   out.hidden = false;
   out.textContent = "";
   const started = performance.now();
   try {
-    const resp = await fetch(built.url, {headers: {Accept: "application/json"}});
+    const resp = await fetch(built.url, {headers: Object.assign(
+      {Accept: "application/json"}, built.headers || {})});
     const ms = Math.round(performance.now() - started);
     const text = await resp.text();
     let shown = text;

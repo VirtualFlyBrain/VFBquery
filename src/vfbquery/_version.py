@@ -25,4 +25,4 @@ cache's version stamp can never drift apart.
 # Targeted invalidation, not a namespace flip. This is the documented exception,
 # not a licence to hand-manage the cache in general — the standing rule remains
 # force_refresh per call or a major.minor bump, never renaming buckets.
-__version__ = "1.22.46"
+__version__ = "1.22.47"

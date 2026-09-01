@@ -178,6 +178,10 @@ def _mock_batch_lookup(monkeypatch):
         }
     import vfbquery.graph_builder as gb
     monkeypatch.setattr(gb, "batch_lookup_ids", fake_batch)
+    # Containment edges need a live graph DB; default to none so unit tests
+    # don't reach the network. Tests that exercise the compound graph override
+    # this with their own stub.
+    monkeypatch.setattr(gb, "subclass_containment_edges", lambda ids: [])
 
 
 class TestGraphFromQueryConnectivity:
@@ -205,7 +209,42 @@ class TestGraphFromQueryConnectivity:
         assert len(g["nodes"]) == 2
         assert len(g["edges"]) == 1
         assert g["edges"][0]["weight"] == 5000
+        assert g["edges"][0]["relation"] == "synapsed_to"
         assert g["directed"] is True
+
+    def test_class_level_compound_graph(self, monkeypatch):
+        """Rolled-up results add containment edges, tagged distinctly from the
+        synapsed_to connectivity edges so a renderer can style them apart."""
+        _mock_batch_lookup(monkeypatch)
+        import vfbquery.graph_builder as gb
+        # Stub the graph-DB lookup: child class is a subclass of the parent.
+        monkeypatch.setattr(gb, "subclass_containment_edges", lambda ids: [
+            {"source": "FBbt_child", "target": "FBbt_parent",
+             "relation": "SUBCLASSOF", "label": "subclass of", "weight": 0,
+             **gb.SUBCLASS_EDGE_STYLE},
+        ] if "FBbt_parent" in ids and "FBbt_child" in ids else [])
+        connections = [
+            {"upstream_class": "EPG", "upstream_class_id": "FBbt_parent",
+             "downstream_class": "ExR1", "downstream_class_id": "FBbt_d1",
+             "total_upstream_count": 10, "connected_upstream_count": 9,
+             "percent_connected": 90, "pairwise_connections": 20,
+             "total_weight": 500, "average_weight": 25},
+            {"upstream_class": "EPG_PB1", "upstream_class_id": "FBbt_child",
+             "downstream_class": "ExR1", "downstream_class_id": "FBbt_d1",
+             "total_upstream_count": 4, "connected_upstream_count": 4,
+             "percent_connected": 100, "pairwise_connections": 5,
+             "total_weight": 80, "average_weight": 16},
+        ]
+        g = graph_from_query_connectivity(connections, group_by_class=True,
+                                          upstream_type="EPG",
+                                          downstream_type="ExR1")
+        rels = [e.get("relation") for e in g["edges"]]
+        assert rels.count("synapsed_to") == 2
+        assert rels.count("SUBCLASSOF") == 1
+        sub = next(e for e in g["edges"] if e["relation"] == "SUBCLASSOF")
+        assert sub["source"] == "FBbt_child" and sub["target"] == "FBbt_parent"
+        assert sub["style"] == "dashed"          # pattern-coded
+        assert sub["color"] != g["edges"][0].get("color")  # colour-coded apart
 
     def test_per_neuron(self, monkeypatch):
         _mock_batch_lookup(monkeypatch)
@@ -320,6 +359,32 @@ class TestGraphFromDownstreamClass:
         assert g["edges"][0]["source"] == "FBbt_primary"
         assert g["edges"][0]["target"] == "FBbt_d1"
         assert g["edges"][0]["weight"] == 5000  # input-term block, not the subclass's 500
+
+    def test_compound_graph_tags_edges(self, monkeypatch):
+        """Partner classes are rolled up over the hierarchy, so containment
+        edges are added and tagged apart from the synapsed_to edges."""
+        _mock_batch_lookup(monkeypatch)
+        import vfbquery.graph_builder as gb
+        monkeypatch.setattr(gb, "subclass_containment_edges", lambda ids: [
+            {"source": "FBbt_d_child", "target": "FBbt_d_parent",
+             "relation": "SUBCLASSOF", "label": "subclass of", "weight": 0,
+             **gb.SUBCLASS_EDGE_STYLE},
+        ] if "FBbt_d_parent" in ids and "FBbt_d_child" in ids else [])
+        rows = [
+            {"id": "FBbt_d_parent", "query_id": "FBbt_primary",
+             "downstream_class": "[ExR1](FBbt_d_parent)",
+             "pairwise_connections": 200, "total_weight": 5000},
+            {"id": "FBbt_d_child", "query_id": "FBbt_primary",
+             "downstream_class": "[ExR1 DM4](FBbt_d_child)",
+             "pairwise_connections": 50, "total_weight": 1000},
+        ]
+        g = graph_from_downstream_class(rows, "FBbt_primary", "EPG")
+        rels = [e.get("relation") for e in g["edges"]]
+        assert rels.count("synapsed_to") == 2
+        assert rels.count("SUBCLASSOF") == 1
+        sub = next(e for e in g["edges"] if e["relation"] == "SUBCLASSOF")
+        assert sub["source"] == "FBbt_d_child" and sub["target"] == "FBbt_d_parent"
+        assert sub["style"] == "dashed"
 
 
 class TestGraphFromUpstreamClass:

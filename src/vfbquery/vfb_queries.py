@@ -109,6 +109,39 @@ logger = logging.getLogger(__name__)
 # Replace VfbConnect with SimpleVFBConnect
 vc = SimpleVFBConnect()
 
+#: Timeout (seconds) for the *simple* Owlery subclass-closure calls used by the
+#: connectivity queries — a plain ``<FBbt_id>`` reasoning query, which is fast
+#: when the endpoint is healthy: even ``adult neuron`` (~15,400 subclasses,
+#: bigger than any realistic connectivity query) returns in under 2s, and normal
+#: neuron classes in well under a second. The Owlery client's own default is 40
+#: minutes — tuned for arbitrary class *expressions* that need heavy reasoning —
+#: so an Owlery outage would otherwise hang every connectivity query for 40
+#: minutes. A miss here means Owlery is unhealthy, not that the class is large,
+#: so we fall back to the Neo4j ``SUBCLASSOF`` closure (:func:`_neo4j_subclass_ids`),
+#: which returns the same closure for neuron classes in a fraction of a second.
+#: NB: the reasoning-heavy callers (``_owlery_ids_cached``, ``get_anatomy_scrnaseq``)
+#: deliberately keep the 40-minute default — do not route them through this.
+OWLERY_SUBCLASS_TIMEOUT = 30
+
+
+def _neo4j_subclass_ids(short_form):
+    """Neo4j ``SUBCLASSOF`` closure (the class plus every asserted subclass),
+    the fallback used when Owlery is unavailable or too slow. Returns ``[]`` on
+    error so the caller can still proceed with the class itself.
+    """
+    quoted = short_form.replace("\\", "\\\\").replace("'", "\\'")
+    try:
+        recs = get_dict_cursor()(vc.nc.commit_list([
+            f"MATCH (c:Class {{short_form: '{quoted}'}})\n"
+            "OPTIONAL MATCH (c)<-[:SUBCLASSOF*0..]-(sub:Class)\n"
+            "RETURN collect(DISTINCT sub.short_form) AS ids"
+        ]))
+        if recs:
+            return [i for i in (recs[0].get("ids") or []) if i]
+    except Exception as e:
+        print(f"Neo4j subclass fallback failed for {short_form}: {e}")
+    return []
+
 # ---------------------------------------------------------------------------
 # Canonical VFB term link
 # ---------------------------------------------------------------------------
@@ -4340,11 +4373,13 @@ def _fetch_connectivity_entries(short_form: str, solr_field: str, subclass_ids=N
         owl_query = f"<{short_form}>"
         try:
             subclass_ids = vc.vfb.oc.get_subclasses(
-                query=owl_query, query_by_label=False, verbose=False
+                query=owl_query, query_by_label=False, verbose=False,
+                timeout=OWLERY_SUBCLASS_TIMEOUT,
             )
         except Exception as e:
-            print(f"Owlery subclass query failed for {short_form}: {e}")
-            subclass_ids = []
+            print(f"Owlery subclass query failed for {short_form}: {e}; "
+                  "falling back to Neo4j SUBCLASSOF closure")
+            subclass_ids = _neo4j_subclass_ids(short_form)
 
     # Always include the queried class itself; normalise to a list.
     subclass_ids = list(subclass_ids)
@@ -4556,11 +4591,13 @@ def _aggregate_class_connectivity(short_form, direction,
     try:
         owl_query = f"<{short_form}>"
         subclass_ids = vc.vfb.oc.get_subclasses(
-            query=owl_query, query_by_label=False, verbose=False
+            query=owl_query, query_by_label=False, verbose=False,
+            timeout=OWLERY_SUBCLASS_TIMEOUT,
         )
     except Exception as e:
-        print(f"Owlery subclass query failed for {short_form}: {e}")
-        subclass_ids = []
+        print(f"Owlery subclass query failed for {short_form}: {e}; "
+              "falling back to Neo4j SUBCLASSOF closure")
+        subclass_ids = _neo4j_subclass_ids(short_form)
     query_class_ids = {short_form, *(subclass_ids or [])}
 
     # 1b. queried (sub)class -> its instances (SUBCLASSOF closure), with labels.

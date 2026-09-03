@@ -519,3 +519,54 @@ def find_stocks(feature_id, collection_filter=None):
         return df.to_dict(orient="records")
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Stock centre linkouts
+# ---------------------------------------------------------------------------
+
+# Chado carries the stock centres' own URLs in stockcollectionprop
+# (homepage_url / order_url / request_text), which is what FlyBase's stock
+# report renders. Read them rather than hard-coding a list that goes stale.
+_COLLECTION_LINKS_SQL = """
+SELECT sc.uniquename AS collection,
+       c.name        AS prop,
+       scp.value     AS value
+FROM stockcollection sc
+JOIN stockcollectionprop scp ON sc.stockcollection_id = scp.stockcollection_id
+JOIN cvterm c ON scp.type_id = c.cvterm_id
+WHERE c.name IN ('homepage_url', 'order_url')
+"""
+
+_collection_links_cache = None
+
+
+def collection_links():
+    """Return ``{collection_uniquename: {"homepage_url": ..., "order_url": ...}}``.
+
+    Read once per process from chado's ``stockcollectionprop``. There are seven
+    collections and the values change about never, so a process-lifetime cache
+    is enough. A chado failure degrades to an empty map — callers then emit
+    plain text instead of a link, which is the pre-linkout behaviour.
+
+    :return: dict keyed by stockcollection uniquename
+    """
+    global _collection_links_cache
+    if _collection_links_cache is not None:
+        return _collection_links_cache
+
+    links = {}
+    try:
+        conn = get_connection(statement_timeout_ms=15000)
+        try:
+            df = _run_query(conn, _COLLECTION_LINKS_SQL, {})
+        finally:
+            conn.close()
+        for _, r in df.iterrows():
+            links.setdefault(r["collection"], {})[r["prop"]] = r["value"]
+    except Exception as e:
+        print(f"Could not read stock collection links from FlyBase: {e}")
+        links = {}
+
+    _collection_links_cache = links
+    return links

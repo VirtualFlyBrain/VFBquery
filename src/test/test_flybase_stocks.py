@@ -2,7 +2,12 @@
 import pytest
 
 from vfbquery.flybase_stocks import resolve_entity, find_stocks
-from vfbquery.vfb_queries import get_flybase_stocks
+from vfbquery.vfb_queries import (
+    _flybase_report_url,
+    _md_link,
+    _stock_number_url,
+    get_flybase_stocks,
+)
 
 
 def assert_single_selection_id(result):
@@ -240,10 +245,67 @@ class TestFindStocksTableSchema:
         # stock_id must be a normal displayed column, not the (hidden) identity.
         result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
         stock_id = result["headers"]["stock_id"]
-        assert stock_id["type"] == "text"
+        assert stock_id["type"] == "markdown"
         assert stock_id["order"] >= 0
-        # and the hidden identity carries the same FBst value
-        assert result["rows"][0]["id"] == result["rows"][0]["stock_id"]
+        # the hidden identity stays the bare FBst; the visible column links it
+        row = result["rows"][0]
+        assert row["stock_id"] == f"[{row['id']}](https://flybase.org/reports/{row['id']})"
+
+    @pytest.mark.integration
+    def test_linked_columns_are_declared_markdown(self):
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        for col in ("stock_id", "stock_number", "collection"):
+            assert result["headers"][col]["type"] == "markdown", col
+        # genotype carries FlyBase bracket notation (w[1118]) and must stay text
+        assert result["headers"]["genotype"]["type"] == "text"
+
+    @pytest.mark.integration
+    def test_collection_links_to_the_centre_homepage(self):
+        result = get_flybase_stocks(self.CONSTRUCT_WITH_STOCKS, return_dataframe=False, limit=3)
+        assert any(row["collection"].startswith("[") and "](" in row["collection"]
+                   for row in result["rows"])
+
+
+class TestStockLinkouts:
+    """Unit tests for the linkout helpers — no database access."""
+
+    def test_flybase_report_url_accepts_any_fb_id(self):
+        assert _flybase_report_url("FBst0006565") == "https://flybase.org/reports/FBst0006565"
+        assert _flybase_report_url("FBrf0239740") == "https://flybase.org/reports/FBrf0239740"
+
+    def test_flybase_report_url_rejects_non_ids(self):
+        assert _flybase_report_url("6565") is None
+        assert _flybase_report_url("") is None
+        assert _flybase_report_url(None) is None
+
+    def test_md_link_without_url_is_plain_text(self):
+        assert _md_link("6565", None) == "6565"
+        assert _md_link("", "https://example.org/") == ""
+
+    def test_md_link_escapes_parentheses_in_the_url(self):
+        # MarkdownLinkComponent's link target excludes ()[] so the label may
+        # contain brackets; a DOI with parentheses must not end the match early.
+        assert _md_link("10.1002/(SICI)1096", "https://doi.org/10.1002/(SICI)1096") == \
+            "[10.1002/(SICI)1096](https://doi.org/10.1002/%28SICI%291096)"
+
+    def test_bloomington_stock_number_deep_links(self):
+        assert _stock_number_url("Bloomington Drosophila Stock Center", "6565") == \
+            "https://bdsc.indiana.edu/stocks/6565"
+
+    def test_unknown_collection_has_no_stock_number_link(self, monkeypatch):
+        import vfbquery.flybase_stocks as fbs
+        monkeypatch.setattr(fbs, "collection_links",
+                            lambda: {"Kyoto Stock Center": {
+                                "order_url": "https://kyotofly.kit.jp/cgi-bin/stocks/index.cgi"}})
+        assert _stock_number_url("Kyoto Stock Center", "103972") is None
+
+    def test_order_url_ending_in_equals_takes_the_stock_number(self, monkeypatch):
+        import vfbquery.flybase_stocks as fbs
+        monkeypatch.setattr(fbs, "collection_links",
+                            lambda: {"FlyORF": {
+                                "order_url": "https://www.flyorf.ch/imlskonakart/SelectProd.do?flylineId="}})
+        assert _stock_number_url("FlyORF", "F000748") == \
+            "https://www.flyorf.ch/imlskonakart/SelectProd.do?flylineId=F000748"
 
 
 class TestFindStocksEdgeCases:

@@ -113,8 +113,21 @@ class TestComboPubsTableSchema:
         # fbrf must be a normal displayed column, not the (hidden) identity.
         result = get_flybase_combo_pubs(KNOWN_COMBO_ID, return_dataframe=False, limit=3)
         fbrf = result["headers"]["fbrf"]
-        assert fbrf["type"] == "text"
+        assert fbrf["type"] == "markdown"
         assert fbrf["order"] >= 0
         # FBco0000052 has publications, so an empty result is a defect.
         assert result["rows"], "KNOWN_COMBO_ID should have publications"
-        assert result["rows"][0]["id"] == result["rows"][0]["fbrf"]
+        # the hidden identity stays the bare FBrf; the visible column links it
+        row = result["rows"][0]
+        assert row["fbrf"] == f"[{row['id']}](https://flybase.org/reports/{row['id']})"
+
+    @pytest.mark.integration
+    def test_identifier_columns_link_out(self):
+        result = get_flybase_combo_pubs(KNOWN_COMBO_ID, return_dataframe=False, limit=5)
+        for col in ("fbrf", "doi", "pmid", "pmcid"):
+            assert result["headers"][col]["type"] == "markdown", col
+        # title and citation are free text and must not be linkified
+        assert result["headers"]["title"]["type"] == "text"
+        assert result["headers"]["miniref"]["type"] == "text"
+        dois = [r["doi"] for r in result["rows"] if r["doi"]]
+        assert any(d.startswith("[") and "](https://doi.org/" in d for d in dois), dois

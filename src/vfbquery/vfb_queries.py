@@ -9,7 +9,7 @@ import pandas as pd
 from marshmallow import ValidationError
 import json
 import numpy as np
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 import hashlib
 from .solr_result_cache import (with_solr_cache, solr_caching_disabled,
                                 PREVIEW_STATUS_PENDING, PREVIEW_STATUS_COMPLETE,
@@ -4944,6 +4944,69 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
     return {'headers': headers, 'rows': rows, 'count': total_count}
 
 
+# ---------------------------------------------------------------------------
+# FlyBase linkout helpers (FindStocks / FindComboPublications)
+# ---------------------------------------------------------------------------
+
+# Stock centres whose own catalogue has a stable per-stock URL that can be
+# built from the FlyBase stock number. Chado carries every centre's homepage
+# and order URL in stockcollectionprop, but not this one: Bloomington's
+# order_url is its batch-order cart, so the per-stock pattern has to live here.
+# FlyBase's own stock report deep-links the stock number for exactly two
+# centres -- Bloomington and FlyORF -- and renders it as plain text for the
+# other five, which only offer a search box (checked against one stock per
+# collection, 2026-09-03). Mirror that rather than invent URL patterns.
+_STOCK_NUMBER_URL = {
+    "Bloomington Drosophila Stock Center": "https://bdsc.indiana.edu/stocks/{number}",
+}
+
+_FLYBASE_ID_RE = re.compile(r"^FB[a-z]{2}\d+$")
+
+
+def _md_link(label, url):
+    """Build a ``[label](url)`` cell, or plain text when there is no url.
+
+    Parentheses are percent-encoded in the url because the frontend's
+    MarkdownLinkComponent constrains the link target to ``[^()[\]]+`` so that
+    labels may contain brackets; a DOI such as ``10.1002/(SICI)...`` would
+    otherwise terminate the match early. Brackets in the label are left to
+    :func:`encode_markdown_links`.
+    """
+    if label is None or label == "":
+        return ""
+    if not url:
+        return str(label)
+    safe_url = str(url).replace("(", "%28").replace(")", "%29")
+    return f"[{label}]({safe_url})"
+
+
+def _flybase_report_url(fb_id):
+    """FlyBase report URL for an FB* id, or None if it is not one."""
+    if isinstance(fb_id, str) and _FLYBASE_ID_RE.match(fb_id):
+        return f"https://flybase.org/reports/{fb_id}"
+    return None
+
+
+def _stock_number_url(collection, number):
+    """URL for the stock centre's own catalogue entry, or None.
+
+    Bloomington comes from the table above. Every other centre is derived from
+    chado: FlyORF's ``order_url`` is a per-line query prefix ending in ``=``,
+    so the stock number appends cleanly; the rest are homepages or batch-order
+    forms where appending a number would produce a dead link.
+    """
+    if not collection or not number:
+        return None
+    pattern = _STOCK_NUMBER_URL.get(collection)
+    if pattern:
+        return pattern.format(number=quote(str(number), safe=""))
+    from .flybase_stocks import collection_links
+    order_url = collection_links().get(collection, {}).get("order_url") or ""
+    if order_url.endswith("="):
+        return order_url + quote(str(number), safe="")
+    return None
+
+
 def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
     """Find available fly stocks from FlyBase for a Feature term.
 
@@ -4962,18 +5025,32 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
             return pd.DataFrame()
         return {'headers': {}, 'rows': [], 'count': 0}
 
+    from .flybase_stocks import collection_links
+    homepages = collection_links()
+
+    # Three linkouts, matching what FlyBase's own stock report offers: the FBst
+    # id resolves to the FlyBase report (which carries the ordering details for
+    # every centre), the stock number resolves to the centre's own catalogue
+    # entry where that centre has one, and the collection name resolves to the
+    # centre's homepage. `id` stays the bare FBst — it is the row's selection
+    # id, not a rendered cell.
     rows = []
     for s in stocks:
+        stock_id = s.get('stock_id', '') or ''
+        stock_number = s.get('stock_number', '') or ''
+        collection = s.get('collection', '') or ''
         rows.append({
             # Hidden identity column (the FBst the row is about). Without a
             # `selection_id`-typed column the website consumes the first data
             # column as the row identity and hides it — which dropped Stock ID
             # from the table. See the `id` header below.
-            'id': s.get('stock_id', ''),
-            'stock_id': s.get('stock_id', ''),
-            'stock_number': s.get('stock_number', ''),
+            'id': stock_id,
+            'stock_id': _md_link(stock_id, _flybase_report_url(stock_id)),
+            'stock_number': _md_link(
+                stock_number, _stock_number_url(collection, stock_number)),
             'genotype': s.get('genotype', ''),
-            'collection': s.get('collection', ''),
+            'collection': _md_link(
+                collection, homepages.get(collection, {}).get('homepage_url')),
         })
 
     total_count = len(rows)
@@ -4985,10 +5062,10 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
 
     headers = {
         'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
-        'stock_id': {'title': 'Stock ID', 'type': 'text', 'order': 0},
-        'stock_number': {'title': 'Stock Number', 'type': 'text', 'order': 1},
+        'stock_id': {'title': 'Stock ID', 'type': 'markdown', 'order': 0},
+        'stock_number': {'title': 'Stock Number', 'type': 'markdown', 'order': 1},
         'genotype': {'title': 'Genotype', 'type': 'text', 'order': 2},
-        'collection': {'title': 'Collection', 'type': 'text', 'order': 3},
+        'collection': {'title': 'Collection', 'type': 'markdown', 'order': 3},
     }
     return {'headers': headers, 'rows': rows, 'count': total_count}
 
@@ -5011,21 +5088,31 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
             return pd.DataFrame()
         return {'headers': {}, 'rows': [], 'count': 0}
 
+    # Same three-linkout treatment as FindStocks: the FBrf resolves to its
+    # FlyBase report, and DOI / PMID / PMCID resolve to the publisher, PubMed
+    # and PMC respectively. Title, citation and type stay plain text.
     rows = []
     for p in pubs:
+        fbrf = p.get('fbrf', '') or ''
+        doi = p.get('doi', '') or ''
+        pmid = p.get('pmid', '') or ''
+        pmcid = p.get('pmcid', '') or ''
         rows.append({
             # Hidden identity column (the FBrf the row is about). Mirrors the
             # stocks fix: without a `selection_id` column the website consumes
             # the first data column (FBrf) as the row identity and hides it.
-            'id': p.get('fbrf', ''),
-            'fbrf': p.get('fbrf', ''),
+            'id': fbrf,
+            'fbrf': _md_link(fbrf, _flybase_report_url(fbrf)),
             'title': p.get('title', ''),
             'year': p.get('year', ''),
             'miniref': p.get('miniref', ''),
             'pub_type': p.get('pub_type', ''),
-            'doi': p.get('doi', ''),
-            'pmid': p.get('pmid', ''),
-            'pmcid': p.get('pmcid', ''),
+            'doi': _md_link(doi, f"https://doi.org/{doi}" if doi else None),
+            'pmid': _md_link(
+                pmid, f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else None),
+            'pmcid': _md_link(
+                pmcid,
+                f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmcid}/" if pmcid else None),
         })
 
     total_count = len(rows)
@@ -5037,14 +5124,14 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
 
     headers = {
         'id': {'title': 'ID', 'type': 'selection_id', 'order': -1},
-        'fbrf': {'title': 'FBrf', 'type': 'text', 'order': 0},
+        'fbrf': {'title': 'FBrf', 'type': 'markdown', 'order': 0},
         'title': {'title': 'Title', 'type': 'text', 'order': 1},
         'year': {'title': 'Year', 'type': 'text', 'order': 2},
         'miniref': {'title': 'Reference', 'type': 'text', 'order': 3},
         'pub_type': {'title': 'Type', 'type': 'text', 'order': 4},
-        'doi': {'title': 'DOI', 'type': 'text', 'order': 5},
-        'pmid': {'title': 'PMID', 'type': 'text', 'order': 6},
-        'pmcid': {'title': 'PMCID', 'type': 'text', 'order': 7},
+        'doi': {'title': 'DOI', 'type': 'markdown', 'order': 5},
+        'pmid': {'title': 'PMID', 'type': 'markdown', 'order': 6},
+        'pmcid': {'title': 'PMCID', 'type': 'markdown', 'order': 7},
     }
     return {'headers': headers, 'rows': rows, 'count': total_count}
 

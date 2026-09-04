@@ -1354,6 +1354,68 @@ def _slice_page(result, offset=0, page_size=None):
     return page
 
 
+#: Edge-cache lifetime, in seconds, for a result flagged as an underestimate
+#: (see ``vfbquery.solr_result_cache.PARTIAL_RESULT_KEY``). Long enough that a
+#: burst of visitors shares one computation, short enough that the corrected
+#: numbers replace it the same morning rather than next month.
+PARTIAL_RESULT_EDGE_TTL = int(os.getenv("VFBQUERY_PARTIAL_EDGE_TTL", "600") or "600")
+
+#: Same string as ``solr_result_cache.PARTIAL_RESULT_KEY``, repeated here
+#: rather than imported so this module stays free of pysolr at import time.
+PARTIAL_RESULT_KEY = "partial"
+
+
+def result_is_partial(result):
+    """True for a dict result the query function flagged as an underestimate."""
+    return isinstance(result, dict) and bool(result.get(PARTIAL_RESULT_KEY))
+
+
+def _result_is_empty(result):
+    """True for a dict result with no rows to show.
+
+    ``count`` is the authority when present (a paged slice past the end has
+    no rows but a positive count and is not empty); otherwise an empty
+    ``rows`` list decides.
+    """
+    if not isinstance(result, dict):
+        return False
+    count = result.get("count")
+    if isinstance(count, (int, float)) and not isinstance(count, bool):
+        return count == 0
+    rows = result.get("rows")
+    return isinstance(rows, list) and not rows
+
+
+def _edge_cache_headers(result):
+    """Headers telling the v3-cached nginx layer how long to keep *result*.
+
+    That layer ignores ``Cache-Control`` and ``Expires`` (``proxy_ignore_headers``
+    in owl_cache's nginx.conf.template) but honours nginx's own
+    ``X-Accel-Expires``, so this is the one lever the origin has over the
+    edge without an nginx change.
+
+    - An **empty** result (``count`` 0) is never stored at the edge. A true
+      zero costs one origin hit per visitor, answered from the Solr result
+      cache in milliseconds; a false zero — the origin momentarily unable to
+      compute (gamma Kenyon cell, 2026-09-04) — would otherwise be served as
+      "There is no data to display" for ``CACHE_STALE_TIME`` (a month) to
+      everyone.
+    - A **partial** result (flagged by the query function as an
+      underestimate) is kept for :data:`PARTIAL_RESULT_EDGE_TTL` seconds.
+    - Anything else gets no header and the edge's default lifetime.
+
+    ``Cache-Control`` is set alongside for any intermediary that does honour
+    it (browsers, a future edge that stops ignoring it).
+    """
+    if result_is_partial(result):
+        ttl = PARTIAL_RESULT_EDGE_TTL
+        return {"X-Accel-Expires": str(ttl),
+                "Cache-Control": "max-age=%d" % ttl}
+    if _result_is_empty(result):
+        return {"X-Accel-Expires": "0", "Cache-Control": "no-store"}
+    return {}
+
+
 def _page_out(result, func_name, offset=0, page_size=None):
     """Finalise a result for sending: AllAlignedImages is already a single
     server page (just bound it); everything else is sliced from its full set."""
@@ -1462,7 +1524,10 @@ async def handle_run_query(request):
         out = _page_out(result, func_name, offset, page_size)
         if include_graph:
             out = _maybe_add_graph(out, func_name, short_form)
-        return web.json_response(_with_warnings(out, warnings))
+        # Judge emptiness on the full stored result, not the page: a page past
+        # the end of a non-empty result is not a "no data" answer.
+        return web.json_response(_with_warnings(out, warnings),
+                                 headers=_edge_cache_headers(result))
 
     # Normalize key — AllDatasets ignores the id parameter
     if func_name == "get_all_datasets":

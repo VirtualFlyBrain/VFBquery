@@ -155,6 +155,16 @@ def cache_doc_glob(namespace: Optional[str] = None) -> str:
 PREVIEW_STATUS_PENDING = 'pending'
 PREVIEW_STATUS_COMPLETE = 'complete'
 
+#: Key a query function sets on a dict result whose numbers are known to be
+#: incomplete (``vfb_queries.PARTIAL_RESULT_KEY`` is the same string). Such a
+#: result is returned to the caller but never written to the cache.
+PARTIAL_RESULT_KEY = 'partial'
+
+
+def result_is_partial(result) -> bool:
+    """True for a dict result flagged as an underestimate."""
+    return isinstance(result, dict) and bool(result.get(PARTIAL_RESULT_KEY))
+
 
 def preview_is_resolved(query: Dict[str, Any]) -> bool:
     """True when a query's preview holds a final answer.
@@ -1423,6 +1433,13 @@ def with_solr_cache(query_type: str):
                             full_is_valid = full_result.get('count', -1) >= 0
                         else:
                             full_is_valid = bool(full_result)
+                        if full_is_valid and result_is_partial(full_result):
+                            # An underestimate is served but never stored:
+                            # storing it would make every later caller inherit
+                            # wrong counts with no way to tell.
+                            full_is_valid = False
+                            logger.warning(
+                                f"Not caching partial result for {query_type}({term_id})")
                     elif isinstance(full_result, (list, str)):
                         full_is_valid = len(full_result) > 0
                     else:
@@ -1505,6 +1522,10 @@ def with_solr_cache(query_type: str):
                             result_is_error = count_value < 0  # Mark as error if count is negative
                         else:
                             result_is_valid = bool(result)  # For dicts without count field
+                        if result_is_valid and result_is_partial(result):
+                            result_is_valid = False
+                            logger.warning(
+                                f"Not caching partial result for {query_type}({term_id})")
                     elif isinstance(result, (list, str)):
                         result_is_valid = len(result) > 0
                     else:

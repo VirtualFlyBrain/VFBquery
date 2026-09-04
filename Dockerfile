@@ -25,18 +25,22 @@ RUN pip install --no-cache-dir --no-binary numpy \
 # copies the schema's src into src/vfb and puts the checkout on PYTHONPATH.
 # Do exactly that, so what runs here is what runs in the bulk job.
 #
-# Pin by passing --build-arg INDEXER_REF=<sha>; the default tracks master the
-# way the Jenkins job does. Both resolved SHAs are baked into the image so
-# /status can report which schema built a given document.
-ARG INDEXER_REF=master
-ARG JSON_SCHEMA_REF=master
+# Pin by passing --build-arg INDEXER_REF=<sha>; the default, `default`, keeps
+# whatever branch the clone checks out, the way the Jenkins job does. Do not
+# name a branch here: the two repositories disagree (the indexer's default is
+# `main`, the schema's is `master`), and hardcoding either breaks the other --
+# and would break again silently if a default branch were ever renamed. Both
+# resolved SHAs are baked into the image so a rebuilt document can say which
+# schema produced it.
+ARG INDEXER_REF=default
+ARG JSON_SCHEMA_REF=default
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     rm -rf /var/lib/apt/lists/*
 RUN git clone --quiet https://github.com/VirtualFlyBrain/VFB_json_schema_indexer.git /opt/vfb_indexer && \
-    git -C /opt/vfb_indexer checkout --quiet "${INDEXER_REF}" && \
+    { [ "${INDEXER_REF}" = default ] || git -C /opt/vfb_indexer checkout --quiet "${INDEXER_REF}"; } && \
     git clone --quiet https://github.com/VirtualFlyBrain/VFB_json_schema.git /opt/vfb_json_schema && \
-    git -C /opt/vfb_json_schema checkout --quiet "${JSON_SCHEMA_REF}" && \
+    { [ "${JSON_SCHEMA_REF}" = default ] || git -C /opt/vfb_json_schema checkout --quiet "${JSON_SCHEMA_REF}"; } && \
     mkdir -p /opt/vfb_indexer/src/vfb && \
     cp -r /opt/vfb_json_schema/src/* /opt/vfb_indexer/src/vfb/ && \
     printf 'VFB_INDEXER_SHA=%s\nVFB_JSON_SCHEMA_SHA=%s\n' \

@@ -52,15 +52,16 @@ def test_template_wins_over_individual():
 
 
 # ---------------------------------------------------------------------------
-# Exclusions -- ids the bulk indexer never writes a document for
+# Exclusions -- anatomical-branch only
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("short_form", [
-    "VFBc_00000001", "FBlc0006125", "SAMN12345678", "VFB_internal_thing",
-])
-def test_excluded_ids_are_not_built(short_form):
-    payload, doc = tif.build_term_info(short_form)
-    assert payload is None and doc is None
+def test_exclusions_are_scoped_to_the_anatomical_branch():
+    """FBlc ids are Clusters, which have their own indexer. The anatomical
+    indexer's parameter query excludes them; the term_info index as a whole
+    does not. Applying the list globally would refuse every Cluster."""
+    assert "FBlc" in tif.ANATOMICAL_EXCLUDED_ID_PREFIXES
+    assert tif.choose_indexer(["Individual", "Cluster"]) == "cluster"
+    assert tif.choose_indexer(["Individual", "Anatomy"]) == "anatomical_ind"
 
 
 # ---------------------------------------------------------------------------

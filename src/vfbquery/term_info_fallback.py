@@ -1,4 +1,4 @@
-"""Build a missing ``term_info`` SOLR document on demand.
+"""Build missing ``vfb_json`` SOLR content on demand.
 
 ``get_term_info`` reads a pre-built ``term_info`` document out of the
 ``vfb_json`` SOLR collection. Those documents are written in bulk by
@@ -55,6 +55,7 @@ import threading
 
 _IMPORT_ERROR = None
 _INDEXERS = None
+_QUERY_FIELD_INDEXERS = None
 _send_solr_docs = None
 _import_lock = threading.Lock()
 
@@ -101,21 +102,45 @@ def schema_version():
     return "unpinned"
 
 
+def _split_solr_url(url):
+    """Split a pysolr collection URL into the indexer's two env vars.
+
+    ``http://host/solr/vfb_json/`` -> ``("http://host/solr", "vfb_json")``.
+    """
+    if not url:
+        return None, None
+    base = url.rstrip("/")
+    server, _, collection = base.rpartition("/")
+    if not server or not collection:
+        return None, None
+    return server, collection
+
+
 def _seed_indexer_env():
-    """Point the indexer's Neo4j connection at the one VFBquery already uses.
+    """Point the indexer at the same PDB and SOLR that VFBquery already uses.
 
     ``BaseQueryIndexer.__init__`` reads PDBserver/PDBuser/PDBpassword from the
-    environment and builds its own connection. Rather than run the fallback
-    against a different database than the rest of the process, fill those in
-    from VFBquery's own client when the deployment has not set them. Anything
-    already in the environment wins.
+    environment and builds its own Neo4j connection, and ``solr_client``
+    builds its update URL from SOLRserver/SOLRcollection. None of those are
+    set in a VFBquery deployment, so fill them from VFBquery's own clients
+    rather than running the fallback against a different database -- or, in
+    the SOLR case, against nothing at all: ``get_solr_update_url`` returns
+    None when they are unset and ``send_solr_payload`` then returns False
+    without a request, so every rebuilt document was served but never
+    indexed and the next caller paid the same Neo4j round trip again.
+
+    Anything already in the environment wins, so a deployment can still
+    point the fallback somewhere else.
     """
-    from .vfb_queries import vc
+    from .vfb_queries import vc, vfb_solr
     nc = vc.nc
+    solr_server, solr_collection = _split_solr_url(getattr(vfb_solr, "url", None))
     defaults = {
         "PDBserver": getattr(nc, "base_uri", None),
         "PDBuser": getattr(nc, "usr", None),
         "PDBpassword": getattr(nc, "pwd", None),
+        "SOLRserver": solr_server,
+        "SOLRcollection": solr_collection,
     }
     for key, value in defaults.items():
         if value and not os.getenv(key):
@@ -164,7 +189,7 @@ def _indexer_importable():
 
 def _load_indexers():
     """Import the indexer classes once, or record why we could not."""
-    global _INDEXERS, _send_solr_docs, _IMPORT_ERROR
+    global _INDEXERS, _QUERY_FIELD_INDEXERS, _send_solr_docs, _IMPORT_ERROR
     if _INDEXERS is not None or _IMPORT_ERROR is not None:
         return
     with _import_lock:
@@ -192,6 +217,15 @@ def _load_indexers():
                     SplitClassTermInfoQueryIndexer)
                 from src.indexers.term_info.template_term_info_indexer import (
                     TemplateTermInfoQueryIndexer)
+                from src.indexers.anat_query_indexer import AnatQueryIndexer
+                from src.indexers.anat_image_query_indexer import (
+                    AnatImageQueryIndexer)
+                from src.indexers.connectivity.neuron_upstream_connectivity_indexer import (
+                    NeuronUpstreamConnectivityIndexer)
+                from src.indexers.connectivity.neuron_downstream_connectivity_indexer import (
+                    NeuronDownstreamConnectivityIndexer)
+                from src.indexers.scRNAseq.cluster_expression_query_indexer import (
+                    ClusterExpressionQueryIndexer)
                 from src.solr_client import send_solr_docs
         except Exception as e:            # ImportError, or a missing env var
             _IMPORT_ERROR = e
@@ -206,6 +240,13 @@ def _load_indexers():
             "neuron_class": NeuronClassTermInfoQueryIndexer,
             "split_class": SplitClassTermInfoQueryIndexer,
             "class": ClassTermInfoQueryIndexer,
+        }
+        _QUERY_FIELD_INDEXERS = {
+            "anat_query": AnatQueryIndexer,
+            "anat_image_query": AnatImageQueryIndexer,
+            "upstream_connectivity_query": NeuronUpstreamConnectivityIndexer,
+            "downstream_connectivity_query": NeuronDownstreamConnectivityIndexer,
+            "cluster_expression": ClusterExpressionQueryIndexer,
         }
         _send_solr_docs = send_solr_docs
 
@@ -383,3 +424,98 @@ def backfill_term_info(short_form):
     else:
         print("term_info fallback: built %s but did not index it" % short_form)
     return payload
+
+
+# --------------------------------------------------------------------------
+# Per-field query indexes
+# --------------------------------------------------------------------------
+
+#: How many ids one rebuild will attempt. This is the indexer's own
+#: REQUEST_BATCH_SIZE, and it is a cap rather than a target: measured against
+#: the live PDB, a rebuild costs one round trip rather than per-id work --
+#: 1 id 0.37 s, 10 ids 1.41 s, 50 ids 0.91 s, 200 ids 0.80 s, 500 ids 1.49 s
+#: (3 ms/id). So the whole missing set goes in a single batched call and the
+#: cap exists only to stop a pathological expansion turning into a stall.
+#: For scale: the worst real gap found in one query expansion was 8 ids.
+MAX_BACKFILL_IDS = 500
+
+
+def query_field_fallback_available(solr_field):
+    """True when a missing ``solr_field`` index can be rebuilt."""
+    _load_indexers()
+    return bool(_QUERY_FIELD_INDEXERS) and solr_field in _QUERY_FIELD_INDEXERS
+
+
+def backfill_query_field(short_forms, solr_field):
+    """Rebuild a precomputed query index for ids SOLR has no entry for.
+
+    These fields are written by the same bulk indexer as ``term_info`` and go
+    missing the same way, but they fail far more quietly: both hydration paths
+    skip an id whose document lacks the field, so the rows and the count come
+    back short with nothing to say so. Measured on the live index the shortfall
+    is 0.5% of all images and about 2% of connectivity classes -- but it is
+    concentrated where people look, with two thirds of the instances of
+    medulla, antennal lobe and mushroom body missing ``anat_image_query``.
+
+    Returns the rebuilt payloads so the *current* request can use them: the
+    indexer writes with ``commitWithin`` 60s, so re-reading SOLR here would
+    still miss.
+
+    :param short_forms: ids with no usable entry for this field
+    :param solr_field: the SOLR field, which is also the indexer's service name
+    :return: ``{short_form: field_payload_json}`` for whatever was rebuilt
+    """
+    if not short_forms:
+        return {}
+    if not query_field_fallback_available(solr_field):
+        _warn_unavailable_once()
+        return {}
+
+    from .vfb_queries import vc, get_dict_cursor
+
+    ids = list(short_forms)
+    if len(ids) > MAX_BACKFILL_IDS:
+        print("query fallback: %d ids missing %s, rebuilding the first %d"
+              % (len(ids), solr_field, MAX_BACKFILL_IDS))
+        ids = ids[:MAX_BACKFILL_IDS]
+
+    indexer = _QUERY_FIELD_INDEXERS[solr_field]()
+    try:
+        rows = get_dict_cursor()(vc.nc.commit_list([
+            indexer.get_vfb_json_query(ids)]))
+    except Exception as e:
+        print("query fallback: rebuilding %s for %d ids failed: %s"
+              % (solr_field, len(ids), e))
+        return {}
+
+    rebuilt = {}
+    solr_docs = []
+    for result in rows or []:
+        try:
+            doc = indexer.generate_solr_doc(result, request=None)
+        except Exception as e:
+            print("query fallback: could not shape a %s document: %s"
+                  % (solr_field, e))
+            continue
+        solr_docs.append(doc)
+        rebuilt[doc["id"]] = doc[solr_field]["set"]
+
+    if solr_docs:
+        _write_query_docs(solr_docs, solr_field)
+    print("query fallback: rebuilt %d/%d missing %s entries"
+          % (len(rebuilt), len(ids), solr_field))
+    return rebuilt
+
+
+def _write_query_docs(solr_docs, solr_field):
+    """Index rebuilt query documents, honouring the same guard as term_info."""
+    from .solr_result_cache import solr_caching_disabled
+    if solr_caching_disabled():
+        print("query fallback: cache disabled, not writing %d %s entries"
+              % (len(solr_docs), solr_field))
+        return False
+    try:
+        return bool(_send_solr_docs(solr_docs, solr_field))
+    except Exception as e:
+        print("query fallback: SOLR write failed for %s: %s" % (solr_field, e))
+        return False

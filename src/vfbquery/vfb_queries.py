@@ -1,6 +1,6 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-from .term_info_fallback import backfill_term_info
+from .term_info_fallback import backfill_query_field, backfill_term_info
 # Replace VfbConnect import with our new SimpleVFBConnect
 from .owlery_client import SimpleVFBConnect
 # Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
@@ -4427,20 +4427,31 @@ def _fetch_connectivity_entries(short_form: str, solr_field: str, subclass_ids=N
         results = vfb_solr.search(
             q='id:*',
             fq=f'{{!terms f=id}}{id_list}',
-            fl=solr_field,
+            fl=f'id,{solr_field}',
             rows=len(subclass_ids),
         )
     except Exception as e:
         print(f"Error querying Solr for {solr_field}: {e}")
         return []
 
+    # Same silent gap as the Owlery hydration path: a class with no entry for
+    # this field contributed nothing and said nothing. Roughly 2% of the
+    # connectivity population is in that state at any time. Rebuild in one
+    # batched call rather than returning a short answer.
+    field_by_id = {}
+    for doc in results.docs:
+        if solr_field in doc:
+            raw = doc[solr_field]
+            field_by_id[doc['id']] = raw[0] if isinstance(raw, list) else raw
+    missing_ids = [sid for sid in subclass_ids if sid not in field_by_id]
+    if missing_ids:
+        print(f"{solr_field}: {len(missing_ids)}/{len(subclass_ids)} ids "
+              f"have no entry; rebuilding")
+        field_by_id.update(backfill_query_field(missing_ids, solr_field))
+
     # Step 3: Parse all connectivity JSON from all returned docs
     all_entries = []
-    for doc in results.docs:
-        if solr_field not in doc:
-            continue
-        raw = doc[solr_field]
-        field_json = raw[0] if isinstance(raw, list) else raw
+    for field_json in field_by_id.values():
         try:
             entries = json.loads(field_json)
         except (json.JSONDecodeError, TypeError):
@@ -5391,17 +5402,31 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
             results = vfb_solr.search(
                 q='id:*',
                 fq=f'{{!terms f=id}}{id_list}',
-                fl=solr_field,
+                fl=f'id,{solr_field}',
                 rows=len(class_ids)
             )
-            
-            # Process all results
+
+            # An id whose document is missing, or which has a document without
+            # this field, used to be skipped in silence -- the rows AND the
+            # count came back short with nothing to say so. Both happen for
+            # any record added since the bulk indexer last completed. Rebuild
+            # them from the indexer's own query in one batched call: the cost
+            # is a single round trip (500 ids in ~1.5s), so this is cheaper
+            # than the Owlery expansion the query has already paid for.
+            field_by_id = {}
             for doc in results.docs:
-                if solr_field not in doc:
-                    continue
-                    
+                if solr_field in doc:
+                    raw = doc[solr_field]
+                    field_by_id[doc['id']] = raw[0] if isinstance(raw, list) else raw
+            missing_ids = [cid for cid in class_ids if cid not in field_by_id]
+            if missing_ids:
+                print(f"{solr_field}: {len(missing_ids)}/{len(class_ids)} ids "
+                      f"have no entry; rebuilding")
+                field_by_id.update(backfill_query_field(missing_ids, solr_field))
+
+            # Process all results
+            for field_data_str in field_by_id.values():
                 # Parse the SOLR field JSON string
-                field_data_str = doc[solr_field][0]
                 field_data = json.loads(field_data_str)
                 
                 # Extract core term information

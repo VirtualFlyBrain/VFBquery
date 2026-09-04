@@ -416,8 +416,12 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("logo" in serialized)
         self.assertTrue("link" in serialized)
         self.assertEqual("[http://flybase.org/reports/FBrf0221438.html](http://flybase.org/reports/FBrf0221438.html)", serialized["link"])
-        self.assertEqual(4, len(serialized["types"]))
-        self.assertTrue("DataSet" in serialized["types"])
+        # Assert the types this test is about, not how many there are. The
+        # count moved 4 -> 5 when DataSets gained stage labels ("Adult" here),
+        # which is backend content: a new label is not a regression, a missing
+        # DataSet type would be.
+        for expected_type in ("Entity", "Individual", "DataSet", "has_image"):
+            self.assertIn(expected_type, serialized["types"])
         self.assertEqual("An exhaustive set of lineage clones covering the adult brain from Kei Ito's  lab.", serialized["description"])
         self.assertFalse("synonyms" in serialized)
         self.assertFalse("source" in serialized)

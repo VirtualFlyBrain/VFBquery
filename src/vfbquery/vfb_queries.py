@@ -125,6 +125,36 @@ vc = SimpleVFBConnect()
 OWLERY_SUBCLASS_TIMEOUT = 30
 
 
+class ConnectivityBackendError(RuntimeError):
+    """A class-connectivity aggregation could not be computed.
+
+    Raised by :func:`_aggregate_class_connectivity` when a Neo4j or Solr call
+    it depends on fails, or when it could obtain per-instance connectivity for
+    none of the queried instances. Before this existed, those cases all fell
+    through to ``return []`` and the caller turned that into
+    ``{'count': 0, 'rows': []}`` — indistinguishable from a class with no
+    partners. That zero was then written to the Solr result cache (``count >=
+    0`` is its definition of valid) and pinned at the v3-cached nginx edge for
+    ``CACHE_STALE_TIME``, so one transient outage became a month of "There is
+    no data to display" for every visitor (gamma Kenyon cell, 2026-09-04).
+
+    ``@with_solr_cache`` does not catch exceptions from the wrapped function,
+    and ``ha_api`` turns an uncaught exception into a 5xx, which neither cache
+    stores. Raising is therefore the honest answer: "not known", not "zero".
+    """
+
+
+#: Result key set by :func:`get_downstream_class_connectivity` /
+#: :func:`get_upstream_class_connectivity` when the aggregation ran but some
+#: queried instances contributed nothing (their per-instance connectivity
+#: could not be fetched or computed), so ``connected_n`` /
+#: ``pairwise_connections`` / ``total_weight`` are underestimates. The Solr
+#: result cache refuses to store a result carrying this key, and ``ha_api``
+#: gives it a short edge TTL, so the underestimate self-heals instead of being
+#: served as fact for a month.
+PARTIAL_RESULT_KEY = 'partial'
+
+
 def _neo4j_subclass_ids(short_form):
     """Neo4j ``SUBCLASSOF`` closure (the class plus every asserted subclass),
     the fallback used when Owlery is unavailable or too slow. Returns ``[]`` on
@@ -4630,8 +4660,20 @@ def _bulk_fetch_per_instance_connectivity(instance_ids):
     return found, missing
 
 
+def _has_positive_edge(edge_rows, weight_key):
+    """True if any per-instance partner row carries a positive weight."""
+    for prow in edge_rows or []:
+        try:
+            if float(prow.get(weight_key) or 0) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
 def _aggregate_class_connectivity(short_form, direction,
-                                  neuron_root=NEURON_ROOT_SHORT_FORM):
+                                  neuron_root=NEURON_ROOT_SHORT_FORM,
+                                  status=None):
     """Aggregate class-level partner connectivity for the queried class AND
     each of its subclasses individually, correctly under FBbt
     multi-inheritance using set-union over instance memberships.
@@ -4647,8 +4689,21 @@ def _aggregate_class_connectivity(short_form, direction,
     membership) are computed once for the whole subtree and instances are then
     partitioned by queried (sub)class, so cost is roughly independent of the
     number of subclasses.
+
+    An empty list means "no partners": the class has no connectivity
+    instances, or they have no positive-weight edges to in-scope partner
+    classes. It never means "a backend call failed" — that raises
+    :class:`ConnectivityBackendError` so that no cache layer can store a zero
+    that was really an outage.
+
+    ``status`` may be a dict; on return it carries ``missing`` (the number of
+    queried instances whose per-instance connectivity could not be obtained,
+    so the counts are underestimates) and ``total`` (queried instances).
     """
     from collections import defaultdict
+    if status is None:
+        status = {}
+    status.update(missing=0, total=0)
 
     # 1a. Queried (sub)classes in scope: the input term plus every subclass.
     #     Reuse Owlery's reasoner subclass closure (the canonical subclass set
@@ -4684,10 +4739,20 @@ def _aggregate_class_connectivity(short_form, direction,
         "collect(DISTINCT n.short_form) AS iids" % sorted(query_class_ids)
     )
     try:
-        rows = get_dict_cursor()(vc.nc.commit_list([membership_q]))
+        raw = vc.nc.commit_list([membership_q])
     except Exception as e:
-        print(f"Queried-side membership query failed for {short_form}: {e}")
-        return []
+        raise ConnectivityBackendError(
+            f"Queried-side membership query failed for {short_form}: {e}"
+        ) from e
+    if not isinstance(raw, list):
+        # commit_list reports a transaction error by returning False, not by
+        # raising, and dict_cursor then turns False into [] — which is how a
+        # Neo4j outage used to read as "no instances". A class with no
+        # instances comes back as a list with an empty ``data``.
+        raise ConnectivityBackendError(
+            f"Queried-side membership query returned no result for {short_form}"
+        )
+    rows = get_dict_cursor()(raw)
     query_class_to_instances = defaultdict(set)
     query_labels = {}
     all_instances = set()
@@ -4708,14 +4773,21 @@ def _aggregate_class_connectivity(short_form, direction,
     #    pairwise / total_weight will be a slight underestimate when this
     #    happens.
     found_edges, missing = _bulk_fetch_per_instance_connectivity(all_instances)
+    status.update(missing=len(missing), total=len(all_instances))
     if missing:
         print(
-            f"Warning: per-instance connectivity cache missing for "
+            f"Warning: per-instance connectivity unavailable for "
             f"{len(missing)}/{len(all_instances)} instances under {short_form}; "
-            f"those will be skipped (results may be a slight underestimate)."
+            f"those will be skipped (results are an underestimate)."
         )
     if not found_edges:
-        return []
+        # Every queried instance is a has_neuron_connectivity individual, so
+        # each has a per-instance result; getting none of them is a Solr/Neo4j
+        # failure, not a class with no partners.
+        raise ConnectivityBackendError(
+            f"Per-instance connectivity unavailable for all "
+            f"{len(all_instances)} instances under {short_form}"
+        )
 
     weight_key = 'outputs' if direction == 'downstream' else 'inputs'
 
@@ -4741,6 +4813,16 @@ def _aggregate_class_connectivity(short_form, direction,
         direct_partner_ids, neuron_root,
     )
     if not partner_class_ids:
+        if any(_has_positive_edge(edges, weight_key)
+               for edges in found_edges.values()):
+            # Instances have partners but no partner *class* came back:
+            # _fetch_connectivity_entries swallows Solr errors as [] and
+            # _get_partner_class_ancestors swallows Neo4j errors, so this is
+            # an outage, not a class whose partners are unclassified.
+            raise ConnectivityBackendError(
+                f"No partner classes resolved for {short_form} although its "
+                f"instances have {direction} connectivity"
+            )
         return []
 
     # 5. Build partner_instance_id -> {class_ids it belongs to}, restricted
@@ -4750,6 +4832,16 @@ def _aggregate_class_connectivity(short_form, direction,
     #    closure), which is the denominator when the partner is the presynaptic
     #    side (the upstream direction — see VFB_connect parity below).
     instance_to_partner_classes = _build_partner_instance_class_membership(partner_class_ids)
+    if not instance_to_partner_classes:
+        # partner_class_ids is non-empty here and every one of those classes
+        # has at least one connectivity instance (that is how it became a
+        # partner), so an empty membership map is the Neo4j query failing —
+        # the helper swallows the exception and returns {} — and would
+        # otherwise yield count 0 with no error.
+        raise ConnectivityBackendError(
+            f"Partner class membership query failed for {short_form} "
+            f"({len(partner_class_ids)} partner classes)"
+        )
     partner_class_total = defaultdict(int)
     _partner_class_members = defaultdict(set)
     for iid, classes in instance_to_partner_classes.items():
@@ -4838,6 +4930,26 @@ def _aggregate_class_connectivity(short_form, direction,
     return rows
 
 
+def _mark_partial(result, status):
+    """Tag a class-connectivity result whose counts are known to be low.
+
+    ``status`` is the dict filled by :func:`_aggregate_class_connectivity`.
+    When some queried instances contributed no edges the result is still the
+    best available answer, so it is returned — but under
+    :data:`PARTIAL_RESULT_KEY` so that the Solr result cache does not store it
+    and the edge cache keeps it only briefly.
+    """
+    missing = int((status or {}).get('missing') or 0)
+    if missing:
+        result[PARTIAL_RESULT_KEY] = {
+            'missing_instances': missing,
+            'total_instances': int(status.get('total') or 0),
+            'reason': 'per-instance connectivity unavailable for some '
+                      'instances; counts are underestimates',
+        }
+    return result
+
+
 def _format_class_connectivity_rows(rows, partner_key, query_key):
     """Populate both markdown-link class columns expected by the v2 layout and
     drop the internal ``_label`` / ``_query_label`` fields.
@@ -4905,7 +5017,8 @@ def get_downstream_class_connectivity(short_form: str, return_dataframe=True, li
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Downstream partner neuron classes with connectivity statistics
     """
-    rows = _aggregate_class_connectivity(short_form, 'downstream')
+    status = {}
+    rows = _aggregate_class_connectivity(short_form, 'downstream', status=status)
     if not rows:
         if return_dataframe:
             return pd.DataFrame()
@@ -4937,7 +5050,7 @@ def get_downstream_class_connectivity(short_form: str, return_dataframe=True, li
         'total_weight': {'title': 'Total Weight', 'type': 'number', 'order': 6},
         'avg_weight': {'title': 'Avg Weight', 'type': 'number', 'order': 7},
     }
-    return {'headers': headers, 'rows': rows, 'count': total_count}
+    return _mark_partial({'headers': headers, 'rows': rows, 'count': total_count}, status)
 
 
 @with_solr_cache('upstream_class_connectivity_query')
@@ -4978,7 +5091,8 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
     :param limit: maximum number of results to return (default -1, returns all results)
     :return: Upstream partner neuron classes with connectivity statistics
     """
-    rows = _aggregate_class_connectivity(short_form, 'upstream')
+    status = {}
+    rows = _aggregate_class_connectivity(short_form, 'upstream', status=status)
     if not rows:
         if return_dataframe:
             return pd.DataFrame()
@@ -5010,7 +5124,7 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
         'total_weight': {'title': 'Total Weight', 'type': 'number', 'order': 6},
         'avg_weight': {'title': 'Avg Weight', 'type': 'number', 'order': 7},
     }
-    return {'headers': headers, 'rows': rows, 'count': total_count}
+    return _mark_partial({'headers': headers, 'rows': rows, 'count': total_count}, status)
 
 
 # ---------------------------------------------------------------------------

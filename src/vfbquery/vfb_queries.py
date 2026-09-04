@@ -7602,12 +7602,27 @@ def get_hierarchy(short_form, relationship='part_of', direction='both', max_dept
             results = vfb_solr.search(
                 q='id:*', fq=f'{{!terms f=id}}{id_list}', fl='id,term_info', rows=len(all_desc)
             )
+            # Collect first, so a term with no document can be rebuilt rather
+            # than dropped. Skipping it here did not just lose its own node --
+            # it lost the whole branch beneath it, because nothing was ever
+            # appended to its parent's child list.
+            term_info_by_id = {}
             for doc in results.docs:
-                child_id = doc.get('id', '')
-                if 'term_info' not in doc:
-                    continue
-                raw = doc['term_info']
-                ti = json.loads(raw[0] if isinstance(raw, list) else raw)
+                if 'term_info' in doc:
+                    raw = doc['term_info']
+                    term_info_by_id[doc.get('id', '')] = (
+                        raw[0] if isinstance(raw, list) else raw)
+            missing_ids = [d for d in all_desc if d not in term_info_by_id]
+            if missing_ids:
+                print(f"hierarchy: {len(missing_ids)}/{len(all_desc)} terms have "
+                      f"no term_info document; rebuilding")
+                for mid in missing_ids:
+                    payload = backfill_term_info(mid)
+                    if payload:
+                        term_info_by_id[mid] = payload
+
+            for child_id, raw_term_info in term_info_by_id.items():
+                ti = json.loads(raw_term_info)
                 parents_in_tree = [p['short_form'] for p in ti.get('parents', []) if p['short_form'] in tree_ids]
                 if parents_in_tree:
                     for pid in parents_in_tree:

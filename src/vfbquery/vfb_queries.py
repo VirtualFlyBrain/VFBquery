@@ -1,6 +1,6 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
-from .term_info_fallback import backfill_term_info
+from .term_info_fallback import backfill_query_field, backfill_term_info
 # Replace VfbConnect import with our new SimpleVFBConnect
 from .owlery_client import SimpleVFBConnect
 # Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
@@ -4427,20 +4427,31 @@ def _fetch_connectivity_entries(short_form: str, solr_field: str, subclass_ids=N
         results = vfb_solr.search(
             q='id:*',
             fq=f'{{!terms f=id}}{id_list}',
-            fl=solr_field,
+            fl=f'id,{solr_field}',
             rows=len(subclass_ids),
         )
     except Exception as e:
         print(f"Error querying Solr for {solr_field}: {e}")
         return []
 
+    # Same silent gap as the Owlery hydration path: a class with no entry for
+    # this field contributed nothing and said nothing. Roughly 2% of the
+    # connectivity population is in that state at any time. Rebuild in one
+    # batched call rather than returning a short answer.
+    field_by_id = {}
+    for doc in results.docs:
+        if solr_field in doc:
+            raw = doc[solr_field]
+            field_by_id[doc['id']] = raw[0] if isinstance(raw, list) else raw
+    missing_ids = [sid for sid in subclass_ids if sid not in field_by_id]
+    if missing_ids:
+        print(f"{solr_field}: {len(missing_ids)}/{len(subclass_ids)} ids "
+              f"have no entry; rebuilding")
+        field_by_id.update(backfill_query_field(missing_ids, solr_field))
+
     # Step 3: Parse all connectivity JSON from all returned docs
     all_entries = []
-    for doc in results.docs:
-        if solr_field not in doc:
-            continue
-        raw = doc[solr_field]
-        field_json = raw[0] if isinstance(raw, list) else raw
+    for field_json in field_by_id.values():
         try:
             entries = json.loads(field_json)
         except (json.JSONDecodeError, TypeError):
@@ -4590,6 +4601,32 @@ def _bulk_fetch_per_instance_connectivity(instance_ids):
             except Exception as e:
                 print(f"Failed to parse cached connectivity for {iid}: {e}")
     missing = [i for i in instance_ids if i not in found]
+    if missing:
+        # A miss here is not a missing bulk index -- it is VFBquery's own
+        # result cache never having been asked for this instance. Skipping it
+        # made connected_n / pairwise_connections / total_weight quietly low,
+        # which the caller could only describe as "a slight underestimate".
+        # Compute them instead: get_neuron_neuron_connectivity is wrapped in
+        # @with_solr_cache, so each call also fills the cache and the next
+        # caller pays nothing. This is deliberately unbounded -- an individual
+        # call should fix itself even if that call is slow, rather than return
+        # a number that is wrong without saying so.
+        print(f"Computing per-instance connectivity for {len(missing)} "
+              f"uncached instance(s); this call will be slower.")
+        still_missing = []
+        for iid in missing:
+            try:
+                result = get_neuron_neuron_connectivity(
+                    iid, return_dataframe=False)
+            except Exception as e:
+                print(f"Live per-instance connectivity failed for {iid}: {e}")
+                still_missing.append(iid)
+                continue
+            if isinstance(result, dict):
+                found[iid] = result.get('rows', [])
+            else:
+                still_missing.append(iid)
+        missing = still_missing
     return found, missing
 
 
@@ -5391,17 +5428,31 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
             results = vfb_solr.search(
                 q='id:*',
                 fq=f'{{!terms f=id}}{id_list}',
-                fl=solr_field,
+                fl=f'id,{solr_field}',
                 rows=len(class_ids)
             )
-            
-            # Process all results
+
+            # An id whose document is missing, or which has a document without
+            # this field, used to be skipped in silence -- the rows AND the
+            # count came back short with nothing to say so. Both happen for
+            # any record added since the bulk indexer last completed. Rebuild
+            # them from the indexer's own query in one batched call: the cost
+            # is a single round trip (500 ids in ~1.5s), so this is cheaper
+            # than the Owlery expansion the query has already paid for.
+            field_by_id = {}
             for doc in results.docs:
-                if solr_field not in doc:
-                    continue
-                    
+                if solr_field in doc:
+                    raw = doc[solr_field]
+                    field_by_id[doc['id']] = raw[0] if isinstance(raw, list) else raw
+            missing_ids = [cid for cid in class_ids if cid not in field_by_id]
+            if missing_ids:
+                print(f"{solr_field}: {len(missing_ids)}/{len(class_ids)} ids "
+                      f"have no entry; rebuilding")
+                field_by_id.update(backfill_query_field(missing_ids, solr_field))
+
+            # Process all results
+            for field_data_str in field_by_id.values():
                 # Parse the SOLR field JSON string
-                field_data_str = doc[solr_field][0]
                 field_data = json.loads(field_data_str)
                 
                 # Extract core term information
@@ -7551,12 +7602,27 @@ def get_hierarchy(short_form, relationship='part_of', direction='both', max_dept
             results = vfb_solr.search(
                 q='id:*', fq=f'{{!terms f=id}}{id_list}', fl='id,term_info', rows=len(all_desc)
             )
+            # Collect first, so a term with no document can be rebuilt rather
+            # than dropped. Skipping it here did not just lose its own node --
+            # it lost the whole branch beneath it, because nothing was ever
+            # appended to its parent's child list.
+            term_info_by_id = {}
             for doc in results.docs:
-                child_id = doc.get('id', '')
-                if 'term_info' not in doc:
-                    continue
-                raw = doc['term_info']
-                ti = json.loads(raw[0] if isinstance(raw, list) else raw)
+                if 'term_info' in doc:
+                    raw = doc['term_info']
+                    term_info_by_id[doc.get('id', '')] = (
+                        raw[0] if isinstance(raw, list) else raw)
+            missing_ids = [d for d in all_desc if d not in term_info_by_id]
+            if missing_ids:
+                print(f"hierarchy: {len(missing_ids)}/{len(all_desc)} terms have "
+                      f"no term_info document; rebuilding")
+                for mid in missing_ids:
+                    payload = backfill_term_info(mid)
+                    if payload:
+                        term_info_by_id[mid] = payload
+
+            for child_id, raw_term_info in term_info_by_id.items():
+                ti = json.loads(raw_term_info)
                 parents_in_tree = [p['short_form'] for p in ti.get('parents', []) if p['short_form'] in tree_ids]
                 if parents_in_tree:
                     for pid in parents_in_tree:

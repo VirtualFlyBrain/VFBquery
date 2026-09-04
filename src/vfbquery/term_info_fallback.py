@@ -244,9 +244,12 @@ def fallback_unavailable_reason():
 # Type dispatch
 # --------------------------------------------------------------------------
 
-#: Ids the indexer's parameter queries exclude, so we exclude them too rather
-#: than writing a document the bulk job would never have written.
-EXCLUDED_ID_PREFIXES = ("VFBc_", "FBlc", "SAMN", "VFB_internal")
+#: Id prefixes the *anatomical individual* indexer's parameter query excludes.
+#: They are not excluded from the term_info index as a whole: FBlc ids are
+#: Clusters, which ClusterTermInfoQueryIndexer owns, so this list only applies
+#: on the anatomical branch. Applying it globally -- as the first version of
+#: this module did -- would have refused to rebuild any Cluster document.
+ANATOMICAL_EXCLUDED_ID_PREFIXES = ("VFBc_", "FBlc", "SAMN", "VFB_internal")
 
 
 def choose_indexer(labels):
@@ -308,10 +311,6 @@ def build_term_info(short_form, neo=None):
     if not fallback_available():
         _warn_unavailable_once()
         return None, None
-    if short_form.startswith(EXCLUDED_ID_PREFIXES):
-        print("term_info fallback: %s is excluded from the term_info index"
-              % short_form)
-        return None, None
 
     from .vfb_queries import vc, get_dict_cursor
     neo = neo or vc.nc
@@ -324,6 +323,13 @@ def build_term_info(short_form, neo=None):
     if key is None:
         print("term_info fallback: no term_info indexer covers labels %s (%s)"
               % (sorted(labels), short_form))
+        return None, None
+    if (key == "anatomical_ind"
+            and short_form.startswith(ANATOMICAL_EXCLUDED_ID_PREFIXES)):
+        # The anatomical indexer's parameter query skips these, so the bulk
+        # job would never have written a document for one either.
+        print("term_info fallback: %s is excluded from the anatomical "
+              "individual index" % short_form)
         return None, None
 
     indexer = _INDEXERS[key]()

@@ -4601,6 +4601,32 @@ def _bulk_fetch_per_instance_connectivity(instance_ids):
             except Exception as e:
                 print(f"Failed to parse cached connectivity for {iid}: {e}")
     missing = [i for i in instance_ids if i not in found]
+    if missing:
+        # A miss here is not a missing bulk index -- it is VFBquery's own
+        # result cache never having been asked for this instance. Skipping it
+        # made connected_n / pairwise_connections / total_weight quietly low,
+        # which the caller could only describe as "a slight underestimate".
+        # Compute them instead: get_neuron_neuron_connectivity is wrapped in
+        # @with_solr_cache, so each call also fills the cache and the next
+        # caller pays nothing. This is deliberately unbounded -- an individual
+        # call should fix itself even if that call is slow, rather than return
+        # a number that is wrong without saying so.
+        print(f"Computing per-instance connectivity for {len(missing)} "
+              f"uncached instance(s); this call will be slower.")
+        still_missing = []
+        for iid in missing:
+            try:
+                result = get_neuron_neuron_connectivity(
+                    iid, return_dataframe=False)
+            except Exception as e:
+                print(f"Live per-instance connectivity failed for {iid}: {e}")
+                still_missing.append(iid)
+                continue
+            if isinstance(result, dict):
+                found[iid] = result.get('rows', [])
+            else:
+                still_missing.append(iid)
+        missing = still_missing
     return found, missing
 
 

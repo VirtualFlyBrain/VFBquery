@@ -239,15 +239,17 @@ def test_no_ids_means_no_work(monkeypatch):
     assert tif.backfill_query_field([], "anat_query") == {}
 
 
-def test_backfill_batches_and_caps(monkeypatch):
-    """One batched call, capped at the indexer's own batch size. Measured
+def test_backfill_batches_rather_than_truncating(monkeypatch):
+    """Batched at the indexer's own size, and every id is rebuilt. Measured
     against the live PDB a rebuild is one round trip -- 500 ids in 1.5s
-    against 0.37s for a single id -- so the whole missing set goes at once."""
+    against 0.37s for a single id -- so batching is what keeps it cheap, and
+    a set larger than one batch is looped, never trimmed."""
     seen = {}
 
     class FakeIndexer:
         def get_vfb_json_query(self, ids):
             seen["ids"] = list(ids)
+            seen.setdefault("batches", []).append(len(ids))
             return "MATCH (n) RETURN n"
 
         def generate_solr_doc(self, result, request=None):
@@ -258,15 +260,25 @@ def test_backfill_batches_and_caps(monkeypatch):
     monkeypatch.setattr(tif, "_INDEXERS", {"class": object})
     monkeypatch.setattr(tif, "_write_query_docs", lambda docs, field: True)
 
-    ids = ["FBbt_%07d" % i for i in range(tif.MAX_BACKFILL_IDS + 25)]
-    rows = [{"term": {"core": {"short_form": i}}} for i in ids[:tif.MAX_BACKFILL_IDS]]
+    ids = ["FBbt_%07d" % i for i in range(tif.BACKFILL_BATCH_SIZE + 25)]
+    rows = [{"term": {"core": {"short_form": i}}} for i in ids]
     import vfbquery.vfb_queries as vq
-    monkeypatch.setattr(vq, "get_dict_cursor", lambda: (lambda r: rows))
+    calls = {"n": 0}
+
+    def cursor(r):
+        i = calls["n"]; calls["n"] += 1
+        return rows[i * tif.BACKFILL_BATCH_SIZE:(i + 1) * tif.BACKFILL_BATCH_SIZE] \
+            if i == 0 else rows[tif.BACKFILL_BATCH_SIZE:]
+
+    monkeypatch.setattr(vq, "get_dict_cursor", lambda: cursor)
     monkeypatch.setattr(vq, "vc", _StubConnect())
 
     rebuilt = tif.backfill_query_field(ids, "anat_query")
-    assert len(seen["ids"]) == tif.MAX_BACKFILL_IDS      # capped
-    assert len(rebuilt) == tif.MAX_BACKFILL_IDS
+    # Batched, not truncated: the last batch is the 25-id remainder, and every
+    # id came back. Dropping the tail would return a quietly short answer,
+    # which is the thing this whole module exists to stop.
+    assert len(seen["ids"]) == 25
+    assert seen["batches"] == [tif.BACKFILL_BATCH_SIZE, 25]
     assert rebuilt[ids[0]] == '{"ok": true}'            # payload returned, not re-read
 
 

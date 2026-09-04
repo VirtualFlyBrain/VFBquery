@@ -430,14 +430,14 @@ def backfill_term_info(short_form):
 # Per-field query indexes
 # --------------------------------------------------------------------------
 
-#: How many ids one rebuild will attempt. This is the indexer's own
-#: REQUEST_BATCH_SIZE, and it is a cap rather than a target: measured against
-#: the live PDB, a rebuild costs one round trip rather than per-id work --
-#: 1 id 0.37 s, 10 ids 1.41 s, 50 ids 0.91 s, 200 ids 0.80 s, 500 ids 1.49 s
-#: (3 ms/id). So the whole missing set goes in a single batched call and the
-#: cap exists only to stop a pathological expansion turning into a stall.
-#: For scale: the worst real gap found in one query expansion was 8 ids.
-MAX_BACKFILL_IDS = 500
+#: Ids per rebuild request -- the indexer's own REQUEST_BATCH_SIZE. This is a
+#: batch size, not a ceiling: a missing set larger than this is rebuilt in
+#: successive batches rather than truncated, because an individual call
+#: fixing itself slowly beats one that returns a quietly incomplete answer.
+#: Measured against the live PDB a rebuild costs one round trip rather than
+#: per-id work -- 1 id 0.37 s, 10 ids 1.41 s, 50 ids 0.91 s, 200 ids 0.80 s,
+#: 500 ids 1.49 s (3 ms/id) -- so the batching is what keeps that cheap.
+BACKFILL_BATCH_SIZE = 500
 
 
 def query_field_fallback_available(solr_field):
@@ -474,34 +474,37 @@ def backfill_query_field(short_forms, solr_field):
     from .vfb_queries import vc, get_dict_cursor
 
     ids = list(short_forms)
-    if len(ids) > MAX_BACKFILL_IDS:
-        print("query fallback: %d ids missing %s, rebuilding the first %d"
-              % (len(ids), solr_field, MAX_BACKFILL_IDS))
-        ids = ids[:MAX_BACKFILL_IDS]
-
     indexer = _QUERY_FIELD_INDEXERS[solr_field]()
-    try:
-        rows = get_dict_cursor()(vc.nc.commit_list([
-            indexer.get_vfb_json_query(ids)]))
-    except Exception as e:
-        print("query fallback: rebuilding %s for %d ids failed: %s"
-              % (solr_field, len(ids), e))
-        return {}
+    if len(ids) > BACKFILL_BATCH_SIZE:
+        print("query fallback: %d ids missing %s, rebuilding in %d batches"
+              % (len(ids), solr_field,
+                 -(-len(ids) // BACKFILL_BATCH_SIZE)))
 
     rebuilt = {}
-    solr_docs = []
-    for result in rows or []:
+    for start in range(0, len(ids), BACKFILL_BATCH_SIZE):
+        batch = ids[start:start + BACKFILL_BATCH_SIZE]
         try:
-            doc = indexer.generate_solr_doc(result, request=None)
+            rows = get_dict_cursor()(vc.nc.commit_list([
+                indexer.get_vfb_json_query(batch)]))
         except Exception as e:
-            print("query fallback: could not shape a %s document: %s"
-                  % (solr_field, e))
+            print("query fallback: rebuilding %s for %d ids failed: %s"
+                  % (solr_field, len(batch), e))
             continue
-        solr_docs.append(doc)
-        rebuilt[doc["id"]] = doc[solr_field]["set"]
 
-    if solr_docs:
-        _write_query_docs(solr_docs, solr_field)
+        solr_docs = []
+        for result in rows or []:
+            try:
+                doc = indexer.generate_solr_doc(result, request=None)
+            except Exception as e:
+                print("query fallback: could not shape a %s document: %s"
+                      % (solr_field, e))
+                continue
+            solr_docs.append(doc)
+            rebuilt[doc["id"]] = doc[solr_field]["set"]
+
+        if solr_docs:
+            _write_query_docs(solr_docs, solr_field)
+
     print("query fallback: rebuilt %d/%d missing %s entries"
           % (len(rebuilt), len(ids), solr_field))
     return rebuilt

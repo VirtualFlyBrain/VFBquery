@@ -1,5 +1,6 @@
 import pysolr
 from .term_info_queries import deserialize_term_info
+from .term_info_fallback import backfill_term_info
 # Replace VfbConnect import with our new SimpleVFBConnect
 from .owlery_client import SimpleVFBConnect
 # Keep dict_cursor if it's used elsewhere - lazy import to avoid GUI issues
@@ -2528,6 +2529,21 @@ def FindComboPublications_to_schema(name, take_default):
     )
 
 
+class _FallbackSolrResult:
+    """A one-document stand-in for a pysolr result.
+
+    ``term_info_parse_object`` only ever reads ``hits`` and
+    ``docs[0]['term_info'][0]``, so a document rebuilt by
+    :mod:`vfbquery.term_info_fallback` can be fed straight back through the
+    same parser rather than round-tripping through SOLR — which matters
+    because the write is best-effort and may legitimately be skipped.
+    """
+
+    def __init__(self, term_info_payload):
+        self.hits = 1
+        self.docs = [{"term_info": [term_info_payload]}]
+
+
 # term_info SOLR loaders: fetch one term's term_info doc by short_form and
 # return it either as a deserialized object (attribute access) or as the raw
 # JSON dict, whichever the caller works with.
@@ -2831,6 +2847,22 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
     try:
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
+        # SOLR has no term_info document for this id. That is routine for a
+        # record newer than the last successful run of the bulk indexer (the
+        # `precompute live query results` Jenkins job), which can be months
+        # behind: the term is fine in the PDB, it just has nothing to read.
+        # Build the document live from the indexer's own query and index it,
+        # so this id is only ever slow once.
+        #
+        # Tested on the SOLR result rather than on the parse: a miss does not
+        # give a falsy parse. term_info_parse_object skips its whole body when
+        # there are no hits and returns the initialised skeleton, which then
+        # fails schema validation on Name/Id/Meta and is returned raw -- so a
+        # missing term used to surface as a truthy object with no Id, not None.
+        if not getattr(results, "hits", 0):
+            fallback_payload = backfill_term_info(short_form)
+            if fallback_payload:
+                results = _FallbackSolrResult(fallback_payload)
         # Check if any results were returned
         parsed_object = term_info_parse_object(results, short_form)
         if parsed_object:

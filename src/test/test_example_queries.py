@@ -88,17 +88,52 @@ def _type_bucket(value):
     return name
 
 
+#: Recorded maps whose KEYS are data rather than schema, compared like
+#: lists: the map must still be non-empty and its values must still have
+#: the recorded shape, but *which* keys appear is content.
+#:
+#: ``Examples`` and ``Images`` are keyed by template short_form and
+#: ``Domains``/``Licenses`` by index, so their key sets follow whichever
+#: images the indexer happened to pick. The class documents cap
+#: ``anatomy_channel_image`` at ten entries however many images a class
+#: really has (56,384 for adult cholinergic neuron; 12 for medulla), so a
+#: class whose only image on some template falls outside that ten loses
+#: that template key entirely — no schema changed, and nothing is missing
+#: from the backend. That is exactly the "backend content changes must not
+#: fail CI" case in this module's docstring, and treating these keys as
+#: schema turned it into a failure (medulla lost VFB_00030786, adult brain
+#: template Ito2014, on 2026-09-03 while the individual, its own SOLR
+#: document and all its image files were intact).
+#:
+#: ``Meta`` is deliberately absent: its keys ARE the schema.
+DATA_KEYED_MAPS = frozenset({"$.Examples", "$.Images", "$.Domains",
+                             "$.Licenses"})
+
+
 def shape_mismatches(expected, live, path="$"):
     """Recursively compare recorded vs live result SHAPE.
 
     Every key in the recording must exist live with a compatible type;
     lists are compared through their first element; leaf values only have
     to agree on coarse type. Keys the live result has gained are fine.
+
+    The exception is the maps in :data:`DATA_KEYED_MAPS`, whose keys are
+    data: those are compared the way lists are — non-emptiness and the
+    shape of one value — because their key sets legitimately change with
+    the backend content.
     """
     if isinstance(expected, dict):
         if not isinstance(live, dict):
             return ["%s: recorded an object, live is %s"
                     % (path, _type_bucket(live))]
+        if path in DATA_KEYED_MAPS:
+            if expected and not live:
+                return ["%s: recorded non-empty, live is empty" % path]
+            if expected and live:
+                return shape_mismatches(next(iter(expected.values())),
+                                        next(iter(live.values())),
+                                        path + ".*")
+            return []
         problems = []
         for key, value in expected.items():
             live_key = key
@@ -207,6 +242,33 @@ def test_numpy_scalars_count_as_numbers():
     assert not shape_mismatches({"score": 0.5}, {"score": numpy.float64(1.5)})
     assert not shape_mismatches({"flag": True}, {"flag": numpy.bool_(False)})
     assert shape_mismatches({"count": 3}, {"count": "5"})   # still a drift
+
+
+def test_data_keyed_maps_ignore_which_keys_appear():
+    """Examples/Images/Domains/Licenses key sets are content, not schema."""
+    recorded = {"Examples": {"VFB_00030786": [{"id": "VFB_00030810",
+                                               "label": "medulla",
+                                               "thumbnail": "https://x/t.png"}]}}
+    # A different template carrying the same record shape is not a drift --
+    # this is the medulla / Ito2014 case, where the class document's ten-image
+    # cap dropped the only image on one template.
+    assert not shape_mismatches(recorded, {"Examples": {"VFB_00101567": [
+        {"id": "VFB_00107fob", "label": "ME_R", "thumbnail": "https://y/t.png"}]}})
+    # Losing the map altogether still fails.
+    assert shape_mismatches(recorded, {"Examples": {}})
+    # So does a record that lost a field, or changed a field's type.
+    assert shape_mismatches(recorded, {"Examples": {"VFB_00101567": [
+        {"id": "VFB_00107fob", "label": "ME_R"}]}})
+    assert shape_mismatches(recorded, {"Examples": {"VFB_00101567": [
+        {"id": 7, "label": "ME_R", "thumbnail": "https://y/t.png"}]}})
+    # An empty recording stays permissive: gaining content is allowed.
+    assert not shape_mismatches({"Examples": {}}, recorded)
+
+
+def test_meta_keys_are_still_schema():
+    """Meta is not data-keyed -- a missing Meta field is still a regression."""
+    recorded = {"Meta": {"Name": "medulla", "Types": "x"}}
+    assert shape_mismatches(recorded, {"Meta": {"Name": "medulla"}})
 
 
 # ---------------------------------------------------------------------------

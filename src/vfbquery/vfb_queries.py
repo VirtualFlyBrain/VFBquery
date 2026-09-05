@@ -2574,6 +2574,25 @@ class _FallbackSolrResult:
         self.docs = [{"term_info": [term_info_payload]}]
 
 
+def _has_term_info_document(results):
+    """True when the SOLR result carries a document with a ``term_info`` field.
+
+    A document can exist without one. The vfb_json collection is written by
+    several indexers with atomic updates, each setting only its own field,
+    so a record that one of the query-result indexers (``all_datasets_query``,
+    ``anat_image_query``, ...) reaches before the term_info indexer does has
+    a document -- ``hits == 1`` -- but nothing to read. Berg2025a and
+    Bates2026 were exactly that on 2026-09-04: listed under All Datasets,
+    blank in term info. Test the field, not the hit count.
+    """
+    if not getattr(results, "hits", 0):
+        return False
+    docs = getattr(results, "docs", None) or []
+    if not docs:
+        return False
+    return bool(docs[0].get("term_info"))
+
+
 # term_info SOLR loaders: fetch one term's term_info doc by short_form and
 # return it either as a deserialized object (attribute access) or as the raw
 # JSON dict, whichever the caller works with.
@@ -2877,8 +2896,8 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
     try:
         # Search for the term in the SOLR server
         results = vfb_solr.search('id:' + short_form)
-        # SOLR has no term_info document for this id. That is routine for a
-        # record newer than the last successful run of the bulk indexer (the
+        # SOLR has no term_info for this id. That is routine for a record
+        # newer than the last successful run of the bulk indexer (the
         # `precompute live query results` Jenkins job), which can be months
         # behind: the term is fine in the PDB, it just has nothing to read.
         # Build the document live from the indexer's own query and index it,
@@ -2889,7 +2908,11 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
         # there are no hits and returns the initialised skeleton, which then
         # fails schema validation on Name/Id/Meta and is returned raw -- so a
         # missing term used to surface as a truthy object with no Id, not None.
-        if not getattr(results, "hits", 0):
+        #
+        # And tested on the field, not the hit count: a document written by
+        # one of the other indexers (all_datasets_query et al.) exists with
+        # no term_info at all, and the parser turns that into a bare None.
+        if not _has_term_info_document(results):
             fallback_payload = backfill_term_info(short_form)
             if fallback_payload:
                 results = _FallbackSolrResult(fallback_payload)

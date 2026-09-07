@@ -292,12 +292,43 @@ class TestStockLinkouts:
         assert _stock_number_url("Bloomington Drosophila Stock Center", "6565") == \
             "https://bdsc.indiana.edu/stocks/6565"
 
+    def test_vdrc_stock_number_drops_the_v(self):
+        assert _stock_number_url("Vienna Drosophila Resource Center", "v49835") == \
+            "https://shop.vbc.ac.at/vdrc_store/49835.html"
+
+    def test_kyoto_stock_number_deep_links(self):
+        assert _stock_number_url("Kyoto Stock Center", "103972") == (
+            "https://kyotofly.kit.jp/cgi-bin/stocks/"
+            "search_res_det.cgi?DB_NUM=1&DG_NUM=103972")
+
+    @pytest.mark.parametrize("number, expected", [
+        # One detail view per NIG stock type, chosen by the number's shape.
+        ("10052R-1", "rnaiDetailAction.do?input=sr&stockId=10052R-1"),
+        ("15513-3R-3", "rnaiDetailAction.do?input=sr&stockId=15513-3R-3"),
+        ("2381Ra-3", "rnaiDetailAction.do?input=sr&stockId=2381Ra-3"),
+        ("31794R-C-2", "rnaiDetailAction.do?input=sr&stockId=31794R-C-2"),
+        ("M2L-2508", "koDetailAction.do?input=sr&stockId=M2L-2508"),
+        ("2LG-1995", "grnaDetailAction.do?input=sr&stockId=2LG-1995"),
+        ("2RG-0196", "grnaDetailAction.do?input=sr&stockId=2RG-0196"),
+        ("HMJ02061", "tripDetailAction.do?input=list&tripNo=HMJ02061"),
+        ("GL00001", "tripDetailAction.do?input=list&tripNo=GL00001"),
+    ])
+    def test_nig_stock_number_picks_the_right_detail_view(self, number, expected):
+        assert _stock_number_url("National Institute of Genetics Fly Stocks", number) == \
+            "https://shigen.nig.ac.jp/fly/nigfly/" + expected
+
+    def test_nig_number_of_an_unmapped_shape_gets_no_link(self):
+        # The six SHA##### stocks sit in none of the NIG detail views. A centre
+        # in the table must not fall through to the chado order_url guess.
+        assert _stock_number_url(
+            "National Institute of Genetics Fly Stocks", "SHA00054") is None
+
     def test_unknown_collection_has_no_stock_number_link(self, monkeypatch):
         import vfbquery.flybase_stocks as fbs
         monkeypatch.setattr(fbs, "collection_links",
-                            lambda: {"Kyoto Stock Center": {
-                                "order_url": "https://kyotofly.kit.jp/cgi-bin/stocks/index.cgi"}})
-        assert _stock_number_url("Kyoto Stock Center", "103972") is None
+                            lambda: {"Korea Drosophila Resource Center": {
+                                "order_url": "http://kdrc.kr/index.php"}})
+        assert _stock_number_url("Korea Drosophila Resource Center", "13276") is None
 
     def test_order_url_ending_in_equals_takes_the_stock_number(self, monkeypatch):
         import vfbquery.flybase_stocks as fbs

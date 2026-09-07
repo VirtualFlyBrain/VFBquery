@@ -5156,14 +5156,51 @@ def get_upstream_class_connectivity(short_form: str, return_dataframe=True, limi
 
 # Stock centres whose own catalogue has a stable per-stock URL that can be
 # built from the FlyBase stock number. Chado carries every centre's homepage
-# and order URL in stockcollectionprop, but not this one: Bloomington's
-# order_url is its batch-order cart, so the per-stock pattern has to live here.
-# FlyBase's own stock report deep-links the stock number for exactly two
-# centres -- Bloomington and FlyORF -- and renders it as plain text for the
-# other five, which only offer a search box (checked against one stock per
-# collection, 2026-09-03). Mirror that rather than invent URL patterns.
+# and order URL in stockcollectionprop, but never a per-stock pattern, so
+# those live here, keyed by collection and matched on the shape of the stock
+# number (NIG has one detail view per stock type, and the number says which).
+#
+# FlyBase's own stock report deep-links only Bloomington and FlyORF; VDRC, NIG
+# and Kyoto below go further than FlyBase does, so each pattern was checked
+# against 20 stock numbers drawn at random from that collection in chado,
+# requiring HTTP 200 *and* the stock number present in the page returned
+# (60/60, 2026-09-07). The self-reference check is the real test: every one of
+# these sites answers 200 with an empty shell for a number it does not hold.
+#
+# Deliberately not linked, because they offer only a search box or
+# species-level pages: Korea Drosophila Resource Center (7,020 stocks), the
+# National Drosophila Species Stock Center (2,059), and NIG's six SHA#####
+# stocks, which appear in none of the NIG detail views.
+_NIG_FLY = "https://shigen.nig.ac.jp/fly/nigfly/"
+
 _STOCK_NUMBER_URL = {
-    "Bloomington Drosophila Stock Center": "https://bdsc.indiana.edu/stocks/{number}",
+    "Bloomington Drosophila Stock Center": [
+        (re.compile(r"^(?P<n>.+)$"), "https://bdsc.indiana.edu/stocks/{n}"),
+    ],
+    # Uniformly v<digits> in chado (26,479 of 26,479); the shop drops the v.
+    "Vienna Drosophila Resource Center": [
+        (re.compile(r"^v(?P<n>\d+)$"),
+         "https://shop.vbc.ac.at/vdrc_store/{n}.html"),
+    ],
+    "Kyoto Stock Center": [
+        (re.compile(r"^(?P<n>\d+)$"),
+         "https://kyotofly.kit.jp/cgi-bin/stocks/"
+         "search_res_det.cgi?DB_NUM=1&DG_NUM={n}"),
+    ],
+    # NIG splits its catalogue by stock type, one detail view each. RNAi
+    # numbers carry an R (10052R-1, 15513-3R-3, 2381Ra-3, 31794R-C-2), knockouts
+    # are M<n>L-, gRNA lines <n>LG-/<n>RG-, and the TRiP lines it redistributes
+    # are looked up by tripNo rather than stockId.
+    "National Institute of Genetics Fly Stocks": [
+        (re.compile(r"^(?P<n>\d+(?:-\d+)?R[ab]?(?:-[CN])?-\d+)$"),
+         _NIG_FLY + "rnaiDetailAction.do?input=sr&stockId={n}"),
+        (re.compile(r"^(?P<n>M\dL-\d+)$"),
+         _NIG_FLY + "koDetailAction.do?input=sr&stockId={n}"),
+        (re.compile(r"^(?P<n>\d[LR]G-\d+)$"),
+         _NIG_FLY + "grnaDetailAction.do?input=sr&stockId={n}"),
+        (re.compile(r"^(?P<n>(?:HM[JSC]|GL|JF)\d+)$"),
+         _NIG_FLY + "tripDetailAction.do?input=list&tripNo={n}"),
+    ],
 }
 
 _FLYBASE_ID_RE = re.compile(r"^FB[a-z]{2}\d+$")
@@ -5196,20 +5233,29 @@ def _flybase_report_url(fb_id):
 def _stock_number_url(collection, number):
     """URL for the stock centre's own catalogue entry, or None.
 
-    Bloomington comes from the table above. Every other centre is derived from
-    chado: FlyORF's ``order_url`` is a per-line query prefix ending in ``=``,
-    so the stock number appends cleanly; the rest are homepages or batch-order
-    forms where appending a number would produce a dead link.
+    Centres in :data:`_STOCK_NUMBER_URL` are matched on the shape of the stock
+    number; a centre listed there but whose number matches none of its patterns
+    gets no link rather than falling through to a guess. Everything else comes
+    from chado: FlyORF's ``order_url`` is a per-line query prefix ending in
+    ``=``, so the stock number appends cleanly; the rest are homepages or
+    batch-order forms where appending a number would produce a dead link.
     """
     if not collection or not number:
         return None
-    pattern = _STOCK_NUMBER_URL.get(collection)
-    if pattern:
-        return pattern.format(number=quote(str(number), safe=""))
+    number = str(number)
+    patterns = _STOCK_NUMBER_URL.get(collection)
+    if patterns is not None:
+        for pattern, template in patterns:
+            match = pattern.match(number)
+            if match:
+                return template.format(**{
+                    key: quote(value, safe="")
+                    for key, value in match.groupdict().items()})
+        return None
     from .flybase_stocks import collection_links
     order_url = collection_links().get(collection, {}).get("order_url") or ""
     if order_url.endswith("="):
-        return order_url + quote(str(number), safe="")
+        return order_url + quote(number, safe="")
     return None
 
 

@@ -224,6 +224,49 @@ ENDPOINT_GROUPS = [
                     FORCE_REFRESH_PARAM,
                 ],
             },
+            {
+                "path": "/get_predicted_neurotransmitters",
+                "summary": "Predicted neurotransmitter(s) for a neuron type",
+                "description": (
+                    "Predicted neurotransmitters for a neuron type (or any "
+                    "subclass), from per-instance prediction edges. Aggregated "
+                    "to flat per-class rows by default; optionally split by "
+                    "dataset. Reported as GO secretion terms with mean "
+                    "confidence."),
+                "params": [
+                    {"name": "neuron_type", "required": True,
+                     "doc": "Neuron type (label, synonym or FBbt id)",
+                     "example": "Tm9"},
+                    {"name": "aggregate",
+                     "doc": "false returns per-instance rows (default true "
+                            "aggregates to the class)", "example": ""},
+                    {"name": "split_by_dataset",
+                     "doc": "true adds a dataset column and one row per dataset",
+                     "example": ""},
+                    {"name": "exclude_dbs",
+                     "doc": "Datasets to leave out (comma-separated)",
+                     "example": ""},
+                    {"name": "min_confidence",
+                     "doc": "Drop predictions below this confidence (0..1)",
+                     "example": ""},
+                    FORCE_REFRESH_PARAM,
+                ],
+            },
+            {
+                "path": "/get_known_neurotransmitters",
+                "summary": "Known (curated) neurotransmitter(s) for a neuron type",
+                "description": (
+                    "Curated neurotransmitters for a neuron type and its "
+                    "subclasses, from ontology classification (no confidence). "
+                    "One row per (cell type, GO secretion term); empty when the "
+                    "ontology asserts none."),
+                "params": [
+                    {"name": "neuron_type", "required": True,
+                     "doc": "Neuron type (label, synonym or FBbt id)",
+                     "example": "Tm9"},
+                    FORCE_REFRESH_PARAM,
+                ],
+            },
         ],
     },
     {

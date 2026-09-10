@@ -2,7 +2,9 @@ from .vfb_queries import *
 from .solr_result_cache import get_solr_cache
 from .flybase_stocks import resolve_entity, find_stocks
 from .flybase_combo_pubs import resolve_combination, find_combo_publications
-from .vfb_connectivity import list_connectome_datasets, query_connectivity
+from .vfb_connectivity import (list_connectome_datasets, query_connectivity,
+                               get_predicted_neurotransmitters,
+                               get_known_neurotransmitters)
 from .graph_builder import build_graph, batch_lookup_ids
 from .catmaid_client import (catmaid, CatmaidInstance, list_catmaid_instances,
                              list_catmaid_commands, run_catmaid_command)

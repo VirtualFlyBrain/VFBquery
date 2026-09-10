@@ -20,6 +20,8 @@ Call the service host directly when you need to see the current answer rather th
 | `/get_term_info` | Everything VFB holds about one term: name, synonyms, definition, relationships, images, xrefs, NT predictions, publications. |
 | `/run_query` | Any of the ~40 named query types — instances, subclasses, parts, connectivity, NBLAST, expression, single-cell. The workhorse. |
 | `/query_connectivity` | Connectivity between two *types*, aggregated, across connectome datasets. |
+| `/get_predicted_neurotransmitters` | Predicted neurotransmitter(s) for a type, per instance or aggregated (with mean confidence), optionally split by dataset. |
+| `/get_known_neurotransmitters` | Known (curated) neurotransmitter(s) for a type and its subclasses, from ontology classification. |
 | `/search` | Free-text search over the ontology, ranked the way the website ranks it. |
 | `/xref` | VFB id ↔ external accession, both directions. |
 | `/facets` | Every type name `/search`'s type filters accept, with term counts. |
@@ -196,6 +198,44 @@ easy to misread as biological variation.
 The cost of this default is that a plain query does not reproduce a published hemibrain figure. To
 do that, name the dataset you want by excluding the others, or pass `exclude_dbs=` to get everything
 and deduplicate yourself. `/list_connectome_datasets` gives the symbols.
+
+## `/get_predicted_neurotransmitters`
+
+```
+GET /get_predicted_neurotransmitters?neuron_type=Tm9
+```
+
+Predicted neurotransmitter(s) for a neuron type — itself or any subclass — from per-instance
+prediction edges (an asserted `capable_of` to a GO secretion term, carrying a confidence). Only
+neurons the pipeline could predict contribute; those it could not (e.g. too few presynapses) are
+absent.
+
+| Parameter | |
+|---|---|
+| `neuron_type` | **Required.** Neuron type label, synonym or FBbt id. Means itself *and its subclasses*, as on `/query_connectivity`. |
+| `aggregate` | `true` (default) returns flat per-class rows `{cell_type_id, cell_type, nt_id, nt_label, instances, percent_of_class, mean_confidence}`; `false` returns per-instance rows `{cell_type_id, cell_type, neuron_id, neuron_name, nt_id, nt_label, confidence, references, dataset}`. |
+| `split_by_dataset` | `true` (aggregate only) emits one row per `(cell_type, nt, dataset)` and adds a `dataset` column, so agreement across connectomes is visible. |
+| `exclude_dbs` | As on `/query_connectivity`; defaults to `hb,fafb`. Echoed back as `excluded_dbs`. |
+| `min_confidence` | Drop predictions below this confidence (0..1). |
+| `force_refresh` | Bypass the cache. |
+
+The neurotransmitter is reported as its **GO secretion term** (`nt_id`, e.g. `GO_0014055`
+"acetylcholine secretion, neurotransmission") — the same id space as `/get_known_neurotransmitters`.
+Because the pipeline assigns a single neurotransmitter per neuron, `percent_of_class` sums to ~100%
+across the neurotransmitters of a cell type.
+
+## `/get_known_neurotransmitters`
+
+```
+GET /get_known_neurotransmitters?neuron_type=Tm9
+```
+
+Known (curated) neurotransmitter(s) for a neuron type and its subclasses, from the ontology's
+classification rather than per-instance predictions — so **no confidence**. One row per
+`(cell_type, nt)`: `{cell_type_id, cell_type, nt_id, nt_label}`, with `nt_id` a GO secretion term.
+Empty when the ontology asserts no neurotransmitter for the type. Read from the materialised
+`SUBCLASSOF` + `capable_of` structure (a neuron class links to a neurotransmitter-type class that
+carries a `capable_of` edge to the GO term), which is fast and independent of live reasoning.
 
 ## `/get_hierarchy`
 

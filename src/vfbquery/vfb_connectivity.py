@@ -965,3 +965,398 @@ def _build_connectivity_cypher(upstream_ids, downstream_ids, weight,
         )
 
     return " \n\n".join(clauses)
+
+
+# ---------------------------------------------------------------------------
+# Neurotransmitter queries
+# ---------------------------------------------------------------------------
+#
+# Two views of the same biology, kept deliberately separate because their
+# evidence differs:
+#
+# * **Predicted** (:func:`get_predicted_neurotransmitters`) is per *instance* --
+#   an asserted ``capable_of`` (RO_0002215) edge from a reconstructed neuron to
+#   a GO neurotransmitter-secretion term (a descendant of ``GO_0007269``), set by
+#   the prediction pipeline (vfb-neurotransmitter-predictions, from neuprint
+#   ``predictedNt`` / Eckstein ``conf_nt`` / Codex). The GO target -- not the
+#   presence of a confidence -- is what identifies the edge as a
+#   *neurotransmitter*; the ``confidence_value`` is what identifies it as a
+#   *prediction*, so this function requires both. An NT edge without a confidence
+#   is curated/verified, not predicted, and belongs to the known query.
+# * **Known** (:func:`get_known_neurotransmitters`) is per *class* -- a curated
+#   ontology classification that a neuron type is capable of a neurotransmitter
+#   secretion, read from the materialised ``SUBCLASSOF`` + ``capable_of`` Neo4j
+#   structure (not node labels, and not live reasoning), and carrying no
+#   confidence.
+#
+# Both report the transmitter as its **GO secretion term** (``GO_…``), so the
+# two share one id space.
+
+#: GO 'neurotransmitter secretion' -- the single semantic anchor for what counts
+#: as a neurotransmitter. Its subclasses are the specific secretion processes
+#: (acetylcholine, GABA, glutamate, and so on); anchoring on this one root rather
+#: than a hard-coded transmitter list means new neurotransmitters are picked up
+#: from the ontology automatically.
+_NT_SECRETION_ROOT = "GO_0007269"
+
+_NT_GO_TERMS = None
+
+
+def _nt_go_terms(nc):
+    """GO neurotransmitter-secretion terms, as an ordered ``{short_form: label}``.
+
+    These are the descendants of :data:`_NT_SECRETION_ROOT` (``GO_0007269``
+    'neurotransmitter secretion'), read from the **materialised ``SUBCLASSOF``
+    hierarchy in Neo4j** -- fast, and independent of Owlery (whose subsumption of
+    this GO root times out). This is the id space both NT functions report in,
+    and -- crucially -- the set that decides which ``capable_of`` edges are
+    neurotransmitters: ``capable_of`` (RO_0002215) is *also* used for
+    non-neurotransmitter neuron functions (feeding behaviour, locomotion, light
+    perception, and so on), so membership of this set, **not** the presence of a
+    ``confidence_value``, is what identifies a neurotransmitter edge. Anchoring
+    on the GO root avoids both a hard-coded transmitter list and any assumption
+    about which edges carry confidence. Memoised per process -- the set only
+    changes on a KB reload.
+    """
+    global _NT_GO_TERMS
+    if _NT_GO_TERMS is None:
+        results = nc.commit_list([
+            "MATCH (g:Class)-[:SUBCLASSOF*0..]->"
+            f"(:Class {{short_form: {_cypher_str(_NT_SECRETION_ROOT)}}}) "
+            "WHERE g.short_form STARTS WITH 'GO_' "
+            "RETURN DISTINCT g.short_form AS id, g.label AS label ORDER BY g.label"
+        ])
+        _NT_GO_TERMS = {r["id"]: (r.get("label") or r["id"])
+                        for r in dict_cursor(results) if r.get("id")}
+    return _NT_GO_TERMS
+
+
+# ---- predicted neurotransmitters (per-instance, with confidence) ----------
+
+def _aggregate_predictions(per_instance, split_by_dataset):
+    """Aggregate per-instance predictions to flat per-class rows.
+
+    One row per ``(cell_type, nt)``, or per ``(cell_type, nt, dataset)`` when
+    ``split_by_dataset`` is true (which adds a ``dataset`` column). Because the
+    pipeline assigns a single neurotransmitter per neuron, ``percent_of_class``
+    (of the cell type's prediction-bearing neurons) sums to ~100% across the NTs
+    of a cell type. ``mean_confidence`` is the mean over the neurons in the row.
+    """
+    from collections import defaultdict
+
+    groups = {}
+    denom = defaultdict(set)  # (cell_type[, dataset]) -> distinct neurons
+    for r in per_instance:
+        ct, nt, ds = r["cell_type_id"], r["nt_id"], r["dataset"]
+        gkey = (ct, nt, ds) if split_by_dataset else (ct, nt)
+        dkey = (ct, ds) if split_by_dataset else (ct,)
+        g = groups.get(gkey)
+        if g is None:
+            g = groups[gkey] = {
+                "cell_type_id": ct, "cell_type": r["cell_type"],
+                "nt_id": nt, "nt_label": r["nt_label"],
+                "dataset": ds if split_by_dataset else None,
+                "neurons": set(), "conf_sum": 0.0, "conf_n": 0,
+            }
+        g["neurons"].add(r["neuron_id"])
+        if r["confidence"] is not None:
+            g["conf_sum"] += r["confidence"]
+            g["conf_n"] += 1
+        denom[dkey].add(r["neuron_id"])
+
+    out = []
+    for g in groups.values():
+        dkey = ((g["cell_type_id"], g["dataset"]) if split_by_dataset
+                else (g["cell_type_id"],))
+        total = len(denom[dkey])
+        n = len(g["neurons"])
+        row = {
+            "cell_type_id": g["cell_type_id"],
+            "cell_type": g["cell_type"],
+            "nt_id": g["nt_id"],
+            "nt_label": g["nt_label"],
+            "instances": n,
+            "percent_of_class": round((n / total) * 100) if total else 0,
+            "mean_confidence": (round(g["conf_sum"] / g["conf_n"], 3)
+                                if g["conf_n"] else None),
+        }
+        if split_by_dataset:
+            row["dataset"] = g["dataset"]
+        out.append(row)
+    out.sort(key=lambda r: (r["cell_type"] or "", -r["instances"]))
+    return out
+
+
+def _predicted_neurotransmitters_uncached(neuron_type, aggregate=True,
+                                          split_by_dataset=False,
+                                          exclude_dbs=None, min_confidence=0.0):
+    """Compute predicted neurotransmitters directly from Neo4j (no caching)."""
+    if exclude_dbs is None:
+        exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
+
+    nc = _get_nc()
+    warnings = []
+
+    try:
+        class_id = _resolve_neuron_type_label(nc, neuron_type, notes=warnings)
+    except ValueError as e:
+        warnings.append(str(e))
+        return {"neurotransmitters": [], "warnings": warnings, "count": 0,
+                "resolved": {}}
+
+    class_label, ids, instances = _subclass_closure(nc, class_id)
+    if len(ids) > MAX_SUBCLASS_IDS:
+        warnings.append(
+            f"'{class_label}' ({class_id}) has {len(ids)} subclasses, over the "
+            f"{MAX_SUBCLASS_IDS} limit; only neurons typed directly to it were "
+            "searched. Ask about a more specific type."
+        )
+        ids = [class_id]
+    resolved = {"query": neuron_type, "id": class_id, "label": class_label,
+                "classes_searched": len(ids), "instances": instances}
+
+    nt_go = _nt_go_terms(nc)
+    if not nt_go:
+        return {"neurotransmitters": [], "warnings": warnings, "count": 0,
+                "resolved": resolved}
+
+    dbf = _db_filter_predicate("n", exclude_dbs) if exclude_dbs else None
+    cypher = (
+        "MATCH (c:Class:Neuron)<-[:INSTANCEOF]-"
+        "(n:Individual:Neuron)-[cap:capable_of]->(nt:Class)\n"
+        f"WHERE c.short_form IN {_id_list(ids)} "
+        f"AND nt.short_form IN {_id_list(list(nt_go))}\n"
+        # A prediction is an NT edge (GO target in the set) that carries a
+        # confidence. The GO filter is what makes it a neurotransmitter; the
+        # confidence is what makes it a *prediction*, which is what this function
+        # returns — an NT edge without one is curated/verified, not predicted, and
+        # belongs to get_known_neurotransmitters instead.
+        "AND EXISTS(cap.confidence_value)\n"
+        "AND NOT n:Deprecated"
+        + (f"\nAND {dbf}" if dbf else "")
+        + "\nOPTIONAL MATCH (n)-[:database_cross_reference]->"
+          "(s:Individual:Site {is_data_source:[True]})\n"
+        "RETURN c.short_form AS cell_type_id, c.label AS cell_type, "
+        "n.short_form AS neuron_id, n.label AS neuron_name, "
+        "nt.short_form AS nt_id, nt.label AS nt_label, "
+        "cap.confidence_value[0] AS confidence, "
+        "cap.database_cross_reference AS references, "
+        "s.short_form AS dataset"
+    )
+
+    per_instance = []
+    seen = set()
+    for r in dict_cursor(nc.commit_list([cypher])):
+        conf = r.get("confidence")
+        try:
+            conf = float(conf) if conf is not None else None
+        except (TypeError, ValueError):
+            conf = None
+        if conf is not None and conf < min_confidence:
+            continue
+        # An instance is normally typed to a single neuron class in the closure,
+        # but dedupe defensively so a multiply-typed neuron is not counted twice.
+        key = (r.get("neuron_id"), r.get("nt_id"),
+               r.get("cell_type_id"), r.get("dataset"))
+        if key in seen:
+            continue
+        seen.add(key)
+        per_instance.append({
+            "cell_type_id": r.get("cell_type_id"),
+            "cell_type": r.get("cell_type"),
+            "neuron_id": r.get("neuron_id"),
+            "neuron_name": r.get("neuron_name"),
+            "nt_id": r.get("nt_id"),
+            "nt_label": r.get("nt_label"),
+            "confidence": conf,
+            "references": r.get("references") or [],
+            "dataset": r.get("dataset"),
+        })
+
+    if not aggregate:
+        return {"neurotransmitters": per_instance, "warnings": warnings,
+                "count": len(per_instance), "resolved": resolved}
+
+    rows = _aggregate_predictions(per_instance, split_by_dataset)
+    return {"neurotransmitters": rows, "warnings": warnings,
+            "count": len(rows), "resolved": resolved}
+
+
+def _predicted_nt_cache_key(neuron_type, aggregate, split_by_dataset,
+                            min_confidence, exclude_dbs):
+    """Composite Solr-safe cache key for a get_predicted_neurotransmitters call
+    (the default ``@with_solr_cache`` keys on a single id, which does not fit
+    this signature — same approach as :func:`_connectivity_cache_key`)."""
+    import hashlib
+    raw = (f"predicted_neurotransmitters:{neuron_type}:{aggregate}:"
+           f"{split_by_dataset}:{min_confidence}:{exclude_dbs}")
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+
+
+def get_predicted_neurotransmitters(neuron_type, aggregate=True,
+                                    split_by_dataset=False, exclude_dbs=None,
+                                    min_confidence=0.0, force_refresh=False):
+    """Predicted neurotransmitter(s) for a neuron type, per instance or
+    aggregated to the class.
+
+    A type means itself *or any of its subclasses* (see the module docstring),
+    so asking about "Tm9" covers the Tm9a/Tm9b subtypes too. Only neurons
+    carrying a prediction edge contribute -- an asserted ``capable_of`` to a
+    neurotransmitter-secretion GO term (a descendant of ``GO_0007269``) that also
+    carries a ``confidence_value`` -- so neurons the pipeline could not predict
+    (e.g. too few presynapses) are absent, as is any curated/verified NT edge
+    without a confidence (see :func:`get_known_neurotransmitters` for those). To
+    compare predicted against known, run both queries.
+
+    :param neuron_type: neuron type label (e.g. "Tm9") or FBbt id.
+    :param aggregate: when True (default) return flat per-class rows
+        ``{cell_type_id, cell_type, nt_id, nt_label, instances,
+        percent_of_class, mean_confidence}``; when False return per-instance
+        rows ``{cell_type_id, cell_type, neuron_id, neuron_name, nt_id,
+        nt_label, confidence, references, dataset}``.
+    :param split_by_dataset: when True (aggregate only) emit one row per
+        ``(cell_type, nt, dataset)`` and add a ``dataset`` column, so agreement
+        across connectomes is visible; when False aggregate over all included
+        datasets.
+    :param exclude_dbs: dataset symbols to exclude; defaults to
+        :data:`DEFAULT_EXCLUDE_DBS`. Pass ``[]`` for every dataset, or a list
+        naming everything but the one connectome you want to filter to it.
+    :param min_confidence: drop predictions below this confidence (0..1).
+    :param force_refresh: bypass the Solr cache and recompute.
+    :return: dict with 'neurotransmitters' (list), 'warnings' (list),
+        'count' (int) and 'resolved' (how the type label was interpreted).
+    """
+    if exclude_dbs is None:
+        exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
+
+    from .solr_result_cache import get_solr_cache, solr_caching_disabled
+    if solr_caching_disabled():
+        return _predicted_neurotransmitters_uncached(
+            neuron_type, aggregate, split_by_dataset, exclude_dbs, min_confidence
+        )
+
+    cache = get_solr_cache()
+    cache_key = _predicted_nt_cache_key(
+        neuron_type, aggregate, split_by_dataset, min_confidence, exclude_dbs
+    )
+    if force_refresh:
+        cache.clear_cache_entry('predicted_neurotransmitters', cache_key)
+    else:
+        cached = cache.get_cached_result('predicted_neurotransmitters', cache_key)
+        if cached is not None:
+            return cached
+
+    result = _predicted_neurotransmitters_uncached(
+        neuron_type, aggregate, split_by_dataset, exclude_dbs, min_confidence
+    )
+    try:
+        if isinstance(result, dict) and result.get('count', -1) >= 0:
+            cache.cache_result('predicted_neurotransmitters', cache_key, result)
+    except Exception:
+        pass
+    return result
+
+
+# ---- known neurotransmitters (per-class, curated, via Owlery) --------------
+
+def _known_neurotransmitters_uncached(neuron_type):
+    """Compute known (curated) neurotransmitters directly (no caching).
+
+    For the queried class and each subclass, report the GO neurotransmitter
+    terms the ontology classifies it capable of. That classification is already
+    **materialised in Neo4j**: a neuron class links by ``SUBCLASSOF`` to a
+    neurotransmitter-type class (e.g. the Cell Ontology ``cholinergic neuron``,
+    ``CL_0000108``) which carries a ``capable_of`` (RO_0002215) edge to the GO
+    secretion term. So this is one structural query over ``SUBCLASSOF`` +
+    ``capable_of`` edges, filtered to the neurotransmitter GO set
+    (:func:`_nt_go_terms`).
+
+    This deliberately does *not* use live Owlery subsumption: reasoning
+    ``neuron and capable_of some <GO term>`` per neurotransmitter measured ~50s
+    each (minutes per call), whereas the materialised structure answers in well
+    under a second and gives identical results. It is also not node-label
+    parsing — it keys on the ``capable_of`` edge and GO ids. The GO filter is
+    essential: every neuron also reaches ``neuron`` -> *transmission of nerve
+    impulse* (``GO_0019226``), which is not a neurotransmitter and is excluded
+    by not being in the set.
+    """
+    nc = _get_nc()
+    warnings = []
+
+    try:
+        class_id = _resolve_neuron_type_label(nc, neuron_type, notes=warnings)
+    except ValueError as e:
+        warnings.append(str(e))
+        return {"neurotransmitters": [], "warnings": warnings, "count": 0,
+                "resolved": {}}
+
+    class_label, ids, _ = _subclass_closure(nc, class_id)
+    resolved = {"query": neuron_type, "id": class_id, "label": class_label,
+                "classes_searched": len(ids)}
+
+    nt_go = _nt_go_terms(nc)
+    if not nt_go:
+        return {"neurotransmitters": [], "warnings": warnings, "count": 0,
+                "resolved": resolved}
+
+    cypher = (
+        "MATCH (c:Class:Neuron)-[:SUBCLASSOF*0..]->(x:Class)"
+        "-[:capable_of]->(go:Class)\n"
+        f"WHERE c.short_form IN {_id_list(ids)} "
+        f"AND go.short_form IN {_id_list(list(nt_go))}\n"
+        "RETURN DISTINCT c.short_form AS cell_type_id, c.label AS cell_type, "
+        "go.short_form AS nt_id, go.label AS nt_label"
+    )
+    rows = [{
+        "cell_type_id": r.get("cell_type_id"),
+        "cell_type": r.get("cell_type"),
+        "nt_id": r.get("nt_id"),
+        "nt_label": r.get("nt_label"),
+    } for r in dict_cursor(nc.commit_list([cypher]))]
+    rows.sort(key=lambda r: (r["cell_type"] or "", r["nt_label"] or ""))
+    return {"neurotransmitters": rows, "warnings": warnings,
+            "count": len(rows), "resolved": resolved}
+
+
+def _known_nt_cache_key(neuron_type):
+    import hashlib
+    return hashlib.sha1(
+        f"known_neurotransmitters:{neuron_type}".encode("utf-8")
+    ).hexdigest()
+
+
+def get_known_neurotransmitters(neuron_type, force_refresh=False):
+    """Known (curated) neurotransmitter(s) for a neuron type and its subclasses.
+
+    Distinct from :func:`get_predicted_neurotransmitters`: this is the
+    ontology's curated classification (no confidence), read by Owlery
+    subsumption rather than from per-instance prediction edges. A type covers
+    itself and its subclasses, so a row appears for the queried class and for
+    each subclass the ontology gives a known neurotransmitter.
+
+    :param neuron_type: neuron type label (e.g. "Tm9") or FBbt id.
+    :param force_refresh: bypass the Solr cache and recompute.
+    :return: dict with 'neurotransmitters' (list of
+        ``{cell_type_id, cell_type, nt_id, nt_label}``), 'warnings', 'count'
+        and 'resolved'. Empty when the ontology asserts no neurotransmitter.
+    """
+    from .solr_result_cache import get_solr_cache, solr_caching_disabled
+    if solr_caching_disabled():
+        return _known_neurotransmitters_uncached(neuron_type)
+
+    cache = get_solr_cache()
+    cache_key = _known_nt_cache_key(neuron_type)
+    if force_refresh:
+        cache.clear_cache_entry('known_neurotransmitters', cache_key)
+    else:
+        cached = cache.get_cached_result('known_neurotransmitters', cache_key)
+        if cached is not None:
+            return cached
+
+    result = _known_neurotransmitters_uncached(neuron_type)
+    try:
+        if isinstance(result, dict) and result.get('count', -1) >= 0:
+            cache.cache_result('known_neurotransmitters', cache_key, result)
+    except Exception:
+        pass
+    return result

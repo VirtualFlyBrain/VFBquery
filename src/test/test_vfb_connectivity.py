@@ -19,7 +19,10 @@ calls, so the three tests that need the same query cost one query between them.
 """
 import pytest
 
-from vfbquery.vfb_connectivity import list_connectome_datasets, query_connectivity
+from vfbquery.vfb_connectivity import (
+    list_connectome_datasets, query_connectivity,
+    get_predicted_neurotransmitters, get_known_neurotransmitters,
+)
 
 #: A small, stable pair: 8 and 30 connectivity individuals respectively, one
 #: class each, no subclasses. Cheap enough to query several times — the two
@@ -335,3 +338,109 @@ class TestQueryConnectivityEdgeCases:
     def test_no_types_raises_error(self):
         with pytest.raises(ValueError, match="At least one"):
             query_connectivity()
+
+
+# ---------------------------------------------------------------------------
+# Neurotransmitter queries
+#
+# Tm9 is the stable fixture: a well-characterised, uncontroversially
+# cholinergic optic-lobe type (FBbt_00003797) with two subtypes (Tm9a/Tm9b),
+# so it exercises both the aggregation and the subclass behaviour while staying
+# small — the aggregate is a couple of rows and the known-NT answer a handful.
+# ---------------------------------------------------------------------------
+NT_TYPE = "FBbt_00003797"          # transmedullary neuron Tm9
+NT_TYPE_LABEL = "transmedullary neuron Tm9"
+ACH = "GO_0014055"                 # acetylcholine secretion, neurotransmission
+
+
+@pytest.fixture(scope="module")
+def predicted_tm9():
+    return get_predicted_neurotransmitters(NT_TYPE)
+
+
+@pytest.fixture(scope="module")
+def known_tm9():
+    return get_known_neurotransmitters(NT_TYPE)
+
+
+class TestPredictedNeurotransmitters:
+    @pytest.mark.integration
+    def test_tm9_is_predominantly_cholinergic(self, predicted_tm9):
+        rows = predicted_tm9["neurotransmitters"]
+        assert rows, "expected at least one predicted NT for Tm9"
+        # Rows are sorted per cell type by descending instances, so the first
+        # row for Tm9 is its dominant prediction.
+        top = max(rows, key=lambda r: r["instances"])
+        assert top["nt_id"] == ACH
+        assert top["percent_of_class"] >= 90
+
+    @pytest.mark.integration
+    def test_aggregate_row_shape(self, predicted_tm9):
+        for r in predicted_tm9["neurotransmitters"]:
+            assert r["nt_id"].startswith("GO_")
+            assert r["nt_label"]
+            assert isinstance(r["instances"], int) and r["instances"] > 0
+            assert 0 <= r["percent_of_class"] <= 100
+            assert r["mean_confidence"] is None or 0.0 <= r["mean_confidence"] <= 1.0
+            # aggregate (unsplit) rows carry no dataset column
+            assert "dataset" not in r
+
+    @pytest.mark.integration
+    def test_per_instance_shape(self):
+        result = get_predicted_neurotransmitters(NT_TYPE, aggregate=False)
+        rows = result["neurotransmitters"]
+        assert rows
+        r = rows[0]
+        assert r["neuron_id"] and r["nt_id"].startswith("GO_")
+        assert r["confidence"] is None or 0.0 <= r["confidence"] <= 1.0
+        assert "dataset" in r
+
+    @pytest.mark.integration
+    def test_split_by_dataset_adds_dataset_column(self):
+        result = get_predicted_neurotransmitters(NT_TYPE, split_by_dataset=True)
+        rows = result["neurotransmitters"]
+        assert rows
+        assert all("dataset" in r for r in rows)
+
+    @pytest.mark.integration
+    def test_min_confidence_filters(self, predicted_tm9):
+        strict = get_predicted_neurotransmitters(NT_TYPE, aggregate=False,
+                                                 min_confidence=0.99)
+        default = get_predicted_neurotransmitters(NT_TYPE, aggregate=False)
+        assert strict["count"] <= default["count"]
+        assert all(r["confidence"] is None or r["confidence"] >= 0.99
+                   for r in strict["neurotransmitters"])
+
+    @pytest.mark.integration
+    def test_nonexistent_type_returns_warning(self):
+        result = get_predicted_neurotransmitters(
+            "xyzzy_nonexistent_neuron_type_99999")
+        assert result["count"] == 0
+        assert len(result["warnings"]) > 0
+
+
+class TestKnownNeurotransmitters:
+    @pytest.mark.integration
+    def test_tm9_known_cholinergic(self, known_tm9):
+        pairs = {(r["cell_type_id"], r["nt_id"])
+                 for r in known_tm9["neurotransmitters"]}
+        assert (NT_TYPE, ACH) in pairs
+
+    @pytest.mark.integration
+    def test_includes_subclasses(self, known_tm9):
+        # Tm9a / Tm9b are subtypes of Tm9 and should appear as their own rows.
+        cell_types = {r["cell_type_id"] for r in known_tm9["neurotransmitters"]}
+        assert len(cell_types) > 1
+
+    @pytest.mark.integration
+    def test_row_shape(self, known_tm9):
+        for r in known_tm9["neurotransmitters"]:
+            assert set(r) == {"cell_type_id", "cell_type", "nt_id", "nt_label"}
+            assert r["nt_id"].startswith("GO_")
+
+    @pytest.mark.integration
+    def test_nonexistent_type_returns_warning(self):
+        result = get_known_neurotransmitters(
+            "xyzzy_nonexistent_neuron_type_99999")
+        assert result["count"] == 0
+        assert len(result["warnings"]) > 0

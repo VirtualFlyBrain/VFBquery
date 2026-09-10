@@ -5434,6 +5434,28 @@ def get_images_that_develop_from(short_form: str, return_dataframe=True, limit: 
                                     solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 
 
+def _capable_of_expression(target_iri: str) -> str:
+    """OWL class expression ``neuron and capable_of some <target>``.
+
+    ``<FBbt_00005106>`` is *neuron*, ``<RO_0002215>`` is *capable of*. Used by
+    :func:`get_neurons_capable_of`, which dispatches it to Owlery as an
+    *instances* query -- which individual neurons are capable of ``target``
+    (e.g. a neurotransmitter-secretion GO term).
+
+    (The class-level converse -- which neuron *classes* are curated capable of a
+    neurotransmitter -- is answered in ``vfb_connectivity`` by a materialised
+    ``SUBCLASSOF`` + ``capable_of`` Neo4j query rather than by reasoning this
+    expression per term, which is far too slow live.)
+
+    ``target_iri`` is a full IRI (e.g. ``http://purl.obolibrary.org/obo/GO_0014055``).
+    """
+    return (
+        "<http://purl.obolibrary.org/obo/FBbt_00005106> "
+        "and <http://purl.obolibrary.org/obo/RO_0002215> "
+        f"some <{target_iri}>"
+    )
+
+
 @with_solr_cache('neurons_capable_of')
 def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = -1, offset: int = 0):
     """
@@ -5452,7 +5474,7 @@ def get_neurons_capable_of(short_form: str, return_dataframe=True, limit: int = 
     :param limit: maximum number of results (default -1, all)
     :return: Individual neurons capable of the specified process
     """
-    owl_query = f"<http://purl.obolibrary.org/obo/FBbt_00005106> and <http://purl.obolibrary.org/obo/RO_0002215> some <{_short_form_to_iri(short_form)}>"
+    owl_query = _capable_of_expression(_short_form_to_iri(short_form))
     return _owlery_query_to_results(owl_query, short_form, return_dataframe, limit,
                                     solr_field='anat_image_query', query_by_label=False, query_instances=True, offset=offset)
 

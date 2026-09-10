@@ -159,7 +159,7 @@ class VfbClient:
     #: uses ``connections``. Without the second name its envelope falls through to
     #: the "a dict is one row" branch below and the caller gets a 1x3 frame of
     #: nested lists instead of the connectivity table.
-    _ROW_KEYS = ("rows", "connections")
+    _ROW_KEYS = ("rows", "connections", "neurotransmitters")
 
     @classmethod
     def _to_df(cls, payload) -> pd.DataFrame:
@@ -320,6 +320,44 @@ class VfbClient:
         """Per-individual partners (run_query NeuronNeuronConnectivityQuery)."""
         return self._to_df(self._get("run_query", id=neuron_id,
                                      query_type="NeuronNeuronConnectivityQuery"))
+
+    def get_predicted_neurotransmitters(self, neuron_type: str,
+                                        aggregate: bool = True,
+                                        split_by_dataset: bool = False,
+                                        exclude_dbs: Optional[Iterable[str]] = None,
+                                        min_confidence: float = 0.0,
+                                        ) -> pd.DataFrame:
+        """Predicted neurotransmitter(s) for a type (GET /get_predicted_neurotransmitters).
+
+        **A type includes its subclasses**, as on
+        :meth:`get_connected_neurons_by_type`. Predictions come from per-instance
+        ``capable_of`` edges carrying a confidence.
+
+        ``aggregate`` (default) returns flat per-class rows with ``instances``,
+        ``percent_of_class`` and ``mean_confidence``; ``aggregate=False`` returns
+        one row per neuron. ``split_by_dataset`` (aggregate only) adds a
+        ``dataset`` column and one row per dataset. The neurotransmitter is a GO
+        secretion term (``nt_id``/``nt_label``). ``exclude_dbs`` behaves as on
+        :meth:`get_connected_neurons_by_type` (``[]`` for all datasets).
+        """
+        dbs = None if exclude_dbs is None else ",".join(exclude_dbs)
+        return self._to_df(self._get("get_predicted_neurotransmitters",
+                                     neuron_type=neuron_type,
+                                     aggregate=str(aggregate).lower(),
+                                     split_by_dataset=str(split_by_dataset).lower(),
+                                     exclude_dbs=dbs,
+                                     min_confidence=min_confidence))
+
+    def get_known_neurotransmitters(self, neuron_type: str) -> pd.DataFrame:
+        """Known (curated) neurotransmitter(s) for a type and its subclasses
+        (GET /get_known_neurotransmitters).
+
+        Ontology classification rather than per-instance prediction, so no
+        confidence. One row per ``(cell_type, nt)``; the neurotransmitter is a GO
+        secretion term. Empty when the ontology asserts none.
+        """
+        return self._to_df(self._get("get_known_neurotransmitters",
+                                     neuron_type=neuron_type))
 
     # ---- similarity ------------------------------------------------------
     def get_similar_neurons(self, neuron_id: str) -> pd.DataFrame:

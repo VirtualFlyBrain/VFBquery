@@ -23,6 +23,8 @@ Endpoints (mirrors v3-cached.virtualflybrain.org):
     GET /find_combo_publications?id=<resolved_fbco_id>
     GET /list_connectome_datasets
     GET /query_connectivity?upstream_type=<name>&downstream_type=<name>
+    GET /get_predicted_neurotransmitters?neuron_type=<name>[&aggregate=&split_by_dataset=&exclude_dbs=&min_confidence=]
+    GET /get_known_neurotransmitters?neuron_type=<name>
     GET /get_hierarchy?id=<VFB id>[&relationship=&direction=&max_depth=]
     GET /search?query=<free_text>                      # canonical website search
     GET /facets[?contains=<text>]                      # type names /search accepts
@@ -498,6 +500,7 @@ ALLOWED_PATHS = frozenset({
     "/resolve_entity", "/find_stocks",
     "/resolve_combination", "/find_combo_publications",
     "/list_connectome_datasets", "/query_connectivity",
+    "/get_predicted_neurotransmitters", "/get_known_neurotransmitters",
     "/search", "/facets", "/xref", "/combine", "/get_hierarchy",
     "/catmaid",
 })
@@ -813,6 +816,28 @@ def _run_query_connectivity(upstream_type, downstream_type, weight,
     )
 
 
+def _run_get_predicted_neurotransmitters(neuron_type, aggregate, split_by_dataset,
+                                         exclude_dbs, min_confidence,
+                                         force_refresh=False):
+    """Execute get_predicted_neurotransmitters in a worker process."""
+    return _vfb.get_predicted_neurotransmitters(
+        neuron_type=neuron_type,
+        aggregate=aggregate,
+        split_by_dataset=split_by_dataset,
+        exclude_dbs=exclude_dbs,
+        min_confidence=min_confidence,
+        force_refresh=force_refresh,
+    )
+
+
+def _run_get_known_neurotransmitters(neuron_type, force_refresh=False):
+    """Execute get_known_neurotransmitters in a worker process."""
+    return _vfb.get_known_neurotransmitters(
+        neuron_type=neuron_type,
+        force_refresh=force_refresh,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Graph post-processing — mapping from query function name to graph converter
 # ---------------------------------------------------------------------------
@@ -1111,6 +1136,27 @@ def _query_int(request, name, default, minimum=None, maximum=None):
         raise BadParam("%s must be at least %d (got %d)" % (name, minimum, value))
     if maximum is not None and value > maximum:
         raise BadParam("%s must be at most %d (got %d)" % (name, maximum, value))
+    return value
+
+
+def _query_float(request, name, default, minimum=None, maximum=None):
+    """Read a float query parameter, or raise :class:`BadParam`.
+
+    The float analogue of :func:`_query_int` — used for ``min_confidence``,
+    where a bad value changes what is asked and so is rejected rather than
+    silently defaulted. Blank is treated as absent.
+    """
+    raw = request.query.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise BadParam("%s must be a number (got %r)" % (name, raw))
+    if minimum is not None and value < minimum:
+        raise BadParam("%s must be at least %s (got %s)" % (name, minimum, value))
+    if maximum is not None and value > maximum:
+        raise BadParam("%s must be at most %s (got %s)" % (name, maximum, value))
     return value
 
 
@@ -2186,6 +2232,99 @@ async def handle_query_connectivity(request):
         request, key, _run_query_connectivity,
         upstream, downstream, weight, group_by_class, exclude_dbs, force_refresh,
         post_fn=post_fn, known_params=_CONNECTIVITY_PARAMS,
+    )
+
+
+_PREDICTED_NT_PARAMS = frozenset({
+    "neuron_type", "aggregate", "split_by_dataset", "exclude_dbs",
+    "min_confidence", "force_refresh",
+})
+
+_KNOWN_NT_PARAMS = frozenset({"neuron_type", "force_refresh"})
+
+
+async def handle_get_predicted_neurotransmitters(request):
+    """GET /get_predicted_neurotransmitters?neuron_type=X&aggregate=true&split_by_dataset=false&exclude_dbs=hb,fafb&min_confidence=0
+
+    Predicted neurotransmitter(s) for a neuron type — itself or any subclass —
+    from per-instance ``capable_of`` prediction edges (those carrying a
+    confidence). ``aggregate`` (default true) returns flat per-class rows;
+    ``split_by_dataset`` adds a ``dataset`` column so cross-connectome agreement
+    is visible; ``min_confidence`` drops low-confidence predictions.
+    ``exclude_dbs`` behaves exactly as on ``/query_connectivity`` (defaults to
+    ``DEFAULT_EXCLUDE_DBS``; pass empty for all datasets), and the datasets left
+    out are echoed back as ``excluded_dbs``.
+    """
+    neuron_type = request.query.get("neuron_type") or None
+    if neuron_type is None:
+        return web.json_response({"error": "neuron_type required"}, status=400)
+    aggregate = _query_flag(request, "aggregate", default=True)
+    split_by_dataset = _query_flag(request, "split_by_dataset")
+    try:
+        min_confidence = _query_float(
+            request, "min_confidence", 0.0, minimum=0.0, maximum=1.0)
+    except BadParam as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    exclude_dbs_raw = request.query.get("exclude_dbs")
+    if exclude_dbs_raw is not None:
+        exclude_dbs = [s.strip() for s in exclude_dbs_raw.split(",") if s.strip()]
+    else:
+        from .vfb_connectivity import DEFAULT_EXCLUDE_DBS
+        exclude_dbs = list(DEFAULT_EXCLUDE_DBS)
+    force_refresh = _force_refresh_requested(request)
+
+    warnings = []
+    if exclude_dbs:
+        try:
+            exclude_dbs, rewritten = _resolve_exclude_dbs(
+                exclude_dbs, await _connectome_vocabulary(request.app))
+        except BadParam as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        if rewritten:
+            warnings.append(
+                "exclude_dbs %s resolved to %s"
+                % (", ".join(repr(v) for v in rewritten),
+                   ", ".join(repr(v) for v in exclude_dbs)))
+
+    def post_fn(result):
+        if not isinstance(result, dict):
+            return result
+        result = dict(result)
+        result["excluded_dbs"] = list(exclude_dbs)
+        if warnings:
+            result["warnings"] = list(result.get("warnings") or []) + warnings
+        return result
+
+    key = ("predicted_neurotransmitters:%s:%s:%s:%s:%s"
+           % (neuron_type, aggregate, split_by_dataset, min_confidence,
+              exclude_dbs))
+    if force_refresh:
+        request.app["result_cache"].invalidate(key)
+    return await _dispatch_to_pool(
+        request, key, _run_get_predicted_neurotransmitters,
+        neuron_type, aggregate, split_by_dataset, exclude_dbs, min_confidence,
+        force_refresh, post_fn=post_fn, known_params=_PREDICTED_NT_PARAMS,
+    )
+
+
+async def handle_get_known_neurotransmitters(request):
+    """GET /get_known_neurotransmitters?neuron_type=X
+
+    Known (curated) neurotransmitter(s) for a neuron type and its subclasses,
+    read from ontology subsumption (no confidence). One row per
+    ``(cell_type, nt)``; empty when the ontology asserts none.
+    """
+    neuron_type = request.query.get("neuron_type") or None
+    if neuron_type is None:
+        return web.json_response({"error": "neuron_type required"}, status=400)
+    force_refresh = _force_refresh_requested(request)
+    key = "known_neurotransmitters:%s" % (neuron_type,)
+    if force_refresh:
+        request.app["result_cache"].invalidate(key)
+    return await _dispatch_to_pool(
+        request, key, _run_get_known_neurotransmitters,
+        neuron_type, force_refresh, known_params=_KNOWN_NT_PARAMS,
     )
 
 
@@ -4095,6 +4234,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/find_combo_publications", handle_find_combo_publications)
     app.router.add_get("/list_connectome_datasets", handle_list_connectome_datasets)
     app.router.add_get("/query_connectivity", handle_query_connectivity)
+    app.router.add_get("/get_predicted_neurotransmitters", handle_get_predicted_neurotransmitters)
+    app.router.add_get("/get_known_neurotransmitters", handle_get_known_neurotransmitters)
     app.router.add_get("/get_hierarchy", handle_get_hierarchy)
     app.router.add_get("/get_hierarchy_html", handle_get_hierarchy_html)
 

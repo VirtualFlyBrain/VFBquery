@@ -26,6 +26,14 @@ only when that probe shows Neo4j is down do we make ``commit_list`` raise on
 a real server/query error and is left to fail. This shim is test-only; the
 library's production behaviour is untouched.
 
+FlyBase Chado (PostgreSQL, via psycopg) gets the same treatment for the same
+reason: ``get_connection`` raises ``psycopg`` connection errors on an outage
+(``ConnectionTimeout``, "could not connect to server"), which are now recognised
+as transport failures — but some callers degrade an outage to an *empty* result
+(e.g. stock-collection links), which would look like a real defect. So when a
+one-shot probe shows Chado is down, ``get_connection`` is shimmed to raise, and
+every Chado-backed test routes to the skip path instead of failing.
+
 Finally, a mid-run circuit breaker: if the backend dies PART-WAY through a run
 (healthy at session start, so the shim above never armed), the remaining
 backend tests would each burn their full 300s timeout. Instead, the first
@@ -57,6 +65,9 @@ _CONNECTION_TYPE_NAMES = frozenset({
     "ConnectTimeoutError", "ReadTimeout", "ReadTimeoutError", "MaxRetryError",
     "NewConnectionError", "ProtocolError", "ServiceUnavailable",
     "SessionExpired", "OperationalError",
+    # psycopg (FlyBase Chado): ConnectionTimeout is a concrete OperationalError
+    # subclass, so it is matched by its own name, not the base above.
+    "ConnectionTimeout",
 })
 
 # Substrings that mark a transport failure even when the concrete exception is a
@@ -70,6 +81,10 @@ _CONNECTION_MESSAGE_MARKERS = (
     "temporary failure in name resolution", "no route to host",
     "network is unreachable", "neo4j unreachable",
     "502 bad gateway", "503 service unavailable", "504 gateway",
+    # psycopg (FlyBase Chado) connection-failure phrasings.
+    "connection timeout expired", "could not connect to server",
+    "connection to server at", "server closed the connection",
+    "chado unreachable",
 )
 
 
@@ -232,6 +247,59 @@ def _neo4j_connection_shim():
         yield
     finally:
         nc.commit_list = original
+
+
+# --------------------------------------------------------------------------
+# One-shot FlyBase Chado probe + get_connection shim (see module docstring)
+# --------------------------------------------------------------------------
+
+def _chado_is_down():
+    """True when the FlyBase Chado database is unreachable.
+
+    Probes once with a short connect timeout. Chado is PostgreSQL (psycopg), not
+    HTTP, so it is not covered by the HTTP health probes used elsewhere; this is
+    its own check. Any failure — or a raising client on a dead host — is down."""
+    try:
+        import psycopg
+        from vfbquery import flybase_db
+        params = dict(flybase_db.FLYBASE_DB)
+        params["connect_timeout"] = 5
+        psycopg.connect(**params).close()
+        return False
+    except Exception as exc:
+        return _is_connection_failure(exc) or True
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _chado_connection_shim():
+    """Only when FlyBase Chado is unreachable, make ``get_connection`` raise a
+    connection error so the skip hook catches every Chado-backed test (stocks,
+    combination publications, entity resolution) rather than letting them fail on
+    an empty / plain-text result — the psycopg analogue of the Neo4j shim above.
+    No-op when Chado is up.
+
+    The FlyBase modules do ``from .flybase_db import get_connection``, binding the
+    name at import time, so it is patched in each of them, not just on
+    ``flybase_db``. Only tests that actually open a Chado connection are affected."""
+    if not _chado_is_down():
+        yield
+        return
+    from vfbquery import flybase_db, flybase_stocks, flybase_combo_pubs
+
+    def _raising_get_connection(*args, **kwargs):
+        raise ConnectionError("FlyBase Chado unreachable")
+
+    targets = [flybase_db, flybase_stocks, flybase_combo_pubs]
+    originals = [(m, getattr(m, "get_connection", None)) for m in targets]
+    for m in targets:
+        if hasattr(m, "get_connection"):
+            m.get_connection = _raising_get_connection
+    try:
+        yield
+    finally:
+        for m, original in originals:
+            if original is not None:
+                m.get_connection = original
 
 
 # --------------------------------------------------------------------------

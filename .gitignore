@@ -29,3 +29,10 @@ src/.DS_Store
 # generated one.
 docs/_build/
 docs/_root/
+
+# Test-run artifacts written by conftest.py (pytest_sessionfinish) and the CI
+# "Run full test suite" step: the skip report and the captured pytest output.
+# Regenerated every run and consumed in-place by CI — never committed.
+skipped_tests_report.md
+skipped_tests_report.json
+pytest_output.log

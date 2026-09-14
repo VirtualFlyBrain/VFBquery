@@ -5268,10 +5268,15 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
     :return: Stock records from FlyBase
     """
     from .flybase_stocks import find_stocks
+    from .flybase_db import is_connection_error
 
     try:
         stocks = find_stocks(short_form)
     except Exception as e:
+        # A Chado *outage* must propagate (it must not masquerade as "no
+        # stocks"); only a genuine query error degrades to an empty result.
+        if is_connection_error(e):
+            raise
         print(f"Error querying FlyBase stocks for {short_form}: {e}")
         if return_dataframe:
             return pd.DataFrame()
@@ -5331,10 +5336,14 @@ def get_flybase_combo_pubs(short_form: str, return_dataframe=True, limit: int = 
     :return: Publication records from FlyBase
     """
     from .flybase_combo_pubs import find_combo_publications
+    from .flybase_db import is_connection_error
 
     try:
         pubs = find_combo_publications(short_form)
     except Exception as e:
+        # A Chado *outage* must propagate, not degrade to "no publications".
+        if is_connection_error(e):
+            raise
         print(f"Error querying FlyBase publications for {short_form}: {e}")
         if return_dataframe:
             return pd.DataFrame()

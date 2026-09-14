@@ -408,11 +408,12 @@ def write_term_info(solr_doc):
 
 
 def backfill_term_info(short_form):
-    """Build a missing document, write it back, and return the payload.
+    """Build a document, write it back, and return the payload.
 
-    Called by ``get_term_info`` when SOLR has no document for the id. The
-    caller has already established the miss, so the write cannot overwrite
-    anything.
+    Called by ``get_term_info`` when SOLR has no term_info for the id, or when a
+    ``pub`` document is present but hollow (a title-less skeleton). In the miss
+    case the write cannot overwrite anything; in the hollow-pub case it
+    deliberately replaces the empty document with the rebuilt one.
 
     :return: the ``term_info`` payload as a JSON string, or None
     """

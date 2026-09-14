@@ -25,6 +25,8 @@ os.environ.setdefault("VFBQUERY_CACHE_ENABLED", "false")
 
 import unittest
 import sys
+import json
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -42,6 +44,16 @@ class _Results:
 def _raw(short_form):
     """Fetch the raw SOLR doc(s) for a term (read-only) and wrap them."""
     return _Results(q.vfb_solr.search('id:' + short_form).docs)
+
+
+def _fixture_raw(name):
+    """Wrap a committed complete term_info fixture as a SOLR-style result, so the
+    render code can be tested without live SOLR content. See TESTING.md
+    'Fixture vs live (data_health)'."""
+    path = os.path.join(os.path.dirname(__file__),
+                        "fixtures", "term_info", name + ".json")
+    with open(path, encoding="utf-8") as f:
+        return _Results([{"term_info": [json.dumps(json.load(f))]}])
 
 
 class TermInfoParityTest(unittest.TestCase):
@@ -81,7 +93,17 @@ class TermInfoParityTest(unittest.TestCase):
 
     # --- Gap C: publication external content (pub_specific_content) ---------
     def test_publication_external_content_present(self):
-        ti = self._parse("FBrf0242477")  # Dolan et al., 2019
+        self._check_pub_external_content(
+            q.term_info_parse_object(_fixture_raw("pub_FBrf0242477"), "FBrf0242477"))
+
+    @pytest.mark.data_health
+    def test_publication_external_content_present_live(self):
+        """Data-health (scheduled only): the same parity check against the live SOLR document, so
+        an incomplete production pub document is caught. Deselected on PRs via
+        ``-m 'not data_health'``."""
+        self._check_pub_external_content(self._parse("FBrf0242477"))
+
+    def _check_pub_external_content(self, ti):
         pubs = ti.get("Publications", [])
         self.assertTrue(pubs, "pub_specific_content dropped: Publications empty")
         pub = pubs[0]

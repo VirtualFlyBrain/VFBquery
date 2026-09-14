@@ -75,9 +75,19 @@ jobs:
           # on today's GitHub-hosted ubuntu runner, so this is not a slowdown —
           # it just stops the load on VFB infra changing silently if the hosted
           # runner spec grows.
+          #
+          # data_health: the '*_live' term_info variants assert on the external
+          # indexer's built vfb_json content, not this repo's render code, so
+          # an incomplete/stale production document fails them. They must NOT gate
+          # code PRs — the PR-blocking versions are fixture-based and deterministic.
+          # So they run ONLY on the schedule (a data-health audit); on push /
+          # pull_request they are deselected. See TESTING.md.
+          MARK=(-m "not data_health")
+          [ "${{ github.event_name }}" = "schedule" ] && MARK=()
           pytest -v -ra -n 4 --dist loadscope \
             --ignore=src/test/test_query_performance.py \
             --ignore=src/test/test_example_queries.py \
+            "${MARK[@]}" \
             src/test tests 2>&1 | tee pytest_output.log
       - name: Flag skipped tests (backend unavailable)
         if: always()

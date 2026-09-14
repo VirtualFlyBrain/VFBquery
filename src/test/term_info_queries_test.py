@@ -1,8 +1,24 @@
 import os
 import unittest
 import time
+import json
+import pytest
 from vfbquery.term_info_queries import deserialize_term_info, deserialize_term_info_from_dict, process
 from vfbquery.solr_fetcher import SolrTermInfoFetcher
+
+
+def _load_fixture(name):
+    """Load a committed, complete term_info document (a render-code fixture).
+
+    These are captured from the PDB (the source of truth) and are what the term
+    INDEXER should produce; they let the serialization tests run deterministically
+    without depending on live SOLR ``vfb_json`` content. See TESTING.md,
+    'Fixture vs live (data_health)'.
+    """
+    path = os.path.join(os.path.dirname(__file__),
+                        "fixtures", "term_info", name + ".json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 class TermInfoQueriesTest(unittest.TestCase):
@@ -346,12 +362,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("filemeta" in serialized)
         self.assertFalse("template" in serialized)
 
-    def test_term_info_serialization_split_class(self):
-        term_info_dict = self.get_term_info_or_skip('VFBexp_FBtp0124468FBtp0133404')
-        print(term_info_dict)
-        start_time = time.time()
+    def _check_split_class_serialization(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern [VFBexp_FBtp0124468FBtp0133404]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -380,6 +392,21 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertIn(expected_rel_2, serialized["relationships"])
 
         self.assertFalse("related_individuals" in serialized)
+
+    def test_term_info_serialization_split_class(self):
+        """Render code (PR-blocking): serialize a complete split-class doc from a
+        committed fixture. Deterministic — isolates a serialization regression
+        from live-data state. See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_split_class_serialization(
+            _load_fixture("split_VFBexp_FBtp0124468FBtp0133404"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_split_class_live(self):
+        """Data-health (scheduled only): the same assertions against the live SOLR document, so an
+        incomplete production document (missing the Expression_pattern type, the
+        synonyms, ...) is caught. Deselected on PRs via ``-m 'not data_health'``."""
+        self._check_split_class_serialization(
+            self.get_term_info_or_skip('VFBexp_FBtp0124468FBtp0133404'))
         self.assertTrue("xrefs" in serialized)
         self.assertEqual(2, len(serialized["xrefs"]))
         expected_xref = {'icon': 'https://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png',
@@ -536,13 +563,8 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("template" in serialized)
         self.assertEqual("[JRC2018UnisexVNC](VFB_00200000)", serialized["template"])
 
-    def test_term_info_serialization_pub(self):
-        term_info_dict = self.get_term_info_or_skip('FBrf0243986')
-        print(term_info_dict)
-        start_time = time.time()
+    def _check_pub_serialization(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
-
         self.assertEqual("Sayin et al., 2019, Neuron 104(3): 544--558.e6 [FBrf0243986]", serialized["label"])
         self.assertTrue("title" in serialized)
         self.assertEqual("A Neural Circuit Arbitrates between Persistence and Withdrawal in Hungry Drosophila.", serialized["title"])
@@ -556,6 +578,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("license" in serialized)
         self.assertFalse("Classification" in serialized)
         self.assertFalse("relationships" in serialized)
+
+    def test_term_info_serialization_pub(self):
+        """Render code (PR-blocking): serialize a complete pub doc from a committed
+        fixture. Deterministic — independent of live SOLR content and caches, so it isolates a
+        code regression. See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_pub_serialization(_load_fixture("pub_FBrf0243986"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_pub_live(self):
+        """Data-health (scheduled only): the same assertions against the live SOLR document, so a
+        stale/incomplete production document is caught. Deselected on PRs via
+        ``-m 'not data_health'``."""
+        self._check_pub_serialization(self.get_term_info_or_skip('FBrf0243986'))
         self.assertFalse("related_individuals" in serialized)
 
         self.assertTrue("xrefs" in serialized)

@@ -12,6 +12,7 @@ build-backend = "setuptools.build_meta"
 # blocks in performance.md — pure noise.
 markers = [
     "integration: integration tests that exercise the live VFB upstream (Neo4j, SOLR, owlery). Skip via -m 'not integration'.",
+    "data_health: live SOLR content-completeness checks (the '*_live' variants of the term_info tests). These assert on the external indexer's built 'vfb_json' documents, not this repo's render code, so an empty/incomplete production document fails them. Run on the schedule; deselected on PRs via -m 'not data_health'. See TESTING.md.",
 ]
 
 # Ceiling on any single test. The upstream Neo4j intermittently stops answering

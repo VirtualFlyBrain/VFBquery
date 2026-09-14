@@ -10,7 +10,7 @@ on:
     - cron: '0 0 * * 0'  # Runs at 00:00 UTC every Sunday (weekly data-health audit)
 
 # One live run per branch. Every run drives the full correctness suite against
-# the production VFB backend (Neo4j / SOLR / Owlery), so a series of quick
+# the production data sources (VFB's Neo4j / SOLR / Owlery and FlyBase Chado), so a series of quick
 # pushes to a PR would otherwise stack several full suites against production
 # simultaneously. Superseded runs are cancelled — only the newest commit's
 # result is meaningful anyway.
@@ -115,7 +115,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ -n "$summary" ]; then
-            echo "::warning title=Tests skipped — VFB backend unreachable::${summary}. ${digest:+First failure: ${digest}. }These are NOT test failures and not a problem with this branch: the VFB backend (Neo4j / SOLR / Owlery) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the backend is healthy before relying on it. Full detail (every skipped test with its reason; failing URLs and probe verdicts for backend failures): the job summary and the PR comment."
+            echo "::warning title=Tests skipped — upstream data source unreachable::${summary}. ${digest:+First failure: ${digest}. }These are NOT test failures and not a problem with this branch: an upstream data source (VFB's Neo4j / SOLR / Owlery, or FlyBase's Chado) did not answer, so those queries went unverified this run. Treat a green check with skips as an incomplete run — re-run once the data sources are healthy before relying on it. Full detail (every skipped test with its reason; failing URLs and probe verdicts for backend failures): the job summary and the PR comment."
           else
             echo "No tests skipped."
           fi
@@ -161,7 +161,7 @@ jobs:
             // re-running it would do nothing.
             const runUrl = `${process.env.GITHUB_SERVER_URL}/${owner}/${repo}/actions/runs/${context.runId}`;
             const rerun = `To re-run: open [this workflow run](${runUrl}) and click ` +
-              `**Re-run all jobs** once the backend is healthy (re-running the ` +
+              `**Re-run all jobs** once the data sources are healthy (re-running the ` +
               `“Run completeness” check itself does nothing — it has no job behind it).`;
 
             // A neutral (grey) status check so the PR's checks box stops reading
@@ -178,16 +178,16 @@ jobs:
               details_url: runUrl,
               output: {
                 title: skipped > 0
-                  ? `${skipped} test(s) skipped — backend unreachable (incomplete run)`
+                  ? `${skipped} test(s) skipped — upstream data source unreachable (incomplete run)`
                   : 'All backend tests ran',
                 summary: skipped > 0
-                  ? (`**${skipped}** test(s) were skipped because the VFB backend ` +
-                     `(Neo4j / SOLR / Owlery) did not answer, so those queries went ` +
+                  ? (`**${skipped}** test(s) were skipped because an upstream data source ` +
+                     `(VFB's Neo4j / SOLR / Owlery, or FlyBase's Chado) did not answer, so those queries went ` +
                      `unverified. This is not a branch failure — but the run is ` +
                      `incomplete.\n\n${rerun}` +
                      (summary ? '\n\n```\n' + summary + '\n```' : '') +
                      (outage ? '\n\n' + outage : ''))
-                  : 'Every backend-dependent test reached the VFB backend and ran.',
+                  : 'Every backend-dependent test reached its data source and ran.',
               },
             });
             const comments = await github.paginate(github.rest.issues.listComments,
@@ -197,10 +197,10 @@ jobs:
             if (skipped > 0) {
               const body = [
                 marker,
-                `### ⚠️ ${skipped} test(s) skipped — VFB backend was unreachable`,
+                `### ⚠️ ${skipped} test(s) skipped — an upstream data source was unreachable`,
                 '',
-                `The full suite ran, but **${skipped}** test(s) were **skipped** because the ` +
-                `VFB backend (Neo4j / SOLR / Owlery) did not answer during this run.`,
+                `The full suite ran, but **${skipped}** test(s) were **skipped** because ` +
+                `an upstream data source (VFB's Neo4j / SOLR / Owlery, or FlyBase's Chado) did not answer during this run.`,
                 '',
                 'These are **not failures** and **not a problem with this branch** — but those ' +
                 'queries went **unverified**, so a green check here is an *incomplete* run.',

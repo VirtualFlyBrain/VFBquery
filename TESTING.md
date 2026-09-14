@@ -105,7 +105,7 @@ Mechanics:
   `vfb_json` document and the caches**, so code improvements are never blocked by
   stale data.
 * The live variant carries `@pytest.mark.data_health`. PRs run
-  `-m 'not data_health'`; the monthly `schedule` in `python-test.yml` runs the
+  `-m 'not data_health'`; the weekly `schedule` in `python-test.yml` runs the
   full set. A red scheduled `data_health` run means production `vfb_json` (or the
   indexer that builds it) needs attention — it does **not** block merges.
 * Do **not** paper over an empty term_info doc with a skip guard — that violates

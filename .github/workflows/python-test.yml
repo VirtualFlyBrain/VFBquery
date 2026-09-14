@@ -7,7 +7,7 @@ on:
     branches: [ main, dev ]
   workflow_dispatch:  # Enables manual triggering
   schedule:
-    - cron: '0 0 2 * *'  # Runs at 00:00 UTC on the 2nd day of every month
+    - cron: '0 0 * * 0'  # Runs at 00:00 UTC every Sunday (weekly data-health audit)
 
 # One live run per branch. Every run drives the full correctness suite against
 # the production VFB backend (Neo4j / SOLR / Owlery), so a series of quick

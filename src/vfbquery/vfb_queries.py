@@ -2581,9 +2581,8 @@ def _has_term_info_document(results):
     several indexers with atomic updates, each setting only its own field,
     so a record that one of the query-result indexers (``all_datasets_query``,
     ``anat_image_query``, ...) reaches before the term_info indexer does has
-    a document -- ``hits == 1`` -- but nothing to read. Berg2025a and
-    Bates2026 were exactly that on 2026-09-04: listed under All Datasets,
-    blank in term info. Test the field, not the hit count.
+    a document -- ``hits == 1`` -- but nothing to read: it is listed under (say)
+    All Datasets while its term info is blank. Test the field, not the hit count.
     """
     if not getattr(results, "hits", 0):
         return False

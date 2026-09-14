@@ -6,12 +6,11 @@
 driven by the ``precompute live query results`` Jenkins job. A record that
 reaches the PDB after the last successful run of that job therefore has no
 document at all, and every VFBquery call for it returns ``None`` until the
-job next completes — which is not a matter of hours: build #71 started on
-2026-09-04, #70 (2026-09-02) was aborted, and the last success before that
-was #66 on 2026-06-22.
+job next completes — which can be weeks, not hours, when runs are aborted or
+spaced far apart.
 
-``VFB_00107fob`` ("ME_R on JRC2018Unisex") is the case that surfaced this.
-It is a perfectly good painted domain — its ``in_register_with`` edge, its
+A painted domain such as ``VFB_00107fob`` ("ME_R on JRC2018Unisex") is the kind
+of case that surfaces this. It is a perfectly good term — its ``in_register_with`` edge, its
 images and its parent class are all in the PDB — but with no SOLR document
 it is invisible to term info, and it silently vanished from the medulla
 class page as well.
@@ -32,9 +31,9 @@ The write is deliberately conservative:
   (``anat_query``, ``anat_2_ep_query``, ``ep_2_anat_query``) are untouched
   either way;
 * never when the SOLR cache is disabled, so a test run against live data
-  cannot write into the shared production collection. That has bitten VFB
-  before: a fixture written into the production cache namespace poisoned
-  JRC2018U term info for five days.
+  cannot write into the shared production collection — a fixture written into
+  the production cache namespace can corrupt a term's info until the next
+  reindex.
 
 If the indexer is not importable — a plain ``pip install vfbquery`` has no
 reason to carry it — every entry point here degrades to "no fallback" and

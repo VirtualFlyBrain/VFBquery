@@ -4,8 +4,7 @@ Most VFBquery tests run **live queries against the production VFB backend**
 (SOLR, Neo4j, Owlery, FlyBase Chado). That makes them powerful — they catch real
 regressions in query results — but also easy to write badly: a test that never
 checks its query returned anything passes forever while the query is silently
-broken. A whole class of such tests was found and fixed in Aug 2026; this doc
-exists so they don't come back.
+broken. This doc exists so that class of test does not creep back in.
 
 Read this before adding or changing a test.
 

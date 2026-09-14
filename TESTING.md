@@ -4,8 +4,7 @@ Most VFBquery tests run **live queries against the production VFB backend**
 (SOLR, Neo4j, Owlery, FlyBase Chado). That makes them powerful — they catch real
 regressions in query results — but also easy to write badly: a test that never
 checks its query returned anything passes forever while the query is silently
-broken. A whole class of such tests was found and fixed in Aug 2026; this doc
-exists so they don't come back.
+broken. This doc exists so that class of test does not creep back in.
 
 Read this before adding or changing a test.
 
@@ -68,6 +67,50 @@ pytest -v -ra -n 4 --dist loadscope src/test tests
 So an empty result is **never** an acceptable outcome for a known-populated
 term — it is a bug. A backend outage is handled *for you*; you do not need
 (and must not add) your own try/except to survive it.
+
+## Fixture vs live (`data_health`): what an empty result actually means
+
+The "empty ⇒ bug" rule assumes empty means **our** code is wrong. That holds
+when a test reads the **source of truth (pdb / Neo4j) through this repo's own
+query code** — connectivity, the neurotransmitter queries, and the like. There,
+an empty result *is* a defect here, so the test asserts real content and is
+**PR-blocking**.
+
+It does **not** hold for **term_info** tests. `get_term_info` / `process` /
+`term_info_parse_object` *render* a pre-built SOLR `vfb_json` document; that
+document is built by a **separate repository** (`VFB_json_schema_indexer`), not
+here. If that built document is stale or incomplete (e.g. a pub with no title, a
+split class missing its `Expression_pattern` type), our render code faithfully
+produces an empty/partial result — which is a problem with the **build**, not
+with this repo. Gating a code PR on it is a false signal.
+
+**The rule of thumb:** *if the build code is in this repo, test it here against
+the source (empty = fail, PR-blocking); if the build is in another repo, use a
+fixture here and test the build at its source.* Connectivity/NT queries build
+from pdb here → tested here. term_info documents are built by
+`VFB_json_schema_indexer` → **fixtures here, build tested there.**
+
+So term_info tests come in two variants:
+
+| Variant | Reads | Runs | A failure means |
+|---|---|---|---|
+| **fixture** (plain name) | a committed complete `vfb_json` doc in `src/test/fixtures/term_info/` | **every PR** (blocking) | this repo's **render code** regressed |
+| **live** (`<name>_live`, `@pytest.mark.data_health`) | the live SOLR `vfb_json` document | **schedule only** | the **built document / pipeline** (`VFB_json_schema_indexer`) is wrong — a data-health signal, not a code gate |
+
+Mechanics:
+
+* Fixtures are captured from the PDB (the source of truth) — i.e. what the
+  indexer *should* produce — and verified to render the asserted output. They
+  make the code assertion **deterministic and independent of the live SOLR
+  `vfb_json` document and the caches**, so code improvements are never blocked by
+  stale data.
+* The live variant carries `@pytest.mark.data_health`. PRs run
+  `-m 'not data_health'`; the weekly `schedule` in `python-test.yml` runs the
+  full set. A red scheduled `data_health` run means production `vfb_json` (or the
+  indexer that builds it) needs attention — it does **not** block merges.
+* Do **not** paper over an empty term_info doc with a skip guard — that violates
+  rule 2. Use the fixture for the code assertion; let the `_live` variant fail on
+  the schedule, where empty is exactly the signal you want.
 
 ## The rules
 

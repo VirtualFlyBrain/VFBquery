@@ -1,0 +1,162 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://flybase.org/reports/FBrf0242477",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Individual",
+    "pub"
+   ],
+   "short_form": "FBrf0242477",
+   "unique_facets": [
+    "pub"
+   ],
+   "label": "Dolan et al., 2019, eLife 8: e43079"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for pub",
+ "version": "0dcd736",
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/LateralHorn2019",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet"
+     ],
+     "short_form": "LateralHorn2019",
+     "unique_facets": [],
+     "label": "FlyLight split-GAL4 lines for Lateral Horn"
+    },
+    "link": ""
+   }
+  },
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/Dolan2019",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet"
+     ],
+     "short_form": "Dolan2019",
+     "unique_facets": [],
+     "label": "GAL4 Split expression patterns from Dolan et al. 2019"
+    },
+    "link": ""
+   }
+  },
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/FlyLight2019LateralHorn2019",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet"
+     ],
+     "short_form": "FlyLight2019LateralHorn2019",
+     "unique_facets": [],
+     "label": "FlyLight split-GAL4 lines for Lateral Horn"
+    },
+    "link": ""
+   }
+  },
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/FafbDolan2019",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet"
+     ],
+     "short_form": "FafbDolan2019",
+     "unique_facets": [],
+     "label": "EM FAFB Dolan et al. 2019"
+    },
+    "link": "https://fafb.catmaid.virtualflybrain.org"
+   }
+  }
+ ],
+ "pub_specific_content": {
+  "title": "Neurogenetic dissection of the Drosophila lateral horn reveals major outputs, diverse behavioural functions, and interactions with the mushroom body.",
+  "FlyBase": "FBrf0242477",
+  "PubMed": "31112130",
+  "DOI": "10.7554/eLife.43079"
+ }
+}

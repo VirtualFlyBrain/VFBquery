@@ -2581,9 +2581,8 @@ def _has_term_info_document(results):
     several indexers with atomic updates, each setting only its own field,
     so a record that one of the query-result indexers (``all_datasets_query``,
     ``anat_image_query``, ...) reaches before the term_info indexer does has
-    a document -- ``hits == 1`` -- but nothing to read. Berg2025a and
-    Bates2026 were exactly that on 2026-09-04: listed under All Datasets,
-    blank in term info. Test the field, not the hit count.
+    a document -- ``hits == 1`` -- but nothing to read: it is listed under (say)
+    All Datasets while its term info is blank. Test the field, not the hit count.
     """
     if not getattr(results, "hits", 0):
         return False
@@ -2591,6 +2590,38 @@ def _has_term_info_document(results):
     if not docs:
         return False
     return bool(docs[0].get("term_info"))
+
+
+def _pub_term_info_is_empty(results):
+    """True when a ``pub`` document's term_info is present but carries no
+    external content -- an empty ``title`` and a ``label`` that is just the id.
+
+    This is a document that *has* a term_info field (so :func:`_has_term_info_document`
+    is satisfied) but was written without the publication metadata the PDB
+    holds -- e.g. a FlyBase fetch that failed at index time. Served as-is it
+    renders as a bare ``FBrf... [FBrf...]`` with no title; it should instead be
+    rebuilt from the PDB, exactly as a wholly missing document is. Scoped to
+    pubs so a legitimately sparse document of another type is never mistaken for
+    a skeleton and needlessly rebuilt.
+    """
+    docs = getattr(results, "docs", None) or []
+    if not docs:
+        return False
+    ti = docs[0].get("term_info")
+    if not ti:
+        return False
+    raw = ti[0] if isinstance(ti, (list, tuple)) else ti
+    try:
+        doc = raw if isinstance(raw, dict) else json.loads(raw)
+    except (TypeError, ValueError):
+        return False
+    core = (doc.get("term") or {}).get("core") or {}
+    if "pub" not in (core.get("types") or []):
+        return False
+    psc = doc.get("pub_specific_content") or {}
+    title = (psc.get("title") or "").strip()
+    label = (core.get("label") or "").strip()
+    return not title and (not label or label == (core.get("short_form") or ""))
 
 
 # term_info SOLR loaders: fetch one term's term_info doc by short_form and
@@ -2912,7 +2943,12 @@ def get_term_info(short_form: str, preview: bool = True, force_refresh: bool = F
         # And tested on the field, not the hit count: a document written by
         # one of the other indexers (all_datasets_query et al.) exists with
         # no term_info at all, and the parser turns that into a bare None.
-        if not _has_term_info_document(results):
+        # Rebuild when there is no term_info to read *or* when a pub document is
+        # present but hollow (title-less skeleton). The latter renders as a bare
+        # `FBrf... [FBrf...]` — the PDB has the miniref/title, so rebuild from it
+        # rather than serve the empty doc. force_refresh reaches this path, so a
+        # refresh heals the SOLR doc instead of re-caching the empty one.
+        if not _has_term_info_document(results) or _pub_term_info_is_empty(results):
             fallback_payload = backfill_term_info(short_form)
             if fallback_payload:
                 results = _FallbackSolrResult(fallback_payload)

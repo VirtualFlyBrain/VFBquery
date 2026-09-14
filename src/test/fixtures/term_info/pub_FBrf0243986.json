@@ -1,0 +1,63 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://flybase.org/reports/FBrf0243986",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Individual",
+    "pub"
+   ],
+   "short_form": "FBrf0243986",
+   "unique_facets": [
+    "pub"
+   ],
+   "label": "Sayin et al., 2019, Neuron 104(3): 544--558.e6"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for pub",
+ "version": "0dcd736",
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/Sayin2019",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet"
+     ],
+     "short_form": "Sayin2019",
+     "unique_facets": [],
+     "label": "EM FAFB Sayin et al 2019"
+    },
+    "link": "https://fafb.catmaid.virtualflybrain.org"
+   }
+  }
+ ],
+ "pub_specific_content": {
+  "title": "A Neural Circuit Arbitrates between Persistence and Withdrawal in Hungry Drosophila.",
+  "FlyBase": "FBrf0243986",
+  "PubMed": "31471123",
+  "DOI": "10.1016/j.neuron.2019.07.028"
+ }
+}

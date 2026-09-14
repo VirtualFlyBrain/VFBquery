@@ -18,10 +18,31 @@ query runs on the class rather than the individual.
 import unittest
 import sys
 import os
+import json
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from vfbquery.vfb_queries import get_term_info
+from vfbquery.vfb_queries import get_term_info, term_info_parse_object
+
+
+class _FixtureResults:
+    """Minimal SOLR-result stand-in wrapping a committed term_info fixture."""
+    def __init__(self, docs):
+        self.docs = docs
+        self.hits = len(docs)
+
+
+def _fixture_term_info(name):
+    """Parse a committed complete term_info fixture through the render code, so the
+    FindStocks generation can be tested without live SOLR content. See TESTING.md
+    'Fixture vs live (data_health)'."""
+    path = os.path.join(os.path.dirname(__file__),
+                        "fixtures", "term_info", name + ".json")
+    with open(path, encoding="utf-8") as f:
+        doc = json.load(f)
+    sf = doc["term"]["core"]["short_form"]
+    return term_info_parse_object(_FixtureResults([{"term_info": [json.dumps(doc)]}]), sf)
 
 
 def _menu(term_info):
@@ -67,6 +88,19 @@ class TestExpressionPatternStockQueries(unittest.TestCase):
         self.assertEqual(self._anchors_or_skip(self.EP_INDIVIDUAL), ["FBtp0060056"])
 
     def test_split_class_offers_a_stock_query_per_hemidriver(self):
+        """Render code (PR-blocking): FindStocks is generated per hemidriver from a
+        complete split fixture (its ``has_hemidriver`` relationships). Deterministic
+        — isolates the generation code from live-data state. See TESTING.md
+        'Fixture vs live (data_health)'."""
+        self.assertEqual(
+            _stock_anchors(_fixture_term_info("split_VFBexp_FBtp0129935FBtp0129968")),
+            ["FBtp0129935", "FBtp0129968"])
+
+    @pytest.mark.data_health
+    def test_split_class_offers_a_stock_query_per_hemidriver_live(self):
+        """Data-health (scheduled only): the same against the live SOLR document, so an incomplete
+        production split document (no ``Expression_pattern`` type / no
+        ``has_hemidriver``) is caught. Deselected on PRs via ``-m 'not data_health'``."""
         self.assertEqual(self._anchors_or_skip(self.SPLIT_CLASS),
                          ["FBtp0129935", "FBtp0129968"])
 

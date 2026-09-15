@@ -1,0 +1,257 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://virtualflybrain.org/reports/VFB_00101385",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Adult",
+    "Anatomy",
+    "Nervous_system",
+    "Synaptic_neuropil",
+    "Synaptic_neuropil_domain",
+    "Visual_system",
+    "has_image"
+   ],
+   "short_form": "VFB_00101385",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system",
+    "Synaptic_neuropil_domain",
+    "Visual_system"
+   ],
+   "label": "ME(R) on JRC_FlyEM_Hemibrain"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for Individual",
+ "version": "0dcd736",
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [
+      "License"
+     ],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/Xu2020roi",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet",
+      "Neuron",
+      "Adult",
+      "has_image"
+     ],
+     "short_form": "Xu2020roi",
+     "unique_facets": [
+      "DataSet"
+     ],
+     "label": "JRC_FlyEM_Hemibrain painted domains"
+    },
+    "link": ""
+   }
+  }
+ ],
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00003748",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy",
+    "Nervous_system",
+    "Synaptic_neuropil",
+    "Synaptic_neuropil_domain",
+    "Visual_system"
+   ],
+   "short_form": "FBbt_00003748",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system",
+    "Synaptic_neuropil_domain",
+    "Visual_system"
+   ],
+   "label": "medulla"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "database_cross_reference": [],
+    "label": "is part of",
+    "type": "part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00051212",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy"
+    ],
+    "short_form": "FBbt_00051212",
+    "unique_facets": [
+     "Anatomy"
+    ],
+    "label": "right side of organism"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "database_cross_reference": [],
+    "label": "is part of",
+    "type": "part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007011",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy"
+    ],
+    "short_form": "FBbt_00007011",
+    "unique_facets": [
+     "Anatomy"
+    ],
+    "label": "female organism"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [],
+ "channel_image": [
+  {
+   "image": {
+    "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd",
+    "image_swc": "",
+    "template_channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00101384",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel",
+      "Template"
+     ],
+     "short_form": "VFBc_00101384",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "JRC_FlyEM_Hemibrain_c"
+    },
+    "index": [
+     3
+    ],
+    "template_anatomy": {
+     "symbol": "JRCFIB2018Fum",
+     "iri": "http://virtualflybrain.org/reports/VFB_00101384",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Adult",
+      "Anatomy",
+      "Nervous_system",
+      "Template",
+      "has_image"
+     ],
+     "short_form": "VFB_00101384",
+     "unique_facets": [
+      "Adult",
+      "Nervous_system"
+     ],
+     "label": "JRC_FlyEM_Hemibrain"
+    },
+    "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz",
+    "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj",
+    "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png",
+    "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/"
+   },
+   "channel": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFBc_00101385",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Channel"
+    ],
+    "short_form": "VFBc_00101385",
+    "unique_facets": [
+     "Channel"
+    ],
+    "label": "ME(R)on JRC_FlyEM_Hemibrain_c"
+   },
+   "imaging_technique": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "FBbi_00000224",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "computer graphic"
+   }
+  }
+ ],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "MEon JRC_FlyEM_Hemibrain",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  }
+ ],
+ "def_pubs": []
+}

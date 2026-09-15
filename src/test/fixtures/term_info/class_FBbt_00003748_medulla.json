@@ -1,0 +1,1572 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00003748",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy",
+    "Nervous_system",
+    "Synaptic_neuropil",
+    "Synaptic_neuropil_domain",
+    "Visual_system"
+   ],
+   "short_form": "FBbt_00003748",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system",
+    "Synaptic_neuropil_domain",
+    "Visual_system"
+   ],
+   "label": "medulla"
+  },
+  "description": [
+   "The second optic neuropil, sandwiched between the lamina and the lobula complex. It is divided into 10 layers: 1-6 make up the outer (distal) medulla, the seventh (or serpentine) layer exhibits a distinct architecture and layers 8-10 make up the inner (proximal) medulla (Ito et al., 2014)."
+  ],
+  "comment": [
+   "Nern et al. (2025) - FBrf0262545 say distal is M1-5 and M6-7 is central medulla."
+  ]
+ },
+ "query": "Get JSON for Class",
+ "version": "0dcd736",
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00040007",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Nervous_system",
+    "Synaptic_neuropil",
+    "Synaptic_neuropil_domain",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00040007",
+   "unique_facets": [
+    "Nervous_system",
+    "Synaptic_neuropil"
+   ],
+   "label": "synaptic neuropil domain"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00025991",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00025991",
+   "unique_facets": [
+    "Anatomy"
+   ],
+   "label": "anterior ectoderm derivative"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002202",
+    "database_cross_reference": [],
+    "label": "develops from",
+    "type": "develops_from",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00001935",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy",
+     "Larva",
+     "Nervous_system"
+    ],
+    "short_form": "FBbt_00001935",
+    "unique_facets": [
+     "Larva",
+     "Nervous_system"
+    ],
+    "label": "medulla anlage"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "database_cross_reference": [],
+    "label": "is part of",
+    "type": "part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003701",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Visual_system"
+    ],
+    "short_form": "FBbt_00003701",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Visual_system"
+    ],
+    "label": "adult optic lobe"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [
+  {
+   "link_base": "https://insectbraindb.org/app/structures/",
+   "site": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/InsectBrainDB",
+    "types": [
+     "Entity",
+     "Individual",
+     "Site"
+    ],
+    "short_form": "InsectBrainDB",
+    "unique_facets": [
+     "Site"
+    ],
+    "label": "Insect Brain DB"
+   },
+   "is_data_source": false,
+   "link_postfix": "",
+   "icon": "https://insectbraindb.org/app/assets/images/Megalopta_frontal.png",
+   "accession": "38",
+   "link_text": "medulla on Insect Brain DB",
+   "homepage": "https://insectbraindb.org/"
+  }
+ ],
+ "anatomy_channel_image": [
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00107lez",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00107lez",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME(L) on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/7lez/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/7lez/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/7lez/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/7lez/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/7lez/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00107lez",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_00107lez",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME(L) on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00108iwp",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00108iwp",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME(R) on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/8iwp/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/8iwp/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/8iwp/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/8iwp/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/8iwp/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00108iwp",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_00108iwp",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME(R) on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_001091ss",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_001091ss",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME_L on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/91ss/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/91ss/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/91ss/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/91ss/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/91ss/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_001091ss",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_001091ss",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME_L on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00107lqp",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00107lqp",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME(R) on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/7lqp/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/7lqp/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/7lqp/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/7lqp/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/7lqp/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00107lqp",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_00107lqp",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME(R) on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00101385",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00101385",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME(R) on JRC_FlyEM_Hemibrain"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101384",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101384",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC_FlyEM_Hemibrain_c"
+     },
+     "index": [
+      3
+     ],
+     "template_anatomy": {
+      "symbol": "JRCFIB2018Fum",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101384",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101384",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC_FlyEM_Hemibrain"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/1385/VFB_00101384/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00101385",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00101385",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME(R)on JRC_FlyEM_Hemibrain_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00102107",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102107",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME on JRC2018Unisex adult brain"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [
+      3
+     ],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00102107",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00102107",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME on JRC2018Unisex adult brain_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00108ivu",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00108ivu",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME(L) on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/8ivu/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/8ivu/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/8ivu/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/8ivu/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/8ivu/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00108ivu",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_00108ivu",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME(L) on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00107fo8",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00107fo8",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME_L on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/7fo8/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/7fo8/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/7fo8/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/7fo8/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/7fo8/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00107fo8",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_00107fo8",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME_L on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00030624",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00030624",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "medulla on adult brain template JFRC2"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00017894",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00017894",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JFRC2_template_c"
+     },
+     "index": [
+      25
+     ],
+     "template_anatomy": {
+      "symbol": "JFRC2",
+      "iri": "http://virtualflybrain.org/reports/VFB_00017894",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00017894",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "adult brain template JFRC2"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0003/0624/VFB_00017894/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00030624",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00030624",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME_JFRC_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_001091st",
+    "types": [
+     "Entity",
+     "Individual",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_001091st",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME_R on JRC2018Unisex"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/91st/VFB_00101567/volume.nrrd",
+     "image_swc": "",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/91st/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/91st/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/91st/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/91st/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_001091st",
+     "types": [
+      "Entity",
+      "Individual",
+      "Channel"
+     ],
+     "short_form": "VFBc_001091st",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "ME_R on JRC2018Unisex_c"
+    },
+    "imaging_technique": {
+     "symbol": "",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000224",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000224",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "computer graphic"
+    }
+   }
+  }
+ ],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME(R)",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.10.09.680999",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_10_09_680999",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Berg et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.10.09.680999"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME(L)",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.10.09.680999",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_10_09_680999",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Berg et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.10.09.680999"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME_R",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.07.31.667571",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_07_31_667571",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Bates et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.07.31.667571"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME_L",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.07.31.667571",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_07_31_667571",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Bates et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.07.31.667571"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME_R",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_flywire_fafb"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0260535",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0260535",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Schlegel et al., 2024, Nature 634(8032): 139--152"
+    },
+    "FlyBase": "FBrf0260535",
+    "PubMed": "39358521",
+    "DOI": "10.1038/s41586-024-07686-5"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "m",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME(L)",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_neuprint_optic_lobe"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0262545",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0262545",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Nern et al., 2025, Nature 641(8065): 1225--1237"
+    },
+    "FlyBase": "FBrf0262545",
+    "PubMed": "40140576",
+    "DOI": "10.1038/s41586-025-08746-0"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "ME",
+    "type": "http://purl.obolibrary.org/obo/fbbt#BRAIN_NAME_ABV"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0224194",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0224194",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Ito et al., 2014, Neuron 81(4): 755--765"
+    },
+    "FlyBase": "FBrf0224194",
+    "PubMed": "24559671",
+    "DOI": "10.1016/j.neuron.2013.12.017"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "optic medulla",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0212889",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0212889",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Venkatesh and Shyamala, 2010, J. Genet. 89(4): e38--e42"
+    },
+    "FlyBase": "FBrf0212889",
+    "PubMed": "21273707",
+    "DOI": "10.1007/s12041-011-0007-8"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME_L",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_flywire_fafb"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0260535",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0260535",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Schlegel et al., 2024, Nature 634(8032): 139--152"
+    },
+    "FlyBase": "FBrf0260535",
+    "PubMed": "39358521",
+    "DOI": "10.1038/s41586-024-07686-5"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME_L",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME(R)",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_hemibrain"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0246888",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0246888",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Scheffer et al., 2020, eLife 9: e57443"
+    },
+    "FlyBase": "FBrf0246888",
+    "PubMed": "32880371",
+    "DOI": "10.7554/eLife.57443"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ME(R)",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_neuprint_optic_lobe"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0262545",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0262545",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Nern et al., 2025, Nature 641(8065): 1225--1237"
+    },
+    "FlyBase": "FBrf0262545",
+    "PubMed": "40140576",
+    "DOI": "10.1038/s41586-025-08746-0"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "Med",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0212704",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0212704",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Chiang et al., 2011, Curr. Biol. 21(1): 1--11"
+    },
+    "FlyBase": "FBrf0212704",
+    "PubMed": "21129968",
+    "DOI": "10.1016/j.cub.2010.11.056"
+   }
+  }
+ ],
+ "def_pubs": [
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0224194",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0224194",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Ito et al., 2014, Neuron 81(4): 755--765"
+   },
+   "FlyBase": "FBrf0224194",
+   "PubMed": "24559671",
+   "DOI": "10.1016/j.neuron.2013.12.017"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0231227",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0231227",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Nériec and Desplan, 2016, Curr. Topics Dev. Biol. 116: 247--271"
+   },
+   "FlyBase": "FBrf0231227",
+   "PubMed": "26970623",
+   "DOI": "10.1016/bs.ctdb.2015.11.032"
+  }
+ ]
+}

@@ -1,0 +1,249 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://virtualflybrain.org/reports/VFB_00070031",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Adult",
+    "Anatomy",
+    "Expression_pattern",
+    "Split",
+    "has_image"
+   ],
+   "short_form": "VFB_00070031",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern of Xie2018"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for Individual",
+ "version": "0dcd736",
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [
+      "License"
+     ],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/Xie2018",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet",
+      "Adult",
+      "Expression_pattern",
+      "Split",
+      "has_image",
+      "NBLASTexp"
+     ],
+     "short_form": "Xie2018",
+     "unique_facets": [
+      "DataSet",
+      "Split"
+     ],
+     "label": "Split GAL4 lines for dopaminergic neurons, Xie2018"
+    },
+    "link": "http://flybase.org/reports/FBrf0238545"
+   }
+  }
+ ],
+ "parents": [
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129968",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129968",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern"
+  }
+ ],
+ "relationships": [],
+ "related_individuals": [],
+ "xrefs": [],
+ "channel_image": [
+  {
+   "image": {
+    "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00017894/volume.nrrd",
+    "image_swc": "",
+    "template_channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00017894",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel",
+      "Template"
+     ],
+     "short_form": "VFBc_00017894",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "JFRC2_template_c"
+    },
+    "index": [],
+    "template_anatomy": {
+     "symbol": "JFRC2",
+     "iri": "http://virtualflybrain.org/reports/VFB_00017894",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Adult",
+      "Anatomy",
+      "Nervous_system",
+      "Template",
+      "has_image"
+     ],
+     "short_form": "VFB_00017894",
+     "unique_facets": [
+      "Adult",
+      "Nervous_system"
+     ],
+     "label": "adult brain template JFRC2"
+    },
+    "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00017894/volume.wlz",
+    "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00017894/volume.obj",
+    "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00017894/thumbnail.png",
+    "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00017894/"
+   },
+   "channel": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFBc_00070031",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Channel"
+    ],
+    "short_form": "VFBc_00070031",
+    "unique_facets": [
+     "Channel"
+    ],
+    "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern of Xie2018_c"
+   },
+   "imaging_technique": {
+    "symbol": "Confocal",
+    "iri": "http://purl.obolibrary.org/obo/FBbi_00000251",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "FBbi_00000251",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "confocal microscopy"
+   }
+  },
+  {
+   "image": {
+    "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00101567/volume.nrrd",
+    "image_swc": "",
+    "template_channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel",
+      "Template"
+     ],
+     "short_form": "VFBc_00101567",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "JRC2018Unisex_c"
+    },
+    "index": [],
+    "template_anatomy": {
+     "symbol": "JRC2018U",
+     "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Adult",
+      "Anatomy",
+      "Nervous_system",
+      "Template",
+      "has_image"
+     ],
+     "short_form": "VFB_00101567",
+     "unique_facets": [
+      "Adult",
+      "Nervous_system"
+     ],
+     "label": "JRC2018Unisex"
+    },
+    "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00101567/volume.wlz",
+    "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00101567/volume.obj",
+    "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00101567/thumbnail.png",
+    "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0007/0031/VFB_00101567/"
+   },
+   "channel": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFBc_00070031",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Channel"
+    ],
+    "short_form": "VFBc_00070031",
+    "unique_facets": [
+     "Channel"
+    ],
+    "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern of Xie2018_c"
+   },
+   "imaging_technique": {
+    "symbol": "Confocal",
+    "iri": "http://purl.obolibrary.org/obo/FBbi_00000251",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "FBbi_00000251",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "confocal microscopy"
+   }
+  }
+ ],
+ "pub_syn": [],
+ "def_pubs": []
+}

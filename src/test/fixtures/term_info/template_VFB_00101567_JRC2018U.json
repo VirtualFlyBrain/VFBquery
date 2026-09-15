@@ -1,0 +1,2676 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+   "symbol": "JRC2018U",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Adult",
+    "Anatomy",
+    "Nervous_system",
+    "Template",
+    "has_image"
+   ],
+   "short_form": "VFB_00101567",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system"
+   ],
+   "label": "JRC2018Unisex"
+  },
+  "description": [
+   "Janelia 2018 unisex, averaged adult brain template"
+  ],
+  "comment": []
+ },
+ "query": "Get JSON for Template",
+ "version": "0dcd736",
+ "template_channel": {
+  "extent": "{\"X\":1211,\"Y\":567,\"Z\":175}",
+  "orientation": "LPS",
+  "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",
+  "voxel": "{\"X\":0.5189161,\"Y\":0.5189161,\"Z\":1.0}",
+  "image_swc": "",
+  "center": "{\"X\":605,\"Y\":283,\"Z\":87}",
+  "channel": {
+   "symbol": "",
+   "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Channel",
+    "Template"
+   ],
+   "short_form": "VFBc_00101567",
+   "unique_facets": [
+    "Channel"
+   ],
+   "label": "JRC2018Unisex_c"
+  },
+  "index": [
+   0
+  ],
+  "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
+  "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj",
+  "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png",
+  "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/"
+ },
+ "template_domains": [
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003982",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00003982",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "antennal mechanosensory and motor center"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102273",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102273",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "AMMC on JRC2018Unisex adult brain"
+   },
+   "index": [
+    46
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2273/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00013691",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00013691",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult mushroom body alpha'-lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102121",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102121",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "a\\'L on JRC2018Unisex adult brain"
+   },
+   "index": [
+    12
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2121/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110658",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00110658",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult mushroom body beta-lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102123",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102123",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "bL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    13
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2123/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003680",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00003680",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "nodulus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102282",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102282",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "NO on JRC2018Unisex adult brain"
+   },
+   "index": [
+    94
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2282/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040039",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040039",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "gorget"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102214",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102214",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "GOR on JRC2018Unisex adult brain"
+   },
+   "index": [
+    42
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2214/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040043",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040043",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "anterior ventrolateral protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102146",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102146",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "AVLP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    24
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2146/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045050",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045050",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "flange"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102274",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102274",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "FLA on JRC2018Unisex adult brain"
+   },
+   "index": [
+    47
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2274/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040050",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040050",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "inferior bridge"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102185",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102185",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "IB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    37
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2185/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040051",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040051",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "prow"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102276",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102276",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "PRW on JRC2018Unisex adult brain"
+   },
+   "index": [
+    49
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2276/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045039",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045039",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "antler"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102190",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102190",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "ATL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    38
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2190/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040049",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00040049",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "inferior clamp"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102179",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102179",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "ICL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    36
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2179/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007401",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007401",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult antennal lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102201",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102201",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "AL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    39
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2201/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045046",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00045046",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "inferior posterior slope"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102218",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102218",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "IPS on JRC2018Unisex adult brain"
+   },
+   "index": [
+    44
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2218/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003681",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00003681",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult lateral accessory lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102140",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102140",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "LAL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    22
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2140/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003679",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00003679",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "fan-shaped body"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102134",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102134",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "FB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    16
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2134/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040060",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040060",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "gall"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102281",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102281",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "GA on JRC2018Unisex adult brain"
+   },
+   "index": [
+    59
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2281/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007053",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007053",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult lateral horn"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102159",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102159",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "LH on JRC2018Unisex adult brain"
+   },
+   "index": [
+    28
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2159/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045037",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045037",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult crepine"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102171",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102171",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "CRE on JRC2018Unisex adult brain"
+   },
+   "index": [
+    32
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2171/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007055",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007055",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "superior medial protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102170",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102170",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "SMP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    31
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2170/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045027",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045027",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "wedge"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102154",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102154",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "WED on JRC2018Unisex adult brain"
+   },
+   "index": [
+    27
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2154/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003682",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00003682",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "bulb"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102139",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102139",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "BU on JRC2018Unisex adult brain"
+   },
+   "index": [
+    21
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2139/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00013694",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00013694",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult mushroom body beta'-lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102124",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102124",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "b\\'L on JRC2018Unisex adult brain"
+   },
+   "index": [
+    14
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2124/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040042",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040042",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "posterior ventrolateral protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102148",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102148",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "PVLP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    25
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2148/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040048",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00040048",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "superior clamp"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102176",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102176",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "SCL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    35
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2176/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040038",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00040038",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "rubus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102175",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102175",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "RUB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    34
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2175/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00013695",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00013695",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult mushroom body gamma-lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102133",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102133",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "gL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    15
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2133/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110657",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00110657",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult mushroom body alpha-lobe"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102119",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102119",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "aL on JRC2018Unisex adult brain"
+   },
+   "index": [
+    11
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2119/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00014013",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "short_form": "FBbt_00014013",
+    "unique_facets": [
+     "Adult",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "label": "adult gnathal ganglion"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102280",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Ganglion",
+     "Nervous_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102280",
+    "unique_facets": [
+     "Adult",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "label": "GNG on JRC2018Unisex adult brain"
+   },
+   "index": [
+    50
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2280/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007054",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007054",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "superior lateral protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102162",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102162",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "SLP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    29
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2162/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003748",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "short_form": "FBbt_00003748",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "medulla"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102107",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102107",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "ME on JRC2018Unisex adult brain"
+   },
+   "index": [
+    3
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2107/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045032",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045032",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "superior intermediate protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102164",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102164",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "SIP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    30
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2164/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007385",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007385",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "calyx of adult mushroom body"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102114",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102114",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "CA on JRC2018Unisex adult brain"
+   },
+   "index": [
+    7
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2114/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040044",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040044",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "posterior lateral protocerebrum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102152",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102152",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "PLP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    26
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2152/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00048509",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00048509",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "adult round body"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102174",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102174",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "ROB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    33
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2174/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007059",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007059",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "anterior optic tubercle"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102141",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102141",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "AOTU on JRC2018Unisex adult brain"
+   },
+   "index": [
+    23
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2141/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045051",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045051",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "cantle"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102275",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102275",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "CAN on JRC2018Unisex adult brain"
+   },
+   "index": [
+    48
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2275/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007453",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007453",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "pedunculus of adult mushroom body"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102118",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102118",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "PED on JRC2018Unisex adult brain"
+   },
+   "index": [
+    10
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2118/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003885",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "short_form": "FBbt_00003885",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "lobula plate"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102110",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102110",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "LOP on JRC2018Unisex adult brain"
+   },
+   "index": [
+    6
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2110/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003668",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00003668",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "protocerebral bridge"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102137",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102137",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "PB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    19
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2137/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045040",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00045040",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "superior posterior slope"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102215",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102215",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "SPS on JRC2018Unisex adult brain"
+   },
+   "index": [
+    43
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2215/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045048",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045048",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "saddle"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102271",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102271",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "SAD on JRC2018Unisex adult brain"
+   },
+   "index": [
+    45
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2271/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040040",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040040",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "epaulette"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102213",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102213",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "EPA on JRC2018Unisex adult brain"
+   },
+   "index": [
+    41
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2213/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045003",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "Visual_system"
+    ],
+    "short_form": "FBbt_00045003",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain",
+     "Visual_system"
+    ],
+    "label": "accessory medulla"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102108",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102108",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain",
+     "Visual_system"
+    ],
+    "label": "AME on JRC2018Unisex adult brain"
+   },
+   "index": [
+    4
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2108/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003678",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00003678",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "ellipsoid body"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102135",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102135",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "EB on JRC2018Unisex adult brain"
+   },
+   "index": [
+    18
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2135/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003852",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "short_form": "FBbt_00003852",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "lobula"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102109",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "Visual_system",
+     "has_image"
+    ],
+    "short_form": "VFB_00102109",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain",
+     "Visual_system"
+    ],
+    "label": "LO on JRC2018Unisex adult brain"
+   },
+   "index": [
+    5
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2109/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040041",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00040041",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "vest"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00102212",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00102212",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "VES on JRC2018Unisex adult brain"
+   },
+   "index": [
+    40
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/2212/VFB_00101567/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003624",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system"
+    ],
+    "short_form": "FBbt_00003624",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system"
+    ],
+    "label": "adult brain"
+   },
+   "center": [
+    "{\"X\":605,\"Y\":283,\"Z\":87}"
+   ],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+    "symbol": "JRC2018U",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Template",
+     "has_image"
+    ],
+    "short_form": "VFB_00101567",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system"
+    ],
+    "label": "JRC2018Unisex"
+   },
+   "index": [
+    0
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/1567/VFB_00101567/thumbnail.png"
+  }
+ ],
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_NC_SA_4_0",
+     "symbol": "CC-BY-NC-SA",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_NC_SA_4_0",
+     "unique_facets": [
+      "License"
+     ],
+     "label": "CC-BY-NC-SA_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png",
+    "link": "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/JRC2018",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet",
+      "Adult",
+      "has_image"
+     ],
+     "short_form": "JRC2018",
+     "unique_facets": [
+      "DataSet"
+     ],
+     "label": "JRC 2018 templates & ROIs"
+    },
+    "link": ""
+   }
+  }
+ ],
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00003624",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy",
+    "Nervous_system"
+   ],
+   "short_form": "FBbt_00003624",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system"
+   ],
+   "label": "adult brain"
+  }
+ ],
+ "relationships": [],
+ "xrefs": [],
+ "related_individuals": []
+}

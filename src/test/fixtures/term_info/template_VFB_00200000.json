@@ -1,0 +1,1291 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://virtualflybrain.org/reports/VFB_00200000",
+   "symbol": "JRCVNC2018U",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Adult",
+    "Anatomy",
+    "Ganglion",
+    "Nervous_system",
+    "Template",
+    "has_image"
+   ],
+   "short_form": "VFB_00200000",
+   "unique_facets": [
+    "Adult",
+    "Ganglion",
+    "Nervous_system"
+   ],
+   "label": "JRC2018UnisexVNC"
+  },
+  "description": [
+   "JRC2018UnisexVNC is a 3D template of the ventral nerve cord (VNC) of the adult fruit fly Drosophila melanogaster. This template was created by combining confocal microscopy images of multiple male and female flies, resulting in a unisex template that includes the neuropils and all motor and sensory neurons."
+  ],
+  "comment": []
+ },
+ "query": "Get JSON for Template",
+ "version": "0dcd736",
+ "template_channel": {
+  "extent": "{\"X\":660,\"Y\":1290,\"Z\":382}",
+  "orientation": "LPS",
+  "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd",
+  "voxel": "{\"X\":0.4,\"Y\":0.4,\"Z\":0.4}",
+  "image_swc": "",
+  "center": "{\"X\":330,\"Y\":645,\"Z\":191}",
+  "channel": {
+   "symbol": "",
+   "iri": "http://virtualflybrain.org/reports/VFBc_00200000",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Channel",
+    "Template"
+   ],
+   "short_form": "VFBc_00200000",
+   "unique_facets": [
+    "Channel"
+   ],
+   "label": "JRC2018UnisexVNC_c"
+  },
+  "index": [
+   0
+  ],
+  "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz",
+  "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj",
+  "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnail.png",
+  "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/"
+ },
+ "template_domains": [
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047541",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047541",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "dorsal lateral tract of ventral cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104634",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104634",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "dorsal lateral tract of ventral cervical fasciculus on adult VNC, JRC2018VU"
+   },
+   "index": [
+    2
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4634/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4644/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4644/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00004091",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00004091",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult accessory mesothoracic neuropil"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104644",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104644",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult accessory mesothoracic neuromere on adult VNC, JRC2018VU"
+   },
+   "index": [
+    12
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4644/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4644/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4644/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047535",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047535",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "adult dorsal median tract"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104635",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104635",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "dorsal median tract on adult VNC, JRC2018VU"
+   },
+   "index": [
+    3
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4635/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047533",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047533",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "dorsal lateral tract of dorsal cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104633",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104633",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "dorsal lateral tract on adult VNC, JRC2018VU"
+   },
+   "index": [
+    1
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4633/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4640/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4640/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047529",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047529",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "adult metathoracic anterior intermediate commissure"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104640",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104640",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ITD haltere chiasma on adult VNC, JRC2018VU"
+   },
+   "index": [
+    8
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4640/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4640/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4640/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047138",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00047138",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "haltere neuropil"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104645",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104645",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "haltere tectulum on adult VNC, JRC2018VU"
+   },
+   "index": [
+    13
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4645/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4649/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4649/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110176",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "short_form": "FBbt_00110176",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult metathoracic neuromere"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104649",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere",
+     "has_image"
+    ],
+    "short_form": "VFB_00104649",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult metathoracic neuromere on adult VNC, JRC2018VU"
+   },
+   "index": [
+    17
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4649/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4649/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4649/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4636/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4636/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047544",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047544",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "median dorsal abdominal tract"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104636",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104636",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "median dorsal abdominal tract on adult VNC, JRC2018VU"
+   },
+   "index": [
+    4
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4636/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4636/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4636/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4651/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4651/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00040007",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00040007",
+    "unique_facets": [
+     "Nervous_system",
+     "Synaptic_neuropil"
+    ],
+    "label": "synaptic neuropil domain"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104651",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104651",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "neck tectulum on adult VNC, JRC2018VU"
+   },
+   "index": [
+    19
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4651/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4651/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4651/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047519",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00047519",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "intermediate tectulum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104646",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104646",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "intermediate tectulum on adult VNC, JRC2018VU"
+   },
+   "index": [
+    14
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4646/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4647/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4647/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047174",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00047174",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "lower tectulum"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104647",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104647",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "lower tectulum on adult VNC, JRC2018VU"
+   },
+   "index": [
+    15
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4647/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4647/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4647/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047176",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00047176",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "medial ventral association center"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104650",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104650",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "medial ventral association center on adult VNC, JRC2018VU"
+   },
+   "index": [
+    18
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4650/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4642/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4642/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047542",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047542",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ventral median tract of ventral cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104642",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104642",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ventral median tract of ventral cervical fasciculus on adult VNC, JRC2018VU"
+   },
+   "index": [
+    10
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4642/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4642/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4642/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4643/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4643/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110173",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "short_form": "FBbt_00110173",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult abdominal neuromere"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104643",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere",
+     "has_image"
+    ],
+    "short_form": "VFB_00104643",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult abdominal neuromere on adult VNC, JRC2018VU"
+   },
+   "index": [
+    11
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4643/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4643/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4643/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4652/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4652/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110174",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "short_form": "FBbt_00110174",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult prothoracic neuromere"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104652",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere",
+     "has_image"
+    ],
+    "short_form": "VFB_00104652",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult prothoracic neuromere on adult VNC, JRC2018VU"
+   },
+   "index": [
+    20
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4652/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4652/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4652/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4638/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4638/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047534",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047534",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "intermediate tract of dorsal cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104638",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104638",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "intermediate tract of dorsal cervical fasciculus on adult VNC, JRC2018VU"
+   },
+   "index": [
+    6
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4638/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4638/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4638/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047137",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00047137",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "wing neuropil"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104653",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_image"
+    ],
+    "short_form": "VFB_00104653",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "wing tectulum on adult VNC, JRC2018VU"
+   },
+   "index": [
+    21
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4653/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4639/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4639/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047536",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047536",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "commissure of fine fibers of the ITD"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104639",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104639",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "commissure of Fine Fibers of the ITD on adult VNC, JRC2018VU"
+   },
+   "index": [
+    7
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4639/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4639/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4639/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4641/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4641/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047534",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047534",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "intermediate tract of dorsal cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104641",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104641",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ITD haltere tract on adult VNC, JRC2018VU"
+   },
+   "index": [
+    9
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4641/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4641/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4641/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4637/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4637/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047543",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00047543",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ventral lateral tract of ventral cervical fasciculus"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104637",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle",
+     "has_image"
+    ],
+    "short_form": "VFB_00104637",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "ventral lateral tract on adult VNC, JRC2018VU"
+   },
+   "index": [
+    5
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4637/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4637/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4637/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4648/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4648/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110175",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "short_form": "FBbt_00110175",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult mesothoracic neuromere"
+   },
+   "center": [],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00104648",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuromere",
+     "has_image"
+    ],
+    "short_form": "VFB_00104648",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuromere"
+    ],
+    "label": "adult mesothoracic neuromere on adult VNC, JRC2018VU"
+   },
+   "index": [
+    16
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4648/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4648/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4648/VFB_00200000/thumbnail.png"
+  },
+  {
+   "folder": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/",
+   "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.nrrd",
+   "image_swc": "",
+   "anatomical_type": {
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00004052",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "short_form": "FBbt_00004052",
+    "unique_facets": [
+     "Adult",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "label": "adult ventral nerve cord"
+   },
+   "center": [
+    "{\"X\":330,\"Y\":645,\"Z\":191}"
+   ],
+   "anatomical_individual": {
+    "iri": "http://virtualflybrain.org/reports/VFB_00200000",
+    "symbol": "JRCVNC2018U",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Adult",
+     "Anatomy",
+     "Ganglion",
+     "Nervous_system",
+     "Template",
+     "has_image"
+    ],
+    "short_form": "VFB_00200000",
+    "unique_facets": [
+     "Adult",
+     "Ganglion",
+     "Nervous_system"
+    ],
+    "label": "JRC2018UnisexVNC"
+   },
+   "index": [
+    0
+   ],
+   "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume.wlz",
+   "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/volume_man.obj",
+   "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0020/0000/VFB_00200000/thumbnail.png"
+  }
+ ],
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_NC_SA_4_0",
+     "symbol": "CC-BY-NC-SA",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_NC_SA_4_0",
+     "unique_facets": [
+      "License"
+     ],
+     "label": "CC-BY-NC-SA_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png",
+    "link": "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/JRC2018",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet",
+      "Adult",
+      "has_image"
+     ],
+     "short_form": "JRC2018",
+     "unique_facets": [
+      "DataSet"
+     ],
+     "label": "JRC 2018 templates & ROIs"
+    },
+    "link": ""
+   }
+  }
+ ],
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00004052",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy",
+    "Ganglion",
+    "Nervous_system"
+   ],
+   "short_form": "FBbt_00004052",
+   "unique_facets": [
+    "Adult",
+    "Ganglion",
+    "Nervous_system"
+   ],
+   "label": "adult ventral nerve cord"
+  }
+ ],
+ "relationships": [],
+ "xrefs": [],
+ "related_individuals": []
+}

@@ -1,0 +1,297 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://virtualflybrain.org/reports/VFB_00069525",
+   "symbol": "SS00810",
+   "types": [
+    "Entity",
+    "Individual",
+    "VFB",
+    "Adult",
+    "Anatomy",
+    "Expression_pattern",
+    "Split",
+    "has_image",
+    "NBLASTexp"
+   ],
+   "short_form": "VFB_00069525",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "JRC_SS00810 in the Adult Brain"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for Individual",
+ "version": "0dcd736",
+ "dataset_license": [
+  {
+   "license": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_4_0",
+     "symbol": "CC_BY",
+     "types": [
+      "Entity",
+      "Individual",
+      "License"
+     ],
+     "short_form": "VFBlicense_CC_BY_4_0",
+     "unique_facets": [
+      "License"
+     ],
+     "label": "CC-BY_4.0"
+    },
+    "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by.png",
+    "link": "https://creativecommons.org/licenses/by/4.0/legalcode"
+   },
+   "dataset": {
+    "core": {
+     "iri": "http://virtualflybrain.org/reports/Klapoetke2017",
+     "symbol": "",
+     "types": [
+      "Entity",
+      "Individual",
+      "DataSet",
+      "Adult",
+      "Expression_pattern",
+      "Split",
+      "has_image",
+      "NBLASTexp"
+     ],
+     "short_form": "Klapoetke2017",
+     "unique_facets": [
+      "DataSet",
+      "Split"
+     ],
+     "label": "Split-GAL4 lines from Klapoetke et al. 2017"
+    },
+    "link": ""
+   }
+  }
+ ],
+ "parents": [
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0122003FBtp0118528",
+   "symbol": "SS00810",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0122003FBtp0118528",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55H05-GAL4.DBD} ∩ P{R28D05-p65.AD} expression pattern"
+  }
+ ],
+ "relationships": [],
+ "related_individuals": [],
+ "xrefs": [
+  {
+   "link_base": "http://splitgal4.janelia.org/cgi-bin/view_splitgal4_imagery.cgi?line=",
+   "site": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/FlyLightSplit",
+    "types": [
+     "Entity",
+     "Individual",
+     "Site"
+    ],
+    "short_form": "FlyLightSplit",
+    "unique_facets": [
+     "Site"
+    ],
+    "label": "Driver Line on the FlyLight Split-GAL4 Site"
+   },
+   "is_data_source": true,
+   "link_postfix": "",
+   "icon": "http://www.virtualflybrain.org/data/VFB/logos/fly_light_color.png",
+   "accession": "SS00810",
+   "link_text": "JRC_SS00810 in the Adult Brain on Driver Line on the FlyLight Split-GAL4 Site",
+   "homepage": "http://splitgal4.janelia.org/cgi-bin/splitgal4.cgi"
+  },
+  {
+   "link_base": "https://neuronbridge.janelia.org/search?q=",
+   "site": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/neuronbridge",
+    "types": [
+     "Entity",
+     "Individual",
+     "Site"
+    ],
+    "short_form": "neuronbridge",
+    "unique_facets": [
+     "Site"
+    ],
+    "label": "neuronbridge"
+   },
+   "is_data_source": false,
+   "link_postfix": "",
+   "icon": "http://www.virtualflybrain.org/data/VFB/logos/neuronbridge.png",
+   "accession": "SS00810",
+   "link_text": "JRC_SS00810 in the Adult Brain on neuronbridge",
+   "homepage": "https://neuronbridge.janelia.org/"
+  }
+ ],
+ "channel_image": [
+  {
+   "image": {
+    "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00017894/volume.nrrd",
+    "image_swc": "",
+    "template_channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00017894",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel",
+      "Template"
+     ],
+     "short_form": "VFBc_00017894",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "JFRC2_template_c"
+    },
+    "index": [],
+    "template_anatomy": {
+     "symbol": "JFRC2",
+     "iri": "http://virtualflybrain.org/reports/VFB_00017894",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Adult",
+      "Anatomy",
+      "Nervous_system",
+      "Template",
+      "has_image"
+     ],
+     "short_form": "VFB_00017894",
+     "unique_facets": [
+      "Adult",
+      "Nervous_system"
+     ],
+     "label": "adult brain template JFRC2"
+    },
+    "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00017894/volume.wlz",
+    "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00017894/volume.obj",
+    "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00017894/thumbnail.png",
+    "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00017894/"
+   },
+   "channel": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFBc_00069525",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Channel"
+    ],
+    "short_form": "VFBc_00069525",
+    "unique_facets": [
+     "Channel"
+    ],
+    "label": "JRC_SS00810 in the Adult Brain_c"
+   },
+   "imaging_technique": {
+    "symbol": "Confocal",
+    "iri": "http://purl.obolibrary.org/obo/FBbi_00000251",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "FBbi_00000251",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "confocal microscopy"
+   }
+  },
+  {
+   "image": {
+    "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00101567/volume.nrrd",
+    "image_swc": "",
+    "template_channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel",
+      "Template"
+     ],
+     "short_form": "VFBc_00101567",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "JRC2018Unisex_c"
+    },
+    "index": [],
+    "template_anatomy": {
+     "symbol": "JRC2018U",
+     "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Adult",
+      "Anatomy",
+      "Nervous_system",
+      "Template",
+      "has_image"
+     ],
+     "short_form": "VFB_00101567",
+     "unique_facets": [
+      "Adult",
+      "Nervous_system"
+     ],
+     "label": "JRC2018Unisex"
+    },
+    "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00101567/volume.wlz",
+    "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00101567/volume.obj",
+    "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00101567/thumbnail.png",
+    "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0006/9525/VFB_00101567/"
+   },
+   "channel": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFBc_00069525",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Channel"
+    ],
+    "short_form": "VFBc_00069525",
+    "unique_facets": [
+     "Channel"
+    ],
+    "label": "JRC_SS00810 in the Adult Brain_c"
+   },
+   "imaging_technique": {
+    "symbol": "Confocal",
+    "iri": "http://purl.obolibrary.org/obo/FBbi_00000251",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "FBbi_00000251",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "confocal microscopy"
+   }
+  }
+ ],
+ "pub_syn": [],
+ "def_pubs": []
+}

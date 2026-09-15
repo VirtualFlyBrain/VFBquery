@@ -75,6 +75,7 @@ FIXTURES = {
     "ep_class_VFBexp_FBtp0060056":      {"id": "VFBexp_FBtp0060056"},
     "ep_individual_VFB_00020530":       {"id": "VFB_00020530"},
     "split_individual_VFB_00070031":    {"id": "VFB_00070031"},
+    "split_individual_VFB_00069525":    {"id": "VFB_00069525"},
 }
 
 

@@ -525,6 +525,14 @@ class VfbTerminfo:
     license: Optional[List[License]] = None
     dataset_license: Optional[List[DatasetLicense]] = None
     relationships: Optional[List[Rel]] = None
+    #: MISNOMER: despite the name, this does NOT hold related individuals. The
+    #: term_info queries (VFB_connect's VFB_TermInfo_queries.json, for Individual,
+    #: Class and Neuron Class alike) populate it from exactly one edge —
+    #: ``(o)<-[r:term_replaced_by]-(primary)`` — so it carries the
+    #: *term-replacement pointer of a deprecated term*, and ``o`` is whatever
+    #: replaced it (typically a Class, not an Individual). It is therefore
+    #: non-empty only for deprecated/obsolete terms. Kept under this name to match
+    #: the upstream field; see the render site in vfb_queries.py.
     related_individuals: Optional[List[Rel]] = None
     parents: Optional[List[MinimalEntityInfo]] = None
     channel_image: Optional[List[ChannelImage]] = None

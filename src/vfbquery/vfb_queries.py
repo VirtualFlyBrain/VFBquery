@@ -1751,9 +1751,18 @@ def term_info_parse_object(results, short_form):
             if xrefs_out:
                 termInfo["Xrefs"] = xrefs_out
 
-        # Related individuals — same Rel shape as relationships, rendered as its
-        # own panel section (VFBProcessTermInfoCachedJson.java:1529). Kept as a
-        # Meta string so it travels with the other Meta rows.
+        # "Related individuals" — same Rel shape as relationships, rendered as
+        # its own panel section (VFBProcessTermInfoCachedJson.java:1529). Kept as
+        # a Meta string so it travels with the other Meta rows.
+        #
+        # NAME IS A MISNOMER (do not be misled): the term_info queries populate
+        # `related_individuals` solely from the `term_replaced_by` edge, so it is
+        # the *replacement pointer of a deprecated term* — non-empty only for
+        # obsolete terms, and pointing at the replacement term (usually a Class,
+        # not an Individual). It is NOT a list of related instances. See the
+        # field definition in term_info_queries.py and the query
+        # `(o)<-[r:term_replaced_by]-(primary)` in VFB_connect's
+        # VFB_TermInfo_queries.json.
         if getattr(vfbTerm, 'related_individuals', None):
             grouped_ri = {}
             for rel in vfbTerm.related_individuals:

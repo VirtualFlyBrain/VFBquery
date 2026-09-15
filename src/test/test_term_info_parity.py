@@ -128,11 +128,18 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertIn("flybase.org/reports/FBgn0051882", links, "gene FlyBase xref missing")
 
     # --- Coverage: related_individuals -------------------------------------
+    # NB `related_individuals` is a MISNOMER: it is populated only from the
+    # `term_replaced_by` edge, so it is really the replacement pointer of a
+    # *deprecated* term (target is usually a Class, not an Individual). A
+    # deprecated term is therefore REQUIRED to exercise this path — hence the
+    # obsolete FBbt_00000058, which was replaced by FBbt_00000057. See the
+    # field/render notes in term_info_queries.py / vfb_queries.py. Do not "fix"
+    # this to a current term: it would render nothing and the test would break.
     def test_related_individuals_surface(self):
-        ti = self._parse("FBbt_00000058")  # FBbt class carrying related_individuals
+        ti = self._parse("FBbt_00000058")  # obsolete term; replaced_by -> FBbt_00000057
         ri = ti.get("Meta", {}).get("RelatedIndividuals", "")
         self.assertTrue(ri, "related_individuals dropped")
-        self.assertIn("FBbt_00000057", ri, "related individual target id missing")
+        self.assertIn("FBbt_00000057", ri, "term_replaced_by target id missing")
 
     # --- Coverage: DataSet external link -----------------------------------
     def test_dataset_link_present(self):

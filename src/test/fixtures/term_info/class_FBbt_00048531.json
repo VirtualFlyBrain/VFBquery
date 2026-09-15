@@ -1,0 +1,143 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00048531",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy"
+   ],
+   "short_form": "FBbt_00048531",
+   "unique_facets": [
+    "Adult",
+    "Anatomy"
+   ],
+   "label": "female germline 2-cell cyst"
+  },
+  "description": [
+   "Cyst composed of two cyst cells following the division of a newly-formed cystoblast in the germarium. The two cells are connected by a cytoplasmic bridge."
+  ],
+  "comment": []
+ },
+ "query": "Get JSON for Class",
+ "version": "0dcd736",
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00007137",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Adult",
+    "Anatomy",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00007137",
+   "unique_facets": [
+    "Adult",
+    "Anatomy"
+   ],
+   "label": "female germline cyst"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "database_cross_reference": [],
+    "label": "is part of",
+    "type": "part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00004866",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy"
+    ],
+    "short_form": "FBbt_00004866",
+    "unique_facets": [
+     "Adult",
+     "Anatomy"
+    ],
+    "label": "germarium"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [],
+ "anatomy_channel_image": [],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "germarial 2-cell cluster",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0021038",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0021038",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "King, 1970, Ovarian Development in Drosophila melanogaster. "
+    },
+    "FlyBase": "FBrf0021038",
+    "PubMed": "",
+    "DOI": ""
+   }
+  }
+ ],
+ "def_pubs": [
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0064777",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0064777",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Spradling, 1993, Bate, Martinez Arias, 1993: 1--70"
+   },
+   "FlyBase": "FBrf0064777",
+   "PubMed": "",
+   "DOI": ""
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0021038",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0021038",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "King, 1970, Ovarian Development in Drosophila melanogaster. "
+   },
+   "FlyBase": "FBrf0021038",
+   "PubMed": "",
+   "DOI": ""
+  }
+ ]
+}

@@ -1,0 +1,1984 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00047030",
+   "symbol": "EPG",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Cholinergic",
+    "Nervous_system",
+    "has_subClass",
+    "secondary_neuron"
+   ],
+   "short_form": "FBbt_00047030",
+   "unique_facets": [
+    "Adult",
+    "Cholinergic",
+    "Nervous_system",
+    "secondary_neuron"
+   ],
+   "label": "adult ellipsoid body-protocerebral bridge 1 glomerulus-dorsal/ventral gall neuron"
+  },
+  "description": [
+   "Small field neuron of the central complex with dendritic and axonal arbors in the inner, outer and posterior layers of either a half or a full ellipsoid body (EB) slice (wedge), and axon terminals in the dorsal or ventral gall and a single protocerebral bridge glomerulus (excluding glomerulus 9) (Lin et al., 2013; Wolff et al., 2015). Neurons that target odd or even numbered protocerebral bridge glomeruli target the dorsal or ventral gall, respectively (Lin et al., 2013; Wolff et al., 2015). These neurons receive inhibitory input from delta 7 (PB 18 glomeruli) neurons and they are cholinergic (Turner-Evans et al., 2020). These cells output to P-EN1 neurons and P-EG neurons of the same glomerulus in the protocerebral bridge, and form less specific 'hyper-local' feedback loops with P-EN1 neurons in the EB (Turner-Evans et al., 2020). It also receives input from R4d ring neurons and P-EN2 neurons in the EB (Turner-Evans et al., 2020)."
+  ],
+  "comment": [
+   "Based on images/diagrams in Lin et al. (2013), Wolff et al. (2015) and Turner-Evans et al. (2020), these appear to innervate the ipsilateral PB and contralateral gall, but could not find confirmation of this - https://orcid.org/0000-0002-1373-1705."
+  ]
+ },
+ "query": "Get JSON for Neuron Class",
+ "version": "0dcd736",
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00003637",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Nervous_system",
+    "has_subClass",
+    "secondary_neuron"
+   ],
+   "short_form": "FBbt_00003637",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system",
+    "secondary_neuron"
+   ],
+   "label": "adult ellipsoid body-protocerebral bridge-gall neuron"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00058205",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Cholinergic",
+    "Nervous_system",
+    "has_subClass",
+    "hasScRNAseq"
+   ],
+   "short_form": "FBbt_00058205",
+   "unique_facets": [
+    "Adult",
+    "Cholinergic",
+    "Nervous_system"
+   ],
+   "label": "adult cholinergic neuron"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002216",
+    "database_cross_reference": [
+     "PMID:25971509"
+    ],
+    "label": "capable_of_part_of",
+    "type": "capable_of_part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/GO_0007626",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "GO_0007626",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "locomotory behavior"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013008",
+    "database_cross_reference": [],
+    "label": "receives synaptic input from neuron",
+    "type": "receives_synaptic_input_from_neuron",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "Δ7",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00049807",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Glutamatergic",
+     "Nervous_system",
+     "has_subClass",
+     "lineage_PBp1_CM6"
+    ],
+    "short_form": "FBbt_00049807",
+    "unique_facets": [
+     "Adult",
+     "Glutamatergic",
+     "lineage_PBp1_CM6"
+    ],
+    "label": "adult intrinsic protocerebral bridge 18 glomeruli-delta7 neuron"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013008",
+    "database_cross_reference": [],
+    "label": "receives synaptic input from neuron",
+    "type": "receives_synaptic_input_from_neuron",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "PEN2",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00049804",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00049804",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Nervous_system"
+    ],
+    "label": "adult protocerebral bridge 1 glomerulus-ellipsoid body tile-nodulus 1 neuron 2"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013008",
+    "database_cross_reference": [],
+    "label": "receives synaptic input from neuron",
+    "type": "receives_synaptic_input_from_neuron",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "ER4d",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007538",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "GABAergic",
+     "Nervous_system",
+     "lineage_EBa1_DALv2",
+     "secondary_neuron"
+    ],
+    "short_form": "FBbt_00007538",
+    "unique_facets": [
+     "Adult",
+     "GABAergic",
+     "lineage_EBa1_DALv2",
+     "secondary_neuron"
+    ],
+    "label": "adult ellipsoid body ring neuron R4d"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013008",
+    "database_cross_reference": [],
+    "label": "receives synaptic input from neuron",
+    "type": "receives_synaptic_input_from_neuron",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "PEN1",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00049803",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00049803",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Nervous_system"
+    ],
+    "label": "adult protocerebral bridge 1 glomerulus-ellipsoid body tile-nodulus 1 neuron 1"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007554",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00007554",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "ellipsoid body outer posterior domain"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007555",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00007555",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "ellipsoid body inner posterior domain"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007556",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00007556",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "ellipsoid body outer central domain"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013009",
+    "database_cross_reference": [],
+    "label": "sends synaptic output to cell",
+    "type": "sends_synaptic_output_to_cell",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "PEG",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047031",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00047031",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Nervous_system"
+    ],
+    "label": "adult protocerebral bridge 1 glomerulus-ellipsoid body tile-gall neuron"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013009",
+    "database_cross_reference": [],
+    "label": "sends synaptic output to cell",
+    "type": "sends_synaptic_output_to_cell",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "PEN1",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00049803",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00049803",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Nervous_system"
+    ],
+    "label": "adult protocerebral bridge 1 glomerulus-ellipsoid body tile-nodulus 1 neuron 1"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013003",
+    "database_cross_reference": [],
+    "label": "sends synaptic output to region",
+    "type": "sends_synaptic_output_to_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003669",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00003669",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "protocerebral bridge glomerulus"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [],
+ "anatomy_channel_image": [
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zpw",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zpw",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_L5 (MaleCNS:12449)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zpw/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zpw/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zpw/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zpw/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zpw/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zpw",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zpw",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_L5 (MaleCNS:12449)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "EPG",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw030707",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_fw030707",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron"
+    ],
+    "label": "EB.79 (FlyWire:720575940610901930)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw03/0707/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw030707",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw030707",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940610901930_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "EPG",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw009399",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_fw009399",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM3_DPMpm2",
+     "secondary_neuron"
+    ],
+    "label": "EB.21 (FlyWire:720575940627140551)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw00/9399/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw009399",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw009399",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940627140551_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zq7",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zq7",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_R2 (MaleCNS:513463)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zq7",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zq7",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_R2 (MaleCNS:513463)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zq7",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zq7",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_R2 (MaleCNS:513463)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00200000/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00200000/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00200000",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018UnisexVNC_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRCVNC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Ganglion",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00200000",
+      "unique_facets": [
+       "Adult",
+       "Ganglion",
+       "Nervous_system"
+      ],
+      "label": "JRC2018UnisexVNC"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00200000/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00200000/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq7/VFB_00200000/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zq7",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zq7",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_R2 (MaleCNS:513463)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zq9",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM4_CM4",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zq9",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM4_CM4",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_R7 (MaleCNS:521812)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq9/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zq9",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zq9",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_R7 (MaleCNS:521812)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "EPG",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw028485",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM2_DPMpm1",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_fw028485",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM2_DPMpm1",
+     "secondary_neuron"
+    ],
+    "label": "EB.40 (FlyWire:720575940605827761)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw02/8485/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw028485",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw028485",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940605827761_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zps",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM4_CM4",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zps",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM4_CM4",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_L8 (MaleCNS:519144)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zps/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zps/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zps/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zps/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zps/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zps",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zps",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_L8 (MaleCNS:519144)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_001057ze",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM4_CM4",
+     "secondary_neuron",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_001057ze",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM4_CM4",
+     "secondary_neuron"
+    ],
+    "label": "BANC_888:720575941573294088"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/57ze/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_001057ze",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_001057ze",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941573294088_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc2zq4",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Nervous_system",
+     "has_image",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc2zq4",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "lineage_DM1_DPMm1",
+     "secondary_neuron"
+    ],
+    "label": "EPG(PB08)_L2 (MaleCNS:524073)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq4/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq4/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq4/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq4/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/2zq4/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc2zq4",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc2zq4",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "EPG(PB08)_L2 (MaleCNS:524073)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  }
+ ],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "EPG",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.10.09.680999",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_10_09_680999",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Berg et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.10.09.680999"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "EPG",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.07.31.667571",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_07_31_667571",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Bates et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.07.31.667571"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_broad_synonym",
+    "label": "compass neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0235609",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0235609",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Turner-Evans et al., 2017, eLife 6: e23496"
+    },
+    "FlyBase": "FBrf0235609",
+    "PubMed": "28530551",
+    "DOI": "10.7554/eLife.23496"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "E-PG neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0240744",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0240744",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Wolff and Rubin, 2018, J. Comp. Neurol. 526(16): 2585--2611"
+    },
+    "FlyBase": "FBrf0240744",
+    "PubMed": "30084503",
+    "DOI": "10.1002/cne.24512"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "EB-IDFP D/VSB-PB 1 glomerulus neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0221742",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0221742",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Lin et al., 2013, Cell Rep. 3(5): 1739--1753"
+    },
+    "FlyBase": "FBrf0221742",
+    "PubMed": "23707064",
+    "DOI": "10.1016/j.celrep.2013.04.022"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "PBG1-8.b-EBw.s-D/Vgall.b neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0227801",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0227801",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Wolff et al., 2015, J. Comp. Neurol. 523(7): 997--1037"
+    },
+    "FlyBase": "FBrf0227801",
+    "PubMed": "25380328",
+    "DOI": "10.1002/cne.23705"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "EB-PB 1 glomerulus-D/Vgall neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "EPG",
+    "type": "http://purl.obolibrary.org/obo/fbbt#VFB_SYMBOL"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0240744",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0240744",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Wolff and Rubin, 2018, J. Comp. Neurol. 526(16): 2585--2611"
+    },
+    "FlyBase": "FBrf0240744",
+    "PubMed": "30084503",
+    "DOI": "10.1002/cne.24512"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "ellipsoid body-protocerebral bridge and gall neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0235609",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0235609",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Turner-Evans et al., 2017, eLife 6: e23496"
+    },
+    "FlyBase": "FBrf0235609",
+    "PubMed": "28530551",
+    "DOI": "10.7554/eLife.23496"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "EPG",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_hemibrain"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0246888",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0246888",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Scheffer et al., 2020, eLife 9: e57443"
+    },
+    "FlyBase": "FBrf0246888",
+    "PubMed": "32880371",
+    "DOI": "10.7554/eLife.57443"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "EPG",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_flywire_fafb"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0260535",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0260535",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Schlegel et al., 2024, Nature 634(8032): 139--152"
+    },
+    "FlyBase": "FBrf0260535",
+    "PubMed": "39358521",
+    "DOI": "10.1038/s41586-024-07686-5"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "EB-PB-gall neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  }
+ ],
+ "def_pubs": [
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0240744",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0240744",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Wolff and Rubin, 2018, J. Comp. Neurol. 526(16): 2585--2611"
+   },
+   "FlyBase": "FBrf0240744",
+   "PubMed": "30084503",
+   "DOI": "10.1002/cne.24512"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0227801",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0227801",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Wolff et al., 2015, J. Comp. Neurol. 523(7): 997--1037"
+   },
+   "FlyBase": "FBrf0227801",
+   "PubMed": "25380328",
+   "DOI": "10.1002/cne.23705"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0221742",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0221742",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Lin et al., 2013, Cell Rep. 3(5): 1739--1753"
+   },
+   "FlyBase": "FBrf0221742",
+   "PubMed": "23707064",
+   "DOI": "10.1016/j.celrep.2013.04.022"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0246945",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0246945",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Turner-Evans et al., 2020, Neuron 108(1): 145--163.e10"
+   },
+   "FlyBase": "FBrf0246945",
+   "PubMed": "32916090",
+   "DOI": "10.1016/j.neuron.2020.08.006"
+  }
+ ],
+ "targeting_splits": [
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0122173FBtp0117182",
+   "symbol": "SS00096",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0122173FBtp0117182",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R70G12-GAL4.DBD} ∩ P{R19G02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0122047FBtp0118517",
+   "symbol": "SS00131",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0122047FBtp0118517",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60D05-GAL4.DBD} ∩ P{R27F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0121289FBtp0118517",
+   "symbol": "SS00408",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0121289FBtp0118517",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R19G02-GAL4.DBD} ∩ P{R27F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0124468FBtp0133404",
+   "symbol": "SS50574",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0124468FBtp0133404",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0122505FBtp0117182",
+   "symbol": "SS00098",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0122505FBtp0117182",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R93G12-GAL4.DBD} ∩ P{R19G02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0121198FBtp0117182",
+   "symbol": "SS00090",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0121198FBtp0117182",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R15C03-GAL4.DBD} ∩ P{R19G02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0124468FBtp0133404",
+   "symbol": "SS50574",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0124468FBtp0133404",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{VT043927-GAL4.DBD} ∩ P{VT017491-p65.AD} expression pattern"
+  }
+ ]
+}

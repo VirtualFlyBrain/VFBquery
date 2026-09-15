@@ -1,0 +1,3003 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00100243",
+   "symbol": "PPL101",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Chemosensory_system",
+    "Dopaminergic",
+    "Gustatory_system",
+    "Nervous_system",
+    "lineage_DL2_CP3",
+    "primary_neuron"
+   ],
+   "short_form": "FBbt_00100243",
+   "unique_facets": [
+    "Adult",
+    "Dopaminergic",
+    "Gustatory_system",
+    "lineage_DL2_CP3",
+    "primary_neuron"
+   ],
+   "label": "mushroom body pedunculus-medial lobe arborizing neuron 1"
+  },
+  "description": [
+   "A neuron whose cell body is located on the inferior neuropils, lateral to the mushroom body calyx (Tanaka et al., 2008), in the dopaminergic PPL1 cluster (Aso et al., 2014). It develops from a larval mushroom body input neuron of the CP3 (DL2) lineage (Truman et al., 2023). The cell body fiber runs anteriormedially and diverges above the ellipsoid body (Tanaka et al., 2008). Its dendrite forms four main arbors, in the superior intermediate protocerebrum, superior medial protocerebrum, dorsal crepine and ventral crepine (Otto et al., 2020). Another fiber turns ventromedially and projects to the opposite hemisphere (Tanaka et al., 2008; Li et al., 2020). A third fiber (axonal) turns ventrolaterally, runs in front of the anterior surface of the gamma lobe and then below the gamma lobe, and arborizes in the spur of the gamma lobe (slice 1) and inner core of the pedunculus (Tanaka et al., 2008; Li et al., 2020; Otto et al., 2020). The contralateral fiber innervates the same mushroom body regions (Li et al., 2020). There are 1-2 neurons of this type per hemisphere (Aso et al., 2014; Li et al., 2020; Otto et al., 2020; Truman et al., 2023). It is involved in food odor attraction (Sayin et al., 2019)."
+  ],
+  "comment": [
+   "Names are assigned according to the area of the mushroom body they arborize, as detailed in Tanaka et al. (2008). The PPL1 cluster was identified by TH immunostaining and using a TH-GAL4 driver (FBtp0020119) (Liu et al., 2012). 1-2 per hemisphere in Aso et al. (2014), 1 in FAFB, 2 (each with different larval precursor cell) in Truman et al. (2023)."
+  ]
+ },
+ "query": "Get JSON for Neuron Class",
+ "version": "0dcd736",
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00049840",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Dopaminergic",
+    "Nervous_system",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00049840",
+   "unique_facets": [
+    "Adult",
+    "Dopaminergic",
+    "Nervous_system"
+   ],
+   "label": "mushroom body PPL1 neuron"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00050085",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Nervous_system",
+    "has_subClass",
+    "lineage_DL2_CP3"
+   ],
+   "short_form": "FBbt_00050085",
+   "unique_facets": [
+    "Adult",
+    "Neuron",
+    "lineage_DL2_CP3"
+   ],
+   "label": "adult DL2 lineage neuron"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00007695",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Anatomy",
+    "Cell",
+    "Chemosensory_system",
+    "Gustatory_system",
+    "Nervous_system",
+    "has_subClass",
+    "hasScRNAseq"
+   ],
+   "short_form": "FBbt_00007695",
+   "unique_facets": [
+    "Gustatory_system",
+    "Nervous_system",
+    "Neuron"
+   ],
+   "label": "gustatory system neuron"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00047097",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Anatomy",
+    "Cell",
+    "Nervous_system",
+    "has_subClass",
+    "primary_neuron"
+   ],
+   "short_form": "FBbt_00047097",
+   "unique_facets": [
+    "Nervous_system",
+    "Neuron"
+   ],
+   "label": "primary neuron"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0000053",
+    "database_cross_reference": [],
+    "label": "bearer of",
+    "type": "bearer_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/PATO_0000618",
+    "types": [
+     "Entity",
+     "Class"
+    ],
+    "short_form": "PATO_0000618",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "bilateral"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002216",
+    "database_cross_reference": [
+     "PMID:23227489",
+     "PMID:19837040",
+     "PMID:23103875"
+    ],
+    "label": "capable_of_part_of",
+    "type": "capable_of_part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/GO_0050916",
+    "types": [
+     "Entity",
+     "Class"
+    ],
+    "short_form": "GO_0050916",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "sensory perception of sweet taste"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002216",
+    "database_cross_reference": [
+     "PMID:23227489",
+     "PMID:19837040",
+     "PMID:23103875"
+    ],
+    "label": "capable_of_part_of",
+    "type": "capable_of_part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/GO_0042048",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "GO_0042048",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "olfactory behavior"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002216",
+    "database_cross_reference": [
+     "PMID:23227489",
+     "PMID:19837040",
+     "PMID:23103875"
+    ],
+    "label": "capable_of_part_of",
+    "type": "capable_of_part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/GO_0007631",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "GO_0007631",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "feeding behavior"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002216",
+    "database_cross_reference": [
+     "PMID:23227489",
+     "PMID:19837040",
+     "PMID:23103875"
+    ],
+    "label": "capable_of_part_of",
+    "type": "capable_of_part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/GO_0008306",
+    "types": [
+     "Entity",
+     "Class",
+     "has_subClass"
+    ],
+    "short_form": "GO_0008306",
+    "unique_facets": [
+     "Class"
+    ],
+    "label": "associative learning"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002202",
+    "database_cross_reference": [],
+    "label": "develops from",
+    "type": "develops_from",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00047956",
+    "types": [
+     "Entity",
+     "Class",
+     "Neuron",
+     "Anatomy",
+     "Cell",
+     "Larva",
+     "Nervous_system",
+     "has_subClass",
+     "primary_neuron"
+    ],
+    "short_form": "FBbt_00047956",
+    "unique_facets": [
+     "Larva",
+     "Nervous_system",
+     "primary_neuron"
+    ],
+    "label": "larval mushroom body modulatory input neuron"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007055",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007055",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "superior medial protocerebrum"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00045037",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00045037",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "adult crepine"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013002",
+    "database_cross_reference": [],
+    "label": "receives synaptic input in region",
+    "type": "receives_synaptic_input_in_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00007054",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain"
+    ],
+    "short_form": "FBbt_00007054",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "superior lateral protocerebrum"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013006",
+    "database_cross_reference": [],
+    "label": "sends synaptic output throughout",
+    "type": "sends_synaptic_output_throughout",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00100273",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "short_form": "FBbt_00100273",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Synaptic_neuropil_subdomain"
+    ],
+    "label": "mushroom body gamma lobe slice 1"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0013003",
+    "database_cross_reference": [],
+    "label": "sends synaptic output to region",
+    "type": "sends_synaptic_output_to_region",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00003687",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy",
+     "Nervous_system",
+     "Synaptic_neuropil",
+     "Synaptic_neuropil_domain",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00003687",
+    "unique_facets": [
+     "Nervous_system",
+     "Synaptic_neuropil_domain"
+    ],
+    "label": "mushroom body pedunculus"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [
+  {
+   "link_base": "https://flybrain-ndb.virtualflybrain.org/neuronrec-",
+   "site": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/FlyBrain_NDB",
+    "types": [
+     "Entity",
+     "Individual",
+     "Site"
+    ],
+    "short_form": "FlyBrain_NDB",
+    "unique_facets": [
+     "Site"
+    ],
+    "label": "FlyBrain NeuronDB"
+   },
+   "is_data_source": false,
+   "link_postfix": ".html",
+   "icon": "http://flybrain-ndb.virtualflybrain.org/NDB_title260.gif",
+   "accession": "10468",
+   "link_text": "mushroom body pedunculus-medial lobe arborizing neuron 1 on FlyBrain NeuronDB",
+   "homepage": "https://flybrain-ndb.virtualflybrain.org"
+  }
+ ],
+ "anatomy_channel_image": [
+  {
+   "anatomy": {
+    "symbol": "PPL101",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw013269",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_fw013269",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "SMP.MB_PED.2 (FlyWire:720575940617691170)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw01/3269/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw013269",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw013269",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940617691170_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_0010140w",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "FAFB",
+     "NBLASTexp"
+    ],
+    "short_form": "VFB_0010140w",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL1-y1pedc_L (FAFB:1085816)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/140w/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_0010140w",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_0010140w",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL1-y1pedc_L (FAFB:1085816)_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00104vmm",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00104vmm",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "BANC_888:720575941689127692"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4vmm/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00104vmm",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00104vmm",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941689127692_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc1j5z",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc1j5z",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL101(y1ped)_R (MaleCNS:11327)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00200000",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018UnisexVNC_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRCVNC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Ganglion",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00200000",
+      "unique_facets": [
+       "Adult",
+       "Ganglion",
+       "Nervous_system"
+      ],
+      "label": "JRC2018UnisexVNC"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00200000/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc1j5z",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc1j5z",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL101(y1ped)_R (MaleCNS:11327)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc1j5z",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc1j5z",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL101(y1ped)_R (MaleCNS:11327)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5z/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc1j5z",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc1j5z",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL101(y1ped)_R (MaleCNS:11327)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "PPL101",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw030338",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_fw030338",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "SMP.MB_PED.1 (FlyWire:720575940621040737)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw03/0338/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw030338",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw030338",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940621040737_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "PPL101(y1pedc)_R",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrchk45e",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "NBLASTexp",
+     "neuronbridge",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrchk45e",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL101(y1pedc)_R (FlyEM-HB:393766777)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101384",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101384",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC_FlyEM_Hemibrain_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRCFIB2018Fum",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101384",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101384",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC_FlyEM_Hemibrain"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/volume.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101384/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrchk45e",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrchk45e",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL101(y1pedc)_R - 393766777_c"
+    },
+    "imaging_technique": {
+     "symbol": "FIB-SEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00050000",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00050000",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "focused ion beam scanning electron microscopy"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "PPL101(y1pedc)_R",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrchk45e",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "NBLAST",
+     "NBLASTexp",
+     "neuronbridge",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrchk45e",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL101(y1pedc)_R (FlyEM-HB:393766777)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrch/k45e/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrchk45e",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrchk45e",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL101(y1pedc)_R - 393766777_c"
+    },
+    "imaging_technique": {
+     "symbol": "FIB-SEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00050000",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00050000",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "focused ion beam scanning electron microscopy"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_0010140y",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "FAFB",
+     "NBLASTexp"
+    ],
+    "short_form": "VFB_0010140y",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL1-y1pedc_R (FAFB:1159799)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/140y/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_0010140y",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_0010140y",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL1-y1pedc_R (FAFB:1159799)_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc1j5y",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Chemosensory_system",
+     "Dopaminergic",
+     "Gustatory_system",
+     "Nervous_system",
+     "has_image",
+     "lineage_DL2_CP3",
+     "primary_neuron",
+     "has_neuron_connectivity",
+     "has_region_connectivity"
+    ],
+    "short_form": "VFB_jrmc1j5y",
+    "unique_facets": [
+     "Adult",
+     "Dopaminergic",
+     "Gustatory_system",
+     "lineage_DL2_CP3",
+     "primary_neuron"
+    ],
+    "label": "PPL101(y1ped)_L (MaleCNS:11900)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5y/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5y/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5y/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5y/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/1j5y/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc1j5y",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc1j5y",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "PPL101(y1ped)_L (MaleCNS:11900)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  }
+ ],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.07.31.667571",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_07_31_667571",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Bates et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.07.31.667571"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.10.09.680999",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_10_09_680999",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Berg et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.10.09.680999"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#VFB_SYMBOL"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0248215",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0248215",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Li et al., 2020, eLife 9: e62576"
+    },
+    "FlyBase": "FBrf0248215",
+    "PubMed": "33315010",
+    "DOI": "10.7554/eLife.62576"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "MB-MP1",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0205263",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0205263",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Tanaka et al., 2008, J. Comp. Neurol. 508(5): 711--755"
+    },
+    "FlyBase": "FBrf0205263",
+    "PubMed": "18395827",
+    "DOI": "10.1002/cne.21692"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "PPL1-gamma1pedc",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0227179",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0227179",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Aso et al., 2014, eLife 3: e04577"
+    },
+    "FlyBase": "FBrf0227179",
+    "PubMed": "25535793",
+    "DOI": "10.7554/eLife.04577"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "PPL1-01",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0227179",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0227179",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Aso et al., 2014, eLife 3: e04577"
+    },
+    "FlyBase": "FBrf0227179",
+    "PubMed": "25535793",
+    "DOI": "10.7554/eLife.04577"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_flywire_fafb"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0260535",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0260535",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Schlegel et al., 2024, Nature 634(8032): 139--152"
+    },
+    "FlyBase": "FBrf0260535",
+    "PubMed": "39358521",
+    "DOI": "10.1038/s41586-024-07686-5"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "PPL101",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_hemibrain"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0246888",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0246888",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Scheffer et al., 2020, eLife 9: e57443"
+    },
+    "FlyBase": "FBrf0246888",
+    "PubMed": "32880371",
+    "DOI": "10.7554/eLife.57443"
+   }
+  }
+ ],
+ "def_pubs": [
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0255928",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0255928",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Truman et al., 2023, eLife 12: e80594"
+   },
+   "FlyBase": "FBrf0255928",
+   "PubMed": "36695420",
+   "DOI": "10.7554/eLife.80594"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0248215",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0248215",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Li et al., 2020, eLife 9: e62576"
+   },
+   "FlyBase": "FBrf0248215",
+   "PubMed": "33315010",
+   "DOI": "10.7554/eLife.62576"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0227179",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0227179",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Aso et al., 2014, eLife 3: e04577"
+   },
+   "FlyBase": "FBrf0227179",
+   "PubMed": "25535793",
+   "DOI": "10.7554/eLife.04577"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0243986",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0243986",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Sayin et al., 2019, Neuron 104(3): 544--558.e6"
+   },
+   "FlyBase": "FBrf0243986",
+   "PubMed": "31471123",
+   "DOI": "10.1016/j.neuron.2019.07.028"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0246510",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub",
+     "FAFB"
+    ],
+    "short_form": "FBrf0246510",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Otto et al., 2020, Curr. Biol. 30(16): 3200--3211.e8"
+   },
+   "FlyBase": "FBrf0246510",
+   "PubMed": "32619479",
+   "DOI": "10.1016/j.cub.2020.05.077"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0205263",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0205263",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Tanaka et al., 2008, J. Comp. Neurol. 508(5): 711--755"
+   },
+   "FlyBase": "FBrf0205263",
+   "PubMed": "18395827",
+   "DOI": "10.1002/cne.21692"
+  }
+ ],
+ "targeting_splits": [
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129969",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129969",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{ple-p65.AD.TH-F} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129969",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129969",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{ple-p65.AD.TH-F} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129967",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129967",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-C} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0099561",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0099561",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R76F05-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129969",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129969",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{ple-p65.AD.TH-F} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129968",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129968",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129967",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129967",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-C} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129968",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129968",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{ple-p65.AD.TH-D} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129968",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129968",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{ple-p65.AD.TH-D} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129969",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129969",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{ple-p65.AD.TH-F} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0099561",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0099561",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R76F05-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129930FBtp0129970",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129930FBtp0129970",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R76F01-GAL4.DBD} ∩ P{DAT-B-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129927FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129927FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R60F07-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129936FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129936FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{DAT-B-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129966",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129966",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R76F02-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0099561",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0099561",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{R76F05-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129968",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129968",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{ple-p65.AD.TH-D} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129934FBtp0129962",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129934FBtp0129962",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-D} ∩ P{R60F07-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129929FBtp0129965",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129929FBtp0129965",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R55C10-GAL4.DBD} ∩ P{R76F01-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0129935FBtp0129964",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0129935FBtp0129964",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{ple-GAL4.DBD.TH-F} ∩ P{R55C10-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0099539",
+   "symbol": "MB438B",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0099539",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ P{R30E11-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0099539",
+   "symbol": "MB438B",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0099539",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ P{R30E11-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099459FBtp0099547",
+   "symbol": "MB502B",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099459FBtp0099547",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R14E06-GAL4.DBD} ∩ P{R52H03-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0117250",
+   "symbol": "MB320C",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0117250",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ PBac{ple-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0099539",
+   "symbol": "MB438B",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0099539",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ P{R30E11-p65.AD} expression pattern"
+  },
+  {
+   "iri": "http://virtualflybrain.org/reports/VFBexp_FBtp0099465FBtp0099539",
+   "symbol": "MB438B",
+   "types": [
+    "Entity",
+    "Class",
+    "Anatomy",
+    "Expression_pattern",
+    "Split"
+   ],
+   "short_form": "VFBexp_FBtp0099465FBtp0099539",
+   "unique_facets": [
+    "Split"
+   ],
+   "label": "P{R22B12-GAL4.DBD} ∩ P{R30E11-p65.AD} expression pattern"
+  }
+ ]
+}

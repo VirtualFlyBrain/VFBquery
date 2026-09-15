@@ -63,31 +63,81 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertIsNotNone(ti, f"parse returned None for {short_form}")
         return ti
 
+    def _parse_fixture(self, name):
+        """Parse a committed complete fixture through the render code — the
+        deterministic, PR-blocking counterpart of :meth:`_parse`. See TESTING.md
+        'Fixture vs live (data_health)'."""
+        results = _fixture_raw(name)
+        sf = json.loads(results.docs[0]["term_info"][0])["term"]["core"]["short_form"]
+        ti = q.term_info_parse_object(results, sf)
+        self.assertIsNotNone(ti, f"parse returned None for fixture {name}")
+        return ti
+
     # --- Gap A: class definition references (def_pubs) -> inline in description
     # The legacy panel appends def_pubs as microref links to the definition
     # (VFBProcessTermInfoCachedJson.java:937), so parity is an inline render in
     # Meta.Description, not a separate Publications entry.
     def test_class_def_pubs_inline_in_description(self):
-        ti = self._parse("FBbt_00003748")  # medulla
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_class_def_pubs_inline_in_description(
+            self._parse_fixture("class_FBbt_00003748_medulla"))
+
+    @pytest.mark.data_health
+    def test_class_def_pubs_inline_in_description_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_class_def_pubs_inline_in_description(self._parse("FBbt_00003748"))
+
+    def _check_class_def_pubs_inline_in_description(self, ti):
         desc = ti.get("Meta", {}).get("Description", "")
         self.assertIn("FBrf0231227", desc, "def_pub FBrf0231227 missing from description")
         self.assertIn("FBrf0224194", desc, "def_pub FBrf0224194 missing from description")
 
     def test_kenyon_def_pubs_all_inline(self):
-        ti = self._parse("FBbt_00003686")  # Kenyon cell
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_kenyon_def_pubs_all_inline(
+            self._parse_fixture("class_FBbt_00003686_kenyon"))
+
+    @pytest.mark.data_health
+    def test_kenyon_def_pubs_all_inline_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_kenyon_def_pubs_all_inline(self._parse("FBbt_00003686"))
+
+    def _check_kenyon_def_pubs_all_inline(self, ti):
         desc = ti.get("Meta", {}).get("Description", "")
         for ref in ("FBrf0092568", "FBrf0214059", "FBrf0205263"):
             self.assertIn(ref, desc, f"def_pub {ref} missing from description")
 
     # --- Gap B: Individual synonyms (pub_syn) -> Synonyms -------------------
     def test_individual_synonyms_present(self):
-        ti = self._parse("VFB_00101385")  # individual image (MEon)
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_individual_synonyms_present(
+            self._parse_fixture("individual_VFB_00101385_MEon"))
+
+    @pytest.mark.data_health
+    def test_individual_synonyms_present_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_individual_synonyms_present(self._parse("VFB_00101385"))
+
+    def _check_individual_synonyms_present(self, ti):
         labels = {s.get("label") for s in ti.get("Synonyms", [])}
         self.assertIn("MEon JRC_FlyEM_Hemibrain", labels,
                       "Individual pub_syn dropped from Synonyms")
 
     def test_class_synonyms_not_regressed(self):
-        ti = self._parse("FBgn0010339")  # gene 128up: 7 synonyms
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_class_synonyms_not_regressed(
+            self._parse_fixture("gene_FBgn0010339_128up"))
+
+    @pytest.mark.data_health
+    def test_class_synonyms_not_regressed_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_class_synonyms_not_regressed(self._parse("FBgn0010339"))
+
+    def _check_class_synonyms_not_regressed(self, ti):
         self.assertGreaterEqual(len(ti.get("Synonyms", [])), 7,
                                 "class synonyms regressed")
 
@@ -115,7 +165,17 @@ class TermInfoParityTest(unittest.TestCase):
 
     # --- Coverage: external xref links (genes, anatomy) --------------------
     def test_xrefs_surface_as_links(self):
-        ti = self._parse("FBbt_00003748")  # medulla -> Insect Brain DB
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_xrefs_surface_as_links(
+            self._parse_fixture("class_FBbt_00003748_medulla"))
+
+    @pytest.mark.data_health
+    def test_xrefs_surface_as_links_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_xrefs_surface_as_links(self._parse("FBbt_00003748"))
+
+    def _check_xrefs_surface_as_links(self, ti):
         xr = ti.get("Xrefs") or []
         self.assertTrue(xr, "Xrefs dropped for medulla")
         ibdb = [x for x in xr if x.get("label") == "Insect Brain DB"]
@@ -123,31 +183,87 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertIn("insectbraindb.org/app/structures/38", ibdb[0].get("link", ""))
 
     def test_gene_xref_flybase(self):
-        ti = self._parse("FBgn0051882")  # a gene with a FlyBase xref
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_gene_xref_flybase(self._parse_fixture("gene_FBgn0051882"))
+
+    @pytest.mark.data_health
+    def test_gene_xref_flybase_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_gene_xref_flybase(self._parse("FBgn0051882"))
+
+    def _check_gene_xref_flybase(self, ti):
         links = " ".join(x.get("link", "") for x in (ti.get("Xrefs") or []))
         self.assertIn("flybase.org/reports/FBgn0051882", links, "gene FlyBase xref missing")
 
     # --- Coverage: related_individuals -------------------------------------
+    # NB `related_individuals` is a MISNOMER: it is populated only from the
+    # `term_replaced_by` edge, so it is really the replacement pointer of a
+    # *deprecated* term (target is usually a Class, not an Individual). A
+    # deprecated term is therefore REQUIRED to exercise this path — hence the
+    # obsolete FBbt_00000058, which was replaced by FBbt_00000057. See the
+    # field/render notes in term_info_queries.py / vfb_queries.py. Do not "fix"
+    # this to a current term: it would render nothing and the test would break.
     def test_related_individuals_surface(self):
-        ti = self._parse("FBbt_00000058")  # FBbt class carrying related_individuals
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_related_individuals_surface(
+            self._parse_fixture("class_FBbt_00000058_related_individuals"))
+
+    @pytest.mark.data_health
+    def test_related_individuals_surface_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_related_individuals_surface(self._parse("FBbt_00000058"))
+
+    def _check_related_individuals_surface(self, ti):
         ri = ti.get("Meta", {}).get("RelatedIndividuals", "")
         self.assertTrue(ri, "related_individuals dropped")
-        self.assertIn("FBbt_00000057", ri, "related individual target id missing")
+        self.assertIn("FBbt_00000057", ri, "term_replaced_by target id missing")
 
     # --- Coverage: DataSet external link -----------------------------------
     def test_dataset_link_present(self):
-        ti = self._parse("Ito2013")
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_dataset_link_present(self._parse_fixture("dataset_Ito2013"))
+
+    @pytest.mark.data_health
+    def test_dataset_link_present_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_dataset_link_present(self._parse("Ito2013"))
+
+    def _check_dataset_link_present(self, ti):
         link = ti.get("Meta", {}).get("Link", "")
         self.assertIn("flybase.org/reports/FBrf0221438", link, "DataSet link dropped")
 
     # --- Targeting queries (splits<->neurons) as live query types ----------
     def test_neuron_class_offers_splits_targeting(self):
-        ti = self._parse("FBbt_00100243")  # MBON neuron class with split drivers
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_neuron_class_offers_splits_targeting(
+            self._parse_fixture("neuron_class_FBbt_00100243_MBON"))
+
+    @pytest.mark.data_health
+    def test_neuron_class_offers_splits_targeting_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_neuron_class_offers_splits_targeting(self._parse("FBbt_00100243"))
+
+    def _check_neuron_class_offers_splits_targeting(self, ti):
         self.assertTrue(any(x.get("query") == "SplitsTargeting" for x in ti.get("Queries", [])),
                         "SplitsTargeting not offered on neuron class")
 
     def test_split_class_offers_target_neurons(self):
-        ti = self._parse("VFBexp_FBtp0129935FBtp0129968")  # a split class
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_split_class_offers_target_neurons(
+            self._parse_fixture("split_VFBexp_FBtp0129935FBtp0129968"))
+
+    @pytest.mark.data_health
+    def test_split_class_offers_target_neurons_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_split_class_offers_target_neurons(
+            self._parse("VFBexp_FBtp0129935FBtp0129968"))
+
+    def _check_split_class_offers_target_neurons(self, ti):
         self.assertTrue(any(x.get("query") == "TargetNeurons" for x in ti.get("Queries", [])),
                         "TargetNeurons not offered on split class")
 
@@ -186,7 +302,17 @@ class TermInfoParityTest(unittest.TestCase):
     # serialiser only read `dataset_license`, so every dataset page rendered
     # without a License row even though the edge was in the KB.
     def test_dataset_own_license_reaches_licenses(self):
-        ti = self._parse("Cachero2010")
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_dataset_own_license_reaches_licenses(
+            self._parse_fixture("dataset_Cachero2010"))
+
+    @pytest.mark.data_health
+    def test_dataset_own_license_reaches_licenses_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_dataset_own_license_reaches_licenses(self._parse("Cachero2010"))
+
+    def _check_dataset_own_license_reaches_licenses(self, ti):
         licenses = ti.get("Licenses", {})
         self.assertTrue(licenses, "DataSet own licence dropped from Licenses{}")
         lic = licenses[0]
@@ -196,16 +322,39 @@ class TermInfoParityTest(unittest.TestCase):
         self.assertTrue(lic.get("iri"), "licence iri missing")
 
     def test_dataset_own_license_has_no_self_source(self):
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_dataset_own_license_has_no_self_source(
+            self._parse_fixture("dataset_Cachero2010"))
+
+    @pytest.mark.data_health
+    def test_dataset_own_license_has_no_self_source_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_dataset_own_license_has_no_self_source(self._parse("Cachero2010"))
+
+    def _check_dataset_own_license_has_no_self_source(self, ti):
         # The dataset is its own source, so leave source empty rather than
         # rendering a Source row that links back to the same page.
-        lic = self._parse("Cachero2010").get("Licenses", {})[0]
+        lic = ti.get("Licenses", {})[0]
         self.assertEqual("", lic.get("source", ""))
         self.assertEqual("", lic.get("source_iri", ""))
 
     def test_dataset_license_still_attributes_source_on_images(self):
+        """Render code (PR-blocking): assert against a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_dataset_license_still_attributes_source_on_images(
+            self._parse_fixture("template_VFB_00101567_JRC2018U"))
+
+    @pytest.mark.data_health
+    def test_dataset_license_still_attributes_source_on_images_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_dataset_license_still_attributes_source_on_images(
+            self._parse("VFB_00101567"))
+
+    def _check_dataset_license_still_attributes_source_on_images(self, ti):
         # The dataset_license path is unchanged: an image/template still gets
         # its licence via the dataset it came from, with that dataset as source.
-        licenses = self._parse("VFB_00101567").get("Licenses", {})
+        licenses = ti.get("Licenses", {})
         self.assertTrue(licenses, "template lost its inherited licence")
         self.assertTrue(licenses[0].get("source"), "inherited licence lost its source")
 

@@ -1,0 +1,1603 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00048514",
+   "symbol": "BM-Taste",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron"
+   ],
+   "short_form": "FBbt_00048514",
+   "unique_facets": [
+    "Adult",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron"
+   ],
+   "label": "labellar taste bristle mechanosensory neuron"
+  },
+  "description": [
+   "Mechanosensory neuron that extends its sensory dendrite into a single labellar taste bristle and has its soma with the gustatory receptor neurons and support cells of the same bristle (Montell, 2021). It follows the labial nerve and joins the maxillary-labial nerve to enter the brain, terminating in the subesophageal zone (Eichler et al., 2024). There is one of these per labellar taste bristle (around 30-40 per side) (Eichler et al., 2024)."
+  ],
+  "comment": [
+   "Distinct from the md-L neuron."
+  ]
+ },
+ "query": "Get JSON for Neuron Class",
+ "version": "0dcd736",
+ "parents": [
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00053588",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00053588",
+   "unique_facets": [
+    "Adult",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron"
+   ],
+   "label": "mechanosensory neuron of labellum"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00052184",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron",
+    "has_subClass"
+   ],
+   "short_form": "FBbt_00052184",
+   "unique_facets": [
+    "Adult",
+    "Mechanosensory_system",
+    "Nervous_system",
+    "Sensory_neuron"
+   ],
+   "label": "mechanosensory neuron of adult head bristle"
+  },
+  {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00048029",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Neuron",
+    "Adult",
+    "Anatomy",
+    "Cell",
+    "Nervous_system",
+    "Sensory_neuron",
+    "has_subClass",
+    "hasScRNAseq"
+   ],
+   "short_form": "FBbt_00048029",
+   "unique_facets": [
+    "Adult",
+    "Nervous_system",
+    "Sensory_neuron"
+   ],
+   "label": "labellar taste bristle sensory neuron"
+  }
+ ],
+ "relationships": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002101",
+    "database_cross_reference": [],
+    "label": "fasciculates with",
+    "type": "fasciculates_with",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00110654",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "short_form": "FBbt_00110654",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system",
+     "Neuron_projection_bundle"
+    ],
+    "label": "adult maxillary-labial nerve"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/RO_0002100",
+    "database_cross_reference": [],
+    "label": "has soma location",
+    "type": "has_soma_location",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00004162",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Chemosensory_system",
+     "Gustatory_system",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sense_organ",
+     "has_subClass"
+    ],
+    "short_form": "FBbt_00004162",
+    "unique_facets": [
+     "Adult",
+     "Gustatory_system",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sense_organ"
+    ],
+    "label": "labellar taste bristle"
+   }
+  },
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/BFO_0000050",
+    "database_cross_reference": [],
+    "label": "is part of",
+    "type": "part_of",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00005892",
+    "types": [
+     "Entity",
+     "Class",
+     "Adult",
+     "Anatomy",
+     "Nervous_system"
+    ],
+    "short_form": "FBbt_00005892",
+    "unique_facets": [
+     "Adult",
+     "Nervous_system"
+    ],
+    "label": "adult peripheral nervous system"
+   }
+  }
+ ],
+ "related_individuals": [],
+ "xrefs": [],
+ "anatomy_channel_image": [
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00104ynf",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00104ynf",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941643462226"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4ynf/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00104ynf",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00104ynf",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941643462226_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00106bec",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00106bec",
+    "unique_facets": [
+     "Adult",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941435886734"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/6bec/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00106bec",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00106bec",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941435886734_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_001061rl",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_001061rl",
+    "unique_facets": [
+     "Adult",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941491102665"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/61rl/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_001061rl",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_001061rl",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941491102665_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_001069iw",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Deprecated",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_001069iw",
+    "unique_facets": [
+     "Adult",
+     "Deprecated",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_626:720575941461672403"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/69iw/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_001069iw",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_001069iw",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_626:720575941461672403_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc3ce0",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_jrmc3ce0",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BM_Taste_L (MaleCNS:137781)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00200000/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00200000/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00200000",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018UnisexVNC_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRCVNC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00200000",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Ganglion",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00200000",
+      "unique_facets": [
+       "Adult",
+       "Ganglion",
+       "Nervous_system"
+      ],
+      "label": "JRC2018UnisexVNC"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00200000/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00200000/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00200000/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc3ce0",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc3ce0",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BM_Taste_L (MaleCNS:137781)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_jrmc3ce0",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_jrmc3ce0",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BM_Taste_L (MaleCNS:137781)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/jrmc/3ce0/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_jrmc3ce0",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_jrmc3ce0",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BM_Taste_L (MaleCNS:137781)_c"
+    },
+    "imaging_technique": {
+     "symbol": "SBFSEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000585",
+     "types": [
+      "Entity",
+      "Class"
+     ],
+     "short_form": "FBbi_00000585",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "serial block face SEM (SBFSEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00104vay",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00104vay",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941687950966"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4vay/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00104vay",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00104vay",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941687950966_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00105eof",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00105eof",
+    "unique_facets": [
+     "Adult",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941569480692"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/5eof/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00105eof",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00105eof",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941569480692_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "BM-Taste",
+    "iri": "http://virtualflybrain.org/reports/VFB_fw044237",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity",
+     "NBLAST"
+    ],
+    "short_form": "VFB_fw044237",
+    "unique_facets": [
+     "Adult",
+     "Cholinergic",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "GNG.1000 (FlyWire:720575940631034936)"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/fw04/4237/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_fw044237",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_fw044237",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "FlyWire:720575940631034936_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  },
+  {
+   "anatomy": {
+    "symbol": "",
+    "iri": "http://virtualflybrain.org/reports/VFB_00104tgw",
+    "types": [
+     "Entity",
+     "Individual",
+     "VFB",
+     "Neuron",
+     "Adult",
+     "Anatomy",
+     "Cell",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron",
+     "has_image",
+     "has_neuron_connectivity"
+    ],
+    "short_form": "VFB_00104tgw",
+    "unique_facets": [
+     "Adult",
+     "Mechanosensory_system",
+     "Nervous_system",
+     "Sensory_neuron"
+    ],
+    "label": "BANC_888:720575941661542200"
+   },
+   "channel_image": {
+    "image": {
+     "image_nrrd": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/volume.nrrd",
+     "image_swc": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/volume.swc",
+     "template_channel": {
+      "symbol": "",
+      "iri": "http://virtualflybrain.org/reports/VFBc_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Channel",
+       "Template"
+      ],
+      "short_form": "VFBc_00101567",
+      "unique_facets": [
+       "Channel"
+      ],
+      "label": "JRC2018Unisex_c"
+     },
+     "index": [],
+     "template_anatomy": {
+      "symbol": "JRC2018U",
+      "iri": "http://virtualflybrain.org/reports/VFB_00101567",
+      "types": [
+       "Entity",
+       "Individual",
+       "VFB",
+       "Adult",
+       "Anatomy",
+       "Nervous_system",
+       "Template",
+       "has_image"
+      ],
+      "short_form": "VFB_00101567",
+      "unique_facets": [
+       "Adult",
+       "Nervous_system"
+      ],
+      "label": "JRC2018Unisex"
+     },
+     "image_wlz": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/volume.wlz",
+     "image_obj": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/volume_man.obj",
+     "image_thumbnail": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/thumbnail.png",
+     "image_folder": "http://www.virtualflybrain.org/data/VFB/i/0010/4tgw/VFB_00101567/"
+    },
+    "channel": {
+     "symbol": "",
+     "iri": "http://virtualflybrain.org/reports/VFBc_00104tgw",
+     "types": [
+      "Entity",
+      "Individual",
+      "VFB",
+      "Channel"
+     ],
+     "short_form": "VFBc_00104tgw",
+     "unique_facets": [
+      "Channel"
+     ],
+     "label": "BANC_888:720575941661542200_c"
+    },
+    "imaging_technique": {
+     "symbol": "TEM",
+     "iri": "http://purl.obolibrary.org/obo/FBbi_00000258",
+     "types": [
+      "Entity",
+      "Class",
+      "has_subClass"
+     ],
+     "short_form": "FBbi_00000258",
+     "unique_facets": [
+      "Class"
+     ],
+     "label": "transmission electron microscopy (TEM)"
+    }
+   }
+  }
+ ],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "BM_Taste",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.07.31.667571",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_07_31_667571",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Bates et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.07.31.667571"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "BM_Taste",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_male-cns"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "https://doi.org/10.1101/2025.10.09.680999",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "doi_10_1101_2025_10_09_680999",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Berg et al., 2025"
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": "10.1101/2025.10.09.680999"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "labial taste bristle mechanosensitive neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "labellar hMSN",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0248869",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0248869",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Li and Montell, 2021, Curr. Biol. 31(9): 1850--1861.e6"
+    },
+    "FlyBase": "FBrf0248869",
+    "PubMed": "33657409",
+    "DOI": "10.1016/j.cub.2021.02.007"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "labellar taste bristle mechanosensitive neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "labellar taste hair mechanosensory neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0248869",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0248869",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Li and Montell, 2021, Curr. Biol. 31(9): 1850--1861.e6"
+    },
+    "FlyBase": "FBrf0248869",
+    "PubMed": "33657409",
+    "DOI": "10.1016/j.cub.2021.02.007"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "BM-Taste neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0259346",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0259346",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Eichler et al., 2024, eLife 12: RP87602"
+    },
+    "FlyBase": "FBrf0259346",
+    "PubMed": "38634460",
+    "DOI": "10.7554/eLife.87602"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "labial taste bristle mechanosensory neuron",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "BM-Taste",
+    "type": "http://purl.obolibrary.org/obo/fbbt#VFB_SYMBOL"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0259346",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0259346",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Eichler et al., 2024, eLife 12: RP87602"
+    },
+    "FlyBase": "FBrf0259346",
+    "PubMed": "38634460",
+    "DOI": "10.7554/eLife.87602"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "BM_Taste",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_flywire_fafb"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/FBrf0260535",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "FBrf0260535",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": "Schlegel et al., 2024, Nature 634(8032): 139--152"
+    },
+    "FlyBase": "FBrf0260535",
+    "PubMed": "39358521",
+    "DOI": "10.1038/s41586-024-07686-5"
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_related_synonym",
+    "label": "BM_Taste",
+    "type": "http://purl.obolibrary.org/obo/fbbt#name_in_banc"
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  }
+ ],
+ "def_pubs": [
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0242472",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0242472",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Zhou et al., 2019, Sci. Adv. 5(5): eaaw5141"
+   },
+   "FlyBase": "FBrf0242472",
+   "PubMed": "31131327",
+   "DOI": "10.1126/sciadv.aaw5141"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0259346",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0259346",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Eichler et al., 2024, eLife 12: RP87602"
+   },
+   "FlyBase": "FBrf0259346",
+   "PubMed": "38634460",
+   "DOI": "10.7554/eLife.87602"
+  },
+  {
+   "core": {
+    "symbol": "",
+    "iri": "http://flybase.org/reports/FBrf0248869",
+    "types": [
+     "Entity",
+     "Individual",
+     "pub"
+    ],
+    "short_form": "FBrf0248869",
+    "unique_facets": [
+     "pub"
+    ],
+    "label": "Li and Montell, 2021, Curr. Biol. 31(9): 1850--1861.e6"
+   },
+   "FlyBase": "FBrf0248869",
+   "PubMed": "33657409",
+   "DOI": "10.1016/j.cub.2021.02.007"
+  }
+ ],
+ "targeting_splits": []
+}

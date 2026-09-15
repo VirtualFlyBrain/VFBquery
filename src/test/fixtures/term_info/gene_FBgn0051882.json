@@ -1,0 +1,148 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://flybase.org/reports/FBgn0051882",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Gene",
+    "hasScRNAseq"
+   ],
+   "short_form": "FBgn0051882",
+   "unique_facets": [
+    "Gene"
+   ],
+   "label": "CG31882"
+  },
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for Class",
+ "version": "e231b06",
+ "parents": [
+  {
+   "symbol": "",
+   "iri": "http://purl.obolibrary.org/obo/SO_0000704",
+   "types": [
+    "Entity",
+    "Class",
+    "has_subClass"
+   ],
+   "short_form": "SO_0000704",
+   "unique_facets": [
+    "Class"
+   ],
+   "label": "gene"
+  }
+ ],
+ "relationships": [],
+ "related_individuals": [],
+ "xrefs": [
+  {
+   "link_base": "http://flybase.org/reports/",
+   "site": {
+    "iri": "http://virtualflybrain.org/reports/FlyBase",
+    "symbol": "",
+    "types": [
+     "Entity",
+     "Individual",
+     "Site"
+    ],
+    "short_form": "FlyBase",
+    "unique_facets": [
+     "Site"
+    ],
+    "label": "FlyBase"
+   },
+   "is_data_source": false,
+   "link_postfix": "",
+   "icon": "https://flybase.org/images/fly_logo.png",
+   "accession": "FBgn0051882",
+   "link_text": "CG31882 on FlyBase",
+   "homepage": "http://flybase.org"
+  }
+ ],
+ "anatomy_channel_image": [],
+ "pub_syn": [
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "CG31882",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "bs35a07.y1",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  },
+  {
+   "synonym": {
+    "scope": "has_exact_synonym",
+    "label": "NEST:bs35a07",
+    "type": ""
+   },
+   "pub": {
+    "core": {
+     "symbol": "",
+     "iri": "http://flybase.org/reports/Unattributed",
+     "types": [
+      "Entity",
+      "Individual",
+      "pub"
+     ],
+     "short_form": "Unattributed",
+     "unique_facets": [
+      "pub"
+     ],
+     "label": ""
+    },
+    "FlyBase": "",
+    "PubMed": "",
+    "DOI": ""
+   }
+  }
+ ],
+ "def_pubs": []
+}

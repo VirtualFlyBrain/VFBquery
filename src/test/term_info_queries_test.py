@@ -95,12 +95,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("", terminfo.pub_syn[0].pub.PubMed)
 
     def test_term_info_deserialization_from_dict(self):
-        import pkg_resources
-        print("vfb_connect version:", pkg_resources.get_distribution("vfb_connect").version)
-        vfbTerm = self.get_term_info_or_skip('FBbt_00048514')
-        start_time = time.time()
+        """Render code (PR-blocking): deserialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_deserialization_from_dict(
+            _load_fixture("class_FBbt_00048514_taste_mechanosensory"))
+
+    @pytest.mark.data_health
+    def test_term_info_deserialization_from_dict_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_deserialization_from_dict(
+            self.get_term_info_or_skip('FBbt_00048514'))
+
+    def _check_deserialization_from_dict(self, vfbTerm):
         terminfo = deserialize_term_info_from_dict(vfbTerm)
-        print("--- %s seconds ---" % (time.time() - start_time))
         # print("vfbTerm:", vfbTerm)
         # print("terminfo:", terminfo)
         # Add debug for unique_facets
@@ -141,11 +148,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertEqual("33657409", labellar_hmsn_entry.pub.PubMed)
 
     def test_term_info_serialization_individual_anatomy(self):
-        term_info_dict = self.get_term_info_or_skip('VFB_00010001')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_individual_anatomy(
+            _load_fixture("individual_VFB_00010001_fru"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_individual_anatomy_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_individual_anatomy(
+            self.get_term_info_or_skip('VFB_00010001'))
+
+    def _check_serialization_individual_anatomy(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("fru-F-500075 [VFB_00010001]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -190,11 +205,17 @@ class TermInfoQueriesTest(unittest.TestCase):
                          'reference': '[VFB_00017894,VFB_00010001]'} in serialized["thumbnail"])
 
     def test_term_info_serialization_class(self):
-        term_info_dict = self.get_term_info_or_skip('FBbt_00048531')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_class(_load_fixture("class_FBbt_00048531"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_class_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_class(self.get_term_info_or_skip('FBbt_00048531'))
+
+    def _check_serialization_class(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("female germline 2-cell cyst [FBbt_00048531]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -236,11 +257,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("downloads_label" in serialized)
         
     def test_term_info_serialization_neuron_class(self):
-        term_info_dict = self.get_term_info_or_skip('FBbt_00048999')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_neuron_class(
+            _load_fixture("neuron_class_FBbt_00048999"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_neuron_class_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_neuron_class(
+            self.get_term_info_or_skip('FBbt_00048999'))
+
+    def _check_serialization_neuron_class(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("adult Drosulfakinin neuron [FBbt_00048999]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -294,11 +323,19 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_neuron_class2(self):
-        term_info_dict = self.get_term_info_or_skip('FBbt_00047030')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_neuron_class2(
+            _load_fixture("neuron_class_FBbt_00047030_EPG"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_neuron_class2_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_neuron_class2(
+            self.get_term_info_or_skip('FBbt_00047030'))
+
+    def _check_serialization_neuron_class2(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("adult ellipsoid body-protocerebral bridge 1 glomerulus-dorsal/ventral gall neuron [FBbt_00047030]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -431,11 +468,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_dataset(self):
-        term_info_dict = self.get_term_info_or_skip('Ito2013')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_dataset(_load_fixture("dataset_Ito2013"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_dataset_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_dataset(self.get_term_info_or_skip('Ito2013'))
+
+    def _check_serialization_dataset(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("Ito lab adult brain lineage clone image set [Ito2013]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -473,11 +516,18 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertTrue("clone of Ito 2013" in sample_example["name"])
 
     def test_term_info_serialization_license(self):
-        term_info_dict = self.get_term_info_or_skip('VFBlicense_CC_BY_NC_3_0')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_license(_load_fixture("license_CC_BY_NC_3_0"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_license_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_license(
+            self.get_term_info_or_skip('VFBlicense_CC_BY_NC_3_0'))
+
+    def _check_serialization_license(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("CC-BY-NC_3.0 [VFBlicense_CC_BY_NC_3_0]", serialized["label"])
         self.assertFalse("title" in serialized)
@@ -508,11 +558,17 @@ class TermInfoQueriesTest(unittest.TestCase):
         self.assertFalse("template" in serialized)
 
     def test_term_info_serialization_template(self):
-        term_info_dict = self.get_term_info_or_skip('VFB_00200000')
-        print(term_info_dict)
-        start_time = time.time()
+        """Render code (PR-blocking): serialize a complete fixture, deterministically.
+        See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_serialization_template(_load_fixture("template_VFB_00200000"))
+
+    @pytest.mark.data_health
+    def test_term_info_serialization_template_live(self):
+        """Data-health (scheduled only): the same assertions against live SOLR."""
+        self._check_serialization_template(self.get_term_info_or_skip('VFB_00200000'))
+
+    def _check_serialization_template(self, term_info_dict):
         serialized = process(term_info_dict, self.variable)
-        print("--- %s seconds ---" % (time.time() - start_time))
 
         self.assertEqual("JRC2018UnisexVNC [VFB_00200000]", serialized["label"])
         self.assertFalse("title" in serialized)

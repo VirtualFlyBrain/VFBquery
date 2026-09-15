@@ -1,0 +1,55 @@
+{
+ "term": {
+  "core": {
+   "iri": "http://purl.obolibrary.org/obo/FBbt_00000058",
+   "symbol": "",
+   "types": [
+    "Entity",
+    "Class",
+    "Deprecated"
+   ],
+   "short_form": "FBbt_00000058",
+   "unique_facets": [
+    "Deprecated"
+   ],
+   "label": "obsolete vitellophage"
+  },
+  "description": [],
+  "comment": [
+   "This term was obsoleted because it is the same as 'yolk nucleus' - mc141031."
+  ]
+ },
+ "query": "Get JSON for Class",
+ "version": "0dcd736",
+ "parents": [],
+ "relationships": [],
+ "related_individuals": [
+  {
+   "relation": {
+    "iri": "http://purl.obolibrary.org/obo/IAO_0100001",
+    "database_cross_reference": [],
+    "label": "term replaced by",
+    "type": "term_replaced_by",
+    "confidence_value": ""
+   },
+   "object": {
+    "symbol": "",
+    "iri": "http://purl.obolibrary.org/obo/FBbt_00000057",
+    "types": [
+     "Entity",
+     "Class",
+     "Anatomy"
+    ],
+    "short_form": "FBbt_00000057",
+    "unique_facets": [
+     "Anatomy"
+    ],
+    "label": "yolk nucleus"
+   }
+  }
+ ],
+ "xrefs": [],
+ "anatomy_channel_image": [],
+ "pub_syn": [],
+ "def_pubs": []
+}

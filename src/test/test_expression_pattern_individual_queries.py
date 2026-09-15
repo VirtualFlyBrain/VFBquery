@@ -81,10 +81,29 @@ class TestExpressionPatternStockQueries(unittest.TestCase):
         return _stock_anchors(ti)
 
     def test_class_stock_query_on_driver_feature(self):
+        """Render code (PR-blocking): FindStocks anchors on the EP class's own
+        `expresses` feature, from a complete fixture. See TESTING.md
+        'Fixture vs live (data_health)'."""
+        self.assertEqual(
+            _stock_anchors(_fixture_term_info("ep_class_VFBexp_FBtp0060056")),
+            ["FBtp0060056"])
+
+    @pytest.mark.data_health
+    def test_class_stock_query_on_driver_feature_live(self):
+        """Data-health (scheduled only): the same against live SOLR."""
         self.assertEqual(self._anchors_or_skip(self.EP_CLASS), ["FBtp0060056"])
 
     def test_instance_stock_query_matches_its_driver(self):
         # Regular EP image carries its own `expresses` edge — same feature as the class.
+        """Render code (PR-blocking): the EP image's own `expresses` edge yields
+        the same FindStocks feature as its class. See TESTING.md."""
+        self.assertEqual(
+            _stock_anchors(_fixture_term_info("ep_individual_VFB_00020530")),
+            ["FBtp0060056"])
+
+    @pytest.mark.data_health
+    def test_instance_stock_query_matches_its_driver_live(self):
+        """Data-health (scheduled only): the same against live SOLR."""
         self.assertEqual(self._anchors_or_skip(self.EP_INDIVIDUAL), ["FBtp0060056"])
 
     def test_split_class_offers_a_stock_query_per_hemidriver(self):
@@ -104,8 +123,13 @@ class TestExpressionPatternStockQueries(unittest.TestCase):
         self.assertEqual(self._anchors_or_skip(self.SPLIT_CLASS),
                          ["FBtp0129935", "FBtp0129968"])
 
+    @pytest.mark.data_health
     def test_split_instance_inherits_hemidriver_stock_queries(self):
-        # No own driver edge: features come from the pattern class it instantiates.
+        # No own driver edge: the features come from the pattern class it
+        # instantiates, which `_stock_features_via_parent_pattern` fetches with a
+        # LIVE `_load_term_info(parent)` call. A fixture for the individual alone
+        # cannot make this hermetic (the parent lookup still hits SOLR), so this
+        # stays a live (data_health) test rather than a PR-blocking fixture one.
         self.assertEqual(self._anchors_or_skip(self.SPLIT_INDIVIDUAL),
                          ["FBtp0129935", "FBtp0129968"])
 
@@ -115,11 +139,17 @@ class TestExpressionPatternIndividualQueries(unittest.TestCase):
 
     EP_INDIVIDUAL = "VFB_00020530"   # R40G10 in the adult brain (confocal)
     EP_CLASS = "VFBexp_FBtp0060056"  # P{GMR40G10-GAL4} expression pattern
+    IND_FIXTURE = "ep_individual_VFB_00020530"
+    CLS_FIXTURE = "ep_class_VFBexp_FBtp0060056"
 
     @classmethod
     def setUpClass(cls):
-        cls.ind = get_term_info(cls.EP_INDIVIDUAL, preview=False)
-        cls.cls = get_term_info(cls.EP_CLASS, preview=False)
+        # Fixture-backed (PR-blocking, deterministic): every assertion below reads
+        # only the parsed term_info menu, so these run against committed fixtures
+        # rather than live SOLR. The live docs are re-checked on the schedule by
+        # test_menus_live (data_health). See TESTING.md 'Fixture vs live'.
+        cls.ind = _fixture_term_info(cls.IND_FIXTURE)
+        cls.cls = _fixture_term_info(cls.CLS_FIXTURE)
 
     def test_is_expression_pattern_individual(self):
         if not self.ind:
@@ -174,16 +204,43 @@ class TestExpressionPatternIndividualQueries(unittest.TestCase):
             self.assertNotEqual(anchor, self.EP_INDIVIDUAL,
                                 f"{qid} should not run on the individual")
 
+    @pytest.mark.data_health
+    def test_menus_live(self):
+        """Data-health (scheduled only): the live EP class/instance documents still
+        produce the inherited menu the fixtures encode — catches drift in the
+        built vfb_json. Deselected on PRs via ``-m 'not data_health'``."""
+        ind = get_term_info(self.EP_INDIVIDUAL, preview=False)
+        cls = get_term_info(self.EP_CLASS, preview=False)
+        self.assertTrue(ind and cls, "live EP term_info unavailable")
+        class_menu, ind_menu = _menu(cls), _menu(ind)
+        self.assertFalse(set(class_menu) - set(ind_menu),
+                         "instance is missing class queries (live)")
+        for qid in ("AnatomyExpressedIn", "epFrag", "ListAllAvailableImages"):
+            self.assertIn(qid, ind_menu, f"expected {qid} on the live EP instance")
+
 
 class TestSplitIndividualQueries(unittest.TestCase):
     """A confocal split-GAL4 image was also missed by the technique gate."""
 
     SPLIT_INDIVIDUAL = "VFB_00069525"  # JRC_SS00810 in the Adult Brain
 
+    SPLIT_FIXTURE = "split_individual_VFB_00069525"
+
     def test_split_individual_inherits_ep_queries(self):
+        """Render code (PR-blocking): the split image's inherited menu, from a
+        complete fixture. See TESTING.md 'Fixture vs live (data_health)'."""
+        self._check_split_individual_inherits_ep_queries(
+            _fixture_term_info(self.SPLIT_FIXTURE))
+
+    @pytest.mark.data_health
+    def test_split_individual_inherits_ep_queries_live(self):
+        """Data-health (scheduled only): the same against live SOLR."""
         ind = get_term_info(self.SPLIT_INDIVIDUAL, preview=False)
         if not ind:
             self.skipTest("term_info unavailable (no live VFB backend)")
+        self._check_split_individual_inherits_ep_queries(ind)
+
+    def _check_split_individual_inherits_ep_queries(self, ind):
         self.assertTrue(ind.get("IsIndividual"))
         self.assertIn("Split", ind.get("SuperTypes", []))
         ind_menu = _menu(ind)

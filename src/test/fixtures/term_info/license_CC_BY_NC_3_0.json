@@ -1,0 +1,22 @@
+{
+ "term": {
+  "core": {
+   "symbol": "CC_BY_NC",
+   "iri": "http://virtualflybrain.org/reports/VFBlicense_CC_BY_NC_3_0",
+   "types": [
+    "Entity",
+    "Individual",
+    "License"
+   ],
+   "short_form": "VFBlicense_CC_BY_NC_3_0",
+   "unique_facets": [],
+   "label": "CC-BY-NC_3.0"
+  },
+  "link": "https://creativecommons.org/licenses/by-nc/3.0/legalcode",
+  "icon": "http://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc.png",
+  "description": [],
+  "comment": []
+ },
+ "query": "Get JSON for License",
+ "version": "0dcd736"
+}

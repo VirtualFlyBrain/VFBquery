@@ -1,4 +1,4 @@
-name: Test Lint
+name: Lint tests
 
 # Fast, static check that a PR doesn't introduce the silently-passing test
 # anti-patterns documented in TESTING.md (empty-suppressing guards, stale keys,

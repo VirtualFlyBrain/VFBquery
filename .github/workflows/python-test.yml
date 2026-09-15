@@ -1,4 +1,4 @@
-name: Python Package using Conda
+name: Tests
 
 on:
   push:
@@ -27,7 +27,7 @@ permissions:
   checks: write          # a neutral (grey) "Backend coverage" check when skipped
 
 jobs:
-  notebooks:
+  tests:
     name: "Run Tests"
     runs-on: ubuntu-latest
     steps:

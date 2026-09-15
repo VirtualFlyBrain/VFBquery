@@ -35,10 +35,12 @@ export VFBQUERY_CACHE_ENABLED=false            # test the code, not the cache
 pytest -v -ra -n 4 --dist loadscope src/test tests
 ```
 
-- The whole suite runs on every PR via `.github/workflows/python-test.yml`.
-  Timing/performance checks live separately in `performance-test.yml`
-  (`test_query_performance.py`), because their thresholds only hold with the
-  cache warm.
+- The whole suite runs on every PR via the **Tests** workflow
+  (`.github/workflows/python-test.yml`). Timing/performance checks live
+  separately in `performance-test.yml` (`test_query_performance.py`), because
+  their thresholds only hold with the cache warm. For what every CI workflow
+  does, when it runs, and which can block a PR, see
+  [`.github/workflows/README.md`](.github/workflows/README.md).
 - `-ra` prints a summary of skips at the end; the CI job turns any skips into a
   PR **warning** so a backend outage can't hide behind a green check. A green
   check *with* that warning means the run was incomplete because the VFB backend
@@ -48,7 +50,7 @@ pytest -v -ra -n 4 --dist loadscope src/test tests
   a run is cancelled when a newer commit supersedes it. Parallelism is pinned at
   `-n 4` (the hosted runner's vCPU count) rather than `-n auto`, to keep the
   number of concurrent query streams aimed at production explicit and stable.
-- A separate **Test Lint** check (`test-lint.yml` → `scripts/lint_tests.py`)
+- A separate **Lint tests** check (`test-lint.yml` → `scripts/lint_tests.py`)
   fails the PR if it introduces any of the anti-patterns below. It only inspects
   the lines your PR *adds*. For a genuine exception (a deliberate empty-result
   test, a graceful-handling test), put `# test-lint: allow` on that line. You can

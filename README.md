@@ -107,6 +107,10 @@ a schema change is intentional, `python -m src.test.test_example_queries
 --record` refreshes the recordings. `pip install -r requirements.txt
 -r tests/requirements.txt`, then `pytest`.
 
+See [`TESTING.md`](TESTING.md) for how to write a test that fits the CI policy,
+and [`.github/workflows/README.md`](.github/workflows/README.md) for what each
+CI workflow does, when it runs, and which can block a PR.
+
 ## Licence
 
 GPL-3.0. Please cite [Court et al. (2023), *Virtual Fly Brain — an

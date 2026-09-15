@@ -360,6 +360,17 @@ class Image:
         self.type_label = type_label
         self.type_id = type_id
 
+def order_template_examples(records):
+    """Order one template's Examples so its own domain images come first.
+
+    An image with an index is a domain in that template's label volume, so it
+    belongs to the template and leads the Available Images carousel, by index
+    ascending. Everything else follows, newest id first as before.
+    """
+    by_id = sorted(records, key=lambda r: r["id"], reverse=True)
+    return sorted(by_id, key=lambda r: (r.get("index") is None, r.get("index") or 0))
+
+
 class ImageSchema(Schema):
     id = fields.String(required=True)
     label = fields.String(required=True)
@@ -963,11 +974,13 @@ def term_info_parse_object(results, short_form):
                 for key in vars(image.channel_image.image).keys():
                     if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.channel_image.image)[key]) > 1:
                         record[key.replace("image_","")] = vars(image.channel_image.image)[key].replace("http://","https://")
+                image_index = getattr(image.channel_image.image, "index", None)
+                if image_index:
+                    record["index"] = int(image_index[0])
                 images[image.channel_image.image.template_anatomy.short_form].append(record)
             
-            # Sort each template's images by id in descending order (newest first)
             for template_key in images:
-                images[template_key] = sorted(images[template_key], key=lambda x: x["id"], reverse=True)
+                images[template_key] = order_template_examples(images[template_key])
             
             termInfo["Examples"] = images
             # Add techniques to termInfo for Individuals

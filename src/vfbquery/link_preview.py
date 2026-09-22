@@ -21,7 +21,17 @@ DEFAULT_IMAGE = "https://www.virtualflybrain.org/favicons/vfb-logo-512.png"
 MAX_DESCRIPTION = 300
 
 _MARKDOWN_LINK = re.compile(r"\[([^\]]*)\]\([^)\s]*\)")
-_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+$")
+# Deliberately broad: VFB ids are not one shape. Underscored ontology ids
+# (FBbt_00003748, VFB_jrchjrch, GO_0016811, VFBexp_FBtp0088219) sit alongside
+# FlyBase ids with no underscore at all (FBgn0038978, FBtp0106402, FBrf0247641)
+# and dataset/publication names (Court2017, Chiang2010) -- all of which
+# get_term_info resolves. An earlier pattern required an underscore and so
+# silently refused a preview for every FlyBase id and every dataset.
+#
+# Over-matching is cheap: an id with no term behind it comes back with a null
+# Id and is refused as a 404, which is what lets a caller fall back to its
+# ordinary redirect. Under-matching is the expensive mistake.
+_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]+$")
 
 
 def is_term_id(value):

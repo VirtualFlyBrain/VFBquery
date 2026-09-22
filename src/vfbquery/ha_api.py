@@ -4197,7 +4197,13 @@ async def _term_info_for_preview(request, short_form):
     if response.status != 200:
         return None
     info = json.loads(response.body)
-    return info if info and info.get("Id") else None
+    # get_term_info answers 200 with an empty shell for an id it does not know
+    # (every field null), so presence is not enough: without a Name there is
+    # nothing to put on a card, and the caller should fall back to its own
+    # redirect rather than be handed a blank preview.
+    if not info or not info.get("Id") or not info.get("Name"):
+        return None
+    return info
 
 
 async def handle_get_preview(request):

@@ -156,6 +156,20 @@ def test_page_carries_every_tag_an_unfurler_reads():
     assert 'http-equiv="refresh" content="0; url=https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=VFB_jrchjrch"' in page
 
 
+def test_page_qualifies_for_pinterest_article_rich_pin():
+    # Pinterest's Rich Pin validator requires og:type to be exactly "article"
+    # or "blog" -- "website" (what this used to send) is never eligible, so
+    # every VFB term page silently failed Pinterest's Rich Pin check even
+    # though the ordinary og:/twitter: preview worked fine everywhere else.
+    # og:site_name is "strongly suggested" by the same docs and was already
+    # present; article:section is optional but free to provide here.
+    page = link_preview.render_preview_html(_neuron())
+    tags = _tags(page)
+    assert tags["og:type"] == "article"
+    assert tags["og:site_name"] == link_preview.SITE_NAME
+    assert "article:section" in tags
+
+
 def test_page_escapes_hostile_ontology_text():
     info = _class_with_example()
     info["Name"] = 'x"><script>alert(1)</script>'

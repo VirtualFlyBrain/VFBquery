@@ -139,12 +139,13 @@ def render_preview_html(info):
 <title>{m['title']}</title>
 <meta name="description" content="{m['description']}">
 <link rel="canonical" href="{m['url']}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="article">
 <meta property="og:site_name" content="{html.escape(SITE_NAME)}">
 <meta property="og:title" content="{m['title']}">
 <meta property="og:description" content="{m['description']}">
 <meta property="og:url" content="{m['url']}">
 <meta property="og:image" content="{m['image']}">
+<meta property="article:section" content="{html.escape(kind_of(info))}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{m['title']}">
 <meta name="twitter:description" content="{m['description']}">

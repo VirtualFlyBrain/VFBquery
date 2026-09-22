@@ -61,6 +61,8 @@ from functools import partial
 
 import aiohttp
 from aiohttp import web
+
+from vfbquery import link_preview
 import numpy as np
 
 # Pure standard-library module: the /combine expression language, its set
@@ -4182,6 +4184,59 @@ async def handle_catmaid_command(request):
 # Application factory
 # ---------------------------------------------------------------------------
 
+
+async def _term_info_for_preview(request, short_form):
+    """The cached get_term_info result for a preview endpoint, or None.
+
+    Goes through the same L1 cache, coalescer and worker pool as
+    /get_term_info itself, so a preview never costs a second term lookup and
+    a burst of unfurlers for one link collapses to one query.
+    """
+    key = f"term_info:{short_form}"
+    response = await _dispatch_to_pool(request, key, _run_term_info, short_form)
+    if response.status != 200:
+        return None
+    info = json.loads(response.body)
+    return info if info and info.get("Id") else None
+
+
+async def handle_get_preview(request):
+    """GET /get_preview?id=<short_form>
+
+    The term's link-preview page: og:*/twitter:* tags, title, description
+    and thumbnail rendered server-side, with a meta-refresh into the viewer.
+    Meant to be served to unfurlers (Slackbot, Twitterbot, ...) in place of
+    the viewer, which sets those tags only from JavaScript they never run.
+    """
+    short_form = (request.query.get("id") or "").strip()
+    if not link_preview.is_term_id(short_form):
+        return web.Response(text="Error: a VFB term id is required", status=400)
+    info = await _term_info_for_preview(request, short_form)
+    if info is None:
+        return web.Response(text=f"No term found for id={short_form}", status=404)
+    return web.Response(
+        text=link_preview.render_preview_html(info),
+        content_type="text/html",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+async def handle_get_preview_image(request):
+    """GET /get_preview_image?id=<short_form>
+
+    Redirects to the term's thumbnail, or the site logo when it has none:
+    a stable id-keyed image URL for og:image, sitemaps, cards and the MCP.
+    """
+    short_form = (request.query.get("id") or "").strip()
+    if not link_preview.is_term_id(short_form):
+        return web.Response(text="Error: a VFB term id is required", status=400)
+    info = await _term_info_for_preview(request, short_form)
+    if info is None:
+        return web.Response(text=f"No term found for id={short_form}", status=404)
+    target = link_preview.first_thumbnail(info) or link_preview.DEFAULT_IMAGE
+    raise web.HTTPFound(target, headers={"Cache-Control": "public, max-age=86400"})
+
+
 def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
                cache_ttl=None, search_concurrency=None, search_cpu_threads=None,
                search_queue_wait=None):
@@ -4238,6 +4293,8 @@ def create_app(max_workers=None, max_concurrent=None, max_queue_depth=None,
     app.router.add_get("/get_known_neurotransmitters", handle_get_known_neurotransmitters)
     app.router.add_get("/get_hierarchy", handle_get_hierarchy)
     app.router.add_get("/get_hierarchy_html", handle_get_hierarchy_html)
+    app.router.add_get("/get_preview", handle_get_preview)
+    app.router.add_get("/get_preview_image", handle_get_preview_image)
 
     # Canonical free-text search (website-equivalent ranking)
     app.router.add_get("/search", handle_search)

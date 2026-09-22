@@ -44,13 +44,27 @@ def _class_with_example():
 
 # --- id validation -----------------------------------------------------------
 
-@pytest.mark.parametrize("value", ["FBbt_00003748", "VFB_jrchjrch", "VFBexp_FBtp0000001", "GO_0001872"])
-def test_is_term_id_accepts_vfb_shapes(value):
+@pytest.mark.parametrize("value", [
+    # underscored ontology ids
+    "FBbt_00003748", "VFB_jrchjrch", "VFBexp_FBtp0000001", "GO_0001872",
+    "GENO_0000346", "FBdv_00007133", "FBbi_00000537",
+    # FlyBase ids -- no underscore at all
+    "FBgn0038978", "FBtp0106402", "FBti0004391", "FBrf0247641", "FBal0331598",
+    # dataset / publication names
+    "Court2017", "Chiang2010", "Robie2017",
+])
+def test_is_term_id_accepts_every_shape_get_term_info_resolves(value):
     assert link_preview.is_term_id(value)
 
 
-@pytest.mark.parametrize("value", ["", None, "medulla", "<script>", "../x", "VFB jrch", "_leading"])
-def test_is_term_id_rejects_free_text(value):
+@pytest.mark.parametrize("value", [
+    "", None, "<script>", "../x", "VFB jrch", "_leading", "x",
+    # FlyBase links VFB thumbnails by label rather than id; that must not be
+    # mistaken for a term.
+    "P{VT057232-GAL4} expression pattern in adult VNS on Virtual Fly Brain",
+    "VFB_00101384/thumbnail.png",
+])
+def test_is_term_id_rejects_junk(value):
     assert not link_preview.is_term_id(value)
 
 

@@ -106,32 +106,74 @@ class TestExpressionPatternStockQueries(unittest.TestCase):
         """Data-health (scheduled only): the same against live SOLR."""
         self.assertEqual(self._anchors_or_skip(self.EP_INDIVIDUAL), ["FBtp0060056"])
 
-    def test_split_class_offers_a_stock_query_per_hemidriver(self):
-        """Render code (PR-blocking): FindStocks is generated per hemidriver from a
-        complete split fixture (its ``has_hemidriver`` relationships). Deterministic
-        — isolates the generation code from live-data state. See TESTING.md
-        'Fixture vs live (data_health)'."""
-        self.assertEqual(
-            _stock_anchors(_fixture_term_info("split_VFBexp_FBtp0129935FBtp0129968")),
-            ["FBtp0129935", "FBtp0129968"])
+    SPLIT_COMBO = "FBco0001890"              # FlyBase combination of the two
 
-    @pytest.mark.data_health
-    def test_split_class_offers_a_stock_query_per_hemidriver_live(self):
-        """Data-health (scheduled only): the same against the live SOLR document, so an incomplete
-        production split document (no ``Expression_pattern`` type / no
-        ``has_hemidriver``) is caught. Deselected on PRs via ``-m 'not data_health'``."""
-        self.assertEqual(self._anchors_or_skip(self.SPLIT_CLASS),
+    def _split_fixture_anchors(self, combos):
+        """Parse the split fixture with the FlyBase combination lookup stubbed,
+        keeping the render test hermetic (no Chado)."""
+        import vfbquery.flybase_stocks as fbs
+        real = fbs.combinations_for_constructs
+        fbs.combinations_for_constructs = combos
+        try:
+            return _stock_anchors(
+                _fixture_term_info("split_VFBexp_FBtp0129935FBtp0129968"))
+        finally:
+            fbs.combinations_for_constructs = real
+
+    def test_split_class_offers_one_stock_query_on_its_combination(self):
+        """Render code (PR-blocking): a split's two ``has_hemidriver`` constructs
+        collapse onto the FlyBase combination they build, so the menu offers a
+        single FindStocks (exact combination first, hemidriver fallback) rather
+        than one per half. See TESTING.md 'Fixture vs live (data_health)'."""
+        seen = []
+
+        def combos(construct_ids):
+            seen.append(sorted(construct_ids))
+            return [self.SPLIT_COMBO]
+
+        self.assertEqual(self._split_fixture_anchors(combos), [self.SPLIT_COMBO])
+        self.assertEqual(seen, [["FBtp0129935", "FBtp0129968"]])
+
+    def test_split_combination_stock_label_names_the_combination(self):
+        """Render code (PR-blocking): the label keeps its usual wording and names
+        the FBco in brackets, where it used to name each FBtp."""
+        import vfbquery.flybase_stocks as fbs
+        real = fbs.combinations_for_constructs
+        fbs.combinations_for_constructs = lambda ids: [self.SPLIT_COMBO]
+        try:
+            ti = _fixture_term_info("split_VFBexp_FBtp0129935FBtp0129968")
+        finally:
+            fbs.combinations_for_constructs = real
+        labels = [q["label"] for q in ti["Queries"] if q.get("query") == "FindStocks"]
+        self.assertEqual(labels, [f"Find fly stocks for {ti['Name']} ({self.SPLIT_COMBO})"])
+
+    def test_split_without_curated_combination_keeps_a_query_per_hemidriver(self):
+        """Render code (PR-blocking): no FlyBase combination -> per-hemidriver queries."""
+        self.assertEqual(self._split_fixture_anchors(lambda ids: []),
+                         ["FBtp0129935", "FBtp0129968"])
+
+    def test_split_combination_lookup_failure_keeps_a_query_per_hemidriver(self):
+        """Render code (PR-blocking): a Chado failure must not drop the stock queries."""
+        def combos(ids):
+            raise RuntimeError("chado down")
+        self.assertEqual(self._split_fixture_anchors(combos),
                          ["FBtp0129935", "FBtp0129968"])
 
     @pytest.mark.data_health
-    def test_split_instance_inherits_hemidriver_stock_queries(self):
+    def test_split_class_offers_one_stock_query_on_its_combination_live(self):
+        """Data-health (scheduled only): the same against the live SOLR document, so an incomplete
+        production split document (no ``Expression_pattern`` type / no
+        ``has_hemidriver``) is caught. Deselected on PRs via ``-m 'not data_health'``."""
+        self.assertEqual(self._anchors_or_skip(self.SPLIT_CLASS), [self.SPLIT_COMBO])
+
+    @pytest.mark.data_health
+    def test_split_instance_inherits_combination_stock_query(self):
         # No own driver edge: the features come from the pattern class it
         # instantiates, which `_stock_features_via_parent_pattern` fetches with a
         # LIVE `_load_term_info(parent)` call. A fixture for the individual alone
         # cannot make this hermetic (the parent lookup still hits SOLR), so this
         # stays a live (data_health) test rather than a PR-blocking fixture one.
-        self.assertEqual(self._anchors_or_skip(self.SPLIT_INDIVIDUAL),
-                         ["FBtp0129935", "FBtp0129968"])
+        self.assertEqual(self._anchors_or_skip(self.SPLIT_INDIVIDUAL), [self.SPLIT_COMBO])
 
 
 class TestExpressionPatternIndividualQueries(unittest.TestCase):

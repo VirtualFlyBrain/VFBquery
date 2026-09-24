@@ -392,6 +392,74 @@ WHERE combo.uniquename = %(combo_id)s
 ORDER BY a.uniquename
 """
 
+# Split system component alleles (hemidrivers) carried by each stock. A genotype
+# usually lists the FBti insertion rather than the allele, so reach the allele
+# the same three ways _ALLELE_STOCKS_SQL does: held directly, via the construct
+# the insertion was produced by, or via an associated_with insertion. An allele
+# counts as a hemidriver when some combination is partially_produced_by it, or
+# when it encodes a split-system tool (GAL4(DBD)::Zip-, p65(AD)::Zip+, ...).
+# The tool test matters: many hemidrivers (e.g. Hsap\RELA[AD.VT058427]) sit in
+# stocks without ever being curated into a combination. The tool set is read
+# from the combinations themselves rather than hard-coded.
+_STOCK_HEMIDRIVERS_SQL = """
+WITH hemi_tools AS (
+  SELECT DISTINCT et.object_id AS tool_fid
+  FROM feature_relationship ppb
+  JOIN cvterm c ON ppb.type_id = c.cvterm_id AND c.name = 'partially_produced_by'
+  JOIN feature_relationship et ON ppb.object_id = et.subject_id
+  JOIN cvterm ec ON et.type_id = ec.cvterm_id AND ec.name = 'encodes_tool'
+), gf AS (
+  SELECT DISTINCT s.uniquename AS stock_id, fg.feature_id
+  FROM stock s
+  JOIN stock_genotype sg ON s.stock_id = sg.stock_id
+  JOIN feature_genotype fg ON sg.genotype_id = fg.genotype_id
+  WHERE s.uniquename = ANY(%(stock_ids)s)
+), carried AS (
+  SELECT gf.stock_id, gf.feature_id AS allele_fid
+  FROM gf
+
+  UNION
+
+  SELECT gf.stock_id, fr2.subject_id
+  FROM gf
+  JOIN feature_relationship fr1 ON gf.feature_id = fr1.subject_id
+  JOIN cvterm c1 ON fr1.type_id = c1.cvterm_id AND c1.name = 'producedby'
+  JOIN feature_relationship fr2 ON fr1.object_id = fr2.object_id
+
+  UNION
+
+  SELECT gf.stock_id, fr.subject_id
+  FROM gf
+  JOIN feature_relationship fr ON gf.feature_id = fr.object_id
+  JOIN cvterm c ON fr.type_id = c.cvterm_id AND c.name = 'associated_with'
+)
+SELECT DISTINCT carried.stock_id, a.uniquename AS allele_id
+FROM carried
+JOIN feature a ON carried.allele_fid = a.feature_id AND a.is_obsolete = false
+WHERE EXISTS (
+  SELECT 1
+  FROM feature_relationship ppb
+  JOIN cvterm c ON ppb.type_id = c.cvterm_id AND c.name = 'partially_produced_by'
+  WHERE ppb.object_id = a.feature_id
+) OR EXISTS (
+  SELECT 1
+  FROM feature_relationship et
+  JOIN cvterm ec ON et.type_id = ec.cvterm_id AND ec.name = 'encodes_tool'
+  JOIN hemi_tools ht ON et.object_id = ht.tool_fid
+  WHERE et.subject_id = a.feature_id
+)
+"""
+
+# Stock match tiers for a split system combination, best first.
+COMBO_MATCH_EXACT = "Exact combination"
+COMBO_MATCH_HEMIDRIVER = "Hemidriver alone"
+COMBO_MATCH_OTHER_COMBO = "Hemidriver in other combination"
+_COMBO_MATCH_RANK = {
+    COMBO_MATCH_EXACT: 0,
+    COMBO_MATCH_HEMIDRIVER: 1,
+    COMBO_MATCH_OTHER_COMBO: 2,
+}
+
 
 def _add_collection_filter(sql, params, collection_filter, use_where=False):
     """Add optional collection filter to a stock query."""
@@ -447,7 +515,19 @@ def _find_stocks_construct(conn, construct_id, collection_filter=None):
 
 
 def _find_stocks_combination(conn, combo_id, collection_filter=None):
-    """Find stocks for a split system combination via its component alleles."""
+    """Find stocks for a split system combination via its component alleles.
+
+    Each stock is given a ``match`` tier, and only the best available tier is
+    returned:
+      1. Exact combination — the stock carries every component hemidriver.
+         If any exist, nothing else is returned.
+      2. Hemidriver alone — one component, with no other hemidriver.
+      3. Hemidriver in other combination — one component, paired with a
+         hemidriver that is not part of this combination.
+    Tiers 2 and 3 are chosen per hemidriver: a hemidriver with a stock of its
+    own shows only those, while one without falls back to the stocks that
+    pair it with something else.
+    """
     components = _run_query(conn, _COMBO_COMPONENTS_SQL, {"combo_id": combo_id})
     if components.empty:
         return pd.DataFrame()
@@ -463,12 +543,93 @@ def _find_stocks_combination(conn, combo_id, collection_filter=None):
     if not frames:
         return pd.DataFrame()
 
+    hits = pd.concat(frames, ignore_index=True)
+    component_ids = set(components["allele_id"])
+
+    # A stock reached through more than one component carries all of them.
+    stocks = (
+        hits.groupby("stock_id", sort=False)
+        .agg(
+            stock_number=("stock_number", "first"),
+            genotype=("genotype", "first"),
+            collection=("collection", "first"),
+            component=("component", lambda s: "; ".join(sorted(set(s)))),
+            component_id=("component_id", lambda s: "; ".join(sorted(set(s)))),
+            n_components=("component_id", "nunique"),
+        )
+        .reset_index()
+    )
+
+    hemidrivers = _run_query(
+        conn, _STOCK_HEMIDRIVERS_SQL, {"stock_ids": list(stocks["stock_id"])})
+    other_combo_stocks = set()
+    if not hemidrivers.empty:
+        other = hemidrivers[~hemidrivers["allele_id"].isin(component_ids)]
+        other_combo_stocks = set(other["stock_id"])
+
+    def _match(row):
+        if row["n_components"] >= len(component_ids):
+            return COMBO_MATCH_EXACT
+        if row["stock_id"] in other_combo_stocks:
+            return COMBO_MATCH_OTHER_COMBO
+        return COMBO_MATCH_HEMIDRIVER
+
+    stocks["match"] = stocks.apply(_match, axis=1)
+    stocks["_rank"] = stocks["match"].map(_COMBO_MATCH_RANK)
+
+    # Keep only the best tier. Non-exact stocks carry a single component, so
+    # grouping on it applies the fallback to each hemidriver independently.
+    exact = stocks["match"] == COMBO_MATCH_EXACT
+    if exact.any():
+        stocks = stocks[exact]
+    else:
+        best = stocks.groupby("component_id")["_rank"].transform("min")
+        stocks = stocks[stocks["_rank"] == best]
+
     return (
-        pd.concat(frames, ignore_index=True)
-        .drop_duplicates(subset=["stock_id"])
-        .sort_values(["collection", "stock_number"])
+        stocks.sort_values(["_rank", "component", "collection", "stock_number"],
+                           na_position="last")
+        .drop(columns=["_rank", "n_components"])
         .reset_index(drop=True)
     )
+
+
+# Split system combinations whose hemidrivers are made from all of the given
+# constructs. VFB models a split expression pattern by its two hemidriver
+# constructs (FBtp) only, so this is how a pattern reaches its FBco.
+_COMBOS_FOR_CONSTRUCTS_SQL = """
+SELECT combo.uniquename AS combo_id
+FROM feature tp
+JOIN feature_relationship ta ON tp.feature_id = ta.object_id
+JOIN cvterm tc ON ta.type_id = tc.cvterm_id
+  AND tc.name IN ('associated_with', 'derived_tp_assoc_alleles')
+JOIN feature_relationship ppb ON ta.subject_id = ppb.object_id
+JOIN cvterm pc ON ppb.type_id = pc.cvterm_id AND pc.name = 'partially_produced_by'
+JOIN feature combo ON ppb.subject_id = combo.feature_id AND combo.is_obsolete = false
+WHERE tp.uniquename = ANY(%(construct_ids)s)
+GROUP BY combo.uniquename
+HAVING count(DISTINCT tp.uniquename) = %(n)s
+ORDER BY combo.uniquename
+"""
+
+
+def combinations_for_constructs(construct_ids):
+    """Return the FBco ids of split system combinations built from all of
+    ``construct_ids`` (the hemidriver FBtp constructs of a split pattern).
+
+    :param construct_ids: FBtp ids, e.g. ``["FBtp0099469", "FBtp0099561"]``
+    :return: list of FBco uniquenames (usually one; empty if none is curated)
+    """
+    construct_ids = sorted(set(construct_ids))
+    if len(construct_ids) < 2:
+        return []
+    conn = get_connection(statement_timeout_ms=30000)
+    try:
+        df = _run_query(conn, _COMBOS_FOR_CONSTRUCTS_SQL,
+                        {"construct_ids": construct_ids, "n": len(construct_ids)})
+    finally:
+        conn.close()
+    return [] if df.empty else list(df["combo_id"])
 
 
 def _find_stock_details(conn, stock_id):

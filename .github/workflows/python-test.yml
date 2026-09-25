@@ -58,9 +58,13 @@ jobs:
           set -o pipefail
           # Full correctness suite across src/test and tests (was: only
           # term_info_queries_test.py). Parallel via pytest-xdist, grouped per
-          # file (--dist loadscope) so each file's backend connections stay on
-          # one worker; the 300s per-test timeout from pyproject.toml bounds any
-          # single hung upstream call. `-ra` prints a summary of skips/failures.
+          # file (--dist loadfile) so each file's backend connections stay on
+          # one worker. (loadscope grouped per *class*, which spread one file's
+          # heavy connectivity classes across all four workers at once and
+          # rebuilt its module-scoped fixtures on each — a recurring source of
+          # 300s timeouts at the tail of the run.) The 300s per-test timeout
+          # from pyproject.toml bounds any single hung upstream call; the few
+          # known cold-query tests raise it with @pytest.mark.timeout. `-ra` prints a summary of skips/failures.
           # A backend outage SKIPS the affected tests (see conftest.py) rather
           # than failing them; empty-but-connected results still fail. The next
           # step turns any skips into a PR-visible warning.
@@ -84,7 +88,7 @@ jobs:
           # pull_request they are deselected. See TESTING.md.
           MARK=(-m "not data_health")
           [ "${{ github.event_name }}" = "schedule" ] && MARK=()
-          pytest -v -ra -n 4 --dist loadscope \
+          pytest -v -ra -n 4 --dist loadfile \
             --ignore=src/test/test_query_performance.py \
             --ignore=src/test/test_example_queries.py \
             "${MARK[@]}" \

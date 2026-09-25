@@ -1517,11 +1517,14 @@ def term_info_parse_object(results, short_form):
                 # Split-GAL4 image instances carry no driver edge of their own;
                 # follow the cached parent link to the pattern class's features.
                 ep_feature_ids = _stock_features_via_parent_pattern(vfbTerm)
+            ep_feature_ids = _split_combination_ids(ep_feature_ids)
             multi = len(ep_feature_ids) > 1
             for fb_id in ep_feature_ids:
-                # Disambiguate the label only when a pattern drives several
-                # features (a split), so single-feature patterns keep a clean name.
-                stock_name = f"{termInfo['Name']} ({fb_id})" if multi else termInfo["Name"]
+                # Name the feature only for a split (its FBco, or each hemidriver
+                # when no combination is curated), so single-driver patterns keep
+                # a clean label.
+                split = multi or fb_id.startswith("FBco")
+                stock_name = f"{termInfo['Name']} ({fb_id})" if split else termInfo["Name"]
                 q = FindStocks_to_schema(stock_name, {"short_form": fb_id})
                 queries.append(q)
 
@@ -2710,6 +2713,26 @@ def _stock_features_from_relationships(vfbTerm):
         if obj_sf and obj_sf.startswith(_STOCK_FEATURE_PREFIXES) and obj_sf not in feature_ids:
             feature_ids.append(obj_sf)
     return feature_ids
+
+
+def _split_combination_ids(feature_ids):
+    """Collapse a split pattern's hemidriver constructs onto its combination.
+
+    A split pattern reaches FindStocks as its two hemidriver FBtp constructs,
+    which gave one stock query per half. The FlyBase combination (FBco) built
+    from them ranks stocks carrying both halves first and falls back to each
+    hemidriver only when needed, so offer that single query instead. Anything
+    other than a construct pair with a curated combination — or a FlyBase
+    lookup failure — keeps the per-feature queries.
+    """
+    if len(feature_ids) < 2 or not all(f.startswith("FBtp") for f in feature_ids):
+        return feature_ids
+    from .flybase_stocks import combinations_for_constructs
+    try:
+        return combinations_for_constructs(feature_ids) or feature_ids
+    except Exception as e:
+        print(f"Could not resolve split combination for {feature_ids}: {e}")
+        return feature_ids
 
 
 def _stock_features_via_parent_pattern(vfbTerm):
@@ -5349,12 +5372,18 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
     # entry where that centre has one, and the collection name resolves to the
     # centre's homepage. `id` stays the bare FBst — it is the row's selection
     # id, not a rendered cell.
+    # Split system combination (FBco) stocks come back ranked exact
+    # combination -> hemidriver alone -> hemidriver in another combination;
+    # show that tier so the ordering reads as deliberate. Other feature types
+    # carry no `match`, and keep their four-column table.
+    has_match = any(s.get('match') for s in stocks)
+
     rows = []
     for s in stocks:
         stock_id = s.get('stock_id', '') or ''
         stock_number = s.get('stock_number', '') or ''
         collection = s.get('collection', '') or ''
-        rows.append({
+        row = {
             # Hidden identity column (the FBst the row is about). Without a
             # `selection_id`-typed column the website consumes the first data
             # column as the row identity and hides it — which dropped Stock ID
@@ -5366,7 +5395,10 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
             'genotype': s.get('genotype', ''),
             'collection': _md_link(
                 collection, homepages.get(collection, {}).get('homepage_url')),
-        })
+        }
+        if has_match:
+            row['match'] = s.get('match', '') or ''
+        rows.append(row)
 
     total_count = len(rows)
     if limit != -1:
@@ -5382,6 +5414,8 @@ def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
         'genotype': {'title': 'Genotype', 'type': 'text', 'order': 2},
         'collection': {'title': 'Collection', 'type': 'markdown', 'order': 3},
     }
+    if has_match:
+        headers['match'] = {'title': 'Match', 'type': 'text', 'order': 4}
     return {'headers': headers, 'rows': rows, 'count': total_count}
 
 

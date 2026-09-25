@@ -1,7 +1,14 @@
 """Tests for flybase_stocks module — entity resolution and stock discovery."""
+import pandas as pd
 import pytest
 
-from vfbquery.flybase_stocks import resolve_entity, find_stocks
+from vfbquery.flybase_stocks import (
+    COMBO_MATCH_EXACT,
+    COMBO_MATCH_HEMIDRIVER,
+    COMBO_MATCH_OTHER_COMBO,
+    resolve_entity,
+    find_stocks,
+)
 from vfbquery.vfb_queries import (
     _flybase_report_url,
     _md_link,
@@ -230,6 +237,101 @@ class TestFindStocksCombination:
     def test_nonexistent_combination(self):
         stocks = find_stocks("FBco9999999")
         assert stocks == []
+
+    @pytest.mark.integration
+    def test_exact_combination_hides_hemidriver_stocks(self):
+        # FBco0001000 = R50C12-p65.AD ∩ VT049369-GAL4.DBD; 607102 carries both,
+        # so the single-hemidriver stocks (89605, 72840, 603713) are dropped.
+        stocks = find_stocks("FBco0001000")
+        assert [s["stock_number"] for s in stocks] == ["607102"]
+        assert stocks[0]["match"] == COMBO_MATCH_EXACT
+
+    @pytest.mark.integration
+    def test_fallback_is_per_hemidriver(self):
+        # FBco0002000 has no exact stock. Its R20A03-GAL4.DBD has stocks of its
+        # own, so its other-combination stocks are hidden; its R82F03-p65.AD has
+        # none, so it falls back to the stocks pairing it with other DBDs.
+        stocks = {s["stock_number"]: s["match"] for s in find_stocks("FBco0002000")}
+        assert stocks["75808"] == COMBO_MATCH_HEMIDRIVER      # R20A03 DBD alone
+        assert stocks["602487"] == COMBO_MATCH_OTHER_COMBO    # R82F03 AD + R48G01 DBD
+        assert "602978" not in stocks                         # R20A03 DBD + R52B07 AD
+
+    @pytest.mark.integration
+    def test_uncurated_partner_hemidriver_is_detected(self):
+        # 88099 pairs R24H08-GAL4.DBD with VT058427-p65.AD, which is in no FBco,
+        # so it must be recognised by the split-system tool it encodes.
+        import vfbquery.flybase_stocks as fbs
+        from vfbquery.flybase_db import get_connection
+        conn = get_connection(statement_timeout_ms=60000)
+        try:
+            df = fbs._run_query(conn, fbs._STOCK_HEMIDRIVERS_SQL,
+                                {"stock_ids": ["FBst0088099"]})
+        finally:
+            conn.close()
+        assert "FBal0331043" in set(df["allele_id"])
+
+    @pytest.mark.integration
+    def test_match_column_only_for_combinations(self):
+        combo = get_flybase_stocks("FBco0001000", return_dataframe=False)
+        assert combo["headers"]["match"]["type"] == "text"
+        assert combo["rows"][0]["match"] == COMBO_MATCH_EXACT
+        allele = get_flybase_stocks("FBal0034227", return_dataframe=False, limit=3)
+        assert "match" not in allele["headers"]
+
+
+class TestCombinationRanking:
+    """Ranking of combination stocks, with the chado queries stubbed out."""
+
+    AD, DBD, OTHER_DBD = "FBal_AD", "FBal_DBD", "FBal_DBD2"
+
+    def _stocks(self, monkeypatch, per_allele, hemidrivers):
+        import vfbquery.flybase_stocks as fbs
+
+        def fake_run_query(conn, sql, params):
+            if sql is fbs._COMBO_COMPONENTS_SQL:
+                return pd.DataFrame({"allele_name": ["AD", "DBD"],
+                                     "allele_id": [self.AD, self.DBD]})
+            if sql is fbs._STOCK_HEMIDRIVERS_SQL:
+                return pd.DataFrame(hemidrivers, columns=["stock_id", "allele_id"])
+            raise AssertionError("unexpected query")
+
+        def fake_allele(conn, allele_id, collection_filter=None):
+            return pd.DataFrame(
+                [{"stock_id": sid, "stock_number": sid[-1], "genotype": "",
+                  "collection": "BDSC"} for sid in per_allele.get(allele_id, [])],
+                columns=["stock_id", "stock_number", "genotype", "collection"])
+
+        monkeypatch.setattr(fbs, "_run_query", fake_run_query)
+        monkeypatch.setattr(fbs, "_find_stocks_allele", fake_allele)
+        df = fbs._find_stocks_combination(None, "FBco_test")
+        return list(zip(df["stock_id"], df["match"]))
+
+    def test_exact_combination_hides_lower_tiers(self, monkeypatch):
+        got = self._stocks(
+            monkeypatch,
+            per_allele={self.AD: ["st1", "st2", "st3"], self.DBD: ["st3", "st4"]},
+            hemidrivers=[("st1", self.AD), ("st1", self.OTHER_DBD), ("st2", self.AD),
+                         ("st3", self.AD), ("st3", self.DBD), ("st4", self.DBD)])
+        assert got == [("st3", COMBO_MATCH_EXACT)]
+
+    def test_hemidriver_alone_hides_its_other_combinations(self, monkeypatch):
+        # AD has a stock of its own (st2), so st1 is hidden; DBD has only st5.
+        got = self._stocks(
+            monkeypatch,
+            per_allele={self.AD: ["st1", "st2"], self.DBD: ["st4", "st5"]},
+            hemidrivers=[("st1", self.AD), ("st1", self.OTHER_DBD), ("st2", self.AD),
+                         ("st4", self.DBD), ("st5", self.DBD)])
+        assert got == [("st2", COMBO_MATCH_HEMIDRIVER),
+                       ("st4", COMBO_MATCH_HEMIDRIVER),
+                       ("st5", COMBO_MATCH_HEMIDRIVER)]
+
+    def test_hemidriver_without_own_stock_falls_back_to_other_combinations(self, monkeypatch):
+        # DBD has a stock of its own; AD only appears paired with another DBD.
+        got = self._stocks(
+            monkeypatch,
+            per_allele={self.AD: ["st1"], self.DBD: ["st2"]},
+            hemidrivers=[("st1", self.AD), ("st1", self.OTHER_DBD), ("st2", self.DBD)])
+        assert got == [("st2", COMBO_MATCH_HEMIDRIVER), ("st1", COMBO_MATCH_OTHER_COMBO)]
 
 
 class TestFindStocksTableSchema:

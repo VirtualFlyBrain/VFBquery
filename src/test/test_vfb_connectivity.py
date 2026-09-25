@@ -105,6 +105,9 @@ class TestQueryConnectivityKnown:
         assert len(result["connections"]) == result["count"]
 
     @pytest.mark.integration
+    # Three live queries, two of them one-sided (everything downstream of the
+    # giant fiber neuron / upstream of GFC2), so a cold run can pass 300s.
+    @pytest.mark.timeout(600)
     def test_both_types_subset_of_either_alone(self):
         # Grouped on all three sides: a one-sided query returns every partner of
         # the named type, which is the one shape in this file that can run to

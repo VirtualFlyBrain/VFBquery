@@ -286,7 +286,10 @@ class TestSubclassesOf(unittest.TestCase):
     
     def test_subclasses_of_in_term_info(self):
         """Test that SubclassesOf appears in term_info queries"""
-        term_info = get_term_info(self.wedge_pn_id, preview=True)
+        # preview=False: only the menu label is asserted. With previews on, this
+        # class (>45 subclasses) also computes its Upstream/Downstream class
+        # connectivity previews live, which alone can exceed the 300s timeout.
+        term_info = get_term_info(self.wedge_pn_id, preview=False)
         
         self.assertIn('Queries', term_info)  # Note: Capital 'Q'
         query_labels = [q['label'] for q in term_info['Queries']]

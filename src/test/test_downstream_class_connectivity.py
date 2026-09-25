@@ -18,6 +18,45 @@ TEST_CLASS = "FBbt_00001482"
 # A class that is unlikely to have downstream connectivity data.
 EMPTY_CLASS = "FBbt_00000001"
 
+# The live aggregation behind this query takes ~2 minutes for TEST_CLASS, and
+# `limit` / `return_dataframe` only reshape its output, so each test re-running
+# it (force_refresh bypasses the result cache) made this one of the slowest
+# files and a regular 300s timeout under parallel load. The first test in this
+# file therefore pays for the cold query, so it gets a longer ceiling.
+pytestmark = pytest.mark.timeout(600)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _aggregate_once():
+    """Run the live aggregation once per (class, direction) for this module.
+
+    Every test still goes through the public query function — formatting,
+    `limit`, DataFrame conversion — and the first call per class is a real,
+    uncached backend query; only the repeats are served from this memo.
+    """
+    import copy
+    from vfbquery import vfb_queries as vq
+
+    real = vq._aggregate_class_connectivity
+    memo = {}
+
+    def once(short_form, direction, neuron_root=vq.NEURON_ROOT_SHORT_FORM,
+             status=None):
+        key = (short_form, direction, neuron_root)
+        if key not in memo:
+            run_status = {}
+            rows = real(short_form, direction, neuron_root=neuron_root,
+                        status=run_status)
+            memo[key] = (rows, run_status)
+        rows, run_status = memo[key]
+        if status is not None:
+            status.update(run_status)
+        return copy.deepcopy(rows)
+
+    vq._aggregate_class_connectivity = once
+    yield
+    vq._aggregate_class_connectivity = real
+
 
 class TestDownstreamClassConnectivityDict:
     """Tests using return_dataframe=False (dict output)."""

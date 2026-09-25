@@ -32,7 +32,7 @@ put it in
 ```bash
 export PYTHONPATH=$PYTHONPATH:$PWD/
 export VFBQUERY_CACHE_ENABLED=false            # test the code, not the cache
-pytest -v -ra -n 4 --dist loadscope src/test tests
+pytest -v -ra -n 4 --dist loadfile src/test tests
 ```
 
 - The whole suite runs on every PR via the **Tests** workflow

@@ -1573,7 +1573,7 @@ if is_type(vfbTerm, ["Type1", "Type2"]):
 - **XMI Spec**: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/master/model/vfb.xmi
 - **Owlery API**: http://owl.virtualflybrain.org/kbs/vfb/
 - **SOLR API**: https://solr.virtualflybrain.org/solr/vfb_json/select
-- **Neo4j**: http://pdb.v4.virtualflybrain.org/db/neo4j/tx
+- **Neo4j**: https://pdb.virtualflybrain.org/db/neo4j/tx
 - **VFB Ontology**: http://purl.obolibrary.org/obo/fbbt.owl
 
 ---

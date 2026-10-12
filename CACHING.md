@@ -462,7 +462,7 @@ instances = vfb.get_instances('FBbt_00003748')  # Cached automatically
 
 Owlery-based queries (`ImagesNeurons`, `NeuronsPartHere`, `PartsOf`, ...) are cached in two layers: the
 finished result (`images_neurons`, ...) and, underneath it, the Owlery id list (`owlery_ids`, Solr docs
-`vfb_query_owlery_ids_<term>_<c|i>_<hash>`). Until v1.22.58 `force_refresh` cleared only the result and then
+`vfb_query_owlery_ids_<term>_<c|i>_<hash>`). Before the fix on branch `fix/force-refresh-reaches-owlery-ids`, `force_refresh` cleared only the result and then
 recomputed it from the still-cached id list, so a refresh after a data load (new neurons) returned exactly the
 same stale set ("Force refresh requested ... Cache hit for owlery_ids" in the server log; seen 2026-10-12 on
 `ImagesNeurons(FBbt_00040051)`: 2678 cached, 3206 live). A forced call now raises a context flag

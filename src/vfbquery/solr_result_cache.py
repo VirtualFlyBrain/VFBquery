@@ -1117,6 +1117,21 @@ def solr_caching_readonly() -> bool:
     return os.getenv('VFBQUERY_CACHE_READONLY', 'false').lower() in ('true', '1', 'yes', 'on')
 
 
+# True while a query that was asked to force_refresh is computing. The Owlery id list
+# (``owlery_ids``) is a second cache layer *underneath* the query result: the result
+# decorator cleared only its own entry, then recomputed from the still-cached id list,
+# so a refresh after a data load (new neurons) returned the same stale set. Read by
+# ``vfb_queries._owlery_query_to_results``. A ContextVar rather than a keyword, so the
+# cache field names (built from kwargs) do not split between refreshed and normal calls.
+import contextvars as _contextvars
+_force_fresh_ctx = _contextvars.ContextVar('vfbquery_force_fresh', default=False)
+
+
+def force_fresh_active() -> bool:
+    """True inside a query that was called with force_refresh=True."""
+    return _force_fresh_ctx.get()
+
+
 def with_solr_cache(query_type: str):
     """
     Decorator to add SOLR caching to query functions
@@ -1129,8 +1144,7 @@ def with_solr_cache(query_type: str):
     The decorated function can accept a 'force_refresh' parameter to bypass cache.
     """
     def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def _cached_call(*args, **kwargs):
             # Check if force_refresh is requested (pop it before passing to function)
             force_refresh = kwargs.pop('force_refresh', False)
 
@@ -1599,6 +1613,19 @@ def with_solr_cache(query_type: str):
                             logger.debug(f"Not caching limited result for {term_id} (limit={limit}))")
             
             return result
-        
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # A forced refresh must reach the Owlery id list under the result, not just the
+            # result itself. get_term_info is excluded: its force path fans out to every
+            # query preview and already forwards force_refresh where a query takes it.
+            if kwargs.get('force_refresh') and query_type != 'term_info':
+                token = _force_fresh_ctx.set(True)
+                try:
+                    return _cached_call(*args, **kwargs)
+                finally:
+                    _force_fresh_ctx.reset(token)
+            return _cached_call(*args, **kwargs)
+
         return wrapper
     return decorator

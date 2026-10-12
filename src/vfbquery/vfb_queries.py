@@ -14,7 +14,7 @@ from urllib.parse import quote, unquote
 import hashlib
 from .solr_result_cache import (with_solr_cache, solr_caching_disabled,
                                 PREVIEW_STATUS_PENDING, PREVIEW_STATUS_COMPLETE,
-                                preview_is_resolved)
+                                preview_is_resolved, force_fresh_active)
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -5704,7 +5704,11 @@ def _owlery_query_to_results(owl_query_string: str, short_form: str, return_data
         # Step 1: Owlery id list (cached) — the natural index for paging. Cache
         # key is short_form + a hash of the OWL query (clean, unique doc id).
         owl_key = f"{short_form}_{'i' if query_instances else 'c'}_{hashlib.md5(owl_query_string.encode()).hexdigest()[:10]}"
-        class_ids = _owlery_ids_cached(owl_key, owl_query_string, query_instances=query_instances, query_by_label=query_by_label)
+        # A forced refresh of the query result must rebuild this id list too, or it just
+        # re-hydrates the stale one (CACHING.md, "force_refresh and the Owlery id list").
+        class_ids = _owlery_ids_cached(owl_key, owl_query_string, query_instances=query_instances,
+                                       query_by_label=query_by_label,
+                                       force_refresh=force_fresh_active())
         
         if not class_ids:
             # No results found - return empty

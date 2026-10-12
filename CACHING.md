@@ -457,3 +457,18 @@ instances = vfb.get_instances('FBbt_00003748')  # Cached automatically
 - **Clear when needed**: Use `clear_solr_cache()` to force fresh data
 - **Consider data freshness**: SOLR cache TTL ensures data doesn't become stale
 - **Disable when needed**: Use environment variable if caching isn't desired
+
+## force_refresh and the Owlery id list
+
+Owlery-based queries (`ImagesNeurons`, `NeuronsPartHere`, `PartsOf`, ...) are cached in two layers: the
+finished result (`images_neurons`, ...) and, underneath it, the Owlery id list (`owlery_ids`, Solr docs
+`vfb_query_owlery_ids_<term>_<c|i>_<hash>`). Before the fix on branch `fix/force-refresh-reaches-owlery-ids`, `force_refresh` cleared only the result and then
+recomputed it from the still-cached id list, so a refresh after a data load (new neurons) returned exactly the
+same stale set ("Force refresh requested ... Cache hit for owlery_ids" in the server log; seen 2026-10-12 on
+`ImagesNeurons(FBbt_00040051)`: 2678 cached, 3206 live). A forced call now raises a context flag
+(`solr_result_cache.force_fresh_active()`) that `_owlery_query_to_results` passes to `_owlery_ids_cached`, so both
+layers are rebuilt. `get_term_info` does not raise it (its force path already fans out per query). The flag is a
+`ContextVar`, not a keyword, so cache field names do not split. Test: `tests/test_force_refresh_owlery_ids.py`.
+
+Older servers: delete the term's `owlery_ids` docs first (`id:vfb_query_owlery_ids_<term>_*` in the
+`vfbquery_cache` collection), then refresh. The talosconfig `vfbquery-force-refresh` Argo workflow does both.

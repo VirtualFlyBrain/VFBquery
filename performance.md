@@ -1,9 +1,9 @@
 # VFBquery Performance Test Results
 
-**Test Date:** 2026-10-15 07:04:46 UTC
-**Git Commit:** 0cfd051df99e8b4a95570a16a56784bd8c42ead1
+**Test Date:** 2026-10-16 06:55:31 UTC
+**Git Commit:** 2c0d0f7db7755a9c4de8d3650b12c7e5f79810a1
 **Branch:** main
-**Workflow Run:** [38694356297](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/38694356297)
+**Workflow Run:** [38862054325](https://github.com/VirtualFlyBrain/VFBquery/actions/runs/38862054325)
 
 ## Test Overview
 
@@ -89,7 +89,7 @@ VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
 ============================= test session starts ==============================
-platform linux -- Python 3.10.22, pytest-9.1.1, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
+platform linux -- Python 3.10.22, pytest-9.1.1, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
 cachedir: .pytest_cache
 rootdir: /home/runner/work/VFBquery/VFBquery
 configfile: pyproject.toml
@@ -102,43 +102,43 @@ created: 4/4 workers
 
 scheduling tests via LoadScheduling
 
-src/test/test_query_performance.py::QueryPerformanceTest::test_03_synaptic_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_01_term_info_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_05_tract_lineage_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_03_synaptic_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_06_instance_queries 
-[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_06_instance_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_07_connectivity_queries 
 [gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_01_term_info_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_02_neuron_part_queries 
+[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_06_instance_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_07_connectivity_queries 
 [gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_02_neuron_part_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_07b_upstream_class_connectivity 
-[gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_upstream_class_connectivity 
-src/test/test_query_performance.py::QueryPerformanceTest::test_07c_cross_dataset_connectivity 
-[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07_connectivity_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_07b_downstream_class_connectivity 
-[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_downstream_class_connectivity 
-src/test/test_query_performance.py::QueryPerformanceTest::test_09_neuron_input_queries 
 [gw1] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_03_synaptic_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_04_anatomy_hierarchy_queries 
+[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07_connectivity_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_07b_upstream_class_connectivity 
 [gw2] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_05_tract_lineage_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_05b_image_queries 
-[gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07c_cross_dataset_connectivity 
-src/test/test_query_performance.py::QueryPerformanceTest::test_08_similarity_queries 
 [gw1] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_04_anatomy_hierarchy_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_11_transcriptomics_queries 
-[gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_08_similarity_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_13_dataset_template_queries 
-[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_09_neuron_input_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_10_expression_queries INFO: Owlery query returned 400 Bad Request (invalid for this term type): <http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/FBtp0000001>
+src/test/test_query_performance.py::QueryPerformanceTest::test_08_similarity_queries 
+[gw1] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_08_similarity_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_11_transcriptomics_queries INFO: Owlery query returned 400 Bad Request (invalid for this term type): <http://purl.obolibrary.org/obo/BFO_0000050> some <http://purl.obolibrary.org/obo/FBtp0000001>
 
 [gw2] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_05b_image_queries 
-src/test/test_query_performance.py::QueryPerformanceTest::test_12_nblast_queries 
-[gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_13_dataset_template_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_10_expression_queries 
 [gw1] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_11_transcriptomics_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_12_nblast_queries 
+[gw1] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_12_nblast_queries 
 src/test/test_query_performance.py::QueryPerformanceTest::test_14_publication_transgene_queries 
 [gw1] FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_14_publication_transgene_queries 
-[gw2] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_12_nblast_queries 
-[gw3] FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_10_expression_queries 
+[gw0] FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_downstream_class_connectivity 
+src/test/test_query_performance.py::QueryPerformanceTest::test_07c_cross_dataset_connectivity 
+[gw3] FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_upstream_class_connectivity 
+src/test/test_query_performance.py::QueryPerformanceTest::test_09_neuron_input_queries 
+[gw0] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_07c_cross_dataset_connectivity 
+[gw3] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_09_neuron_input_queries 
+[gw2] FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_10_expression_queries 
+src/test/test_query_performance.py::QueryPerformanceTest::test_13_dataset_template_queries 
+[gw2] PASSED src/test/test_query_performance.py::QueryPerformanceTest::test_13_dataset_template_queries 
 
 =================================== FAILURES ===================================
 __________ QueryPerformanceTest.test_14_publication_transgene_queries __________
@@ -196,8 +196,340 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 src/test/test_query_performance.py:109: in _time_query
     self.assertGreater(self._result_size(result), 0,
 E   AssertionError: 0 not greater than 0 : TransgeneExpressionHere returned no rows
-_______________ QueryPerformanceTest.test_10_expression_queries ________________
+------------------------------ Captured log call -------------------------------
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+_________ QueryPerformanceTest.test_07b_downstream_class_connectivity __________
+[gw0] linux -- Python 3.10.22 /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
+
+self = <src.test.test_query_performance.QueryPerformanceTest testMethod=test_07b_downstream_class_connectivity>
+
+    def test_07b_downstream_class_connectivity(self):
+        """Test DownstreamClassConnectivity query (multi-step aggregation)"""
+        print("\n" + "="*80)
+        print("DOWNSTREAM CLASS CONNECTIVITY (multi-step aggregation)")
+        print("="*80)
+    
+        result, duration, success = self._time_query(
+            "DownstreamClassConnectivity",
+            get_downstream_class_connectivity,
+            self.CLASS_CONNECTIVITY_TEST_CLASS,
+            return_dataframe=False,
+        )
+        print(f"DownstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+>       self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "DownstreamClassConnectivity exceeded threshold")
+E       AssertionError: 59.25989103317261 not less than 31.0 : DownstreamClassConnectivity exceeded threshold
+
+src/test/test_query_performance.py:399: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+__________ QueryPerformanceTest.test_07b_upstream_class_connectivity ___________
 [gw3] linux -- Python 3.10.22 /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
+
+self = <src.test.test_query_performance.QueryPerformanceTest testMethod=test_07b_upstream_class_connectivity>
+
+    def test_07b_upstream_class_connectivity(self):
+        """Test UpstreamClassConnectivity query (multi-step aggregation)"""
+        print("\n" + "="*80)
+        print("UPSTREAM CLASS CONNECTIVITY (multi-step aggregation)")
+        print("="*80)
+    
+        result, duration, success = self._time_query(
+            "UpstreamClassConnectivity",
+            get_upstream_class_connectivity,
+            self.CLASS_CONNECTIVITY_TEST_CLASS,
+            return_dataframe=False,
+        )
+        print(f"UpstreamClassConnectivity: {duration:.4f}s {'✅' if success else '❌'}")
+>       self.assertLess(duration, self.THRESHOLD_VERY_SLOW, "UpstreamClassConnectivity exceeded threshold")
+E       AssertionError: 57.877460956573486 not less than 31.0 : UpstreamClassConnectivity exceeded threshold
+
+src/test/test_query_performance.py:414: AssertionError
+------------------------------ Captured log call -------------------------------
+ERROR    vfbquery.solr_result_cache:solr_result_cache.py:721 Failed to cache result: HTTP 401 - <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"/>
+<title>Error 401 Authentication failed, Response code: 401</title>
+</head>
+<body><h2>HTTP ERROR 401 Authentication failed, Response code: 401</h2>
+<table>
+<tr><th>URI:</th><td>/solr/vfbquery_cache/update</td></tr>
+<tr><th>STATUS:</th><td>401</td></tr>
+<tr><th>MESSAGE:</th><td>Authentication failed, Response code: 401</td></tr>
+<tr><th>SERVLET:</th><td>default</td></tr>
+</table>
+
+</body>
+</html>
+_______________ QueryPerformanceTest.test_10_expression_queries ________________
+[gw2] linux -- Python 3.10.22 /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
 
 self = <src.test.test_query_performance.QueryPerformanceTest testMethod=test_10_expression_queries>
 
@@ -260,8 +592,8 @@ src/vfbquery/neo4j_client.py:252: in commit_list
     line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = <socket.SocketIO object at 0x7f8390bee3e0>
-b = <memory at 0x7f8390f85b40>
+self = <socket.SocketIO object at 0x7fd15e7d42b0>
+b = <memory at 0x7fd15eb8a200>
 
     def readinto(self, b):
         """Read up to len(b) bytes into the writable buffer *b* and return
@@ -283,15 +615,21 @@ E               Failed: Timeout (>300.0s) from pytest-timeout.
 /opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/socket.py:717: Failed
 =========================== short test summary info ============================
 FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_14_publication_transgene_queries - AssertionError: 0 not greater than 0 : TransgeneExpressionHere returned no rows
+FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_downstream_class_connectivity - AssertionError: 59.25989103317261 not less than 31.0 : DownstreamClassConnectivity exceeded threshold
+FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_07b_upstream_class_connectivity - AssertionError: 57.877460956573486 not less than 31.0 : UpstreamClassConnectivity exceeded threshold
 FAILED src/test/test_query_performance.py::QueryPerformanceTest::test_10_expression_queries - Failed: Timeout (>300.0s) from pytest-timeout.
-=================== 2 failed, 16 passed in 403.03s (0:06:43) ===================
+=================== 4 failed, 14 passed in 420.21s (0:07:00) ===================
 test_term_info_performance (src.test.term_info_queries_test.TermInfoQueriesTest)
-Performance test for specific term info queries. ... ok
+Performance test for specific term info queries. ... Not caching result for FBbt_00003748: all 10 queries failed
+Not caching incomplete result for FBbt_00003748
+ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.940s
+Ran 1 test in 1.443s
 
 OK
+Not caching result for FBbt_00003748: all 10 queries failed
+Not caching incomplete result for FBbt_00003748
 VFBquery functions patched with caching support
 VFBquery: SOLR caching enabled by default (3-month TTL)
          Disable with: export VFBQUERY_CACHE_ENABLED=false
@@ -299,14 +637,24 @@ VFBquery: SOLR caching enabled by default (3-month TTL)
 ==================================================
 Performance Test Results:
 ==================================================
-FBbt_00003748 query took: 0.3803 seconds
-VFB_00101567 query took: 0.5597 seconds
-Total time for both queries: 0.9400 seconds
+FBbt_00003748 query took: 0.8588 seconds
+VFB_00101567 query took: 0.5842 seconds
+Total time for both queries: 1.4430 seconds
 Performance Level: 🟢 Excellent (< 1.5 seconds)
 ==================================================
 Performance test completed successfully!
+Error executing query function get_instances: cannot schedule new futures after interpreter shutdown
+Error executing query function get_neurons_with_part_in: cannot schedule new futures after interpreter shutdown
+Error executing query function get_neurons_with_synapses_in: cannot schedule new futures after interpreter shutdown
+Error executing query function get_neurons_with_presynaptic_terminals_in: cannot schedule new futures after interpreter shutdown
+Error executing query function get_neurons_with_postsynaptic_terminals_in: cannot schedule new futures after interpreter shutdown
+Error executing query function get_parts_of: cannot schedule new futures after interpreter shutdown
+Error executing query function get_tracts_nerves_innervating_here: cannot schedule new futures after interpreter shutdown
+Error executing query function get_lineage_clones_in: cannot schedule new futures after interpreter shutdown
+Error executing query function get_images_neurons: cannot schedule new futures after interpreter shutdown
+Error executing query function get_transgene_expression_here: cannot schedule new futures after interpreter shutdown
 ============================= test session starts ==============================
-platform linux -- Python 3.10.22, pytest-9.1.1, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
+platform linux -- Python 3.10.22, pytest-9.1.1, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.10.22/x64/bin/python
 cachedir: .pytest_cache
 rootdir: /home/runner/work/VFBquery/VFBquery
 configfile: pyproject.toml
@@ -319,169 +667,170 @@ created: 4/4 workers
 
 scheduling tests via LoadScheduling
 
-src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
-[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
-src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_count_columns_populated 
-[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected 
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
+[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_returns_results 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
-[gw2] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected 
+[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_headers_present 
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_count_columns_populated 
+[gw3] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_limit_respected 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation 
-[gw2] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation 
+[gw3] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivitySchema::test_schema_generation 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
-[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_count_columns_populated 
+[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_count_columns_populated 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected 
-[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected 
-src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_returns_results 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
-[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
-[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
-[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_downstream 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_row_has_expected_keys 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
-src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_upstream 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_downstream 
+[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_row_has_expected_keys 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
+[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDict::test_limit_respected 
+src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe 
+[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_returns_dataframe 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_dataframe_has_expected_columns 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected 
+[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_headers_present 
+src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityDataFrame::test_limit_respected 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivitySchema::test_schema_generation 
-[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_downstream 
+[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_direction_downstream 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe 
-[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected 
+[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDict::test_limit_respected 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_limit_respected 
-[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe 
+[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_returns_dataframe 
 src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw0] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw1] PASSED src/test/test_neuron_neuron_connectivity.py::TestNeuronNeuronConnectivityDataFrame::test_dataframe_has_expected_columns 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivitySchema::test_schema_generation 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivitySchema::test_schema_generation 
 src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityAttachment::test_query_attached_to_term_info 
-[gw2] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityAttachment::test_query_attached_to_term_info 
+[gw3] PASSED src/test/test_neuron_region_connectivity.py::TestNeuronRegionConnectivityAttachment::test_query_attached_to_term_info 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_returns_results 
-[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_limit_respected 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
-[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_per_partner 
-[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_per_partner 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
-[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
-[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
-[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_returns_results 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_row_has_expected_keys 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_headers_present 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_limit_respected 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_empty_class_returns_zero 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_empty_class_returns_zero 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_empty_class_returns_zero 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_returns_dataframe 
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
-[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw2] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_limit_respected 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
+[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
+[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_per_partner 
+[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_total_n_is_per_partner 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
+[gw0] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
+[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
+src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
+[gw1] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivitySchema::test_schema_generation 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
+[gw3] PASSED src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityDict::test_returns_results 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
+[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_dataframe_has_expected_columns 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
-[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
+[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_limit_respected 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
-[gw0] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
-[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
+[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_empty_class_returns_empty_dataframe 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
-[gw0] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
-src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
-[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
+[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root 
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
-[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
+[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivitySchema::test_schema_generation 
 src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_returns_datasets 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_datasets_have_label_and_symbol 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_hemibrain_present 
+src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestListConnectomeDatasets::test_every_dataset_has_symbol 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
+[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_returns_results 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
+[gw1] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_row_has_expected_keys 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_top_level_query_term_row_present 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_known_connection_both_types 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
+[gw0] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_constant_within_each_query_class 
+[gw0] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_constant_within_each_query_class 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
+[gw0] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_parent_row_dominates_its_children 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_top_level_query_term_row_present 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_finer_levels_also_present 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_finer_levels_also_present 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_parent_row_dominates_its_children 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_parent_row_dominates_its_children 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbs::test_exclude_all_returns_no_results 
 src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_parent_class_with_no_direct_instances_returns_results 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_parent_row_dominates_its_children 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
+[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
+[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
+[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
+src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
+[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
+src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_ambiguous_label_lists_candidates 
+[gw3] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_ambiguous_label_lists_candidates 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_excludes_are_a_strict_subset_of_everything 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityWeightFiltering::test_higher_weight_fewer_results 
+src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_anchor_side_does_not_change_the_answer 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_parent_class_with_no_direct_instances_returns_results 
 src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_resolved_reports_how_a_label_was_read 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_resolved_reports_how_a_label_was_read 
-src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_anchor_side_does_not_change_the_answer 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_anchor_side_does_not_change_the_answer 
-src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_ambiguous_label_lists_candidates 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_ambiguous_label_lists_candidates 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_excludes_are_a_strict_subset_of_everything 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_excludes_are_a_strict_subset_of_everything 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_matches_passing_it_explicitly 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_matches_passing_it_explicitly 
-src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
-[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_constant_within_each_query_class 
-[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_total_n_constant_within_each_query_class 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_no_types_raises_error 
-src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_aggregate_row_shape 
-[gw3] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_includes_subclass_breakdown 
 src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_tm9_is_predominantly_cholinergic 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivitySubclassExpansion::test_anchor_side_does_not_change_the_answer 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
+[gw1] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_tm9_is_predominantly_cholinergic 
+src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_aggregate_row_shape 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_aggregate_row_shape 
-src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_per_instance_shape 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_tm9_is_predominantly_cholinergic 
 src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_split_by_dataset_adds_dataset_column 
-[gw1] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_per_instance_shape 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityEdgeCases::test_nonexistent_type_returns_warning 
+src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_per_instance_shape 
+[gw1] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_split_by_dataset_adds_dataset_column 
 src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_min_confidence_filters 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_split_by_dataset_adds_dataset_column 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_per_instance_shape 
 src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_nonexistent_type_returns_warning 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_nonexistent_type_returns_warning 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_nonexistent_type_returns_warning 
 src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_includes_subclasses 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_includes_subclasses 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_includes_subclasses 
 src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_row_shape 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_row_shape 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_row_shape 
 src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_nonexistent_type_returns_warning 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestPredictedNeurotransmitters::test_min_confidence_filters 
 src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_tm9_known_cholinergic 
-[gw3] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_nonexistent_type_returns_warning 
+[gw0] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_nonexistent_type_returns_warning 
 [gw1] PASSED src/test/test_vfb_connectivity.py::TestKnownNeurotransmitters::test_tm9_known_cholinergic 
-[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_headers_present 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
-[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_limit_respected 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
-[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDict::test_empty_class_returns_zero 
-src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
-[gw2] PASSED src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityDataFrame::test_returns_dataframe 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
+[gw3] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_excludes_are_a_strict_subset_of_everything 
+src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_matches_passing_it_explicitly 
+[gw3] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityExcludeDbsDefault::test_default_matches_passing_it_explicitly 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityKnown::test_both_types_subset_of_either_alone 
 src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
-[gw0] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
+[gw2] PASSED src/test/test_vfb_connectivity.py::TestQueryConnectivityGroupByClass::test_group_by_class 
 
 =============================== warnings summary ===============================
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts
 src/test/test_upstream_class_connectivity.py::TestUpstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_no_rows_above_neuron_root
-src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_top_level_query_term_row_present
 src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityHierarchyRollup::test_parent_class_appears_with_sensible_counts
+src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_top_level_query_term_row_present
+src/test/test_vfb_connectivity.py::TestQueryConnectivityRollup::test_parent_row_dominates_its_children
   /opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
   Instance attributes set in this fixture will NOT be visible to test methods,
   as each test gets a new instance while the fixture runs only once per class.
@@ -490,7 +839,7 @@ src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityH
     fixturefunc = resolve_fixture_function(fixturedef, request)
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-================== 78 passed, 5 warnings in 294.18s (0:04:54) ==================
+================== 78 passed, 6 warnings in 282.72s (0:04:42) ==================
 ```
 
 ## Summary
@@ -499,9 +848,9 @@ src/test/test_downstream_class_connectivity.py::TestDownstreamClassConnectivityH
 
 ### Test Statistics
 
-- **Total Tests**: 97
-- **Passed**: 95 ✅
-- **Failed**: 2 ❌
+- **Total Tests**: 115
+- **Passed**: 93 ✅
+- **Failed**: 22 ❌
 - **Errors**: 0 ⚠️
 
 ### Query Performance Details
@@ -524,4 +873,4 @@ Track performance trends across commits:
 - [GitHub Actions History](https://github.com/VirtualFlyBrain/VFBquery/actions/workflows/performance-test.yml)
 
 ---
-*Last updated: 2026-10-15 07:04:46 UTC*
+*Last updated: 2026-10-16 06:55:31 UTC*

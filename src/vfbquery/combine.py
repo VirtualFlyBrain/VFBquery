@@ -390,10 +390,11 @@ def id_column(headers, rows=()):
 #: nothing depends on it for correctness.
 NAMESPACES = [
     ("VFBexp_", "expression pattern"),
+    ("VFBseq_", "scRNAseq dataset / sample / assay / clustering / cluster"),
     ("VFBc_",   "channel"),
     ("VFB_",    "individual (a single imaged or reconstructed specimen)"),
     ("FBbt_",   "anatomy class (a cell type or region)"),
-    ("FBlc_",   "dataset / transcriptomic cluster"),
+    ("FBlc",    "dataset / transcriptomic cluster"),
     ("FBgn_",   "gene"),
     ("FBal_",   "allele"),
     ("FBti_",   "transposon insertion"),

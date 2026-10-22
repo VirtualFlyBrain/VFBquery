@@ -216,6 +216,10 @@ def test_namespaces_are_named_in_plain_words():
     assert c.namespace_of("FBgn_0000123") == "gene"
     # Longest prefix wins: VFBexp_ is not a VFB_ individual.
     assert c.namespace_of("VFBexp_FBtp0121686") == "expression pattern"
+    # scRNAseq datasets / clusters: FlyBase FBlc ids (old loads, no underscore)
+    # and vfb-scRNAseq VFBseq_ ids (new loads; not a VFB_ individual either).
+    assert c.namespace_of("FBlc0004785") == "dataset / transcriptomic cluster"
+    assert c.namespace_of("VFBseq_00003217").startswith("scRNAseq")
 
 
 # ---------------------------------------------------------------------------

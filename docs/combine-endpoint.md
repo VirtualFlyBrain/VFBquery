@@ -533,7 +533,7 @@ a `NOT` keeps members it should have removed. The warning names the operand and 
 
 **2. Two sides that can never intersect.** VFB IDs come in namespaces: `FBbt_` is an anatomy class
 (a cell type or region), `VFB_` is an individual (one imaged or reconstructed specimen), `VFBexp_` is
-an expression pattern, `FBlc_` a dataset or transcriptomic cluster, `FBgn_` a gene. An `AND` between
+an expression pattern, `FBlc…` / `VFBseq_` a dataset or transcriptomic cluster, `FBgn_` a gene. An `AND` between
 two different namespaces is empty *by construction*, not by biology. The endpoint diagnoses this on
 the step that went empty and names the kinds in words ("individual on the left, anatomy class on the
 right"), because the user who made the mistake is precisely the one who does not yet read ID prefixes

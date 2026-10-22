@@ -61,7 +61,7 @@ GET /get_term_info?id=FBbt_00007401
 
 | Parameter | |
 |---|---|
-| `id` | **Required.** A VFB short_form: `FBbt_…` (anatomy class), `VFB_…` (individual), `VFBexp_…`, `FBgn_…`, `FBlc_…`. |
+| `id` | **Required.** A VFB short_form: `FBbt_…` (anatomy class), `VFB_…` (individual), `VFBexp_…`, `FBgn_…`, `FBlc…` / `VFBseq_…` (scRNAseq datasets and clusters). |
 | `force_refresh` | `true` bypasses the result cache for this call. |
 
 ### Query previews may be pending

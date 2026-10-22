@@ -166,6 +166,25 @@ def result_is_partial(result) -> bool:
     return isinstance(result, dict) and bool(result.get(PARTIAL_RESULT_KEY))
 
 
+def result_rows_missing(result) -> bool:
+    """True for a dict result that reports rows (count > 0) but carries none.
+
+    That is the shape of a query whose count query succeeded and whose main
+    query failed: Neo4j's ``commit_list`` returns ``False``, which becomes an
+    empty table. ``count >= 0`` alone would store it and serve "no rows" for
+    the cache TTL (TransgeneExpressionHere on mushroom body, 2026-10).
+    """
+    if not isinstance(result, dict):
+        return False
+    rows = result.get('rows')
+    if not isinstance(rows, list) or rows:
+        return False
+    try:
+        return int(result.get('count', 0)) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 def preview_is_resolved(query: Dict[str, Any]) -> bool:
     """True when a query's preview holds a final answer.
 
@@ -1440,6 +1459,10 @@ def with_solr_cache(query_type: str):
                             full_is_valid = False
                             logger.warning(
                                 f"Not caching partial result for {query_type}({term_id})")
+                        if full_is_valid and result_rows_missing(full_result):
+                            full_is_valid = False
+                            logger.warning(
+                                f"Not caching result with count > 0 but no rows for {query_type}({term_id})")
                     elif isinstance(full_result, (list, str)):
                         full_is_valid = len(full_result) > 0
                     else:
@@ -1526,6 +1549,10 @@ def with_solr_cache(query_type: str):
                             result_is_valid = False
                             logger.warning(
                                 f"Not caching partial result for {query_type}({term_id})")
+                        if result_is_valid and result_rows_missing(result):
+                            result_is_valid = False
+                            logger.warning(
+                                f"Not caching result with count > 0 but no rows for {query_type}({term_id})")
                     elif isinstance(result, (list, str)):
                         result_is_valid = len(result) > 0
                     else:

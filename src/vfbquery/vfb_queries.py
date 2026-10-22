@@ -144,6 +144,26 @@ class ConnectivityBackendError(RuntimeError):
     """
 
 
+class Neo4jQueryError(RuntimeError):
+    """A Neo4j query errored or timed out instead of returning a result.
+
+    ``commit_list`` signals failure by returning ``False``, and
+    ``get_dict_cursor`` turns that into ``[]``, so a timed-out main query used
+    to come back as ``{'count': N, 'rows': []}``. That is a valid result to the
+    Solr cache (``count >= 0``) and reads as "no data" to every caller
+    (TransgeneExpressionHere on mushroom body, 2026-10). Same rationale as
+    :class:`ConnectivityBackendError`: raise rather than report zero rows.
+    """
+
+
+def _commit_or_raise(query, description):
+    """``vc.nc.commit_list([query])``, raising :class:`Neo4jQueryError` on failure."""
+    results = vc.nc.commit_list([query])
+    if not isinstance(results, list):
+        raise Neo4jQueryError(f"Neo4j query failed: {description}")
+    return results
+
+
 #: Result key set by :func:`get_downstream_class_connectivity` /
 #: :func:`get_upstream_class_connectivity` when the aggregation ran but some
 #: queried instances contributed nothing (their per-instance connectivity
@@ -3913,7 +3933,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
         RETURN COUNT(DISTINCT anat) AS total_count
     """
 
-    count_results = vc.nc.commit_list([count_query])
+    count_results = _commit_or_raise(count_query, f"ExpressionOverlapsHere count query for {expression_pattern_short_form}")
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
@@ -3961,16 +3981,26 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
         }}
         CALL {{
             WITH anat
-            OPTIONAL MATCH (anat)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
-            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
-            // input anat for which it yields no rows is dropped entirely. Anatomy
-            // classes rarely have this image path, so the filter emptied the whole
+            // apoc.path.subgraphNodes instead of a `[...*]` var-length
+            // pattern — see get_transgene_expression_here. The `*` form timed
+            // out for every anat in the AnatomyExpressedIn tests (2026-10);
+            // this returns in well under a second even for GABAergic neuron
+            // (~110k reachable nodes), since LIMIT 5 stops the walk early.
+            //
+            // Do NOT let an anat without images drop out of the result: anatomy
+            // classes rarely have this image path, so doing so emptied the whole
             // table (count 79 -> 0 rows) and desynced it from count_query. The
-            // all-null row is stripped to '' by the REPLACE below, so the anat
-            // still returns a row (empty thumbnail/template/technique).
-            WITH anat, i, template_anat, technique, irw LIMIT 5
-            WITH anat, collect({{i: i, template_anat: template_anat, technique: technique, irw: irw}}) AS imgs
+            // inner collect() always yields one row (imgs = [] when there is no
+            // image), so the anat keeps its row with an empty
+            // thumbnail/template/technique.
+            CALL {{
+                WITH anat
+                CALL apoc.path.subgraphNodes(anat, {{relationshipFilter: '<has_source|<SUBCLASSOF|<INSTANCEOF', minLevel: 1}}) YIELD node AS i
+                MATCH (i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
+                OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+                WITH i, template_anat, technique, irw LIMIT 5
+                RETURN collect({{i: i, template_anat: template_anat, technique: technique, irw: irw}}) AS imgs
+            }}
             WITH anat, imgs, head(imgs) AS rep
             RETURN
                 rep.template_anat AS template_anat,
@@ -3995,7 +4025,7 @@ def get_expression_overlaps_here(expression_pattern_short_form: str, return_data
             thumbnail
     """
 
-    results = vc.nc.commit_list([main_query])
+    results = _commit_or_raise(main_query, f"ExpressionOverlapsHere main query for {expression_pattern_short_form}")
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
 
     if not df.empty:
@@ -7453,7 +7483,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         WHERE anat.short_form IN {anat_short_forms!r}
         RETURN COUNT(DISTINCT ep) AS total_count
     """
-    count_results = vc.nc.commit_list([count_query])
+    count_results = _commit_or_raise(count_query, f"TransgeneExpressionHere count query for {anatomy_short_form}")
     count_df = pd.DataFrame.from_records(get_dict_cursor()(count_results))
     total_count = count_df['total_count'][0] if not count_df.empty else 0
 
@@ -7538,19 +7568,29 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
         }}
         CALL {{
             WITH ep
-            OPTIONAL MATCH (ep)<-[:has_source|SUBCLASSOF|INSTANCEOF*]-(i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
-            OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
-            // Do NOT filter `i IS NOT NULL` here: this is a CALL subquery, so an
-            // input ep for which it yields no rows is dropped from the result
-            // entirely. Filtering image-less EPs desynced the table from
-            // count_query (which has no image filter) and silently hid every
-            // expression pattern with no aligned image — e.g. splits targeting a
-            // neuron that carry no registered image. When there is no image the
-            // OPTIONAL MATCH yields one all-null row; the null placeholders are
-            // stripped to '' by the REPLACE below, so the ep still returns a row
-            // (empty thumbnail/template/technique) and stays in the results.
-            WITH ep, i, templ, technique, irw LIMIT 5
-            WITH ep, collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
+            // Walk the has_source/SUBCLASSOF/INSTANCEOF closure with
+            // apoc.path.subgraphNodes rather than a `[...*]` var-length
+            // pattern. Both reach the same image Individuals, but the planner
+            // expanded `*` from the Template end and enumerated every path,
+            // taking ~37s for 10 mushroom-body EPs and timing out at
+            // limit=-1 (2026-10). subgraphNodes is anchored at ep and visits
+            // each node once, with no depth cap.
+            //
+            // Do NOT let an image-less ep drop out of the result: filtering
+            // them desynced the table from count_query (which has no image
+            // filter) and silently hid e.g. splits targeting a neuron that
+            // carry no registered image. The collect() below is an aggregate
+            // with no grouping key, so this subquery always yields one row
+            // (imgs = [] when there is no image) and the ep keeps its row
+            // with an empty thumbnail/template/technique.
+            CALL {{
+                WITH ep
+                CALL apoc.path.subgraphNodes(ep, {{relationshipFilter: '<has_source|<SUBCLASSOF|<INSTANCEOF', minLevel: 1}}) YIELD node AS i
+                MATCH (i:Individual)<-[:depicts]-(channel:Individual)-[irw:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+                OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+                WITH i, templ, technique, irw LIMIT 5
+                RETURN collect({{i: i, templ: templ, technique: technique, irw: irw}}) AS imgs
+            }}
             WITH ep, imgs, head(imgs) AS rep
             RETURN
                 rep.templ AS templ,
@@ -7575,7 +7615,7 @@ def get_transgene_expression_here(anatomy_short_form: str, return_dataframe=True
             thumbnail
     """
 
-    results = vc.nc.commit_list([main_query])
+    results = _commit_or_raise(main_query, f"TransgeneExpressionHere main query for {anatomy_short_form}")
     df = pd.DataFrame.from_records(get_dict_cursor()(results))
     if not df.empty:
         df = encode_markdown_links(df, ['name', 'expressed_in', 'template', 'thumbnail'])

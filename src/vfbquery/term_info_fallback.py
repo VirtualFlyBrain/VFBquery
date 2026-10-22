@@ -289,7 +289,12 @@ def fallback_unavailable_reason():
 #: Clusters, which ClusterTermInfoQueryIndexer owns, so this list only applies
 #: on the anatomical branch. Applying it globally -- as the first version of
 #: this module did -- would have refused to rebuild any Cluster document.
-ANATOMICAL_EXCLUDED_ID_PREFIXES = ("VFBc_", "FBlc", "SAMN", "VFB_internal")
+#: ``VFBseq_`` is the vfb-scRNAseq loads' namespace, which replaces FBlc for
+#: scRNAseq Datasets, Samples, Assays, Clusterings and Clusters: its Samples,
+#: Assays and Clusterings stay out of the anatomical index as their FBlc
+#: predecessors did (its Datasets and Clusters take the dataset / cluster
+#: branches before this list is consulted).
+ANATOMICAL_EXCLUDED_ID_PREFIXES = ("VFBc_", "FBlc", "VFBseq_", "SAMN", "VFB_internal")
 
 
 def choose_indexer(labels):

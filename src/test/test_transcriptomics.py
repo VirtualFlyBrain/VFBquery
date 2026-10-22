@@ -13,6 +13,9 @@ XMI Source: https://raw.githubusercontent.com/VirtualFlyBrain/geppetto-vfb/maste
 import unittest
 import pandas as pd
 from vfbquery import vfb_queries as vfb
+from .scrnaseq_fixtures import (SCRNASEQ_ID_PREFIXES, anatomy_with_clusters,
+                                cluster_with_expression, dataset_with_clusters,
+                                gene_with_clusters)
 
 
 class TranscriptomicsQueriesTest(unittest.TestCase):
@@ -27,7 +30,17 @@ class TranscriptomicsQueriesTest(unittest.TestCase):
     CLUSTER_ID = "FBlc0006181"   # an scRNAseq cluster
     GENE_ID = "FBgn0283521"      # a gene expressed across clusters
     DATASET_ID = "FBlc0004785"   # an scRNAseq dataset
-    
+
+    @classmethod
+    def setUpClass(cls):
+        # The scRNAseq loads are moving from FlyBase FBlc ids to vfb-scRNAseq's
+        # VFBseq ids, study by study: keep each fixture while it still has data,
+        # else use a live term that does (scrnaseq_fixtures).
+        cls.ANATOMY_WITH_SCRNASEQ = anatomy_with_clusters(cls.ANATOMY_WITH_SCRNASEQ)
+        cls.CLUSTER_ID = cluster_with_expression(cls.CLUSTER_ID)
+        cls.GENE_ID = gene_with_clusters(cls.GENE_ID)
+        cls.DATASET_ID = dataset_with_clusters(cls.DATASET_ID)
+
     def test_anatomy_scrnaseq_basic_dataframe(self):
         """Test anatScRNAseqQuery returns DataFrame"""
         result = vfb.get_anatomy_scrnaseq(self.ANATOMY_WITH_SCRNASEQ, return_dataframe=True)
@@ -40,10 +53,11 @@ class TranscriptomicsQueriesTest(unittest.TestCase):
         self.assertIn('dataset', result.columns)
         self.assertIn('pubs', result.columns)
 
-        # Cluster IDs are FlyBase library-cluster ids (FBlc...).
+        # Cluster IDs are FlyBase library-cluster ids (FBlc..., old loads) or
+        # vfb-scRNAseq ids (VFBseq_..., new loads).
         for idx, row in result.iterrows():
-            self.assertTrue(row['id'].startswith('FBlc'),
-                            f"Cluster ID should start with FBlc, got: {row['id']}")
+            self.assertTrue(row['id'].startswith(SCRNASEQ_ID_PREFIXES),
+                            f"Cluster ID should start with FBlc or VFBseq_, got: {row['id']}")
     
     def test_anatomy_scrnaseq_formatted_output(self):
         """Test anatScRNAseqQuery returns properly formatted dict"""

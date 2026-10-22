@@ -60,7 +60,9 @@ def test_exclusions_are_scoped_to_the_anatomical_branch():
     indexer's parameter query excludes them; the term_info index as a whole
     does not. Applying the list globally would refuse every Cluster."""
     assert "FBlc" in tif.ANATOMICAL_EXCLUDED_ID_PREFIXES
+    assert "VFBseq_" in tif.ANATOMICAL_EXCLUDED_ID_PREFIXES
     assert tif.choose_indexer(["Individual", "Cluster"]) == "cluster"
+    assert tif.choose_indexer(["Individual", "DataSet"]) == "dataset"
     assert tif.choose_indexer(["Individual", "Anatomy"]) == "anatomical_ind"
 
 

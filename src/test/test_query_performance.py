@@ -43,6 +43,7 @@ from vfbquery.vfb_queries import (
     get_scrnaseq_dataset_data,
 )
 from vfbquery.vfb_connectivity import query_connectivity
+from .scrnaseq_fixtures import cluster_with_expression, dataset_with_clusters
 
 
 class QueryPerformanceTest(unittest.TestCase):
@@ -552,11 +553,13 @@ class QueryPerformanceTest(unittest.TestCase):
         
         # clusterExpression - these FBlc/FBgn ids are real and return data
         # (4588 / 9 / 13); no try/except-Skipped swallow, so a real failure or an
-        # empty result now fails (a backend outage is skipped upstream).
+        # empty result now fails (a backend outage is skipped upstream). The FBlc
+        # ids go when their study moves to a VFBseq load; a live one with data is
+        # used then (scrnaseq_fixtures).
         result, duration, success = self._time_query(
             "clusterExpression (example cluster)",
             get_cluster_expression,
-            "FBlc0005370",  # cluster with expression data
+            cluster_with_expression("FBlc0005370"),  # cluster with expression data
             return_dataframe=False,
             limit=10
         )
@@ -582,7 +585,7 @@ class QueryPerformanceTest(unittest.TestCase):
         result, duration, success = self._time_query(
             "scRNAdatasetData (example dataset)",
             get_scrnaseq_dataset_data,
-            "FBlc0005362",  # scRNAseq dataset with clusters
+            dataset_with_clusters("FBlc0005362"),  # scRNAseq dataset with clusters
             return_dataframe=False,
             limit=10
         )

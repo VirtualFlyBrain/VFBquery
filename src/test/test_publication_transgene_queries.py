@@ -56,6 +56,27 @@ class PublicationTransgeneQueriesTest(unittest.TestCase):
         self.assertIn('rows', result)
         self.assertTrue(result['rows'], f"{self.pub_term} should have referenced terms")
 
+    def test_terms_for_pub_includes_classes(self):
+        """Ontology classes citing a pub (definition/synonym refs) are listed.
+
+        Li et al. 2020 (FBrf0248215, mushroom body connectome) is cited only
+        by FBbt classes; matching just Individuals returned 0 rows.
+        """
+        result = get_terms_for_pub('FBrf0248215', return_dataframe=False)
+        rows = {r['id']: r for r in result['rows']}
+        self.assertIn('FBbt_00005801', rows, "mushroom body cites FBrf0248215 for its definition")
+        mb = rows['FBbt_00005801']
+        self.assertIn('Definition', mb['reference_type'])
+        self.assertIn('FBbt_00041000', mb['type'], "Class rows show their SUBCLASSOF parent(s) as type")
+        self.assertNotIn('[null]', mb['type'])
+
+    def test_terms_for_pub_keeps_individuals(self):
+        """Individual (DataSet) references survive alongside Class ones."""
+        result = get_terms_for_pub(self.pub_term, return_dataframe=False)
+        ids = {r['id'] for r in result['rows']}
+        self.assertIn('Aso2014', ids, "the Aso2014 DataSet references FBrf0227179")
+        self.assertTrue(any(i.startswith('FBbt_') for i in ids), "FBbt classes also cite FBrf0227179")
+
     def test_get_transgene_expression_here(self):
         """Test get_transgene_expression_here query"""
         result = get_transgene_expression_here(self.anatomy_term, return_dataframe=True, limit=10)

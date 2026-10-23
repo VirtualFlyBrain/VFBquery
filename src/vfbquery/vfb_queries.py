@@ -7331,9 +7331,10 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
     """
     # A publication is cited two different ways in the graph, and the legacy
     # TermsForPub only saw the first:
-    #   1. Reference  — a term has a direct (:term)-[:has_reference]->(:pub)
-    #                   edge (datasets, images, anatomy the paper is the
-    #                   source/citation for).
+    #   1. Reference  — a term (Individual or Class) has a direct
+    #                   (:term)-[:has_reference]->(:pub) edge: datasets and
+    #                   images the paper is the source for, and ontology
+    #                   classes citing it for a definition or synonym.
     #   2. Expression — the pub is recorded as a `pub` array PROPERTY on an
     #                   overlaps/part_of relationship of an expression-pattern
     #                   individual (the same model AnatomyExpressedIn /
@@ -7346,17 +7347,34 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
     # the relationship `pub` property (no node path exists — the pub node has
     # no edges), so it is the expensive leg; the whole query is cached.
 
-    # Source 1: direct has_reference terms, with image enrichment for
-    # channel-image primaries (one representative image via the CALL).
+    # Source 1: direct has_reference terms. Both Individuals (datasets,
+    # images, neurons cited for a synonym) AND Classes carry these edges —
+    # FBbt classes cite papers for their definitions and synonyms, and for
+    # anatomy papers (e.g. Li et al. 2020, FBrf0248215, the mushroom body
+    # connectome) every citing term is a Class. Matching only
+    # `primary:Individual` returned 0 for such papers.
+    #
+    # Each edge's `typ` says why the term cites the pub ('def', 'syn', 'nlp';
+    # null on DataSet references) and feeds the "Reference type" column.
+    # Type is the INSTANCEOF class for an Individual, the direct SUBCLASSOF
+    # parent(s) for a Class. The image enrichment only ever matches
+    # channel-image Individuals; Classes leave those cells blank.
+    # Obsolete (Deprecated) terms are excluded.
     ref_query = f"""
-        MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[:has_reference]-(primary:Individual)
-        OPTIONAL MATCH (primary)-[:INSTANCEOF]->(typ:Class)
-        WITH DISTINCT primary, typ
+        MATCH (:pub:Individual {{short_form:'{pub_short_form}'}})<-[ref:has_reference]-(primary)
+        WHERE (primary:Individual OR primary:Class) AND NOT primary:Deprecated
+        WITH primary, collect(DISTINCT coalesce(ref.typ, '')) AS ref_typs
+        CALL {{
+            WITH primary
+            OPTIONAL MATCH (primary)-[:INSTANCEOF|SUBCLASSOF]->(typ:Class)
+            WITH typ ORDER BY typ.label
+            RETURN collect(CASE WHEN typ IS NULL THEN null ELSE apoc.text.format("[%s](%s)", [typ.label, typ.short_form]) END) AS types
+        }}
         CALL {{
             WITH primary
             OPTIONAL MATCH (primary)-[irw:in_register_with]->(template:Individual)-[:depicts]->(template_anat:Individual)
             OPTIONAL MATCH (primary)-[:is_specified_output_of]->(technique:Class)
-            WITH primary, template, template_anat, technique, irw
+            WITH template, template_anat, technique, irw
             LIMIT 1
             RETURN template, template_anat, technique, irw
         }}
@@ -7364,8 +7382,14 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
             primary.short_form AS id,
             apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
-            REPLACE(apoc.text.format("[%s](%s)", [typ.label, typ.short_form]), '[null](null)', '') AS type,
-            'Reference' AS reference_type,
+            apoc.text.join(types, '; ') AS type,
+            apoc.text.join(
+                apoc.coll.sort(apoc.coll.toSet(
+                    [t IN ref_typs | CASE t WHEN 'def' THEN 'Definition'
+                                            WHEN 'syn' THEN 'Synonym'
+                                            WHEN 'nlp' THEN 'Text-mined'
+                                            ELSE 'Reference' END]
+                )), '; ') AS reference_type,
             REPLACE(apoc.text.format("[%s](%s)", [CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form]), '[null](null)', '') AS template,
             coalesce(technique.label, '') AS technique,
             REPLACE(apoc.text.format("[![%s](%s '%s')](%s)", [coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, REPLACE(REPLACE(COALESCE(irw.thumbnail[0], ''), 'thumbnailT.png', 'thumbnail.png'),'http://','https://'), coalesce(primary.label, 'image') + " aligned to " + CASE WHEN template_anat.symbol[0] <> '' THEN template_anat.symbol[0] ELSE template_anat.label END, template_anat.short_form + "," + primary.short_form]), "[![null]( 'null')](null)", "") AS thumbnail
@@ -7399,7 +7423,7 @@ def get_terms_for_pub(pub_short_form: str, return_dataframe=True, limit: int = -
                     'name': 'first',
                     'tags': 'first',
                     'type': 'first',
-                    'reference_type': lambda s: '; '.join(sorted({x for x in s if x})),
+                    'reference_type': lambda s: '; '.join(sorted({p for x in s if x for p in x.split('; ')})),
                     'template': 'first',
                     'technique': 'first',
                     'thumbnail': 'first',

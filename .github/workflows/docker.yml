@@ -22,6 +22,10 @@ jobs:
         else
           TAG=${GITHUB_REF#refs/heads/}
         fi
+        # Docker tags allow only [A-Za-z0-9_.-] (max 128, no leading . or -),
+        # so a branch like fix/foo would fail the build with "invalid
+        # reference format".
+        TAG=$(printf '%s' "$TAG" | sed -e 's/[^A-Za-z0-9_.-]/-/g' -e 's/^[.-]*//' | cut -c1-128)
         echo "tag=$TAG" >> $GITHUB_OUTPUT
 
     # Mirror what publish_to_pypi.yaml does so the docker image and the

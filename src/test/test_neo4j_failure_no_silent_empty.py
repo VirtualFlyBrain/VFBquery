@@ -83,3 +83,63 @@ def test_result_rows_missing(result, missing):
 def test_result_rows_missing_accepts_numpy_count():
     np = pytest.importorskip("numpy")
     assert src.result_rows_missing({"rows": [], "count": np.int64(5)}) is True
+
+
+# ---------------------------------------------------------------------------
+# read path: entries stored before the write-path guard existed
+# ---------------------------------------------------------------------------
+
+class _Solr:
+    """Answers cache lookups from a dict and records delete posts."""
+
+    def __init__(self, docs):
+        self.docs = docs
+        self.posts = []
+
+    def get(self, url, params=None, timeout=None):
+        doc_id = (params or {}).get("q", "").split("id:", 1)[-1]
+        payload = self.docs.get(doc_id)
+        docs = [{"cache_data": payload}] if payload is not None else []
+        return types.SimpleNamespace(status_code=200,
+                                     json=lambda: {"response": {"docs": docs}})
+
+    def post(self, url, data=None, headers=None, params=None, timeout=None):
+        self.posts.append(data)
+        return types.SimpleNamespace(status_code=200, text="", json=lambda: {})
+
+
+def _cache_with(monkeypatch, result):
+    import json
+    for var in ("VFBQUERY_CACHE_NAMESPACE", "VFBQUERY_CACHE_NAMESPACE_FALLBACK",
+                "VFBQUERY_CACHE_READONLY", "VFBQUERY_CACHE_ENABLED"):
+        monkeypatch.delenv(var, raising=False)
+    cache = src.SolrResultCache()
+    monkeypatch.setattr(cache, "_solr_available", lambda: True)
+    payload = src._encode_cache_field(json.dumps(
+        cache._create_cache_metadata(result, limit=-1)))
+    solr = _Solr({"vfb_query_transgene_expression_here_T": payload})
+    monkeypatch.setattr(src.requests, "get", solr.get)
+    monkeypatch.setattr(src.requests, "post", solr.post)
+    return cache, solr
+
+
+def test_cached_result_with_missing_rows_is_a_miss_and_purged(monkeypatch):
+    # Stored 2026-10-15 for mushroom body by the pre-fix code, served to every
+    # PR check until it expired.
+    cache, solr = _cache_with(monkeypatch, {"headers": {}, "rows": [], "count": 2339})
+    assert cache.get_cached_result("transgene_expression_here", "T", limit=-1) is None
+    assert any("vfb_query_transgene_expression_here_T" in p for p in solr.posts)
+
+
+def test_cached_result_with_missing_rows_is_not_purged_when_read_only(monkeypatch):
+    cache, solr = _cache_with(monkeypatch, {"headers": {}, "rows": [], "count": 2339})
+    monkeypatch.setenv("VFBQUERY_CACHE_READONLY", "true")
+    assert cache.get_cached_result("transgene_expression_here", "T", limit=-1) is None
+    assert solr.posts == []
+
+
+def test_cached_result_with_rows_is_served(monkeypatch):
+    good = {"headers": {}, "rows": [{"id": "VFBexp_1"}], "count": 2339}
+    cache, solr = _cache_with(monkeypatch, good)
+    assert cache.get_cached_result("transgene_expression_here", "T", limit=-1) == good
+    assert solr.posts == []

@@ -611,7 +611,18 @@ class SolrResultCache:
             if cached_limit != -1:
                 logger.debug(f"Cache miss: Unexpected cached result with limit={cached_limit}, expected -1")
                 return None
-                
+
+            # Entries stored before result_rows_missing() guarded the write
+            # path can still hold count > 0 with no rows (a failed main query).
+            # Treat them as a miss and purge them so the next writable call
+            # recomputes and overwrites them, rather than serving "no rows"
+            # until the entry expires.
+            if result_rows_missing(cached_data.get("result")):
+                logger.warning(
+                    f"Cached result for {query_type}({term_id}) has count > 0 but no rows; clearing it")
+                purge(cache_doc_id)
+                return None
+
             # If requesting unlimited results, return the full cached result
             if requested_limit == -1:
                 result = cached_data["result"]

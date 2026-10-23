@@ -166,6 +166,25 @@ def result_is_partial(result) -> bool:
     return isinstance(result, dict) and bool(result.get(PARTIAL_RESULT_KEY))
 
 
+def result_rows_missing(result) -> bool:
+    """True for a dict result that reports rows (count > 0) but carries none.
+
+    That is the shape of a query whose count query succeeded and whose main
+    query failed: Neo4j's ``commit_list`` returns ``False``, which becomes an
+    empty table. ``count >= 0`` alone would store it and serve "no rows" for
+    the cache TTL (TransgeneExpressionHere on mushroom body, 2026-10).
+    """
+    if not isinstance(result, dict):
+        return False
+    rows = result.get('rows')
+    if not isinstance(rows, list) or rows:
+        return False
+    try:
+        return int(result.get('count', 0)) > 0
+    except (TypeError, ValueError):
+        return False
+
+
 def preview_is_resolved(query: Dict[str, Any]) -> bool:
     """True when a query's preview holds a final answer.
 
@@ -592,7 +611,18 @@ class SolrResultCache:
             if cached_limit != -1:
                 logger.debug(f"Cache miss: Unexpected cached result with limit={cached_limit}, expected -1")
                 return None
-                
+
+            # Entries stored before result_rows_missing() guarded the write
+            # path can still hold count > 0 with no rows (a failed main query).
+            # Treat them as a miss and purge them so the next writable call
+            # recomputes and overwrites them, rather than serving "no rows"
+            # until the entry expires.
+            if result_rows_missing(cached_data.get("result")):
+                logger.warning(
+                    f"Cached result for {query_type}({term_id}) has count > 0 but no rows; clearing it")
+                purge(cache_doc_id)
+                return None
+
             # If requesting unlimited results, return the full cached result
             if requested_limit == -1:
                 result = cached_data["result"]
@@ -1440,6 +1470,10 @@ def with_solr_cache(query_type: str):
                             full_is_valid = False
                             logger.warning(
                                 f"Not caching partial result for {query_type}({term_id})")
+                        if full_is_valid and result_rows_missing(full_result):
+                            full_is_valid = False
+                            logger.warning(
+                                f"Not caching result with count > 0 but no rows for {query_type}({term_id})")
                     elif isinstance(full_result, (list, str)):
                         full_is_valid = len(full_result) > 0
                     else:
@@ -1526,6 +1560,10 @@ def with_solr_cache(query_type: str):
                             result_is_valid = False
                             logger.warning(
                                 f"Not caching partial result for {query_type}({term_id})")
+                        if result_is_valid and result_rows_missing(result):
+                            result_is_valid = False
+                            logger.warning(
+                                f"Not caching result with count > 0 but no rows for {query_type}({term_id})")
                     elif isinstance(result, (list, str)):
                         result_is_valid = len(result) > 0
                     else:

@@ -14,13 +14,24 @@ FLYBASE_DB = {
 def get_connection(statement_timeout_ms=60000):
     """Get a connection to FlyBase Chado with statement timeout.
 
+    The timeout is applied with ``set_config`` after connecting. Passing it as a
+    startup option (``options="-c statement_timeout=..."``) has no effect on
+    chado.flybase.org: sessions keep the ``chado_public`` role's 120s default,
+    so every caller's requested timeout was silently ignored (2026-10). The
+    setting is committed straight away so a later rollback can't revert it.
+
     :param statement_timeout_ms: SQL statement timeout in milliseconds (default 60s)
     :return: psycopg connection
     """
-    return psycopg.connect(
-        **FLYBASE_DB,
-        options=f"-c statement_timeout={statement_timeout_ms}",
-    )
+    conn = psycopg.connect(**FLYBASE_DB)
+    try:
+        conn.execute("SELECT set_config('statement_timeout', %s, false)",
+                     (str(int(statement_timeout_ms)),))
+        conn.commit()
+    except BaseException:
+        conn.close()
+        raise
+    return conn
 
 
 def is_connection_error(exc):

@@ -111,6 +111,22 @@ class TestResolveEntityNotFound:
         assert result["match_type"] == "NOT_FOUND"
 
 
+class TestConnectionStatementTimeout:
+    @pytest.mark.integration
+    def test_requested_timeout_is_applied(self):
+        # chado.flybase.org ignores a startup "-c statement_timeout" option and
+        # keeps the role's 120s, so check the session actually got ours, and
+        # that it survives a rollback.
+        from vfbquery.flybase_db import get_connection
+        conn = get_connection(statement_timeout_ms=45000)
+        try:
+            assert conn.execute("SHOW statement_timeout").fetchone()[0] == "45s"
+            conn.rollback()
+            assert conn.execute("SHOW statement_timeout").fetchone()[0] == "45s"
+        finally:
+            conn.close()
+
+
 # ---------------------------------------------------------------------------
 # find_stocks tests
 # ---------------------------------------------------------------------------

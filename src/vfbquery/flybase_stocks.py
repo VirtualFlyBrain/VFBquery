@@ -114,16 +114,25 @@ def _resolve_entity_impl(conn, name_or_id):
         }
 
     # 3. Broad ILIKE search
+    # A '%...%' pattern can't use the feature.name index, so filter on the
+    # type_id index instead. Passing the type ids as a literal array lets the
+    # planner use it (~1.5M rows); filtering on c.name via the join made it
+    # scan all ~98M feature rows — ~95s for a name with no match, past the
+    # server's 120s statement limit on CI (2026-10).
+    type_ids = _run_query(conn, """
+        SELECT cvterm_id FROM cvterm WHERE name = ANY(%(types)s)
+    """, {"types": feature_types})
     df = _run_query(conn, """
         SELECT DISTINCT f.name, f.uniquename, c.name AS type
         FROM feature f
         JOIN cvterm c ON f.type_id = c.cvterm_id
         WHERE f.is_obsolete = false
-          AND c.name = ANY(%(types)s)
+          AND f.type_id = ANY(%(type_ids)s)
           AND (f.name ILIKE %(pattern)s)
         ORDER BY c.name, f.name
         LIMIT 20
-    """, {"pattern": "%" + name_or_id + "%", "types": feature_types})
+    """, {"pattern": "%" + name_or_id + "%",
+          "type_ids": [] if type_ids.empty else type_ids["cvterm_id"].tolist()})
 
     if len(df) > 0:
         return {

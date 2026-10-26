@@ -6776,6 +6776,18 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
 _VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
+# Only anatomical regions belong in an ROI list - never neurons, cells or
+# expression patterns (including their fragments).
+_ROI_NOT_CELLULAR_FILTER = (
+    "NOT pd:Neuron AND NOT pd:Cell AND NOT pd:Expression_pattern "
+    "AND NOT pd:Expression_pattern_fragment AND NOT pd:Deprecated"
+)
+# Interim ROI leaves (templates with no indexed domains) must be positively
+# identified regions: synaptic neuropil, neuromeres, ganglia or nervous system.
+_ROI_REGION_FILTER = (
+    "pd:Anatomy AND (pd:Synaptic_neuropil OR pd:Neuromere OR pd:Ganglion "
+    "OR pd:Nervous_system) AND " + _ROI_NOT_CELLULAR_FILTER
+)
 _ROI_SIDE_RE = re.compile(r"(?:[(_\s])([LR])(?:[)_\s]|$)")
 
 
@@ -6934,8 +6946,8 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             f"MATCH (t:Template {{short_form: '{template_short_form}'}})"
             f"<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(:Individual)"
             f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(k:Class:Anatomy) "
-            f"WHERE NOT exists(ie.index) AND NOT pd:Template AND NOT pd:Neuron "
-            f"AND NOT pd:Expression_pattern AND NOT pd:Cell "
+            f"WHERE NOT exists(ie.index) AND NOT pd:Template "
+            f"AND {_ROI_REGION_FILTER} "
             f"RETURN DISTINCT k.short_form AS class_id"
         )
         interim = [r['class_id'] for r in
@@ -6974,7 +6986,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             f"<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(:Individual)"
             f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(k:Class) "
             f"WHERE k.short_form IN [{id_list}] AND NOT exists(ie.index) "
-            f"AND NOT pd:Template "
+            f"AND NOT pd:Template AND {_ROI_NOT_CELLULAR_FILTER} "
             f"RETURN DISTINCT k.short_form AS class_id, k.label AS class_label, "
             f"pd.short_form AS individual_id, pd.label AS individual_label"
         )

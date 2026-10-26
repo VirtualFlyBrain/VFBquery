@@ -6776,6 +6776,43 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
 _VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
+_ROI_SIDE_RE = re.compile(r"(?:[(_\s])([LR])(?:[)_\s]|$)")
+
+
+def _roi_side(label):
+    """Return 'L' / 'R' when an individual's label marks a side, else None.
+
+    Looks only at the part before ' on <template>' so a template name can't
+    be misread. Handles 'MaleCNS:MB(L) on JRC2018Unisex' and
+    'BANC:MB_CA_R on JRC2018Unisex'.
+    """
+    head = (label or '').split(' on ')[0]
+    m = _ROI_SIDE_RE.search(head)
+    return m.group(1) if m else None
+
+
+def _pick_fallback_domains(candidates):
+    """Choose the ONE representative image for a class that has no indexed
+    painted domain on the template.
+
+    Order of preference:
+      1. a complete (un-sided) image - no L/R marker in its label;
+      2. only if none exists, a single sided (L or R) image.
+    Within a tier, images from a named source (label prefix before ':')
+    beat unlabelled legacy ones, then source name, then lowest short_form,
+    so the choice is deterministic. Always returns at most one image, so
+    the ROI eye only ever has one overlay to toggle.
+    """
+    def rank(c):
+        label = c.get('individual_label') or ''
+        has_src = ':' in label
+        return (0 if _roi_side(label) is None else 1,
+                0 if has_src else 1,
+                label.split(':', 1)[0] if has_src else '',
+                c.get('individual_id') or '')
+    return [min(candidates, key=rank)] if candidates else []
+
+
 @with_solr_cache('template_roi_tree')
 def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     """Build a hierarchical ROI tree for a template.
@@ -6896,6 +6933,40 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             'individual_label': r.get('individual_label'),
         })
 
+    # Fallback: classes in the tree with no indexed painted domain (e.g. a
+    # merged region like 'adult mushroom body' that exists only as connectome
+    # ROI meshes) borrow the best registered image on this template, so the
+    # row still gets an eye. Flagged 'fallback': True; a complete (un-sided)
+    # image is preferred, else a single sided one.
+    fallback_by_class = {}
+    tree_class_ids = [cid for cid in nodes_by_id
+                      if _VFB_SHORT_FORM_RE.match(cid) and cid not in painted_by_class]
+    if tree_class_ids:
+        id_list = ", ".join(f"'{cid}'" for cid in tree_class_ids)
+        fb_cypher = (
+            f"MATCH (t:Template {{short_form: '{template_short_form}'}})"
+            f"<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(:Individual)"
+            f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(k:Class) "
+            f"WHERE k.short_form IN [{id_list}] AND NOT exists(ie.index) "
+            f"AND NOT pd:Template "
+            f"RETURN DISTINCT k.short_form AS class_id, k.label AS class_label, "
+            f"pd.short_form AS individual_id, pd.label AS individual_label"
+        )
+        fb_rows = get_dict_cursor()(vc.nc.commit_list([fb_cypher])) or []
+        cands = {}
+        for r in fb_rows:
+            if r.get('class_id') and r.get('individual_id'):
+                cands.setdefault(r['class_id'], []).append(r)
+        for cid, rows_ in cands.items():
+            picked = _pick_fallback_domains(rows_)
+            if picked:
+                fallback_by_class[cid] = [
+                    {'individual_id':    p['individual_id'],
+                     'individual_label': p.get('individual_label'),
+                     'fallback':         True}
+                    for p in picked
+                ]
+
     children = {}
     for e in edges:
         children.setdefault(e['parent'], set()).add(e['child'])
@@ -6919,8 +6990,11 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
                 for p in painted_list if p.get('individual_id')
             ]
             if ind_lines:
+                is_fb = any(p.get('fallback') for p in painted_list)
                 parts.append(
-                    f"Painted domain on **{template_label}**: "
+                    (f"Representative image on **{template_label}** "
+                     f"(no painted domain): " if is_fb else
+                     f"Painted domain on **{template_label}**: ")
                     + "; ".join(ind_lines) + "."
                 )
         return "\n".join(parts).rstrip()
@@ -6929,7 +7003,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         if node_id in ancestors:
             return None
         label = nodes_by_id.get(node_id)
-        painted_list = painted_by_class.get(node_id, [])
+        painted_list = painted_by_class.get(node_id) or fallback_by_class.get(node_id, [])
         new_ancestors = ancestors | {node_id}
         kids = []
         for c in children.get(node_id, ()):
@@ -6961,6 +7035,9 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"{'s' if painted_individual_count != 1 else ''}) "
         f"across the FBbt class hierarchy. Click the eye icon next to a "
         f"region to toggle its overlay on the 3D viewer."
+        + (f" {len(fallback_by_class)} further region"
+           f"{'s' if len(fallback_by_class) != 1 else ''} use a representative "
+           f"image where no painted domain exists." if fallback_by_class else "")
     )
 
     # painted_class label fallback: any class found by the painted-collection
@@ -6985,7 +7062,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             'class_id':    cid,
             'class_label': nodes_by_id.get(cid) or class_label_by_id.get(cid),
         }
-        for cid, plist in painted_by_class.items()
+        for cid, plist in list(painted_by_class.items()) + list(fallback_by_class.items())
         for p in plist
         if p.get('individual_id')
     }

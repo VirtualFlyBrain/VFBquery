@@ -6776,6 +6776,18 @@ def get_painted_domains(template_short_form: str, return_dataframe=True, limit: 
 _VFB_SHORT_FORM_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
+# Only anatomical regions belong in an ROI list - never neurons, cells or
+# expression patterns (including their fragments).
+_ROI_NOT_CELLULAR_FILTER = (
+    "NOT pd:Neuron AND NOT pd:Cell AND NOT pd:Expression_pattern "
+    "AND NOT pd:Expression_pattern_fragment AND NOT pd:Deprecated"
+)
+# Interim ROI leaves (templates with no indexed domains) must be positively
+# identified regions: synaptic neuropil, neuromeres, ganglia or nervous system.
+_ROI_REGION_FILTER = (
+    "pd:Anatomy AND (pd:Synaptic_neuropil OR pd:Neuromere OR pd:Ganglion "
+    "OR pd:Nervous_system) AND " + _ROI_NOT_CELLULAR_FILTER
+)
 _ROI_SIDE_RE = re.compile(r"(?:[(_\s])([LR])(?:[)_\s]|$)")
 
 
@@ -6797,7 +6809,8 @@ def _pick_fallback_domains(candidates):
 
     Order of preference:
       1. a complete (un-sided) image - no L/R marker in its label;
-      2. only if none exists, a single sided (L or R) image.
+      2. only if none exists, a single sided image - Left first, Right
+         only when no Left exists.
     Within a tier, images from a named source (label prefix before ':')
     beat unlabelled legacy ones, then source name, then lowest short_form,
     so the choice is deterministic. Always returns at most one image, so
@@ -6806,7 +6819,7 @@ def _pick_fallback_domains(candidates):
     def rank(c):
         label = c.get('individual_label') or ''
         has_src = ':' in label
-        return (0 if _roi_side(label) is None else 1,
+        return ({None: 0, 'L': 1, 'R': 2}[_roi_side(label)],
                 0 if has_src else 1,
                 label.split(':', 1)[0] if has_src else '',
                 c.get('individual_id') or '')
@@ -6869,7 +6882,10 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
     if not isinstance(template_short_form, str) or not _VFB_SHORT_FORM_RE.match(template_short_form):
         raise ValueError(f"Invalid template_short_form: {template_short_form!r}")
 
-    cypher = (
+    def _build_cypher(interim_ids=None):
+      leaf_expr = ("[r IN painted_rows | r.class_id]" if interim_ids is None else
+                   "[" + ", ".join(f"'{i}'" for i in interim_ids) + "]")
+      return (
         f"MATCH (t:Template {{short_form: '{template_short_form}'}})"
         f"-[:INSTANCEOF]->(root:Class:Anatomy) "
         f"OPTIONAL MATCH (t)<-[:depicts]-(tc:Template)"
@@ -6883,7 +6899,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"individual_label: pd.label}}) AS painted_rows "
         f"WITH t, root, "
         f"[r IN painted_rows WHERE r.class_id IS NOT NULL] AS painted_rows "
-        f"WITH t, root, painted_rows, [r IN painted_rows | r.class_id] AS leaf_ids "
+        f"WITH t, root, painted_rows, {leaf_expr} AS leaf_ids "
         # v1.14.6: expanded the relationship set used to reach painted
         # leaves. The previous walk (SUBCLASSOF | part_of | innervates)
         # missed every sensory neuron, motor neuron, muscle attachment
@@ -6914,11 +6930,33 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
         f"       apoc.coll.toSet(apoc.coll.flatten(path_edge_lists)) AS edges, "
         f"       painted_rows                                         AS painted"
     )
-    results = vc.nc.commit_list([cypher])
+    results = vc.nc.commit_list([_build_cypher()])
     rows = get_dict_cursor()(results) if results else []
     if not rows:
         return _empty_roi_tree(template_short_form)
     row = rows[0]
+
+    # Interim route for templates with no indexed domains at all (e.g. L1EM
+    # before its composite WLZ exists): use the template's aligned, non-indexed
+    # anatomical-region individuals as the leaves. Neurons and expression
+    # patterns are excluded - only regions belong in an ROI list. Templates
+    # that have any indexed domain are untouched.
+    if not (row.get('painted') or []):
+        interim_cypher = (
+            f"MATCH (t:Template {{short_form: '{template_short_form}'}})"
+            f"<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(:Individual)"
+            f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(k:Class:Anatomy) "
+            f"WHERE NOT exists(ie.index) AND NOT pd:Template "
+            f"AND {_ROI_REGION_FILTER} "
+            f"RETURN DISTINCT k.short_form AS class_id"
+        )
+        interim = [r['class_id'] for r in
+                   (get_dict_cursor()(vc.nc.commit_list([interim_cypher])) or [])
+                   if r.get('class_id') and _VFB_SHORT_FORM_RE.match(r['class_id'])]
+        if interim:
+            rows2 = get_dict_cursor()(vc.nc.commit_list([_build_cypher(interim)])) or []
+            if rows2:
+                row = rows2[0]
 
     nodes_by_id = {n['id']: n.get('label') for n in (row.get('nodes') or []) if n and n.get('id')}
     edges = [e for e in (row.get('edges') or []) if e and e.get('parent') and e.get('child')]
@@ -6948,7 +6986,7 @@ def get_template_roi_tree(template_short_form: str, return_dataframe=False):
             f"<-[:depicts]-(tc:Template)<-[ie:in_register_with]-(:Individual)"
             f"-[:depicts]->(pd:Individual)-[:INSTANCEOF]->(k:Class) "
             f"WHERE k.short_form IN [{id_list}] AND NOT exists(ie.index) "
-            f"AND NOT pd:Template "
+            f"AND NOT pd:Template AND {_ROI_NOT_CELLULAR_FILTER} "
             f"RETURN DISTINCT k.short_form AS class_id, k.label AS class_label, "
             f"pd.short_form AS individual_id, pd.label AS individual_label"
         )

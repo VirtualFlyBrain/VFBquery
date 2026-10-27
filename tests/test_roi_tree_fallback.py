@@ -41,3 +41,13 @@ def test_named_source_beats_unlabelled_legacy_within_a_tier():
     ])
     assert _ids(picked) == ['VFB_00108vzl']
     assert _pick_fallback_domains([]) == []
+
+
+def test_left_is_chosen_before_right_even_when_right_has_the_lower_id():
+    picked = _pick_fallback_domains([
+        _c('VFB_001091z0', 'CATMAID_L1EM:A8_R on L1_larval_CNS'),
+        _c('VFB_001091z1', 'CATMAID_L1EM:A8_L on L1_larval_CNS'),
+    ])
+    assert _ids(picked) == ['VFB_001091z1']
+    only_right = _pick_fallback_domains([_c('VFB_001091z0', 'CATMAID_L1EM:A8_R on L1_larval_CNS')])
+    assert _ids(only_right) == ['VFB_001091z0']

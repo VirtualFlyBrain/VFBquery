@@ -194,6 +194,11 @@ class Pub:
         site_links["DOI"] = "https://doi.org/$ID"
         site_links["PubMed"] = "http://www.ncbi.nlm.nih.gov/pubmed/?term=$ID"
 
+        ext = self.external_url()
+        if ext:
+            text = self.core.label or self.core.short_form
+            return {"link": (get_link(text, ext) + " " + self.core.get_types_str(True)).strip(), "refs": [ext],
+                    "types": self.core.get_types_str(True)}
         result = self.core.get_int_link()
         if self.FlyBase:
             links.append(site_links["FlyBase"].replace("$ID", self.FlyBase))
@@ -204,7 +209,14 @@ class Pub:
 
         return {"link": result, "refs": links, "types": self.core.get_types_str(True)}
 
+    def external_url(self) -> str:
+        """iri to link to when this pub is a curator (ORCID) or a web resource rather than a publication."""
+        return external_pub_url(getattr(self.core, 'iri', '') or '', self.FlyBase, self.DOI, self.PubMed)
+
     def get_microref(self) -> str:
+        ext = self.external_url()
+        if ext:
+            return get_link(self.microref or self.core.label or self.core.short_form, ext)
         if self.microref:
             return self.core.get_int_link().replace(self.core.label, self.microref)
         # if microref doesn't exist create one from the label:
@@ -680,7 +692,8 @@ class VfbTerminfo:
                 text = (parts[0] + "," + parts[1]) if len(parts) > 1 else label
             else:
                 text = sf
-            return get_link(text, sf)
+            ext = pub.external_url() if hasattr(pub, 'external_url') else ""
+            return get_link(text, ext or sf)
 
         def type_token(syn):
             """Readable label for the synonym type, e.g. name_in_banc or
@@ -933,6 +946,19 @@ def get_link(text: str, link: str) -> str:
     :return: markdown formatted link string
     """
     return "[{}]({})".format(text, link)
+
+
+# Pubs that are cited by URL rather than by a FlyBase / DOI / PubMed id: a curator (Person node labelled :pub,
+# iri https://orcid.org/<ORCID>) or a web resource (pub keyed on its URL). They have no VFB report page, so they
+# link out to their iri instead of to their short_form.
+_VFB_OR_FLYBASE_URL = re.compile(r'^https?://([a-z0-9-]+\.)*(virtualflybrain\.org|flybase\.org)/reports/', re.I)
+
+
+def external_pub_url(iri: str, *ids: str) -> str:
+    """The iri to link to for a URL-cited pub, or '' when the pub has a FlyBase/DOI/PubMed id or a VFB/FlyBase report iri."""
+    if any(ids) or not iri or not re.match(r'^https?://', iri) or _VFB_OR_FLYBASE_URL.match(iri):
+        return ""
+    return iri
 
 
 def get_secure_url(url: str, allow_redirects: bool = True, timeout=15) -> str:

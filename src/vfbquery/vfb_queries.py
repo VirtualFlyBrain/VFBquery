@@ -6725,23 +6725,139 @@ def get_similar_morphology_nb_exp(expression_short_form: str, return_dataframe=T
     return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "NB Score", "type": "text", "order": 1}, "tags": {"title": "Tags", "type": "tags", "order": 2}, "type": {"title": "Type", "type": "text", "order": 3}, "template": {"title": "Template", "type": "markdown", "order": 4}, "technique": {"title": "Imaging Technique", "type": "text", "order": 5}, "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}, "rows": [{key: row[key] for key in ["id", "name", "score", "tags", "type", "template", "technique", "thumbnail"]} for row in safe_to_dict(df, sort_by_id=False)], "count": total_count}
 
 
+def _userdata_matches(raw):
+    """(id, score) pairs from a stored upload_nblast_query value, best score per id.
+
+    Accepts every shape the upload pipeline has written: Solr hands the field back as a
+    list holding one JSON string; that string is either the legacy Geppetto format
+    ({"rows": [{"term": {"core": {"short_form": ...}}, "score": ...}]}) or the flat one
+    ([{"id": ..., "score": ...}] or {"rows": [{"id": ..., "score": ...}]}).
+    """
+    if isinstance(raw, list) and raw and all(isinstance(x, str) for x in raw):
+        raw = raw[0] if len(raw) == 1 else '[' + ','.join(raw) + ']'
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except ValueError:
+            return []
+    rows = raw.get('rows', []) if isinstance(raw, dict) else (raw if isinstance(raw, list) else [])
+    best = {}
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        sf = r.get('id') or (((r.get('term') or {}).get('core') or {}).get('short_form'))
+        try:
+            score = float(r.get('score'))
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(sf, str) or not _VFB_SHORT_FORM_RE.match(sf):
+            continue
+        if sf not in best or score > best[sf]:
+            best[sf] = score
+    return sorted(best.items(), key=lambda kv: -kv[1])
+
+
+#: same columns as SimilarMorphologyTo, so an upload's matches read like any other NBLAST table
+_USERDATA_HEADERS = {"id": {"title": "Add", "type": "selection_id", "order": -1},
+                     "score": {"title": "Score", "type": "numeric", "order": 1, "sort": {"0": "Desc"}},
+                     "name": {"title": "Name", "type": "markdown", "order": 1, "sort": {"1": "Asc"}},
+                     "tags": {"title": "Tags", "type": "tags", "order": 2},
+                     "type": {"title": "Type", "type": "text", "order": 3},
+                     "source": {"title": "Source", "type": "metadata", "order": 4},
+                     "source_id": {"title": "Source ID", "type": "metadata", "order": 5},
+                     "template": {"title": "Template", "type": "markdown", "order": 6},
+                     "technique": {"title": "Imaging Technique", "type": "text", "order": 7},
+                     "thumbnail": {"title": "Thumbnail", "type": "markdown", "order": 9}}
+
+
+def _userdata_rows(matches):
+    """PDB details for (id, score) matches, in the SimilarMorphologyTo row format."""
+    if not matches:
+        return pd.DataFrame(columns=list(_USERDATA_HEADERS))
+    rows = ', '.join(f"{{id: '{sf}', score: {score:.4f}}}" for sf, score in matches)
+    query = f"""UNWIND [{rows}] AS m
+            MATCH (n2:Individual {{short_form: m.id}})
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[:INSTANCEOF]->(typ:Class)
+                RETURN apoc.text.join([x IN collect(DISTINCT CASE WHEN typ.short_form IS NULL THEN NULL ELSE apoc.text.format('[%s](%s)', [typ.label, typ.short_form]) END) WHERE x IS NOT NULL], '; ') AS type
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)-[rx:database_cross_reference]->(site:Site)
+                WHERE site.is_data_source
+                WITH rx, site LIMIT 1
+                RETURN rx, site
+            }}
+            CALL {{
+                WITH n2
+                OPTIONAL MATCH (n2)<-[:depicts]-(channel:Individual)-[ri:in_register_with]->(:Template)-[:depicts]->(templ:Template)
+                OPTIONAL MATCH (channel)-[:is_specified_output_of]->(technique:Class)
+                WITH n2, collect({{ri: ri, templ: templ, technique: technique}}) AS aligns
+                WITH n2, [a IN aligns WHERE a.templ IS NOT NULL] AS va
+                RETURN
+                    CASE WHEN size(va)=0 THEN null ELSE head(va).templ END AS templ,
+                    CASE WHEN size(va)=0 THEN null ELSE head(va).technique END AS technique,
+                    apoc.text.join([a IN va |
+                        apoc.text.format("[![%s](%s '%s')](%s)", [
+                            n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
+                            REPLACE(REPLACE(COALESCE(a.ri.thumbnail[0],''),'thumbnailT.png','thumbnail.png'),'http://','https://'),
+                            n2.label + " aligned to " + (CASE WHEN a.templ.symbol[0] <> '' THEN a.templ.symbol[0] ELSE a.templ.label END),
+                            a.templ.short_form + "," + n2.short_form
+                        ])
+                    ], '; ') AS thumbnails
+            }}
+            RETURN n2.short_form AS id,
+            apoc.text.format("[%s](%s)", [n2.label, n2.short_form]) AS name,
+            toString(round(m.score * 100) / 100.0) AS score,
+            m.score AS _score,
+            apoc.text.join(coalesce(n2.uniqueFacets, []), '|') AS tags,
+            type,
+            CASE WHEN site:Deprecated THEN COALESCE(site.label,'') ELSE REPLACE(apoc.text.format("[%s](%s)",[site.label,site.short_form]), '[null](null)', '') END AS source,
+            CASE WHEN site:Deprecated THEN COALESCE(rx.accession[0],'') ELSE REPLACE(apoc.text.format("[%s](%s)",[rx.accession[0], (site.link_base[0] + rx.accession[0])]), '[null](null)', '') END AS source_id,
+            REPLACE(apoc.text.format("[%s](%s)",[CASE WHEN templ.symbol[0] <> '' THEN templ.symbol[0] ELSE templ.label END,templ.short_form]), '[null](null)', '') AS template,
+            coalesce(technique.label, '') AS technique,
+            thumbnails AS thumbnail
+            ORDER BY _score DESC"""
+    results = vc.nc.commit_list([query])
+    df = pd.DataFrame.from_records(get_dict_cursor()(results))
+    if df.empty:
+        return pd.DataFrame(columns=list(_USERDATA_HEADERS))
+    return df.drop(columns=['_score'])
+
+
+#: upload ids are "VFBu_" + a nanoid (A-Za-z0-9_-), as the upload pipeline accepts them
+_VFB_UPLOAD_ID_RE = re.compile(r"^VFBu_[A-Za-z0-9_-]{4,40}$")
+
+
 def get_similar_morphology_userdata(upload_id: str, return_dataframe=True, limit: int = -1):
-    """NBLAST results for user-uploaded data (cached in SOLR)."""
+    """NBLAST results for user-uploaded data: ids and scores from the upload's Solr record
+    (field upload_nblast_query), details from the PDB, in the SimilarMorphologyTo format."""
+    empty = pd.DataFrame(columns=list(_USERDATA_HEADERS))
+    if not isinstance(upload_id, str) or not _VFB_UPLOAD_ID_RE.match(upload_id):
+        return empty if return_dataframe else {"headers": _USERDATA_HEADERS, "rows": [], "count": 0}
     try:
         solr_query = f'{{"params":{{"defType":"edismax","fl":"upload_nblast_query","indent":"true","q.op":"OR","q":"id:{upload_id}","qf":"id","rows":"99"}}}}'
-        response = requests.post("https://solr.virtualflybrain.org/solr/vfb_json/select", data=solr_query, headers={"Content-Type": "application/json"})
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('response', {}).get('numFound', 0) > 0:
-                results = data['response']['docs'][0].get('upload_nblast_query', [])
-                if isinstance(results, str): results = json.loads(results)
-                df = pd.DataFrame(results if isinstance(results, list) else [])
-                if not df.empty and 'name' in df.columns: df = encode_markdown_links(df, ['name'])
-                if return_dataframe: return df
-                return {"headers": {"id": {"title": "ID", "type": "selection_id", "order": -1}, "name": {"title": "Match", "type": "markdown", "order": 0}, "score": {"title": "Score", "type": "text", "order": 1}}, "rows": safe_to_dict(df, sort_by_id=False), "count": len(df)}
+        response = requests.post("https://solr.virtualflybrain.org/solr/vfb_json/select", data=solr_query,
+                                 headers={"Content-Type": "application/json"}, timeout=60)
+        response.raise_for_status()
+        docs = response.json().get('response', {}).get('docs', [])
+        matches = _userdata_matches(docs[0].get('upload_nblast_query', [])) if docs else []
+        total = len(matches)
+        if limit != -1:
+            matches = matches[:limit]
+        df = _userdata_rows(matches)
+        if not df.empty:
+            # the same columns as get_similar_neurons, for the same V2 link parser
+            df = encode_markdown_links(df, ['name', 'source', 'source_id', 'template', 'thumbnail'])
+        if return_dataframe:
+            return df
+        return {"headers": _USERDATA_HEADERS,
+                "rows": [{k: row.get(k) for k in _USERDATA_HEADERS} for row in safe_to_dict(df, sort_by_id=False)],
+                "count": total}
     except Exception as e:
         print(f"Error fetching user NBLAST data: {e}")
-    return pd.DataFrame() if return_dataframe else {"headers": {}, "rows": [], "count": 0}
+    return empty if return_dataframe else {"headers": _USERDATA_HEADERS, "rows": [], "count": 0}
 
 
 # ===== Dataset/Template Queries =====

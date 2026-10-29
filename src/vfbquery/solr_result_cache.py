@@ -1253,7 +1253,16 @@ def with_solr_cache(query_type: str):
                 else:
                     logger.warning(f"No term_id found for caching {query_type}")
                     return _call(*args, **kwargs)
-            
+
+            # User uploads (VFBu_*) change state after they are first viewed: the record is
+            # "processing" until the upload pipeline writes its results, and only then gains
+            # the UNBLAST type that offers SimilarMorphologyToUserData. Caching the first
+            # answer (48 h to months) left a user who opened their link early on the
+            # processing page. They are cheap to compute (one Solr document), so never
+            # persist them.
+            if isinstance(term_id, str) and term_id.startswith('VFBu_'):
+                return _call(*args, **kwargs)
+
             # Include preview parameter in cache key for term_info queries
             # This ensures preview=True and preview=False have separate cache entries
             cache_term_id = term_id

@@ -728,6 +728,13 @@ def format_edge_xrefs(dxrefs):
     for x in dxrefs:
         if not x:
             continue
+        m = re.match(r'^https?://(?:www\.)?orcid\.org/(\d{4}-\d{4}-\d{4}-\d{3}[\dX])$', x, re.I)
+        if m:
+            links.append("[ORCID %s](%s)" % (m.group(1).upper(), x))
+            continue
+        if re.match(r'^https?://', x, re.I):
+            links.append("[%s](%s)" % (re.sub(r'^https?://', '', x, flags=re.I).rstrip('/'), x))
+            continue
         if ':' in x:
             site, acc = x.split(':', 1)
             s = site.lower()
@@ -1752,6 +1759,9 @@ def term_info_parse_object(results, short_form):
                 refs.append(f"http://flybase.org/reports/{pub.FlyBase}")
             if getattr(pub, 'DOI', ''):
                 refs.append(f"https://doi.org/{pub.DOI}")
+            ext = pub.external_url() if hasattr(pub, 'external_url') else ""
+            if ext:
+                refs.append(ext)   # curator ORCID / web resource: link out, it has no VFB page
             ref_entries[sf] = {
                 "title": core.label if core and core.label else "",
                 "short_form": sf,

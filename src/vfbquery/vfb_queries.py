@@ -992,7 +992,7 @@ def term_info_parse_object(results, short_form):
                 record["thumbnail"] = image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
                 record["thumbnail_transparent"] = image.channel_image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
                 for key in vars(image.channel_image.image).keys():
-                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.channel_image.image)[key]) > 1:
+                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and isinstance(vars(image.channel_image.image)[key], str) and len(vars(image.channel_image.image)[key]) > 1:
                         record[key.replace("image_","")] = vars(image.channel_image.image)[key].replace("http://","https://")
                 image_index = getattr(image.channel_image.image, "index", None)
                 if image_index:
@@ -1041,7 +1041,7 @@ def term_info_parse_object(results, short_form):
                 record["thumbnail"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
                 record["thumbnail_transparent"] = image.image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
                 for key in vars(image.image).keys():
-                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image.image)[key]) > 1:
+                    if "image_" in key and not ("thumbnail" in key or "folder" in key) and isinstance(vars(image.image)[key], str) and len(vars(image.image)[key]) > 1:
                         record[key.replace("image_","")] = vars(image.image)[key].replace("http://","https://")
                 images[image.image.template_anatomy.short_form].append(record)
             
@@ -1125,7 +1125,7 @@ def term_info_parse_object(results, short_form):
             record["thumbnail"] = image.image_thumbnail.replace("http://","https://").replace("thumbnailT.png","thumbnail.png")
             record["thumbnail_transparent"] = image.image_thumbnail.replace("http://","https://").replace("thumbnail.png","thumbnailT.png")
             for key in vars(image).keys():
-                if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
+                if "image_" in key and not ("thumbnail" in key or "folder" in key) and isinstance(vars(image)[key], str) and len(vars(image)[key]) > 1:
                     record[key.replace("image_","")] = vars(image)[key].replace("http://","https://")
             if len(image.index) > 0:
               record['index'] = int(image.index[0])
@@ -1173,7 +1173,7 @@ def term_info_parse_object(results, short_form):
                     record["thumbnail"] = image.folder.replace("http://", "https://") + "thumbnail.png"
                     record["thumbnail_transparent"] = image.folder.replace("http://", "https://") + "thumbnailT.png"
                     for key in vars(image).keys():
-                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and len(vars(image)[key]) > 1:
+                        if "image_" in key and not ("thumbnail" in key or "folder" in key) and isinstance(vars(image)[key], str) and len(vars(image)[key]) > 1:
                             record[key.replace("image_", "")] = vars(image)[key].replace("http://", "https://")
                     record["center"] = image.get_center()
                     images[record["index"]] = record

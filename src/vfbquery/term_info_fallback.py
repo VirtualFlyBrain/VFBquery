@@ -229,12 +229,35 @@ def _load_indexers():
         except Exception as e:            # ImportError, or a missing env var
             _IMPORT_ERROR = e
             return
+
+        class ScRNAseqEntityTermInfoQueryIndexer(ClusterTermInfoQueryIndexer):
+            """vfb-scRNAseq Samples, Assays and Clusterings.
+
+            No bulk indexer covers these, so they have no vfb_json document
+            and no term info. The Cluster query is a generic Individual
+            query (types, class relationships, xrefs, related individuals),
+            so reuse it with the node label widened, rather than keep a copy
+            here that would drift from upstream.
+            """
+
+            def get_vfb_json_query(self, ids):
+                query = super().get_vfb_json_query(ids)
+                widened = query.replace("MATCH (primary:Cluster)",
+                                        "MATCH (primary:Individual)", 1)
+                if widened == query:
+                    # Upstream reworded its MATCH: the query still runs but
+                    # only matches Clusters, so the build finds no rows.
+                    print("term_info fallback: cluster query no longer starts "
+                          "MATCH (primary:Cluster), cannot widen it")
+                return widened
+
         _INDEXERS = {
             "template": TemplateTermInfoQueryIndexer,
             "license": LicenseTermInfoQueryIndexer,
             "dataset": DatasetTermInfoQueryIndexer,
             "pub": PubTermInfoQueryIndexer,
             "cluster": ClusterTermInfoQueryIndexer,
+            "scrnaseq_entity": ScRNAseqEntityTermInfoQueryIndexer,
             "anatomical_ind": AnatomicalIndTermInfoQueryIndexer,
             "neuron_class": NeuronClassTermInfoQueryIndexer,
             "split_class": SplitClassTermInfoQueryIndexer,
@@ -293,8 +316,42 @@ def fallback_unavailable_reason():
 #: scRNAseq Datasets, Samples, Assays, Clusterings and Clusters: its Samples,
 #: Assays and Clusterings stay out of the anatomical index as their FBlc
 #: predecessors did (its Datasets and Clusters take the dataset / cluster
-#: branches before this list is consulted).
+#: branches before this list is consulted, and its Samples, Assays and
+#: Clusterings are built by :func:`scrnaseq_entity_route` instead).
 ANATOMICAL_EXCLUDED_ID_PREFIXES = ("VFBc_", "FBlc", "VFBseq_", "SAMN", "VFB_internal")
+
+#: Labels of the vfb-scRNAseq entities between a Dataset and its Clusters.
+SCRNASEQ_ENTITY_LABELS = frozenset({"Sample", "Assay", "Clustering"})
+
+
+def scrnaseq_entity_route(short_form, labels):
+    """True for a vfb-scRNAseq Sample, Assay or Clustering.
+
+    No bulk indexer writes term info for these (the anatomical one excludes
+    ``VFBseq_``), so this is the only place they get any: built on first
+    request with the Cluster query, then indexed like any other miss.
+    Prefix-scoped because EPseq samples (``SAMN``) also carry ``Sample`` and
+    stay excluded.
+    """
+    return (short_form.startswith("VFBseq_")
+            and "Individual" in set(labels or ())
+            and bool(SCRNASEQ_ENTITY_LABELS & set(labels or ())))
+
+
+def trim_scrnaseq_entity(result, labels):
+    """Drop a Clustering's *has part* Samples from its related individuals.
+
+    A Clustering can have dozens of Samples (49 for the Aging Fly Cell Atlas
+    head); listing them all in term info swamps the page. They are served by
+    the ``SamplesInClustering`` query instead, as its Clusters and Assays are.
+    """
+    if "Clustering" not in set(labels or ()):
+        return result
+    related = result.get("related_individuals") or []
+    result["related_individuals"] = [
+        ri for ri in related
+        if (ri.get("relation") or {}).get("type") != "has_part"]
+    return result
 
 
 def choose_indexer(labels):
@@ -369,7 +426,9 @@ def build_term_info(short_form, neo=None):
         print("term_info fallback: no term_info indexer covers labels %s (%s)"
               % (sorted(labels), short_form))
         return None, None
-    if (key == "anatomical_ind"
+    if key == "anatomical_ind" and scrnaseq_entity_route(short_form, labels):
+        key = "scrnaseq_entity"
+    elif (key == "anatomical_ind"
             and short_form.startswith(ANATOMICAL_EXCLUDED_ID_PREFIXES)):
         # The anatomical indexer's parameter query skips these, so the bulk
         # job would never have written a document for one either.
@@ -386,6 +445,8 @@ def build_term_info(short_form, neo=None):
         return None, None
 
     result = rows[0]
+    if key == "scrnaseq_entity":
+        result = trim_scrnaseq_entity(result, labels)
     # The indexer's own document shape, including its atomic-update wrapper.
     solr_doc = indexer.generate_solr_doc(result, request=[short_form])
     return json.dumps(result), solr_doc

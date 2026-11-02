@@ -753,6 +753,14 @@ def format_edge_xrefs(dxrefs):
     return " (" + ", ".join(links) + ")"
 
 
+def _real_licenses(licenses):
+    """Drop licence records with no licence node, renumbered from 0. A term with
+    no licence (e.g. a FlyBase stock individual) can come back from the query
+    as one all-null record, which the page would render as an empty Licence row."""
+    real = [r for r in licenses.values() if r.get("short_form") or r.get("iri")]
+    return dict(enumerate(real))
+
+
 def term_info_parse_object(results, short_form):
     termInfo = {}
     termInfo["SuperTypes"] = []
@@ -1074,7 +1082,7 @@ def term_info_parse_object(results, short_form):
                 record['source_iri'] = dataset_license.dataset.core.iri
                 record['source'] = dataset_license.dataset.core.label
                 licenses[idx] = record
-            termInfo["Licenses"] = licenses
+            termInfo["Licenses"] = _real_licenses(licenses)
         elif vfbTerm.license and len(vfbTerm.license) > 0:
             # Terms that carry a licence directly rather than inheriting one
             # from the dataset they came from. DataSet term info (see
@@ -1099,7 +1107,7 @@ def term_info_parse_object(results, short_form):
                 record['source_iri'] = ''
                 record['source'] = ''
                 licenses[idx] = record
-            termInfo["Licenses"] = licenses
+            termInfo["Licenses"] = _real_licenses(licenses)
 
         if vfbTerm.template_channel and vfbTerm.template_channel.channel.short_form:
             termInfo["IsTemplate"] = True
@@ -1808,7 +1816,9 @@ def term_info_parse_object(results, short_form):
         # not an Individual). It is NOT a list of related instances. See the
         # field definition in term_info_queries.py and the query
         # `(o)<-[r:term_replaced_by]-(primary)` in VFB_connect's
-        # VFB_TermInfo_queries.json.
+        # VFB_TermInfo_queries.json. The exception is the Cluster query (and the
+        # vfb-scRNAseq Sample / Assay / Clustering documents built from it),
+        # which fills it with the term's outgoing Related edges to Individuals.
         if getattr(vfbTerm, 'related_individuals', None):
             grouped_ri = {}
             for rel in vfbTerm.related_individuals:
@@ -1816,7 +1826,11 @@ def term_info_parse_object(results, short_form):
                     continue
                 if not (hasattr(rel, 'object') and hasattr(rel.object, 'label')):
                     continue
-                rid = getattr(rel.relation, 'short_form', None) or rel.relation.label
+                # As for Relationships: short_form, else the IRI's tail, else
+                # the label (which then links nowhere useful).
+                rid = (getattr(rel.relation, 'short_form', None)
+                       or (getattr(rel.relation, 'iri', None) or '').split('/')[-1]
+                       or rel.relation.label)
                 key = (rel.relation.label, rid)
                 obj = (rel.object.label, getattr(rel.object, 'short_form', ''))
                 grouped_ri.setdefault(key, set()).add(obj)

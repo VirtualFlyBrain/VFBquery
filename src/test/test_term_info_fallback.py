@@ -66,6 +66,42 @@ def test_exclusions_are_scoped_to_the_anatomical_branch():
     assert tif.choose_indexer(["Individual", "Anatomy"]) == "anatomical_ind"
 
 
+@pytest.mark.parametrize("short_form,labels,expected", [
+    ("VFBseq_00001613", ["Entity", "Individual", "Adult", "Clustering"], True),
+    ("VFBseq_00000730", ["Entity", "Individual", "Adult", "Sample"], True),
+    ("VFBseq_00000731", ["Entity", "Individual", "Assay"], True),
+    # EPseq samples carry Sample too, but stay excluded.
+    ("SAMN09617589", ["Entity", "Individual", "Adult", "Sample"], False),
+    # Other VFBseq Individuals take their own branches.
+    ("VFBseq_00001616", ["Entity", "Individual", "Cluster"], False),
+    ("VFBseq_00001468", ["Entity", "Individual", "DataSet"], False),
+    ("VFBseq_00001613", None, False),
+])
+def test_scrnaseq_entities_are_routed_to_their_own_builder(short_form, labels, expected):
+    """vfb-scRNAseq Samples, Assays and Clusterings have no bulk indexer, so
+    the fallback is the only thing that builds their term info."""
+    assert tif.scrnaseq_entity_route(short_form, labels) is expected
+
+
+def _related(rel_type):
+    return {"relation": {"label": rel_type, "iri": "x", "type": rel_type},
+            "object": {"short_form": "VFBseq_1"}}
+
+
+def test_clustering_samples_move_to_a_query():
+    """A Clustering's has_part Samples are served by SamplesInClustering, not
+    listed in its term info; its other related individuals stay."""
+    result = {"related_individuals": [_related("has_part"), _related("part_of")]}
+    trimmed = tif.trim_scrnaseq_entity(result, ["Individual", "Clustering"])
+    assert [ri["relation"]["type"] for ri in trimmed["related_individuals"]] == ["part_of"]
+
+
+def test_sample_and_assay_related_individuals_are_kept():
+    result = {"related_individuals": [_related("has_part"), _related("input_of")]}
+    kept = tif.trim_scrnaseq_entity(result, ["Individual", "Sample"])
+    assert len(kept["related_individuals"]) == 2
+
+
 # ---------------------------------------------------------------------------
 # Write guard
 # ---------------------------------------------------------------------------

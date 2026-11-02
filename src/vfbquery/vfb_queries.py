@@ -1404,6 +1404,26 @@ def term_info_parse_object(results, short_form):
         if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["DataSet", "hasScRNAseq"]):
             q = scRNAdatasetData_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
+
+        # vfb-scRNAseq Clustering / Sample / Dataset queries (no XMI equivalent):
+        # a Clustering's clusters, samples and assays; the clusterings that use
+        # a Sample; a Dataset's clusterings, samples and assays.
+        scrnaseq_queries = []
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Clustering"]):
+            scrnaseq_queries = [ClustersInClustering_to_schema, SamplesInClustering_to_schema,
+                                AssaysInClustering_to_schema]
+        elif termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Sample"]) \
+                and vfbTerm.term.core.short_form.startswith("VFBseq_"):
+            scrnaseq_queries = [ClusteringsWithSample_to_schema]
+        elif termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["DataSet", "hasScRNAseq"]):
+            scrnaseq_queries = [ClusteringsInDataset_to_schema, SamplesInDataset_to_schema,
+                                AssaysInDataset_to_schema]
+        # Stocks, strains and genetic entities that vfb-scRNAseq Samples link.
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["hasScRNAseqSample"]):
+            scrnaseq_queries = scrnaseq_queries + [ScRNAseqSamplesFrom_to_schema,
+                                                   ScRNAseqClustersFrom_to_schema]
+        for to_schema in scrnaseq_queries:
+            queries.append(to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form}))
         
         # NBLAST similarity queries
         if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLASTexp"]):
@@ -2451,7 +2471,7 @@ def anatScRNAseqQuery_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "name", "tags", "dataset", "pubs"]
+    preview_columns = ["id", "name", "tags", "dataset", "sample_stages", "cell_count", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -2505,7 +2525,7 @@ def expressionCluster_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "name", "tags", "expression_level", "expression_extent"]
+    preview_columns = ["id", "name", "tags", "sample_stages", "expression_level", "expression_extent"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
 
@@ -2532,9 +2552,98 @@ def scRNAdatasetData_to_schema(name, take_default):
         "default": take_default,
     }
     preview = 5
-    preview_columns = ["id", "name", "tags", "anatomy", "pubs"]
+    preview_columns = ["id", "name", "tags", "anatomy", "sample_stages", "pubs"]
 
     return Query(query=query, label=label, function=function, takes=takes, preview=preview, preview_columns=preview_columns)
+
+
+# vfb-scRNAseq Clusterings, Samples and Assays. A Clustering (an author
+# clustering) has Clusters as parts and is built from Samples, each the input
+# of Assays (libraries). A Clustering can use Samples curated under another
+# Dataset (e.g. the Aging Fly Cell Atlas head clustering includes Fly Cell Atlas
+# samples), so sample and assay rows name their own Dataset.
+_CLUSTERING_TAKES = {"$and": ["Individual", "Clustering"]}
+_SAMPLE_TAKES = {"$and": ["Individual", "Sample"]}
+_SCRNASEQ_DATASET_TAKES = {"$and": ["DataSet", "hasScRNAseq"]}
+_CLUSTER_PREVIEW = ["id", "name", "anatomy", "cell_count", "gene_count", "dataset"]
+_CLUSTER_ACROSS_PREVIEW = ["id", "name", "anatomy", "sample_stages", "sample_tissues", "dataset"]
+_CLUSTERING_PREVIEW = ["id", "name", "clusters", "samples", "sample_stages", "sample_tissues", "dataset"]
+_SAMPLE_PREVIEW = ["id", "name", "tissue", "stage", "sex", "dataset"]
+_ASSAY_PREVIEW = ["id", "name", "method", "sample", "dataset"]
+
+
+def _scrnaseq_entity_query(query, label, function, takes, take_default, preview_columns):
+    return Query(query=query, label=label, function=function,
+                 takes={"short_form": takes, "default": take_default},
+                 preview=5, preview_columns=preview_columns)
+
+
+def ClustersInClustering_to_schema(name, take_default):
+    """Schema for ClustersInClustering: the Clusters that are part of a Clustering."""
+    return _scrnaseq_entity_query("ClustersInClustering", f"Clusters in {name}",
+                                  "get_clusters_in_clustering", _CLUSTERING_TAKES,
+                                  take_default, _CLUSTER_PREVIEW)
+
+
+def SamplesInClustering_to_schema(name, take_default):
+    """Schema for SamplesInClustering: the Samples a Clustering was built from."""
+    return _scrnaseq_entity_query("SamplesInClustering", f"Samples in {name}",
+                                  "get_samples_in_clustering", _CLUSTERING_TAKES,
+                                  take_default, _SAMPLE_PREVIEW)
+
+
+def AssaysInClustering_to_schema(name, take_default):
+    """Schema for AssaysInClustering: the Assays (libraries) of a Clustering's Samples."""
+    return _scrnaseq_entity_query("AssaysInClustering", f"Assays in {name}",
+                                  "get_assays_in_clustering", _CLUSTERING_TAKES,
+                                  take_default, _ASSAY_PREVIEW)
+
+
+def ClusteringsWithSample_to_schema(name, take_default):
+    """Schema for ClusteringsWithSample: the Clusterings built from a Sample
+    (from other Datasets too, where the Sample was reused)."""
+    return _scrnaseq_entity_query("ClusteringsWithSample", f"Clusterings using {name}",
+                                  "get_clusterings_with_sample", _SAMPLE_TAKES,
+                                  take_default, _CLUSTERING_PREVIEW)
+
+
+def ClusteringsInDataset_to_schema(name, take_default):
+    """Schema for ClusteringsInDataset: an scRNAseq Dataset's Clusterings."""
+    return _scrnaseq_entity_query("ClusteringsInDataset", f"Clusterings in {name}",
+                                  "get_clusterings_in_dataset", _SCRNASEQ_DATASET_TAKES,
+                                  take_default, _CLUSTERING_PREVIEW)
+
+
+def SamplesInDataset_to_schema(name, take_default):
+    """Schema for SamplesInDataset: Samples curated under, or used by, an scRNAseq Dataset."""
+    return _scrnaseq_entity_query("SamplesInDataset", f"Samples in {name}",
+                                  "get_samples_in_dataset", _SCRNASEQ_DATASET_TAKES,
+                                  take_default, _SAMPLE_PREVIEW)
+
+
+_SAMPLE_SOURCE_TAKES = {"$and": ["hasScRNAseqSample"]}
+
+
+def ScRNAseqSamplesFrom_to_schema(name, take_default):
+    """Schema for ScRNAseqSamplesFrom: scRNAseq Samples from a stock or strain, or
+    with a genetic entity in their genotype."""
+    return _scrnaseq_entity_query("ScRNAseqSamplesFrom", f"scRNAseq samples from {name}",
+                                  "get_scrnaseq_samples_from", _SAMPLE_SOURCE_TAKES,
+                                  take_default, _SAMPLE_PREVIEW)
+
+
+def ScRNAseqClustersFrom_to_schema(name, take_default):
+    """Schema for ScRNAseqClustersFrom: Clusters of the Clusterings using those Samples."""
+    return _scrnaseq_entity_query("ScRNAseqClustersFrom", f"scRNAseq clusters from samples of {name}",
+                                  "get_scrnaseq_clusters_from", _SAMPLE_SOURCE_TAKES,
+                                  take_default, _CLUSTER_ACROSS_PREVIEW)
+
+
+def AssaysInDataset_to_schema(name, take_default):
+    """Schema for AssaysInDataset: the Assays of an scRNAseq Dataset's Samples."""
+    return _scrnaseq_entity_query("AssaysInDataset", f"Assays in {name}",
+                                  "get_assays_in_dataset", _SCRNASEQ_DATASET_TAKES,
+                                  take_default, _ASSAY_PREVIEW)
 
 
 def SimilarMorphologyToPartOf_to_schema(name, take_default):
@@ -6112,7 +6221,9 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
         MATCH (sub:Class)
         WHERE sub.short_form IN {anat_short_forms!r}
         MATCH (sub)<-[:composed_primarily_of]-(c:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
-        WITH DISTINCT primary, c, ds, sub
+        WITH DISTINCT primary, c AS n, ds, sub
+        {_cluster_stage_cypher("primary, ds, sub")}
+        WITH primary, n AS c, ds, sub, cluster_stage_raw, clusterings_raw
         OPTIONAL MATCH (ds)-[:has_reference]->(p:pub)
         WITH {{
             short_form: c.short_form,
@@ -6143,13 +6254,15 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
             FlyBase: coalesce(([]+p.FlyBase)[0], ''),
             DOI: coalesce(([]+p.DOI)[0], '')
         }}) AS pubs,
-        primary, sub
+        primary, sub, c, cluster_stage_raw, clusterings_raw
         RETURN
             cluster.short_form AS id,
             apoc.text.format("[%s](%s)", [cluster.label, cluster.short_form]) AS name,
             apoc.text.join(cluster.unique_facets, '|') AS tags,
             apoc.text.format("[%s](%s)", [sub.label, sub.short_form]) AS cell_type,
             apoc.text.format("[%s](%s)", [dataset.label, dataset.short_form]) AS dataset,
+            ([] + c.cell_count)[0] AS cell_count,
+            cluster_stage_raw, clusterings_raw,
             pubs
         ORDER BY cluster.label
     """
@@ -6163,7 +6276,8 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name', 'cell_type', 'dataset']
+        df = _add_stage_columns(df)
+        columns_to_encode = ['name', 'cell_type', 'dataset'] + _STAGE_COLUMNS
         df = encode_markdown_links(df, columns_to_encode)
 
     if return_dataframe:
@@ -6174,12 +6288,15 @@ def get_anatomy_scrnaseq(anatomy_short_form: str, return_dataframe=True, limit: 
                 "id":        {"title": "ID",            "type": "selection_id", "order": -1},
                 "name":      {"title": "Cluster",       "type": "markdown",     "order":  0},
                 "cell_type": {"title": "Cell type",     "type": "markdown",     "order":  1},
-                "dataset":   {"title": "Dataset",       "type": "markdown",     "order":  2},
-                "pubs":      {"title": "Publications",  "type": "metadata",     "order":  3},
-                "tags":      {"title": "Tags",          "type": "tags",         "order":  4}
+                **_stage_headers(2),
+                "dataset":   {"title": "Dataset",       "type": "markdown",     "order":  5},
+                "cell_count": {"title": "Cells",        "type": "numeric",      "order":  6},
+                "pubs":      {"title": "Publications",  "type": "metadata",     "order":  7},
+                "tags":      {"title": "Tags",          "type": "tags",         "order":  8}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "cell_type", "dataset", "pubs", "tags"]}
+                {key: row.get(key) for key in ["id", "name", "cell_type", *_STAGE_COLUMNS, "dataset",
+                                               "cell_count", "pubs", "tags"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
@@ -6332,6 +6449,10 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
                  symbol: coalesce(([]+g.symbol)[0], '')
              }} AS gene,
              primary
+        WITH expression_level, expression_extent, gene, primary AS n
+        {_cluster_stage_cypher("expression_level, expression_extent, gene")}
+        WITH expression_level, expression_extent, gene, n AS primary,
+             cluster_stage_raw, clusterings_raw
         MATCH (a:Anatomy)<-[:composed_primarily_of]-(primary)
         WITH {{
             short_form: a.short_form,
@@ -6340,13 +6461,15 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
             types: labels(a),
             unique_facets: apoc.coll.sort(coalesce(a.uniqueFacets, [])),
             symbol: coalesce(([]+a.symbol)[0], '')
-        }} AS anatomy, primary, expression_level, expression_extent, gene
+        }} AS anatomy, primary, expression_level, expression_extent, gene,
+           cluster_stage_raw, clusterings_raw
         RETURN
             primary.short_form AS id,
             apoc.text.format("[%s](%s)", [primary.label, primary.short_form]) AS name,
             apoc.text.join(coalesce(primary.uniqueFacets, []), '|') AS tags,
             expression_level,
             expression_extent,
+            cluster_stage_raw, clusterings_raw,
             apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy
         ORDER BY expression_level DESC, primary.label
     """
@@ -6360,7 +6483,8 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name', 'anatomy']
+        df = _add_stage_columns(df)
+        columns_to_encode = ['name', 'anatomy'] + _STAGE_COLUMNS
         df = encode_markdown_links(df, columns_to_encode)
 
     if return_dataframe:
@@ -6371,12 +6495,14 @@ def get_expression_cluster(gene_short_form: str, return_dataframe=True, limit: i
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Cluster", "type": "markdown", "order": 0},
                 "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
-                "expression_level": {"title": "Expression Level", "type": "numeric", "order": 2},
-                "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 3},
-                "tags": {"title": "Tags", "type": "tags", "order": 4}
+                **_stage_headers(2),
+                "expression_level": {"title": "Expression Level", "type": "numeric", "order": 5},
+                "expression_extent": {"title": "Expression Extent", "type": "numeric", "order": 6},
+                "tags": {"title": "Tags", "type": "tags", "order": 7}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "anatomy", "expression_level", "expression_extent", "tags"]}
+                {key: row[key] for key in ["id", "name", "anatomy", *_STAGE_COLUMNS,
+                                           "expression_level", "expression_extent", "tags"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
@@ -6402,10 +6528,13 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
     """
     
     # Count query
+    # Same pattern as the rows (Clusters with a cell type): counting every
+    # Individual from the Dataset also counted its Samples, Assays and Clusterings.
     count_query = f"""
-        MATCH (c:Individual)-[:has_source]->(ds:scRNAseq_DataSet)
+        MATCH (c:Individual:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
         WHERE ds.short_form = '{dataset_short_form}'
-        RETURN COUNT(c) AS total_count
+        AND (c)-[:composed_primarily_of]->(:Class:Anatomy)
+        RETURN COUNT(DISTINCT c) AS total_count
     """
     
     count_results = vc.nc.commit_list([count_query])
@@ -6417,6 +6546,9 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
         MATCH (c:Individual:Cluster)-[:has_source]->(ds:scRNAseq_DataSet)
         WHERE ds.short_form = '{dataset_short_form}'
         MATCH (a:Class:Anatomy)<-[:composed_primarily_of]-(c)
+        WITH ds, a, c AS n
+        {_cluster_stage_cypher("ds, a")}
+        WITH ds, a, n AS c, cluster_stage_raw, clusterings_raw
         WITH *, {{
             short_form: a.short_form,
             label: coalesce(a.label,''),
@@ -6438,12 +6570,13 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
             PubMed: coalesce(([]+p.PMID)[0], ''),
             FlyBase: coalesce(([]+p.FlyBase)[0], ''),
             DOI: coalesce(([]+p.DOI)[0], '')
-        }}) AS pubs, c, anatomy
+        }}) AS pubs, c, anatomy, cluster_stage_raw, clusterings_raw
         RETURN
             c.short_form AS id,
             apoc.text.format("[%s](%s)", [c.label, c.short_form]) AS name,
             apoc.text.join(coalesce(c.uniqueFacets, []), '|') AS tags,
             apoc.text.format("[%s](%s)", [anatomy.label, anatomy.short_form]) AS anatomy,
+            cluster_stage_raw, clusterings_raw,
             pubs
         ORDER BY c.label
     """
@@ -6457,7 +6590,8 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
     
     # Encode markdown links
     if not df.empty:
-        columns_to_encode = ['name', 'anatomy']
+        df = _add_stage_columns(df)
+        columns_to_encode = ['name', 'anatomy'] + _STAGE_COLUMNS
         df = encode_markdown_links(df, columns_to_encode)
 
     if return_dataframe:
@@ -6468,16 +6602,478 @@ def get_scrnaseq_dataset_data(dataset_short_form: str, return_dataframe=True, li
                 "id": {"title": "ID", "type": "selection_id", "order": -1},
                 "name": {"title": "Cluster", "type": "markdown", "order": 0},
                 "anatomy": {"title": "Cell type", "type": "markdown", "order": 1},
-                "tags": {"title": "Tags", "type": "tags", "order": 2},
-                "pubs": {"title": "Publications", "type": "metadata", "order": 3}
+                **_stage_headers(2),
+                "tags": {"title": "Tags", "type": "tags", "order": 5},
+                "pubs": {"title": "Publications", "type": "metadata", "order": 6}
             },
             "rows": [
-                {key: row[key] for key in ["id", "name", "anatomy", "tags", "pubs"]}
+                {key: row[key] for key in ["id", "name", "anatomy", *_STAGE_COLUMNS, "tags", "pubs"]}
                 for row in safe_to_dict(df, sort_by_id=False)
             ],
             "count": total_count
         }
         return formatted_results
+
+
+# ===== vfb-scRNAseq Clustering, Sample and Assay Queries =====
+
+#: Markdown link for a node, and a ", "-joined list of links for a collection.
+_MD_LINK = 'apoc.text.format("[%s](%s)", [coalesce({v}.label, {v}.short_form), {v}.short_form])'
+_MD_LINKS = ('apoc.text.join([x IN {v} | apoc.text.format("[%s](%s)", '
+             '[coalesce(x.label, x.short_form), x.short_form])], ", ")')
+_TAGS = "apoc.text.join(coalesce(n.uniqueFacets, []), '|') AS tags"
+
+
+def _cypher_str(value: str) -> str:
+    """Quote a short_form for inlining into Cypher."""
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+# ----- Stage and tissue columns -----
+# Stage and tissue are curated on Samples. A Cluster has a stage of its own only
+# where it was determined from the cluster's gene expression (e.g. Calderon 2022);
+# it never has a tissue of its own (its cell type says where it is). So the two are
+# shown apart: "Cluster stage (from expression)" for the cluster's own, and the
+# stages / tissues of the Samples of the cluster's Clustering, which say what the
+# clustering was built from, not that every cluster has cells from each of them.
+
+_STAGE_REL = "RO_0002490"        # existence overlaps (a Sample's or Cluster's FBdv stage)
+_TISSUE_REL = "RO_0002131"       # overlaps (a Sample's FBbt tissue)
+# FBdv's stage hierarchy is substage_of (FBdv_00018001), not SUBCLASSOF / part_of
+
+#: A set of Sample stages is collapsed to the narrowest stage covering them, but
+#: never above one of these, so a set spanning several shows one per period. FBdv
+#: splits its P-stage into prepupal, pupal and pharate adult stages (the pharate
+#: adult stages are not under 'pupal stage'); each is its own period here.
+_STAGE_CEILINGS = {
+    "FBdv_00005289": 0,   # embryonic stage
+    "FBdv_00005336": 1,   # larval stage
+    "FBdv_00005342": 2,   # prepupal stage
+    "FBdv_00005349": 3,   # pupal stage
+    "FBdv_00006011": 4,   # pharate adult stage
+    "FBdv_00005369": 5,   # adult stage
+}
+
+_STAGE_MAP = ("CASE WHEN {v} IS NULL THEN null "
+              "ELSE {{short_form: {v}.short_form, label: coalesce({v}.label, {v}.short_form)}} END")
+
+
+def _cluster_stage_cypher(carry: str) -> str:
+    """Cypher, continuing from a Cluster bound as ``n`` (with ``carry``, the other
+    variables to keep), that adds ``cluster_stage_raw`` (its own stage, as maps) and
+    ``clusterings_raw`` (its Clusterings' short forms). The Samples' stages and
+    tissues are fetched once per Clustering afterwards (`_add_stage_columns`), not
+    per row: a gene's clusters can number thousands, from a few Clusterings.
+
+    The stage edge is matched by type as well as short form: an untyped match also
+    expands each Cluster's thousands of `expresses` edges. Both the KB's current
+    label (existence_overlaps) and RO's (existence overlaps) are listed, so the
+    deferred relabelling of underscored KB labels can't empty the column."""
+    keep = f"{carry}, " if carry else ""
+    return f"""
+    OPTIONAL MATCH (n)-[rcs:existence_overlaps|`existence overlaps`]->(cs:Class)
+      WHERE rcs.short_form = '{_STAGE_REL}'
+    WITH n, {keep}collect(DISTINCT {_STAGE_MAP.format(v='cs')}) AS cluster_stage_raw
+    OPTIONAL MATCH (n)-[:part_of]->(cl:Individual:Clustering)
+    WITH n, {keep}cluster_stage_raw, collect(DISTINCT cl.short_form) AS clusterings_raw"""
+
+
+def _clustering_samples_stage_tissue(clusterings):
+    """{clustering: (stages [{short_form, label}], tissues [(short_form, label)])}
+    from the Samples each Clustering has as parts."""
+    ids = sorted({str(c) for c in clusterings if c})
+    if not ids:
+        return {}
+    query = f"""
+        MATCH (cl:Individual:Clustering)-[:has_part]->(:Individual:Sample)-[r]->(o:Class)
+        WHERE cl.short_form IN {ids!r} AND r.short_form IN ['{_STAGE_REL}', '{_TISSUE_REL}']
+        RETURN DISTINCT cl.short_form AS clustering, r.short_form AS rel,
+               o.short_form AS short_form, coalesce(o.label, o.short_form) AS label"""
+    out = {c: ([], []) for c in ids}
+    for row in get_dict_cursor()(vc.nc.commit_list([query])):
+        stages, tissues = out[row["clustering"]]
+        if row["rel"] == _STAGE_REL:
+            stages.append({"short_form": row["short_form"], "label": row["label"]})
+        else:
+            tissues.append((row["short_form"], row["label"]))
+    return out
+
+
+def _stage_ancestors(stage_ids):
+    """{stage: {ancestor (or itself): (label, steps up)}} along FBdv substage_of."""
+    ids = sorted({i for i in stage_ids if re.fullmatch(r"FBdv_\d+", str(i))})
+    if not ids:
+        return {}
+    # By edge type: an untyped variable-length walk filtered on short_form also
+    # expands every other edge (references, precedes ...) and takes seconds.
+    query = f"""
+        MATCH p = (s:Class)-[:substage_of*0..20]->(a:Class)
+        WHERE s.short_form IN {ids!r}
+        RETURN s.short_form AS stage, a.short_form AS ancestor,
+               coalesce(a.label, a.short_form) AS label, min(length(p)) AS steps"""
+    out = {}
+    for row in get_dict_cursor()(vc.nc.commit_list([query])):
+        out.setdefault(row["stage"], {})[row["ancestor"]] = (row["label"], row["steps"])
+    return out
+
+
+def _collapse_stages(stages, ancestors):
+    """Collapse stages ([{short_form, label}]) to the narrowest stage covering each
+    developmental period's stages, never above an `_STAGE_CEILINGS` stage. A stage
+    under no ceiling stays as it is. Returns [(short_form, label)] in developmental
+    order."""
+    by_period = {}
+    for st in stages:
+        sf = st["short_form"]
+        anc = ancestors.get(sf) or {sf: (st["label"], 0)}
+        ceilings = [a for a in anc if a in _STAGE_CEILINGS]
+        period = min(ceilings, key=lambda a: anc[a][1]) if ceilings else sf
+        by_period.setdefault(period, {})[sf] = anc
+    out = []
+    for period, members in by_period.items():
+        if len(members) == 1:
+            (sf, anc), = members.items()
+            pick = sf
+        else:
+            # common ancestors no higher than the period's ceiling; the nearest wins
+            common = set.intersection(*(
+                {a for a, (_, d) in anc.items() if d <= anc[period][1]} for anc in members.values()))
+            pick = min(common, key=lambda a: (sum(anc[a][1] for anc in members.values()), a))
+        label = next(anc[pick][0] for anc in members.values() if pick in anc)
+        out.append((_STAGE_CEILINGS.get(period, len(_STAGE_CEILINGS)), label, pick))
+    return [(sf, label) for _, label, sf in sorted(out)]
+
+
+def _stage_links(stages):
+    return ", ".join(f"[{label}]({sf})" for sf, label in stages)
+
+
+def _add_stage_columns(df):
+    """Replace the raw columns with markdown ones: ``cluster_stage`` from
+    ``cluster_stage_raw`` (as is), and ``sample_stages`` (collapsed:
+    `_collapse_stages`) and ``sample_tissues`` from the Samples of the row's
+    ``clusterings_raw``."""
+    raw = [c for c in ("cluster_stage_raw", "clusterings_raw") if c in df.columns]
+    if df.empty or not raw:
+        return df
+    if "clusterings_raw" in df.columns:
+        per_clustering = _clustering_samples_stage_tissue(
+            {c for cls in df["clusterings_raw"] for c in (cls or [])})
+    else:
+        per_clustering = {}
+    ids = {st["short_form"] for sts in df.get("cluster_stage_raw", []) for st in (sts or []) if st}
+    ids |= {st["short_form"] for stages, _ in per_clustering.values() for st in stages}
+    ancestors = _stage_ancestors(ids)
+    cache = {}
+
+    def samples(cls):
+        key = tuple(sorted(cls or []))
+        if key not in cache:
+            stages = {st["short_form"]: st for c in key for st in per_clustering.get(c, ([], []))[0]}
+            tissues = sorted({t for c in key for t in per_clustering.get(c, ([], []))[1]},
+                             key=lambda t: t[1])
+            cache[key] = (_stage_links(_collapse_stages(list(stages.values()), ancestors)),
+                          _stage_links(tissues))
+        return cache[key]
+
+    if "cluster_stage_raw" in df.columns:
+        df["cluster_stage"] = [_stage_links(sorted((st["short_form"], st["label"]) for st in (sts or []) if st))
+                               for sts in df["cluster_stage_raw"]]
+    if "clusterings_raw" in df.columns:
+        df["sample_stages"] = [samples(cls)[0] for cls in df["clusterings_raw"]]
+        df["sample_tissues"] = [samples(cls)[1] for cls in df["clusterings_raw"]]
+    return df.drop(columns=raw)
+
+
+#: Stage/tissue columns of cluster tables spanning several Clusterings.
+_STAGE_COLUMNS = ["cluster_stage", "sample_stages", "sample_tissues"]
+_STAGE_TITLES = ["Cluster stage (from expression)", "Stages of samples", "Tissues of samples"]
+
+
+def _stage_headers(first_order: int) -> dict:
+    return {key: {"title": title, "type": "markdown", "order": first_order + i}
+            for i, (key, title) in enumerate(zip(_STAGE_COLUMNS, _STAGE_TITLES))}
+
+
+# Row shapes, one per entity kind: Cypher that continues from a bound, distinct
+# row node `n`, and the column headers it returns.
+
+def _cluster_rows(across: bool):
+    """Cluster row shape. Within one Clustering every row has the same Samples, so
+    only the cluster's own stage is shown; ``across`` Clusterings (a Dataset's, a
+    stock's) also shows the stages and tissues of each cluster's Samples."""
+    returns = f"""
+    OPTIONAL MATCH (n)-[:composed_primarily_of]->(a:Class)
+    WITH n, collect(DISTINCT a) AS anatomy
+    OPTIONAL MATCH (n)-[:has_source]->(ds:DataSet)
+    WITH n, anatomy, collect(DISTINCT ds) AS dataset
+    {_cluster_stage_cypher("anatomy, dataset")}
+    RETURN n.short_form AS id, {_MD_LINK.format(v='n')} AS name,
+           {_MD_LINKS.format(v='anatomy')} AS anatomy,
+           cluster_stage_raw, clusterings_raw,
+           ([] + n.cell_count)[0] AS cell_count,
+           ([] + n.filtered_gene_count)[0] AS gene_count,
+           {_MD_LINKS.format(v='dataset')} AS dataset, {_TAGS}
+    ORDER BY n.label"""
+    columns = [("name", "Cluster", "markdown"), ("anatomy", "Cell type", "markdown"),
+               ("cluster_stage", "Cluster stage (from expression)", "markdown")]
+    if across:
+        columns += [("sample_stages", "Stages of samples", "markdown"),
+                    ("sample_tissues", "Tissues of samples", "markdown")]
+    columns += [("cell_count", "Cells", "numeric"), ("gene_count", "Genes", "numeric"),
+                ("dataset", "Dataset", "markdown"), ("tags", "Tags", "tags")]
+    headers = {"id": {"title": "ID", "type": "selection_id", "order": -1}}
+    headers.update({key: {"title": title, "type": kind, "order": i}
+                    for i, (key, title, kind) in enumerate(columns)})
+    return returns, headers
+
+
+_CLUSTER_ROWS = _cluster_rows(across=False)
+_CLUSTER_ROWS_ACROSS = _cluster_rows(across=True)
+
+_CLUSTERING_ROWS = (f"""
+    OPTIONAL MATCH (n)<-[:part_of]-(c:Individual:Cluster)
+    WITH n, count(DISTINCT c) AS clusters
+    OPTIONAL MATCH (n)-[:has_part]->(s:Individual:Sample)
+    WITH n, clusters, count(DISTINCT s) AS samples
+    OPTIONAL MATCH (n)-[:has_source]->(ds:DataSet)
+    WITH n, clusters, samples, collect(DISTINCT ds) AS dataset
+    RETURN n.short_form AS id, {_MD_LINK.format(v='n')} AS name, clusters, samples,
+           [n.short_form] AS clusterings_raw,
+           {_MD_LINKS.format(v='dataset')} AS dataset, {_TAGS}
+    ORDER BY n.label""", {
+    "id": {"title": "ID", "type": "selection_id", "order": -1},
+    "name": {"title": "Clustering", "type": "markdown", "order": 0},
+    "clusters": {"title": "Clusters", "type": "numeric", "order": 1},
+    "samples": {"title": "Samples", "type": "numeric", "order": 2},
+    "sample_stages": {"title": "Sample stages", "type": "markdown", "order": 3},
+    "sample_tissues": {"title": "Sample tissues", "type": "markdown", "order": 4},
+    "dataset": {"title": "Dataset", "type": "markdown", "order": 5},
+    "tags": {"title": "Tags", "type": "tags", "order": 6},
+})
+
+# Relations by property short form, not edge type: edge types are made from
+# property labels, so a relabelled property must not empty a column.
+_SAMPLE_ROWS = (f"""
+    OPTIONAL MATCH (n)-[r]->(o:Class)
+    WHERE r.short_form IN ['RO_0002131', 'RO_0002490', 'BFO_0000050']
+    WITH n,
+         collect(DISTINCT CASE WHEN r.short_form = 'RO_0002131' THEN o END) AS tissue,
+         collect(DISTINCT CASE WHEN r.short_form = 'RO_0002490' THEN o END) AS stage,
+         collect(DISTINCT CASE WHEN r.short_form = 'BFO_0000050' THEN o END) AS sex
+    OPTIONAL MATCH (n)-[:has_source]->(ds:DataSet)
+    WITH n, tissue, stage, sex, collect(DISTINCT ds) AS dataset
+    RETURN n.short_form AS id, {_MD_LINK.format(v='n')} AS name,
+           {_MD_LINKS.format(v='tissue')} AS tissue,
+           {_MD_LINKS.format(v='stage')} AS stage,
+           {_MD_LINKS.format(v='sex')} AS sex,
+           {_MD_LINKS.format(v='dataset')} AS dataset, {_TAGS}
+    ORDER BY n.label""", {
+    "id": {"title": "ID", "type": "selection_id", "order": -1},
+    "name": {"title": "Sample", "type": "markdown", "order": 0},
+    "tissue": {"title": "Tissue", "type": "markdown", "order": 1},
+    "stage": {"title": "Stage", "type": "markdown", "order": 2},
+    "sex": {"title": "Sex", "type": "markdown", "order": 3},
+    "dataset": {"title": "Dataset", "type": "markdown", "order": 4},
+    "tags": {"title": "Tags", "type": "tags", "order": 5},
+})
+
+_ASSAY_ROWS = (f"""
+    OPTIONAL MATCH (n)-[r]->(m:Class) WHERE r.short_form = 'BAO_0000212'
+    WITH n, collect(DISTINCT m) AS method
+    OPTIONAL MATCH (n)-[:has_input]->(s:Individual:Sample)
+    WITH n, method, collect(DISTINCT s) AS sample
+    OPTIONAL MATCH (n)-[:has_source]->(ds:DataSet)
+    WITH n, method, sample, collect(DISTINCT ds) AS dataset
+    RETURN n.short_form AS id, {_MD_LINK.format(v='n')} AS name,
+           {_MD_LINKS.format(v='method')} AS method,
+           {_MD_LINKS.format(v='sample')} AS sample,
+           {_MD_LINKS.format(v='dataset')} AS dataset
+    ORDER BY n.label""", {
+    "id": {"title": "ID", "type": "selection_id", "order": -1},
+    "name": {"title": "Assay", "type": "markdown", "order": 0},
+    "method": {"title": "Method", "type": "markdown", "order": 1},
+    "sample": {"title": "Sample", "type": "markdown", "order": 2},
+    "dataset": {"title": "Dataset", "type": "markdown", "order": 3},
+})
+
+
+def _scrnaseq_rows(match: str, rows: tuple, return_dataframe: bool, limit: int):
+    """Run ``match`` (which binds the row node ``n``) with one of the row shapes.
+
+    Count and rows come from the same MATCH so they cannot disagree.
+    """
+    returns, headers = rows
+    count_rows = get_dict_cursor()(vc.nc.commit_list([
+        f"{match} RETURN count(DISTINCT n) AS total_count"]))
+    total_count = count_rows[0]["total_count"] if count_rows else 0
+
+    query = f"{match} WITH DISTINCT n {returns}"
+    if limit != -1:
+        query += f" LIMIT {int(limit)}"
+    df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([query])))
+    if not df.empty:
+        df = _add_stage_columns(df)
+        df = encode_markdown_links(df, [k for k, h in headers.items() if h["type"] == "markdown"])
+
+    if return_dataframe:
+        return df
+    return {
+        "headers": headers,
+        "rows": [{key: row.get(key) for key in headers} for row in safe_to_dict(df, sort_by_id=False)],
+        "count": total_count,
+    }
+
+
+def _clustering(short_form):
+    return f"(:Individual:Clustering {{short_form: {_cypher_str(short_form)}}})"
+
+
+def _dataset(short_form):
+    return f"(ds:DataSet {{short_form: {_cypher_str(short_form)}}})"
+
+
+def get_clusters_in_clustering(clustering_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Clusters that are part of a vfb-scRNAseq Clustering, with the cell type each
+    is composed primarily of, its cell count and its (filtered) gene count.
+
+    :param clustering_short_form: Clustering short form (e.g. 'VFBseq_00001613')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = f"MATCH (n:Individual:Cluster)-[:part_of]->{_clustering(clustering_short_form)}"
+    return _scrnaseq_rows(match, _CLUSTER_ROWS, return_dataframe, limit)
+
+
+def get_samples_in_clustering(clustering_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Samples a vfb-scRNAseq Clustering was built from, with tissue, stage, sex and
+    the Dataset each Sample was curated under (which can differ from the
+    Clustering's own, for reused Samples).
+
+    :param clustering_short_form: Clustering short form (e.g. 'VFBseq_00001613')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = f"MATCH {_clustering(clustering_short_form)}-[:has_part]->(n:Individual:Sample)"
+    return _scrnaseq_rows(match, _SAMPLE_ROWS, return_dataframe, limit)
+
+
+def get_assays_in_clustering(clustering_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Assays (sequencing libraries) behind a vfb-scRNAseq Clustering: those its
+    Samples are input of, or any it has as parts directly. With the assay
+    method, the Sample and the Dataset.
+
+    :param clustering_short_form: Clustering short form (e.g. 'VFBseq_00001613')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = (f"MATCH {_clustering(clustering_short_form)}-[:has_part]->(p:Individual) "
+             f"MATCH (p)-[:input_of*0..1]->(n:Individual:Assay)")
+    return _scrnaseq_rows(match, _ASSAY_ROWS, return_dataframe, limit)
+
+
+def get_clusterings_with_sample(sample_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    vfb-scRNAseq Clusterings built from a Sample, including those of other
+    Datasets that reuse it, with their cluster and sample counts.
+
+    :param sample_short_form: Sample short form (e.g. 'VFBseq_00000730')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = (f"MATCH (n:Individual:Clustering)-[:has_part]->"
+             f"(:Individual:Sample {{short_form: {_cypher_str(sample_short_form)}}})")
+    return _scrnaseq_rows(match, _CLUSTERING_ROWS, return_dataframe, limit)
+
+
+def get_clusterings_in_dataset(dataset_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    A vfb-scRNAseq Dataset's Clusterings, with their cluster and sample counts.
+
+    :param dataset_short_form: Dataset short form (e.g. 'VFBseq_00001468')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = f"MATCH (n:Individual:Clustering)-[:has_source]->{_dataset(dataset_short_form)}"
+    return _scrnaseq_rows(match, _CLUSTERING_ROWS, return_dataframe, limit)
+
+
+def get_samples_in_dataset(dataset_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Samples of a vfb-scRNAseq Dataset: those curated under it, and those its
+    Clusterings use from other Datasets (each row names its own Dataset).
+
+    :param dataset_short_form: Dataset short form (e.g. 'VFBseq_00001468')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = (f"MATCH {_dataset(dataset_short_form)} "
+             f"OPTIONAL MATCH (ds)<-[:has_source]-(own:Individual:Sample) "
+             f"WITH ds, collect(DISTINCT own) AS own "
+             f"OPTIONAL MATCH (ds)<-[:has_source]-(:Individual:Clustering)-[:has_part]->(used:Individual:Sample) "
+             f"WITH own + collect(DISTINCT used) AS ns UNWIND ns AS n")
+    return _scrnaseq_rows(match, _SAMPLE_ROWS, return_dataframe, limit)
+
+
+#: Sample -> FlyBase entity edges: BAO 'is derived from' (a stock or strain) and
+#: GENO 'has_genotype' (an allele, insertion, construct or split combination).
+_SAMPLE_SOURCE_RELS = "['BAO_0095000', 'GENO_0000222']"
+
+
+def _samples_from(short_form):
+    return (f"MATCH (e:Entity {{short_form: {_cypher_str(short_form)}}}) "
+            f"MATCH (s:Individual:Sample)-[r]->(e) WHERE r.short_form IN {_SAMPLE_SOURCE_RELS} ")
+
+
+def get_scrnaseq_samples_from(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    vfb-scRNAseq Samples taken from a FlyBase stock or strain, or from animals whose
+    genotype includes a FlyBase genetic entity (allele, insertion, construct, split
+    combination).
+
+    :param short_form: stock / strain / genetic entity short form (e.g. 'FBst0055026', 'FBco0000215')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = _samples_from(short_form) + "WITH s AS n"
+    return _scrnaseq_rows(match, _SAMPLE_ROWS, return_dataframe, limit)
+
+
+def get_scrnaseq_clusters_from(short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    vfb-scRNAseq Clusters of the Clusterings that use Samples taken from a FlyBase
+    stock or strain, or with a genetic entity in their genotype. A Clustering can
+    pool Samples of several genotypes, so a Cluster's cells need not all be from
+    this one.
+
+    :param short_form: stock / strain / genetic entity short form (e.g. 'FBst0055026', 'FBco0000215')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = (_samples_from(short_form) +
+             "MATCH (s)<-[:has_part]-(:Individual:Clustering)<-[:part_of]-(n:Individual:Cluster)")
+    return _scrnaseq_rows(match, _CLUSTER_ROWS_ACROSS, return_dataframe, limit)
+
+
+def get_assays_in_dataset(dataset_short_form: str, return_dataframe=True, limit: int = -1):
+    """
+    Assays of a vfb-scRNAseq Dataset: those curated under it, and those of the
+    Samples its Clusterings use from other Datasets (each row names its own Dataset).
+
+    :param dataset_short_form: Dataset short form (e.g. 'VFBseq_00001468')
+    :param return_dataframe: return a pandas DataFrame if True, otherwise a formatted dict
+    :param limit: maximum number of rows (-1 for all)
+    """
+    match = (f"MATCH {_dataset(dataset_short_form)} "
+             f"OPTIONAL MATCH (ds)<-[:has_source]-(own:Individual:Assay) "
+             f"WITH ds, collect(DISTINCT own) AS own "
+             f"OPTIONAL MATCH (ds)<-[:has_source]-(:Individual:Clustering)-[:has_part]->(:Individual)"
+             f"-[:input_of*0..1]->(used:Individual:Assay) "
+             f"WITH own + collect(DISTINCT used) AS ns UNWIND ns AS n")
+    return _scrnaseq_rows(match, _ASSAY_ROWS, return_dataframe, limit)
 
 
 # ===== NBLAST Similarity Queries =====

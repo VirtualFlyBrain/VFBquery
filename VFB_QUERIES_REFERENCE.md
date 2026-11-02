@@ -1066,6 +1066,41 @@ RETURN
 - **Tests**: `src/test/test_transcriptomics.py`
 - **Status**: ✅ **FULLY IMPLEMENTED** (January 2025)
 
+#### 31a–i. vfb-scRNAseq Clustering, Sample, Dataset and sample-source queries ✅
+VFBquery-only (no XMI equivalent), for vfb-scRNAseq entities (`VFBseq_` ids).
+
+| Query | On | Rows |
+|---|---|---|
+| `ClustersInClustering` | Individual + Clustering | Clusters: cell type, cluster stage (from expression), cells, genes (filtered gene count) |
+| `SamplesInClustering` | Individual + Clustering | Samples: tissue, stage, sex, Dataset |
+| `AssaysInClustering` | Individual + Clustering | Assays: method, Sample, Dataset |
+| `ClusteringsWithSample` | Individual + Sample (`VFBseq_`) | Clusterings using it: clusters, samples, sample stages / tissues, Dataset |
+| `ClusteringsInDataset` | DataSet + hasScRNAseq | Clusterings: clusters, samples, sample stages / tissues |
+| `SamplesInDataset` | DataSet + hasScRNAseq | its own Samples and those its Clusterings reuse |
+| `AssaysInDataset` | DataSet + hasScRNAseq | the Assays of those Samples |
+| `ScRNAseqSamplesFrom` | hasScRNAseqSample (a stock, strain or genetic entity a Sample links) | Samples from it / with it in their genotype |
+| `ScRNAseqClustersFrom` | hasScRNAseqSample | Clusters of the Clusterings using those Samples (a Clustering may pool genotypes), with cluster stage and stages / tissues of samples |
+
+- **Python Functions**: `get_clusters_in_clustering()`, `get_samples_in_clustering()`, `get_assays_in_clustering()`,
+  `get_clusterings_with_sample()`, `get_clusterings_in_dataset()`, `get_samples_in_dataset()`, `get_assays_in_dataset()`,
+  `get_scrnaseq_samples_from()`, `get_scrnaseq_clusters_from()`
+- **Schema Functions**: `<Query>_to_schema()`
+- **Tests**: `src/test/test_scrnaseq_clustering.py`
+- **Note**: a Clustering can reuse Samples curated under another Dataset (the Aging Fly
+  Cell Atlas head clustering uses Fly Cell Atlas samples), so sample and assay rows name
+  their own Dataset. vfb-scRNAseq Samples, Assays and Clusterings have no bulk-indexed
+  term info; `term_info_fallback` builds it on first request (a Clustering without its
+  Samples, which `SamplesInClustering` lists instead).
+- **Stage and tissue columns** (also on `anatScRNAseqQuery`, `expressionCluster` and
+  `scRNAdatasetData`): stage and tissue are curated on Samples; a Cluster has a stage of
+  its own only where it was determined from its expression ("Cluster stage (from
+  expression)", e.g. Calderon 2022). "Stages / Tissues of samples" are those of the
+  Samples of the cluster's Clustering: what the clustering was built from, not that the
+  cluster has cells from each. Sample stages are collapsed along FBdv `substage_of` to the
+  narrowest stage covering each period's stages, never above embryonic, larval,
+  prepupal, pupal, pharate adult or adult stage. Within one
+  Clustering the cluster rows show only the cluster's own stage.
+
 #### 32. **expressionCluster** ✅
 - **ID**: `expressionCluster` / `expression_cluster_query_compound`
 - **Name**: "expression_cluster"

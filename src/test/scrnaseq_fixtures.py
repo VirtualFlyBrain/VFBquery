@@ -67,3 +67,53 @@ def anatomy_with_clusters(preferred):
         preferred,
         match + "WHERE a.short_form = $id RETURN a.short_form AS id LIMIT 1",
         match + "RETURN a.short_form AS id LIMIT 1")
+
+
+def clustering_with_samples(preferred):
+    """A vfb-scRNAseq Clustering with Clusters and Samples that have Assays."""
+    match = ("MATCH (:Individual:Cluster)-[:part_of]->(cl:Individual:Clustering)"
+             "-[:has_part]->(:Sample)-[:input_of]->(:Assay) ")
+    return _pick(
+        preferred,
+        match + "WHERE cl.short_form = $id RETURN cl.short_form AS id LIMIT 1",
+        match + "RETURN DISTINCT cl.short_form AS id ORDER BY id LIMIT 1")
+
+
+def reused_sample(preferred_sample, preferred_dataset):
+    """A vfb-scRNAseq Sample used by Clusterings of two Datasets, and the reusing
+    Dataset (whose own Clustering uses a Sample curated under another)."""
+    match = ("MATCH (s:Individual:Sample)-[:has_source]->(own:DataSet), "
+             "(s)<-[:has_part]-(:Clustering)-[:has_source]->(ds:DataSet) "
+             "WHERE ds <> own ")
+    rows = get_dict_cursor()(vc.nc.commit_list([
+        match + "AND s.short_form = '%s' AND ds.short_form = '%s' "
+        "RETURN s.short_form AS s, ds.short_form AS ds LIMIT 1"
+        % (preferred_sample, preferred_dataset)]))
+    rows = rows or get_dict_cursor()(vc.nc.commit_list([
+        match + "RETURN s.short_form AS s, ds.short_form AS ds ORDER BY s, ds LIMIT 1"]))
+    return (rows[0]["s"], rows[0]["ds"]) if rows else (preferred_sample, preferred_dataset)
+
+
+def sample_source_with_clusters(preferred):
+    """A stock / strain / genetic entity (node label hasScRNAseqSample, or before
+    that label is loaded, any target of a Sample's stock / genotype edge) whose
+    Samples feed a Clustering."""
+    match = ("MATCH (s:Individual:Sample)-[r]->(e) "
+             "WHERE r.short_form IN ['BAO_0095000', 'GENO_0000222'] "
+             "AND (s)<-[:has_part]-(:Clustering)<-[:part_of]-(:Cluster) ")
+    return _pick(
+        preferred,
+        match + "AND e.short_form = $id RETURN e.short_form AS id LIMIT 1",
+        match + "RETURN DISTINCT e.short_form AS id ORDER BY id LIMIT 1")
+
+
+def dataset_with_cluster_stage(preferred):
+    """An scRNAseq DataSet with a Cluster that has a stage of its own (one determined
+    from its expression, e.g. Calderon 2022). Found by the stage property's id, not
+    the edge type, so a relabelled edge type fails the test rather than the fixture."""
+    match = ("MATCH (ds:scRNAseq_DataSet)<-[:has_source]-(c:Individual:Cluster)-[r]->(s:Class) "
+             "WHERE r.short_form = 'RO_0002490' ")
+    return _pick(
+        preferred,
+        match + "AND ds.short_form = $id RETURN ds.short_form AS id LIMIT 1",
+        match + "RETURN DISTINCT ds.short_form AS id ORDER BY id LIMIT 1")

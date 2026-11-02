@@ -1523,7 +1523,7 @@ def term_info_parse_object(results, short_form):
         # — FBtp (construct) resolves via its insertions, direct genotype
         # membership, and the alleles made from it.
         sf = vfbTerm.term.core.short_form
-        if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst")):
+        if sf.startswith(("FBgn", "FBal", "FBti", "FBtp", "FBco", "FBst", "FBsn")):
             q = FindStocks_to_schema(termInfo["Name"], {"short_form": sf})
             queries.append(q)
             # FindStocks is offered as a run_query query_type above (in Queries);
@@ -5397,7 +5397,7 @@ def _stock_number_url(collection, number):
 def get_flybase_stocks(short_form: str, return_dataframe=True, limit: int = -1):
     """Find available fly stocks from FlyBase for a Feature term.
 
-    :param short_form: FlyBase feature ID (FBgn/FBal/FBti/FBco/FBst)
+    :param short_form: FlyBase feature ID (FBgn/FBal/FBti/FBco/FBst), or strain (FBsn)
     :param return_dataframe: Returns pandas DataFrame if True, otherwise formatted dict
     :param limit: maximum number of results (-1 for all)
     :return: Stock records from FlyBase

@@ -1,4 +1,7 @@
 """Shared FlyBase Chado database connection helper."""
+import os
+import warnings
+
 import psycopg
 
 
@@ -9,6 +12,38 @@ FLYBASE_DB = {
     "password": "flybase",
     "connect_timeout": 10,
 }
+
+# VFB's own copy of FlyBase Chado, public on 443 (Postgres 17 direct SSL; needs libpq >= 17, which psycopg[binary]
+# bundles), then FlyBase's server. FB_CHADO_HOST overrides the list (comma-separated host or host:port).
+DEFAULT_CHADO_HOSTS = "chado.flybase.virtualflybrain.org:443,chado.flybase.org"
+
+
+def chado_hosts():
+    hosts = os.environ.get("FB_CHADO_HOST", "") or DEFAULT_CHADO_HOSTS
+    return [h.strip() for h in hosts.split(",") if h.strip()]
+
+
+def _conn_args(entry):
+    host, _, port = entry.partition(":")
+    args = dict(FLYBASE_DB, host=host)
+    if port:
+        args["port"] = int(port)
+    if port == "443":   # SNI-routed TLS on 443: TLS straight away, no Postgres SSLRequest round trip
+        args.update(sslmode="require", sslnegotiation="direct")
+    return args
+
+
+def _connect():
+    """Connect to the first server in chado_hosts() that accepts the connection."""
+    hosts = chado_hosts()
+    for i, entry in enumerate(hosts):
+        try:
+            return psycopg.connect(**_conn_args(entry))
+        except psycopg.Error as e:
+            if i == len(hosts) - 1:
+                raise
+            warnings.warn("Chado at %s unavailable (%s); trying %s"
+                          % (entry, str(e).strip().splitlines()[0] if str(e).strip() else type(e).__name__, hosts[i + 1]))
 
 
 def get_connection(statement_timeout_ms=60000):
@@ -23,7 +58,7 @@ def get_connection(statement_timeout_ms=60000):
     :param statement_timeout_ms: SQL statement timeout in milliseconds (default 60s)
     :return: psycopg connection
     """
-    conn = psycopg.connect(**FLYBASE_DB)
+    conn = _connect()
     try:
         conn.execute("SELECT set_config('statement_timeout', %s, false)",
                      (str(int(statement_timeout_ms)),))

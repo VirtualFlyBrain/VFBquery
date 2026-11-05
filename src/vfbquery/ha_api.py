@@ -668,6 +668,15 @@ QUERY_TYPE_MAP = {
     "clusterExpression":             "get_cluster_expression",
     "expressionCluster":             "get_expression_cluster",
     "scRNAdatasetData":              "get_scrnaseq_dataset_data",
+    "ClustersInClustering":          "get_clusters_in_clustering",
+    "SamplesInClustering":           "get_samples_in_clustering",
+    "AssaysInClustering":            "get_assays_in_clustering",
+    "ClusteringsWithSample":         "get_clusterings_with_sample",
+    "ClusteringsInDataset":          "get_clusterings_in_dataset",
+    "SamplesInDataset":              "get_samples_in_dataset",
+    "AssaysInDataset":               "get_assays_in_dataset",
+    "ScRNAseqSamplesFrom":           "get_scrnaseq_samples_from",
+    "ScRNAseqClustersFrom":          "get_scrnaseq_clusters_from",
 
     # Templates / datasets
     "PaintedDomains":                "get_painted_domains",

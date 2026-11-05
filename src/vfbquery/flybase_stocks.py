@@ -390,6 +390,29 @@ WHERE s.uniquename = %(stock_id)s
   AND s.is_obsolete = false
 """
 
+# A FlyBase strain (FBsn, e.g. a DGRP line or Canton-S) is linked to the centre
+# stocks derived from it by strainprop `derived_stock_strain_<centre>`, whose value
+# embeds the stock, e.g. "25177 @FBst0025177:DGRP-304@"; Chado has no stock-strain
+# table.
+_STRAIN_STOCKS_SQL = """
+SELECT DISTINCT
+    s.uniquename AS stock_id,
+    s.name AS stock_number,
+    g.uniquename AS genotype,
+    sc.uniquename AS collection
+FROM strain sn
+JOIN strainprop sp ON sp.strain_id = sn.strain_id
+JOIN cvterm t ON t.cvterm_id = sp.type_id AND t.name LIKE 'derived_stock_strain%%'
+JOIN stock s ON s.uniquename = substring(sp.value from '@(FBst[0-9]{7}):')
+LEFT JOIN stockcollection_stock scs ON s.stock_id = scs.stock_id
+LEFT JOIN stockcollection sc ON scs.stockcollection_id = sc.stockcollection_id
+LEFT JOIN stock_genotype sg ON s.stock_id = sg.stock_id
+LEFT JOIN genotype g ON sg.genotype_id = g.genotype_id
+WHERE sn.uniquename = %(strain_id)s
+  AND sn.is_obsolete = false
+  AND s.is_obsolete = false
+"""
+
 _COMBO_COMPONENTS_SQL = """
 SELECT a.name AS allele_name, a.uniquename AS allele_id
 FROM feature combo
@@ -646,6 +669,17 @@ def _find_stock_details(conn, stock_id):
     return _run_query(conn, _STOCK_DETAILS_SQL, {"stock_id": stock_id})
 
 
+def _find_stocks_strain(conn, strain_id, collection_filter=None):
+    """Find the centre stocks derived from a FlyBase strain (FBsn)."""
+    sql = _STRAIN_STOCKS_SQL
+    params = {"strain_id": strain_id}
+    if collection_filter:
+        sql += "  AND sc.uniquename ILIKE %(coll)s\n"
+        params["coll"] = f"%{collection_filter}%"
+    sql += "ORDER BY collection, stock_number;"
+    return _run_query(conn, sql, params)
+
+
 def find_stocks(feature_id, collection_filter=None):
     """Find stocks for a resolved FlyBase feature ID.
 
@@ -656,8 +690,9 @@ def find_stocks(feature_id, collection_filter=None):
       - FBtp: transgenic construct (via its insertions, 120s timeout)
       - FBco: combination (component alleles, 60s timeout)
       - FBst: stock details (direct lookup, 60s timeout)
+      - FBsn: strain (its centre stocks, via strainprop, 60s timeout)
 
-    :param feature_id: FlyBase ID (FBgn/FBal/FBti/FBtp/FBco/FBst)
+    :param feature_id: FlyBase ID (FBgn/FBal/FBti/FBtp/FBco/FBst/FBsn)
     :param collection_filter: Optional stock collection name filter (e.g. "Bloomington")
     :return: list of stock dicts
     """
@@ -678,10 +713,12 @@ def find_stocks(feature_id, collection_filter=None):
             df = _find_stocks_combination(conn, feature_id, collection_filter)
         elif feature_id.startswith("FBst"):
             df = _find_stock_details(conn, feature_id)
+        elif feature_id.startswith("FBsn"):
+            df = _find_stocks_strain(conn, feature_id, collection_filter)
         else:
             raise ValueError(
                 f"Unrecognised ID prefix: {feature_id}. "
-                "Expected FBgn, FBal, FBti, FBtp, FBst, or FBco."
+                "Expected FBgn, FBal, FBti, FBtp, FBst, FBsn, or FBco."
             )
 
         if df.empty:

@@ -196,6 +196,27 @@ class TestFindStocksStockDetail:
         assert any("Bloomington" in str(s.get("collection", "")) for s in stocks)
 
 
+class TestFindStocksStrain:
+    # FlyBase strains (FBsn) reach their centre stocks via strainprop
+    # derived_stock_strain_<centre>.
+    @pytest.mark.integration
+    def test_dgrp_strain_stock(self):
+        stocks = find_stocks("FBsn0000058")   # DGRP-304
+        assert any(s["stock_id"] == "FBst0025177" for s in stocks)
+
+    @pytest.mark.integration
+    def test_strain_with_several_centres(self):
+        stocks = find_stocks("FBsn0000274")   # Canton-S: BDSC and Kyoto
+        assert {"FBst0064349", "FBst0304357"} <= {s["stock_id"] for s in stocks}
+        kyoto = find_stocks("FBsn0000274", collection_filter="Kyoto")
+        assert [s["stock_id"] for s in kyoto] == ["FBst0304357"]
+
+    @pytest.mark.integration
+    def test_strain_whose_stock_was_dropped(self):
+        # DGRP-28's BDSC stock is gone from FlyBase; the strain is current
+        assert find_stocks("FBsn0000008") == []
+
+
 class TestFindStocksConstruct:
     # FBtp0000352 = P{GawB} — a widely-used construct carried by many insertions.
     KNOWN_CONSTRUCT_ID = "FBtp0000352"

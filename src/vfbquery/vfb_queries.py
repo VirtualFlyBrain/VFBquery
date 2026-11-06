@@ -761,6 +761,32 @@ def _real_licenses(licenses):
     return dict(enumerate(real))
 
 
+#: run_query functions whose results come from Owlery (a DL query over the
+#: reasoned ontology). Owlery does not load obsolete classes, so on a term with
+#: the ``Deprecated`` label every one of these is guaranteed to fail (HTTP 400,
+#: "requirement failed: Encountered <iri>"). They are therefore never offered on
+#: a deprecated term. Queries answered from Neo4j/Solr (connectivity, datasets,
+#: scRNAseq, NBLAST, stocks) are unaffected. Keep in step with the functions
+#: that call ``_owlery_query_to_results`` / ``vc.vfb.oc.get_*``.
+OWLERY_BACKED_FUNCTIONS = frozenset({
+    "get_instances", "get_parts_of", "get_components_of", "get_subclasses_of",
+    "get_neurons_with_part_in", "get_neurons_capable_of",
+    "get_neurons_with_synapses_in", "get_neurons_with_presynaptic_terminals_in",
+    "get_neurons_with_postsynaptic_terminals_in",
+    "get_neuron_classes_fasciculating_here", "get_tracts_nerves_innervating_here",
+    "get_lineage_clones_in", "get_images_neurons", "get_images_that_develop_from",
+    "get_transgene_expression_here", "get_expression_pattern_fragments",
+    "get_anatomy_scrnaseq",
+})
+
+
+def drop_owlery_queries_if_deprecated(queries, supertypes):
+    """A deprecated term cannot answer an Owlery-backed query: leave those out."""
+    if "Deprecated" not in (supertypes or []):
+        return queries
+    return [q for q in queries if getattr(q, "function", None) not in OWLERY_BACKED_FUNCTIONS]
+
+
 def term_info_parse_object(results, short_form):
     termInfo = {}
     termInfo["SuperTypes"] = []
@@ -1863,7 +1889,7 @@ def term_info_parse_object(results, short_form):
 
 
         # Add the queries to the term info
-        termInfo["Queries"] = queries
+        termInfo["Queries"] = drop_owlery_queries_if_deprecated(queries, termInfo["SuperTypes"])
 
         # print("termInfo object after loading:", termInfo)
     if "Queries" in termInfo:

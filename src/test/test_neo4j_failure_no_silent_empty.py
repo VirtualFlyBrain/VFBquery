@@ -143,3 +143,14 @@ def test_cached_result_with_rows_is_served(monkeypatch):
     cache, solr = _cache_with(monkeypatch, good)
     assert cache.get_cached_result("transgene_expression_here", "T", limit=-1) == good
     assert solr.posts == []
+
+# 2026-11-06 CI: the count query for SamplesInClustering failed while the rows
+# query worked, so the preview read count 0 against 49 rows.
+@pytest.mark.parametrize("replies, which", [
+    ((False,), "scRNAseq count query"),
+    ((_count_reply(49), False), "scRNAseq rows query"),
+])
+def test_scrnaseq_rows_raise_when_a_query_fails(monkeypatch, replies, which):
+    _wire(monkeypatch, *replies)
+    with pytest.raises(vq.Neo4jQueryError, match=which):
+        vq.get_samples_in_clustering("VFBseq_00001613", return_dataframe=False, limit=2)

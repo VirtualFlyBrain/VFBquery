@@ -6930,14 +6930,14 @@ def _scrnaseq_rows(match: str, rows: tuple, return_dataframe: bool, limit: int):
     Count and rows come from the same MATCH so they cannot disagree.
     """
     returns, headers = rows
-    count_rows = get_dict_cursor()(vc.nc.commit_list([
-        f"{match} RETURN count(DISTINCT n) AS total_count"]))
+    count_rows = get_dict_cursor()(_commit_or_raise(
+        f"{match} RETURN count(DISTINCT n) AS total_count", "scRNAseq count query"))
     total_count = count_rows[0]["total_count"] if count_rows else 0
 
     query = f"{match} WITH DISTINCT n {returns}"
     if limit != -1:
         query += f" LIMIT {int(limit)}"
-    df = pd.DataFrame.from_records(get_dict_cursor()(vc.nc.commit_list([query])))
+    df = pd.DataFrame.from_records(get_dict_cursor()(_commit_or_raise(query, "scRNAseq rows query")))
     if not df.empty:
         df = _add_stage_columns(df)
         df = encode_markdown_links(df, [k for k, h in headers.items() if h["type"] == "markdown"])

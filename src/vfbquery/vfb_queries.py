@@ -200,7 +200,7 @@ def _neo4j_subclass_ids(short_form):
 # to the term's report page outside the app and is recognised as an internal
 # link by the v2 query-results table (MarkdownLinkComponent parses the
 # short_form out of the `/reports/<id>` path). Never hard-code an app URL such
-# as https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=<id> into
+# as https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto?id=<id> into
 # query output -- that pins results to one deployment. Build every VFB term
 # link from here (or via the helpers below) so the form is defined in one place.
 VFB_REPORT_BASE = "https://virtualflybrain.org/reports/"

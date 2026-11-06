@@ -15,7 +15,7 @@ import html
 import re
 
 SITE_NAME = "Virtual Fly Brain"
-VIEWER_BASE = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto"
+VIEWER_BASE = "https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto"
 REPORTS_BASE = "https://virtualflybrain.org/reports/"
 DEFAULT_IMAGE = "https://www.virtualflybrain.org/favicons/vfb-logo-512.png"
 MAX_DESCRIPTION = 300

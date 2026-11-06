@@ -131,7 +131,7 @@ def test_description_never_exceeds_limit():
 def test_metadata_urls_are_reports_canonical_and_viewer_target():
     m = link_preview.preview_metadata(_neuron())
     assert m["url"] == "https://virtualflybrain.org/reports/VFB_jrchjrch"
-    assert m["viewer_url"] == "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=VFB_jrchjrch"
+    assert m["viewer_url"] == "https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto?id=VFB_jrchjrch"
     assert m["image"].endswith("VFB_00101384/thumbnail.png")
 
 
@@ -153,7 +153,7 @@ def test_page_carries_every_tag_an_unfurler_reads():
     assert tags["twitter:card"] == "summary_large_image"
     assert tags["og:image"] == tags["twitter:image"]
     assert 'rel="canonical" href="https://virtualflybrain.org/reports/VFB_jrchjrch"' in page
-    assert 'http-equiv="refresh" content="0; url=https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id=VFB_jrchjrch"' in page
+    assert 'http-equiv="refresh" content="0; url=https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto?id=VFB_jrchjrch"' in page
 
 
 def test_page_qualifies_for_pinterest_article_rich_pin():

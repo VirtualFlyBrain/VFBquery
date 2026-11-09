@@ -27,6 +27,8 @@ count. This mirrors the single-ended class-connectivity queries in
 **Some connectome datasets are excluded by default.** See
 :data:`DEFAULT_EXCLUDE_DBS` for which, and why.
 """
+import json
+
 from .neo4j_client import Neo4jConnect, dict_cursor
 from .owlery_client import SimpleVFBConnect
 
@@ -127,17 +129,37 @@ def _cypher_str(value):
     return f"'{escaped}'"
 
 
+def _raise_ambiguous(label, candidates, relation):
+    """Raise the 'ambiguous' ValueError listing up to five candidate classes."""
+    shown = "; ".join(f"'{c['label']}' ({c['id']})" for c in candidates[:5])
+    more = " and others" if len(candidates) > 5 else ""
+    raise ValueError(
+        f"Neuron type '{label}' is ambiguous in VFB — it {relation} {shown}"
+        f"{more}. Pass one of those labels or its FBbt ID."
+    )
+
+
 def _resolve_neuron_type_label(nc, label, notes=None):
     """Resolve a neuron type label or FBbt ID to a VFB short_form ID.
 
-    Accepts FBbt IDs (e.g. "FBbt_00003789"), exact labels, case-insensitive
-    labels, and exact synonyms (which is what catches short names like "Tm1").
+    Tried in order, first hit wins:
 
-    When none of those match, a containment search over labels and synonyms
-    runs as a last resort. A **single** candidate is accepted and reported
-    through ``notes`` — this is what makes the short names people actually type
-    work, e.g. ``"DA1 lPN"`` for *adult antennal lobe projection neuron DA1
-    lPN*. Two or more candidates are never guessed between; they are listed in
+    1. FBbt ID (e.g. "FBbt_00003789")
+    2. exact label, then case-insensitive label
+    3. symbol (e.g. "DA1_lPN", "Tm1")
+    4. exact synonym (e.g. "DA1 lPN" for *adult antennal lobe projection neuron
+       DA1 lPN*)
+    5. containment over labels, as a last resort
+
+    Symbols and exact synonyms are read from the Neo4j ``symbol`` list and the
+    ``has_exact_synonym`` list. The latter holds JSON strings
+    (``{"annotations":{...},"value":"DA1 lPN"}``, value always last), so the
+    match is an exact ``ENDS WITH`` on the serialised value. There is no
+    ``synonym`` property on these nodes; an earlier version read one and the
+    synonym step silently never matched.
+
+    Steps 3–5 report how the input was read through ``notes``. A step that
+    finds two or more classes never guesses between them; they are listed in
     the error so the caller can pick.
 
     :param nc: Neo4jConnect instance
@@ -194,24 +216,42 @@ def _resolve_neuron_type_label(nc, label, notes=None):
     if dc:
         return dc[0]["n.short_form"]
 
-    # Synonym match (catches short names like "Tm1")
-    results = nc.commit_list([
-        f"MATCH (n:Class:Neuron) WHERE {quoted} IN n.synonym "
-        f"RETURN n.short_form LIMIT 1"
-    ])
-    dc = dict_cursor(results)
-    if dc:
-        return dc[0]["n.short_form"]
+    # Symbol, then exact synonym. Symbols come first because they are unique
+    # per class; an exact synonym can be shared (e.g. by an adult term and its
+    # immature precursor), so a shared one is reported as ambiguous.
+    # Neo4j stores non-ASCII in has_exact_synonym as \uXXXX escapes, which is
+    # json.dumps' default, so the serialised value matches byte for byte.
+    synonym_suffix = _cypher_str(',"value":' + json.dumps(str(label)) + '}')
+    tiers = (
+        ("symbol", f"{quoted} IN n.symbol"),
+        ("exact synonym",
+         f"any(s IN n.has_exact_synonym WHERE s ENDS WITH {synonym_suffix})"),
+    )
+    for kind, predicate in tiers:
+        results = nc.commit_list([
+            f"MATCH (n:Class:Neuron) WHERE NOT n:Deprecated AND {predicate} "
+            "RETURN n.short_form AS id, n.label AS label "
+            "ORDER BY size(n.label), n.label LIMIT 6"
+        ])
+        candidates = dict_cursor(results)
+        if len(candidates) == 1:
+            hit = candidates[0]
+            if notes is not None:
+                notes.append(
+                    f"'{label}' is not a VFB label; matched it as the {kind} "
+                    f"of '{hit['label']}' ({hit['id']})."
+                )
+            return hit["id"]
+        if len(candidates) > 1:
+            _raise_ambiguous(label, candidates, f"is the {kind} of each of")
 
-    # Last resort: containment over label and synonyms. Ordering by label
-    # length puts the tersest — and so most likely intended — term first, which
-    # only matters for the error message, since a single hit is the only case
-    # that resolves.
+    # Last resort: containment over labels. Ordering by label length puts the
+    # tersest — and so most likely intended — term first, which only matters
+    # for the error message, since a single hit is the only case that resolves.
     results = nc.commit_list([
-        "MATCH (n:Class:Neuron) WHERE NOT n:Deprecated AND ("
-        f"toLower(n.label) CONTAINS toLower({quoted}) OR "
-        f"any(syn IN n.synonym WHERE toLower(syn) CONTAINS toLower({quoted}))"
-        ") RETURN n.short_form AS id, n.label AS label "
+        "MATCH (n:Class:Neuron) WHERE NOT n:Deprecated AND "
+        f"toLower(n.label) CONTAINS toLower({quoted}) "
+        "RETURN n.short_form AS id, n.label AS label "
         "ORDER BY size(n.label), n.label LIMIT 6"
     ])
     candidates = dict_cursor(results)
@@ -224,12 +264,7 @@ def _resolve_neuron_type_label(nc, label, notes=None):
             )
         return hit["id"]
     if len(candidates) > 1:
-        shown = "; ".join(f"'{c['label']}' ({c['id']})" for c in candidates[:5])
-        more = " and others" if len(candidates) > 5 else ""
-        raise ValueError(
-            f"Neuron type '{label}' is ambiguous in VFB — it matches {shown}"
-            f"{more}. Pass one of those labels or its FBbt ID."
-        )
+        _raise_ambiguous(label, candidates, "matches")
 
     raise ValueError(
         f"Neuron type not found in VFB: '{label}'. "

@@ -1234,30 +1234,36 @@ def term_info_parse_object(results, short_form):
             q = TargetNeurons_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
+        # DataSet individuals inherit their members' facets (Neuron, NBLAST,
+        # NBLASTexp, has_neuron_connectivity, ...), so without this exclusion
+        # every per-neuron/per-image query below was attached to connectome
+        # datasets (e.g. Berg2025a) and returned 0 rows.
+        not_dataset = "DataSet" not in termInfo["SuperTypes"]
+
         # Require the NBLAST facet: SimilarMorphologyTo is backed by
         # has_similar_morphology_to edges carrying an NBLAST_score, which only
         # NBLAST-tagged neurons have. Without it the query was attached to every
         # individual neuron's menu (incl. MaleCNS/BANC) and returned 0 rows.
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLAST"]):
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLAST"]) and not_dataset:
             q = SimilarMorphologyTo_to_schema(termInfo["Name"], {"neuron": vfbTerm.term.core.short_form, "similarity_score": "NBLAST_score"})
             queries.append(q)
         # NeuronInputsTo is gated behind the extra "Demo" tag so it does NOT
         # appear on the current site (no live terms carry "Demo"). Keep it
         # separate from NeuronNeuronConnectivityQuery below, which should still
         # show for all connectivity-bearing neurons.
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity", "Demo"]):
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity", "Demo"]) and not_dataset:
             q = NeuronInputsTo_to_schema(termInfo["Name"], {"neuron_short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
         # NeuronNeuronConnectivity query - neurons connected to this neuron
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]):
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_neuron_connectivity"]) and not_dataset:
             q = NeuronNeuronConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
         # NeuronRegionConnectivity query - synaptic terminal counts per brain
         # region. Gated on has_region_connectivity, mirroring the
         # NeuronNeuronConnectivity block above.
-        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_region_connectivity"]):
+        if contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "has_region_connectivity"]) and not_dataset:
             q = NeuronRegionConnectivityQuery_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
@@ -1452,13 +1458,13 @@ def term_info_parse_object(results, short_form):
             queries.append(to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form}))
         
         # NBLAST similarity queries
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLASTexp"]):
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "NBLASTexp"]) and not_dataset:
             q = SimilarMorphologyToPartOf_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
         # SimilarMorphologyToPartOfexp query - reverse NBLASTexp
         # Matches XMI criteria: (Individual + Expression_pattern + NBLASTexp) OR (Individual + Expression_pattern_fragment + NBLASTexp)
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "NBLASTexp"]) and (
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "NBLASTexp"]) and not_dataset and (
             "Expression_pattern" in termInfo["SuperTypes"] or
             "Expression_pattern_fragment" in termInfo["SuperTypes"]
         ):
@@ -1471,18 +1477,18 @@ def term_info_parse_object(results, short_form):
         # criterion also matches expression patterns, so an EP carrying the
         # neuronbridge facet fired both and rendered two identical
         # "NeuronBridge matches" buttons.
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "neuronbridge"]):
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "Neuron", "neuronbridge"]) and not_dataset:
             q = SimilarMorphologyToNB_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
 
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "neuronbridge"]) and (
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "neuronbridge"]) and not_dataset and (
             "Expression_pattern" in termInfo["SuperTypes"] or
             "Expression_pattern_fragment" in termInfo["SuperTypes"]
         ):
             q = SimilarMorphologyToNBexp_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         
-        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "UNBLAST"]):
+        if termInfo["SuperTypes"] and contains_all_tags(termInfo["SuperTypes"], ["Individual", "UNBLAST"]) and not_dataset:
             q = SimilarMorphologyToUserData_to_schema(termInfo["Name"], {"short_form": vfbTerm.term.core.short_form})
             queries.append(q)
         

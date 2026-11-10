@@ -341,8 +341,13 @@ class Xref:
         return result
 
     def link(self):
-        if self.accession and self.accession != "None":
-            return self.link_base + self.accession + self.link_postfix
+        # An accession only makes a link when the site has a link_base to hang
+        # it on; a bare accession would be emitted as a relative URL (e.g.
+        # ``/org.geppetto.frontend/sample-1099``) and 404. Sites without one
+        # (placeholders for data not yet published) fall through to their
+        # homepage, then their iri.
+        if self.accession and self.accession != "None" and self.link_base:
+            return self.link_base + self.accession + (self.link_postfix or "")
         if self.homepage:
             return self.homepage
         return self.site.iri

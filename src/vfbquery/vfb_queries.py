@@ -1844,8 +1844,10 @@ def term_info_parse_object(results, short_form):
                     continue
                 label = getattr(site, 'label', '') if site else ''
                 acc = x.accession if getattr(x, 'accession', None) and x.accession != "None" else ''
-                if acc:
-                    link = (x.link_base or '') + acc + (x.link_postfix or '')
+                # accession without a link_base would be a broken relative URL;
+                # fall back to the site's homepage (see Xref.link()).
+                if acc and getattr(x, 'link_base', None):
+                    link = x.link_base + acc + (x.link_postfix or '')
                 elif getattr(x, 'homepage', None):
                     link = x.homepage
                 else:

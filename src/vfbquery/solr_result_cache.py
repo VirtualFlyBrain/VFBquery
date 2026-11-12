@@ -838,6 +838,8 @@ class SolrResultCache:
             logger.error("purge_namespace refused: no namespace set "
                          "(refusing to delete the production cache)")
             return False
+        if solr_caching_readonly():
+            return False
         if not self._solr_available():
             return False
         try:
@@ -923,6 +925,8 @@ class SolrResultCache:
         Returns:
             Number of expired cache documents cleaned up
         """
+        if solr_caching_readonly():
+            return 0
         if not self._solr_available():
             return 0
 
@@ -1136,15 +1140,18 @@ def solr_caching_disabled() -> bool:
 
 
 def solr_caching_readonly() -> bool:
-    """True when the SOLR result cache is read-only via VFBQUERY_CACHE_READONLY.
+    """True unless this process has been told it may write the SOLR result cache.
 
-    In read-only mode entries may still be *read* (so warm results are served —
-    e.g. the perf tests keep their fast timings), but all *mutations* are
-    suppressed: no writes, no force-refresh clears, and no version/expiry purges.
-    This lets PR checks read the shared production cache without ever modifying
-    it. Evaluated per-call so CI can toggle it via env.
+    Read-only is the default: entries are still *read* (warm results are
+    served), but every *mutation* is suppressed -- no writes, no force-refresh
+    clears, no version/expiry purges, no term-info or query-field backfill.
+    Only a deployment that owns the cache (the in-cluster VFBquery service,
+    which also holds the Solr writer login) sets ``VFBQUERY_CACHE_READONLY=false``.
+    A copy installed anywhere else therefore never tries to write: the public
+    Solr hosts refuse updates, so those attempts could only fail.
+    Evaluated per-call so CI and tests can toggle it via env.
     """
-    return os.getenv('VFBQUERY_CACHE_READONLY', 'false').lower() in ('true', '1', 'yes', 'on')
+    return os.getenv('VFBQUERY_CACHE_READONLY', 'true').lower() not in ('false', '0', 'no', 'off')
 
 
 def with_solr_cache(query_type: str):

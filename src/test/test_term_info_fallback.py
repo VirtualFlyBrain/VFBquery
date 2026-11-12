@@ -120,6 +120,7 @@ def test_no_write_when_the_cache_is_disabled(monkeypatch):
 
 def test_write_uses_the_indexers_service_name(monkeypatch):
     monkeypatch.setenv("VFBQUERY_CACHE_ENABLED", "true")
+    monkeypatch.setenv("VFBQUERY_CACHE_READONLY", "false")
     monkeypatch.setattr(tif, "_INDEXERS", {"class": object})
     sent = []
     monkeypatch.setattr(tif, "_send_solr_docs",
@@ -143,6 +144,19 @@ def test_a_failing_write_is_not_fatal(monkeypatch):
 # ---------------------------------------------------------------------------
 # Schema version stamping
 # ---------------------------------------------------------------------------
+
+def test_write_is_skipped_unless_told_it_may_write(monkeypatch):
+    """Read-only is the default: a copy that was not told it owns the cache
+    must not send anything to SOLR."""
+    monkeypatch.setenv("VFBQUERY_CACHE_ENABLED", "true")
+    monkeypatch.delenv("VFBQUERY_CACHE_READONLY", raising=False)
+    monkeypatch.setattr(tif, "_INDEXERS", {"class": object})
+    sent = []
+    monkeypatch.setattr(tif, "_send_solr_docs",
+                        lambda docs, service: sent.append(service) or True)
+    assert tif.write_term_info({"id": "FBbt_00003748"}) is False
+    assert sent == []
+
 
 def test_schema_version_prefers_the_environment(monkeypatch):
     monkeypatch.setenv("VFB_JSON_SCHEMA_SHA", "deadbee")

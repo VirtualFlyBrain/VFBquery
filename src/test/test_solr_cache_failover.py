@@ -10,6 +10,10 @@ from vfbquery.solr_result_cache import SolrResultCache
 
 class SolrResultCacheFailoverTest(unittest.TestCase):
     def test_disable_and_reenable_on_solr_failure(self):
+        # Read-only is the default; this test is about a writer's failed write.
+        env = patch.dict("os.environ", {"VFBQUERY_CACHE_READONLY": "false"})
+        env.start()
+        self.addCleanup(env.stop)
         cache = SolrResultCache()
         cache._solr_backoff_seconds = 10
 

@@ -115,7 +115,7 @@ class _Recorder:
 
 def _cache_for_test(monkeypatch):
     _clear_write_env(monkeypatch)
-    monkeypatch.delenv('VFBQUERY_CACHE_READONLY', raising=False)
+    monkeypatch.setenv('VFBQUERY_CACHE_READONLY', 'false')   # read-only is the default
     return src.SolrResultCache(cache_url='http://solr.invalid/cache')
 
 

@@ -241,30 +241,26 @@ set `VFBQUERY_CACHE_ENABLED=false` so they:
 The performance workflow's perf-timing steps keep caching enabled on purpose
 (they measure warm-cache latency); only the result-asserting steps disable it.
 
-#### Read-only mode
+#### Read-only mode (the default)
 
 ```bash
-export VFBQUERY_CACHE_READONLY=true
+export VFBQUERY_CACHE_READONLY=false   # only where this copy owns the cache
 ```
 
-Read-only mode still **reads** the cache (warm results are served), but
-suppresses every **mutation** — no writes, no force-refresh clears, and no
-version/expiry purges (`solr_caching_readonly()`, gating `cache_result`,
-`clear_cache_entry` and `_clear_expired_cache_document`).
+VFBquery is **read-only unless told otherwise**. It still **reads** the cache
+(warm results are served), but suppresses every **mutation** — no writes, no
+force-refresh clears, no version/expiry purges and no term-info or query-field
+backfill (`solr_caching_readonly()`, gating `cache_result`, `clear_cache_entry`,
+`_clear_expired_cache_document`, `purge_namespace`, `cleanup_expired_entries`
+and the `term_info_fallback` writers).
 
-This is used by the **performance-test workflow's perf-timing steps**, but only
-on **pull requests** — `VFBQUERY_CACHE_READONLY` is set from
-`github.event_name == 'pull_request'`. So:
+Only the VFB-run service sets `VFBQUERY_CACHE_READONLY=false`: it runs inside
+the cluster, where it also has the Solr writer login. The public Solr hosts
+refuse updates, so a copy installed anywhere else (pip, a notebook, CI) could
+never write anyway; by default it now does not try.
 
-- **On PRs** the perf steps read warm entries for representative timings but
-  never write or purge. Combined with `VFBQUERY_CACHE_ENABLED=false` on the
-  result-asserting steps, **no PR run can modify the production cache**.
-- **On push-to-`main` and scheduled runs** those perf steps are *writable*, so
-  they refresh/warm the cache under the current `main` version.
-
-That post-merge + daily-scheduled warming (plus lazy refresh by production
-traffic) is what keeps the cache populated for the version on `main`, including
-after a release bumps it. There's no dedicated release-triggered warm.
+The **performance-test workflow** runs read-only on every event for the same
+reason. The cache for the version on `main` is warmed by the service itself.
 
 Caveat: a PR that bumps the **minor/major** version reads cold in read-only mode
 (its version's entries don't exist yet — see version invalidation below);

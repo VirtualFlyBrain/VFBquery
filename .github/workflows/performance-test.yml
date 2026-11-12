@@ -70,11 +70,10 @@ jobs:
         # downstream "Fail job on test failures" step grades on the second
         # attempt's output only.
         env:
-          # Read-only on PRs so a PR check never writes/purges the shared prod
-          # cache; writable on push-to-main and scheduled runs so those refresh
-          # and warm it (e.g. after a minor/major release). See
+          # Always read-only: CI runs outside the cluster, where Solr refuses
+          # updates. Only the VFB-run service writes the cache. See
           # solr_caching_readonly().
-          VFBQUERY_CACHE_READONLY: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          VFBQUERY_CACHE_READONLY: 'true'
         run: |
           set +e
           echo "=== Performance test attempt 1/2 (parallel) ==="
@@ -95,9 +94,8 @@ jobs:
         if: always()
         env:
           VFBQUERY_CACHE_ENABLED: 'true'
-          # Read-only on PRs (never write/purge the shared prod cache); writable
-          # on push-to-main and scheduled runs so those refresh/warm it.
-          VFBQUERY_CACHE_READONLY: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+          # Always read-only: only the VFB-run service writes the cache.
+          VFBQUERY_CACHE_READONLY: 'true'
           MPLBACKEND: 'Agg'
           VISPY_GL_LIB: 'osmesa'
           VISPY_USE_EGL: '0'

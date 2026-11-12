@@ -459,9 +459,9 @@ def write_term_info(solr_doc):
     """
     if not fallback_available():
         return False
-    from .solr_result_cache import solr_caching_disabled
-    if solr_caching_disabled():
-        print("term_info fallback: cache disabled, not writing %s to SOLR"
+    from .solr_result_cache import solr_caching_disabled, solr_caching_readonly
+    if solr_caching_disabled() or solr_caching_readonly():
+        print("term_info fallback: cache disabled or read-only, not writing %s to SOLR"
               % solr_doc.get("id"))
         return False
     try:
@@ -578,9 +578,9 @@ def backfill_query_field(short_forms, solr_field):
 
 def _write_query_docs(solr_docs, solr_field):
     """Index rebuilt query documents, honouring the same guard as term_info."""
-    from .solr_result_cache import solr_caching_disabled
-    if solr_caching_disabled():
-        print("query fallback: cache disabled, not writing %d %s entries"
+    from .solr_result_cache import solr_caching_disabled, solr_caching_readonly
+    if solr_caching_disabled() or solr_caching_readonly():
+        print("query fallback: cache disabled or read-only, not writing %d %s entries"
               % (len(solr_docs), solr_field))
         return False
     try:

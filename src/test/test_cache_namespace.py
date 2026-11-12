@@ -23,6 +23,8 @@ def env(monkeypatch):
                 "VFBQUERY_CACHE_READONLY", "VFBQUERY_CACHE_ENABLED",
                 "VFBQUERY_CACHE_TTL_HOURS"):
         monkeypatch.delenv(var, raising=False)
+    # Read-only is the default; these tests are about what a writer sends.
+    monkeypatch.setenv("VFBQUERY_CACHE_READONLY", "false")
     return monkeypatch
 
 
@@ -249,3 +251,22 @@ def test_purge_namespace_deletes_only_its_own_prefix(env):
     assert cache.purge_namespace() is True
     assert rec.posts == [
         "<delete><query>id:ns_ci__vfb_query_*</query></delete>"]
+
+
+def test_read_only_unless_told_otherwise(env):
+    """A copy that is not told it may write never posts to the cache."""
+    env.delenv("VFBQUERY_CACHE_READONLY", raising=False)
+    assert src_mod.solr_caching_readonly() is True
+    cache = src_mod.SolrResultCache()
+    env.setattr(cache, "_solr_available", lambda: True)
+
+    def no_post(*args, **kwargs):
+        raise AssertionError("a read-only copy must not write")
+
+    env.setattr(src_mod.requests, "post", no_post)
+    assert cache.cache_result("term_info", "FBbt_00003748", {"a": 1}) is False
+    assert cache.clear_cache_entry("term_info", "FBbt_00003748") is False
+    assert cache.purge_namespace("ci-x") is False
+    assert cache.cleanup_expired_entries() == 0
+    env.setenv("VFBQUERY_CACHE_READONLY", "false")
+    assert src_mod.solr_caching_readonly() is False

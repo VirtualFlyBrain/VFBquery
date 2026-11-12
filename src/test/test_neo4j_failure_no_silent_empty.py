@@ -113,6 +113,7 @@ def _cache_with(monkeypatch, result):
     for var in ("VFBQUERY_CACHE_NAMESPACE", "VFBQUERY_CACHE_NAMESPACE_FALLBACK",
                 "VFBQUERY_CACHE_READONLY", "VFBQUERY_CACHE_ENABLED"):
         monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("VFBQUERY_CACHE_READONLY", "false")   # a writer: purges are allowed
     cache = src.SolrResultCache()
     monkeypatch.setattr(cache, "_solr_available", lambda: True)
     payload = src._encode_cache_field(json.dumps(

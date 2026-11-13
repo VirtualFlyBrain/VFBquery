@@ -8,7 +8,7 @@ so in three shapes, from the same code:
 is the original shape and what the VFB services themselves use.
 
 **As an HTTP service.** The same queries behind an aiohttp front end (`ha_api`), deployed as
-`v3-cached.virtualflybrain.org`, with a process pool, request coalescing, a result cache and queue
+`api.virtualflybrain.org`, with a process pool, request coalescing, a result cache and queue
 backpressure in front of them. This is what the website and the MCP server talk to.
 
 **As a lightweight HTTP client.** `pip install vfbquery-client` — `requests` and `pandas`, nothing
@@ -109,7 +109,7 @@ which is precisely the fiddly part [`/combine`](combine-endpoint.md) exists to g
 | Source | [github.com/VirtualFlyBrain/VFBquery](https://github.com/VirtualFlyBrain/VFBquery) |
 | Library on PyPI | [`vfbquery`](https://pypi.org/project/vfbquery/) |
 | Client on PyPI | [`vfbquery-client`](https://pypi.org/project/vfbquery-client/) |
-| Live service | [v3-cached.virtualflybrain.org](https://v3-cached.virtualflybrain.org/health) |
+| Live service | [api.virtualflybrain.org](https://api.virtualflybrain.org/health) |
 | The site itself | [virtualflybrain.org](https://virtualflybrain.org) |
 
 This documentation is built for version **{{ release }}**.

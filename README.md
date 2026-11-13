@@ -75,7 +75,7 @@ page is interactive API documentation in the style of the
 [VFB-hosted CATMAID `/apis/` pages](https://fafb.catmaid.virtualflybrain.org/apis/):
 every endpoint with its parameters, pre-filled runnable examples, and live
 results — open `/` on any deployment, for example the production instance at
-<https://v3-cached.virtualflybrain.org/>. The machine-readable version is at
+<https://api.virtualflybrain.org/>. The machine-readable version is at
 `/docs.json`.
 
 The endpoint surface mirrors the Python package: `/get_term_info`,

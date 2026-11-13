@@ -1,14 +1,14 @@
 # The HTTP API
 
 Everything VFBquery can answer is reachable over HTTP from the cached service, deployed as
-`https://v3-cached.virtualflybrain.org`. The [client](getting-started.md) wraps it, but the endpoints
+`https://api.virtualflybrain.org`. The [client](getting-started.md) wraps it, but the endpoints
 are plain `GET` requests returning JSON and there is nothing wrong with calling them directly — the
 website and the MCP server do.
 
 ```{note}
 `/search`, `/xref`, `/facets` and `/combine` went live with 1.22.35 and are on the public deploy.
-`https://vfbquery.virtualflybrain.org` is the service itself; `https://v3-cached.virtualflybrain.org`
-is an nginx cache in front of it. The cache is the right default — it is what the website and the MCP
+`https://vfbquery.virtualflybrain.org` is the service itself; `https://api.virtualflybrain.org`
+is an nginx cache in front of it (also reachable at the older `https://v3-cached.virtualflybrain.org`). The cache is the right default — it is what the website and the MCP
 use — but it does not honour `Cache-Control: no-cache`, so a body it is holding expires on its own TTL.
 Call the service host directly when you need to see the current answer rather than the cached one.
 ```
@@ -80,7 +80,7 @@ total exceeded the counting cap. Ask again shortly and a pending preview is usua
 ### `X-Force-Refresh`
 
 `/get_term_info`, `/run_query` and `/query_connectivity` accept `X-Force-Refresh: true|1|yes|on` as a
-header spelling of `force_refresh=true`. It exists because the `v3-cached` layer in front of this
+header spelling of `force_refresh=true`. It exists because the cache layer (`api.virtualflybrain.org`) in front of this
 service already defines that header as "bypass the edge cache and overwrite the cached entry with the
 fresh upstream response", and reserves it for whitelisted callers. Sending the header refreshes both
 layers in one request, at the URL users actually call. Adding `&force_refresh=true` instead does not:

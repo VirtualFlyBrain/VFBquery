@@ -516,6 +516,14 @@ pre.result{background:var(--surface-2);border:1px solid var(--line-soft);border-
 .ep .body .ep{margin:12px 0;background:var(--bg)}
 footer{border-top:1px solid var(--line);margin-top:40px;padding:22px 20px;color:var(--muted);font-size:13px;text-align:center}
 </style>
+<!-- Google Analytics (main VFB GA4 property) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K7DDZVVXM7"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-K7DDZVVXM7');
+</script>
 </head>
 <body>
 <header><div class="nav">

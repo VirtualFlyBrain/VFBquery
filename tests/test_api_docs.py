@@ -67,8 +67,12 @@ def test_html_is_self_contained():
     assert "renderCatmaidCommands" in html
     assert "ep-catmaid-commands" in html
     assert "catmaidCommandEndpoint" in html
-    # Self-contained: no external scripts, styles or images.
-    assert 'src="http' not in html and "src='http" not in html
+    # Self-contained: no external scripts, styles or images - the one
+    # exception is the main VFB Google Analytics tag.
+    ga_src = 'src="https://www.googletagmanager.com/gtag/js?id=G-K7DDZVVXM7"'
+    assert html.count(ga_src) == 1
+    without_ga = html.replace(ga_src, "")
+    assert 'src="http' not in without_ga and "src='http" not in without_ga
     assert '<link' not in html
     assert html.lstrip().startswith("<!DOCTYPE html>")
 

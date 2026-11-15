@@ -7,7 +7,7 @@ on:
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-latest is now 26.04, which this job's toolchain does not support yet
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
       contents: write  # allows the post-publish step to commit the version bump back to main

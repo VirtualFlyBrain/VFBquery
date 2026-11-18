@@ -225,6 +225,41 @@ ENDPOINT_GROUPS = [
                 ],
             },
             {
+                "path": "/circuit_paths",
+                "summary": "Strongest circuit paths between neuron types",
+                "description": (
+                    "The k strongest paths from source to target types through "
+                    "class-level connectivity graphs, one per connectome, scored "
+                    "by input proportion. Ids are FBbt classes or VFB neurons. "
+                    "Every answer names the release it was built from."),
+                "params": [
+                    {"name": "source", "required": True,
+                     "doc": "Source FBbt class or VFB neuron ids (comma-separated)",
+                     "example": "FBbt_00100484"},
+                    {"name": "target", "required": True,
+                     "doc": "Target FBbt class or VFB neuron ids (comma-separated)",
+                     "example": "FBbt_00004020"},
+                    {"name": "k", "doc": "Paths to return per connectome",
+                     "example": "5"},
+                    {"name": "min_synapses",
+                     "doc": "Minimum synapses per class edge", "example": ""},
+                    {"name": "min_inprop",
+                     "doc": "Minimum input proportion per edge (0-1)",
+                     "example": ""},
+                    {"name": "normalise",
+                     "doc": "input (default) or output proportion",
+                     "example": ""},
+                    {"name": "exclude_dbs",
+                     "doc": "Datasets to leave out (comma-separated)",
+                     "example": ""},
+                    {"name": "instance_graph",
+                     "doc": "true adds the neuron-level paths behind each "
+                            "class path", "example": ""},
+                    {"name": "instance_k",
+                     "doc": "Neuron-level paths per class path", "example": ""},
+                ],
+            },
+            {
                 "path": "/get_predicted_neurotransmitters",
                 "summary": "Predicted neurotransmitter(s) for a neuron type",
                 "description": (

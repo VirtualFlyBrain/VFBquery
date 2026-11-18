@@ -204,3 +204,20 @@ def test_manifest_lists_files_with_rows_and_checksums(tmp_path):
         data = (tmp_path / path).read_bytes()
         assert hashlib.sha256(data).hexdigest() == f["sha256"]
     assert m["datasets"]["tiny"]["files"]["tiny/class_edges.tsv.gz"]["rows"] == 1
+
+
+
+def test_env_credentials_reach_neo4jconnect(tmp_path, monkeypatch):
+    """The CLI passes NEO4J_USER / NEO4J_PASSWORD to the database connection."""
+    seen = {}
+
+    class Fake:
+        def __init__(self, endpoint, usr="neo4j", pwd="vfb", **kw):
+            seen.update(endpoint=endpoint, usr=usr, pwd=pwd)
+
+    monkeypatch.setattr(vc, "Neo4jConnect", Fake)
+    monkeypatch.setattr(vc, "fetch_connectomes", lambda nc: set())
+    monkeypatch.setenv("NEO4J_USER", "u1")
+    monkeypatch.setenv("NEO4J_PASSWORD", "p1")
+    vc.main(["--run", "r", "--out", str(tmp_path), "--endpoint", "http://db:7474"])
+    assert seen == {"endpoint": "http://db:7474", "usr": "u1", "pwd": "p1"}

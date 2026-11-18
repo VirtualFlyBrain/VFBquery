@@ -477,17 +477,19 @@ def write_manifest(out_dir, run, meta, datasets):
     return manifest
 
 
-def build(run, out_dir, sites=None, endpoint=ANALYTICS_ENDPOINT, log=print):
+def build(run, out_dir, sites=None, endpoint=ANALYTICS_ENDPOINT, log=print,
+          usr="neo4j", pwd="vfb"):
     """Build every connectome (or ``sites``) into ``out_dir`` and write the manifest.
 
     Any existing manifest is removed first, so the folder reads as incomplete
-    until the whole build has finished.
+    until the whole build has finished. ``usr``/``pwd`` default to the public
+    read-only login; a pipeline database needs its own.
     """
     os.makedirs(out_dir, exist_ok=True)
     for stale in (MANIFEST, MANIFEST + ".tmp"):
         if os.path.exists(os.path.join(out_dir, stale)):
             os.remove(os.path.join(out_dir, stale))
-    nc = Neo4jConnect(endpoint, read_timeout=600)
+    nc = Neo4jConnect(endpoint, usr=usr, pwd=pwd, read_timeout=600)
     known = fetch_connectomes(nc)
     unknown = [s for s in sites or () if s not in known]
     if unknown:
@@ -572,10 +574,14 @@ def main(argv=None):
     p.add_argument("--out", required=True,
                    help="Output folder, e.g. pipeline-out/<run>/circuit")
     p.add_argument("--endpoint", default=ANALYTICS_ENDPOINT, help="Neo4j endpoint to read from")
+    p.add_argument("--user", default=os.getenv("NEO4J_USER", "neo4j"),
+                   help="Neo4j user (default: $NEO4J_USER, else neo4j). The password is read "
+                        "from $NEO4J_PASSWORD (default: the public vfb), never from the command line")
     p.add_argument("sites", nargs="*",
                    help="Connectome short_forms (default: every Connectome in the PDB)")
     a = p.parse_args(argv)
-    m = build(a.run, a.out, a.sites, a.endpoint)
+    m = build(a.run, a.out, a.sites, a.endpoint, usr=a.user,
+              pwd=os.getenv("NEO4J_PASSWORD", "vfb"))
     print(f"{len(m['datasets'])} connectomes written to {a.out}")
 
 

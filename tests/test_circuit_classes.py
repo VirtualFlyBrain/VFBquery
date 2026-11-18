@@ -179,7 +179,8 @@ def test_site_files_follow_the_agreed_layout(tmp_path):
     _, _, rows = vc.read_table(str(tmp_path / "tiny" / "neuron_classes.tsv.gz"))
     assert rows == [["a1", "KCab-p"], ["a2", "KCab-p"], ["b1", "MBON01"]]
     _, _, rows = vc.read_table(str(tmp_path / "tiny" / "classes.tsv.gz"))
-    assert rows == [["KCab-p", "KCab-p label", "", "2"], ["MBON01", "MBON01 label", "MBON01", "1"]]
+    assert rows == [["KCab-p", "KCab-p label", "", "2", "KC|KCab"],
+                    ["MBON01", "MBON01 label", "MBON01", "1", "MBON"]]
     _, _, rows = vc.read_table(str(tmp_path / "tiny" / "report.tsv"))
     assert rows == [["x", vc.NO_LEAF, "KCab", "KCab label"],
                     ["y", vc.MULTI_LEAF, "T1|T2", "T1 label|T2 label"]]

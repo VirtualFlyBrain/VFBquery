@@ -245,9 +245,12 @@ def fetch_edges(nc, neuron_ids, batch=EDGE_BATCH):
 
 
 def fetch_connectomes(nc):
-    """Short forms of every connectome dataset in the PDB."""
-    return [r["c"] for r in _query(nc, """
-        MATCH (c:Connectome) RETURN c.short_form AS c ORDER BY c""")]
+    """Every connectome dataset in the PDB: ``{short_form: {label, symbol}}``."""
+    return {r["c"]: {"label": r["label"] or "", "symbol": r["symbol"] or ""}
+            for r in _query(nc, """
+                MATCH (c:Connectome)
+                RETURN c.short_form AS c, c.label AS label, c.symbol[0] AS symbol
+                ORDER BY c""")}
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +301,8 @@ TABLES = {
         [("class", "class (FBbt id)"),
          ("label", "class label"),
          ("symbol", "class symbol, if any"),
-         ("neurons", "number of assigned neurons")]),
+         ("neurons", "number of assigned neurons"),
+         ("ancestors", "all superclasses (FBbt ids, '|'-separated), for expanding broad query terms")]),
     "report.tsv": (
         "Neurons left out of the class graph, and why",
         [("neuron", "neuron (VFB id)"),
@@ -417,7 +421,8 @@ def write_site(folder, meta, types, up, down, labels, symbols, ancestors, edges,
     size = collections.Counter(assignment.values())
     with _Table(folder, "classes.tsv.gz", meta) as t:
         for c in sorted(size):
-            t.row(c, labels.get(c, ""), symbols.get(c, ""), size[c])
+            t.row(c, labels.get(c, ""), symbols.get(c, ""), size[c],
+                  "|".join(sorted(ancestors.get(c, ()))))
     files[t.name] = t.entry()
 
     with _Table(folder, "report.tsv", meta) as t:
@@ -483,12 +488,16 @@ def build(run, out_dir, sites=None, endpoint=ANALYTICS_ENDPOINT, log=print):
         if os.path.exists(os.path.join(out_dir, stale)):
             os.remove(os.path.join(out_dir, stale))
     nc = Neo4jConnect(endpoint, read_timeout=600)
-    sites = sites or fetch_connectomes(nc)
+    known = fetch_connectomes(nc)
+    unknown = [s for s in sites or () if s not in known]
+    if unknown:
+        raise ValueError(f"not a Connectome short_form: {', '.join(unknown)}")
+    sites = sites or sorted(known)
     meta = {"built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "endpoint": endpoint, "builder": f"vfbquery {__version__}"}
     datasets = {}
     for site in sites:
-        datasets[site] = build_site(nc, site, out_dir, dict(meta, run=run), log)
+        datasets[site] = dict(known[site], **build_site(nc, site, out_dir, dict(meta, run=run), log))
     return write_manifest(out_dir, run, meta, datasets)
 
 

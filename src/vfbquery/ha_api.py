@@ -4469,7 +4469,22 @@ def main():
         default=None,
         help=f"Seconds a /search waits for a slot before 503 (default: {DEFAULT_SEARCH_QUEUE_WAIT})",
     )
+    parser.add_argument(
+        "--mode", choices=("api", "circuit"),
+        default=os.getenv("VFBQUERY_MODE", "api"),
+        help="api: the main API (default). circuit: only /circuit_paths, serving "
+             "the circuit graphs from VFBQUERY_CIRCUIT_DIR or VFBQUERY_CIRCUIT_ROOT "
+             "(see vfbquery.circuit_api)",
+    )
     args = parser.parse_args()
+
+    if args.mode == "circuit":
+        from .circuit_api import create_circuit_app
+        log.info("VFBquery circuit server v%s starting on %s:%d",
+                 VFBQUERY_VERSION, args.host, args.port)
+        web.run_app(create_circuit_app(), host=args.host, port=args.port,
+                    keepalive_timeout=75)
+        return
 
     app = create_app(
         max_workers=args.workers,

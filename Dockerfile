@@ -57,7 +57,7 @@ ENV PYTHONPATH=/opt/vfb_indexer
 COPY requirements.txt setup.py pyproject.toml README.md ./
 COPY src/ src/
 RUN pip install --no-cache-dir aiohttp && \
-    pip install --no-cache-dir -e .
+    pip install --no-cache-dir -e ".[circuit]"
 
 EXPOSE 8080
 
@@ -71,5 +71,13 @@ EXPOSE 8080
 #   VFBQUERY_SOLR_WRITE_TIMEOUT (default: 30 seconds)
 
 #   VFB_JSON_SCHEMA_SHA      (set from the build; stamped into rebuilt documents)
+#
+# Circuit mode (a separate deployment serving only /circuit_paths; see
+# src/vfbquery/circuit_api.py):
+#   VFBQUERY_MODE=circuit
+#   VFBQUERY_CIRCUIT_ROOT    folder holding CURRENT (e.g. pipeline-out/circuit), or
+#   VFBQUERY_CIRCUIT_DIR     a fixed run folder (e.g. pipeline-out/<run>/circuit)
+#   VFBQUERY_CIRCUIT_WORKERS search processes (default 2)
+#   VFBQUERY_CIRCUIT_POLL    seconds between CURRENT checks (default 60)
 
 ENTRYPOINT ["python", "-m", "vfbquery.ha_api"]

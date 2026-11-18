@@ -11,3 +11,5 @@ pysolr
 get_version
 aiohttp
 psycopg[binary]>=3.0
+# setup.py extra "circuit": circuit mode and its tests (vfbquery.circuit_api)
+igraph

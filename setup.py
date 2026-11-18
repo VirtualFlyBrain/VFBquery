@@ -42,6 +42,11 @@ setup(
         "requests",
         "psycopg[binary]>=3.0",
     ],
+    extras_require={
+        # Circuit mode (vfbquery.circuit_api): k-shortest paths over the
+        # circuit graphs. Only the circuit deployment needs it.
+        "circuit": ["igraph"],
+    },
     python_requires=">=3.7",
     project_urls={  # Optional
         # PyPI renders the 'Documentation' key as the Documentation link in the

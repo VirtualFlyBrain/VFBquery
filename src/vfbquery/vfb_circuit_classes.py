@@ -40,17 +40,25 @@ Edges with an unassigned neuron at either end are left out of the class graph,
 but their synapses still count in the totals — leaving neurons out never
 inflates anyone's inprop.
 
-Heavy queries: run the build against pdb-analytics, not the serving pdb.
+**Output.** ``python -m vfbquery.vfb_circuit_classes --run RUN --out DIR``
+writes one folder per connectome (neuron edges, class edges, neuron classes,
+classes, and a report of the neurons left out) and then ``manifest.json``; see
+the layout note above :data:`TABLES`. In the data pipeline it runs against
+the run's own database; by hand, run it against pdb-analytics, not the
+serving pdb.
 """
 import argparse
 import collections
 import csv
 import gzip
+import hashlib
+import io
 import json
 import os
 import re
 import time
 
+from ._version import __version__
 from .circuit_axis_classes import AXIS_CLASSES
 from .neo4j_client import Neo4jConnect, dict_cursor
 
@@ -234,65 +242,259 @@ def fetch_edges(nc, neuron_ids, batch=EDGE_BATCH):
             yield r["a"], r["b"], r["w"]
 
 
+
+
+def fetch_connectomes(nc):
+    """Short forms of every connectome dataset in the PDB."""
+    return [r["c"] for r in _query(nc, """
+        MATCH (c:Connectome) RETURN c.short_form AS c ORDER BY c""")]
+
+
+# ---------------------------------------------------------------------------
+# Output files
+#
+# Layout (agreed in #114), one folder per run:
+#
+#   <out>/manifest.json                  written last; no manifest = incomplete
+#   <out>/<connectome>/neuron_edges.tsv.gz
+#   <out>/<connectome>/class_edges.tsv.gz
+#   <out>/<connectome>/neuron_classes.tsv.gz
+#   <out>/<connectome>/classes.tsv.gz
+#   <out>/<connectome>/report.tsv
+#   <out>/<connectome>/summary.md
+#
+# <connectome> is the Connectome short_form, the same key as the cb_<key> GDS
+# graphs. Each TSV starts with '#' lines (title, connectome, run, build
+# details, column descriptions), then a header row.
+# ---------------------------------------------------------------------------
+
+MANIFEST = "manifest.json"
+FORMAT_VERSION = 1
+
+#: name -> (title, [(column, description)])
+TABLES = {
+    "neuron_edges.tsv.gz": (
+        "Neuron-to-neuron connections (synapsed_to edges between neurons of this dataset)",
+        [("source", "presynaptic neuron (VFB id)"),
+         ("target", "postsynaptic neuron (VFB id)"),
+         ("synapses", "synapse count"),
+         ("inprop_in", "synapses / target's total input synapses; blank if the target has no total"),
+         ("inprop_out", "synapses / source's total output synapses; blank if the source has no total")]),
+    "class_edges.tsv.gz": (
+        "Class-to-class connections between the leaf classes in classes.tsv.gz",
+        [("source", "presynaptic class (FBbt id)"),
+         ("target", "postsynaptic class (FBbt id)"),
+         ("synapses", "total synapses from source-class neurons to target-class neurons"),
+         ("pairs", "connected neuron pairs"),
+         ("inprop_in", "mean over all target-class neurons of the share of their input that comes from the source class"),
+         ("inprop_out", "mean over all source-class neurons of the share of their output that goes to the target class; "
+                        "blank if any source-class neuron has no output total")]),
+    "neuron_classes.tsv.gz": (
+        "The single leaf class assigned to each neuron (neurons left out are in report.tsv)",
+        [("neuron", "neuron (VFB id)"),
+         ("class", "assigned leaf class (FBbt id)")]),
+    "classes.tsv.gz": (
+        "Class nodes: the leaf classes with at least one assigned neuron",
+        [("class", "class (FBbt id)"),
+         ("label", "class label"),
+         ("symbol", "class symbol, if any"),
+         ("neurons", "number of assigned neurons")]),
+    "report.tsv": (
+        "Neurons left out of the class graph, and why",
+        [("neuron", "neuron (VFB id)"),
+         ("status", f"{NO_LEAF}: typed only to classes subtyped elsewhere in the dataset; "
+                    f"{MULTI_LEAF}: more than one leaf type; {ONLY_AXIS}: only axis classes; "
+                    f"{UNTYPED}: no type"),
+         ("types", "the neuron's most specific types (FBbt ids, '|'-separated)"),
+         ("labels", "their labels ('|'-separated)")]),
+}
+
+
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+class _Table:
+    """A TSV with '#' metadata lines and a header row; gzipped if named .gz.
+
+    Gzip files are written with a fixed timestamp, so the same content always
+    has the same sha256.
+    """
+
+    def __init__(self, folder, name, meta):
+        title, columns = TABLES[name]
+        self.path = os.path.join(folder, name)
+        self.name, self.rows = name, 0
+        if name.endswith(".gz"):
+            raw = gzip.GzipFile(self.path, "wb", mtime=0)
+            self._f = io.TextIOWrapper(raw, encoding="utf-8", newline="")
+        else:
+            self._f = open(self.path, "w", encoding="utf-8", newline="")
+        lines = [title] + [f"{k}: {v}" for k, v in meta.items()] + ["columns:"]
+        lines += [f"  {c}: {d}" for c, d in columns]
+        self._f.writelines(f"# {line}\n" for line in lines)
+        self._w = csv.writer(self._f, delimiter="\t", lineterminator="\n")
+        self._w.writerow([c for c, _ in columns])
+
+    def row(self, *values):
+        self._w.writerow(values)
+        self.rows += 1
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self._f.close()
+
+    def entry(self):
+        return {"rows": self.rows, "sha256": _sha256(self.path)}
+
+
+def read_table(path):
+    """Read a table written here: returns (metadata lines, header, rows)."""
+    opener = gzip.open if path.endswith(".gz") else open
+    with opener(path, "rt", encoding="utf-8", newline="") as f:
+        meta, rows = [], []
+        for line in f:
+            if not line.startswith("#"):
+                header = line.rstrip("\n").split("\t")
+                break
+            meta.append(line[2:].rstrip("\n"))
+        rows = [r for r in csv.reader(f, delimiter="\t")]
+    return meta, header, rows
+
+
+def _num(x):
+    return "" if x is None else f"{x:.6g}"
+
+
 # ---------------------------------------------------------------------------
 # Build and write
 # ---------------------------------------------------------------------------
 
-def build(site, endpoint=ANALYTICS_ENDPOINT, log=print):
-    """Build one dataset's class graph. Returns a dict of everything written."""
+def write_site(folder, meta, types, up, down, labels, symbols, ancestors, edges, log=print):
+    """Assign classes and write one connectome's files into ``folder``.
+
+    ``edges`` is an iterable of ``(source, target, synapses)``; it is streamed
+    into neuron_edges.tsv.gz while the class edges are aggregated, so the
+    neuron edges are never all held in memory. Edges to or from neurons not
+    in ``types`` (i.e. outside this dataset) are skipped.
+
+    Returns ``(graph, manifest entry)``; ``graph`` is what :func:`report` takes.
+    """
+    os.makedirs(folder, exist_ok=True)
+    assignment, status, leaves = assign_classes(types, ancestors)
+    files, skipped = {}, [0]
+
+    with _Table(folder, "neuron_edges.tsv.gz", meta) as t:
+        def kept():
+            for a, b, w in edges:
+                if a not in types or b not in types:
+                    skipped[0] += 1
+                    continue
+                t.row(a, b, w, _num(w / up[b] if up.get(b) else None),
+                      _num(w / down[a] if down.get(a) else None))
+                yield a, b, w
+        class_edges = aggregate_class_edges(kept(), assignment, up, down)
+    files[t.name] = t.entry()
+    if skipped[0]:
+        log(f"{meta['connectome']}: skipped {skipped[0]:,} edges to neurons outside the dataset")
+
+    with _Table(folder, "class_edges.tsv.gz", meta) as t:
+        for (a, b), e in sorted(class_edges.items()):
+            t.row(a, b, e["synapses"], e["pairs"], _num(e["inprop_in"]), _num(e["inprop_out"]))
+    files[t.name] = t.entry()
+
+    with _Table(folder, "neuron_classes.tsv.gz", meta) as t:
+        for n, c in sorted(assignment.items()):
+            t.row(n, c)
+    files[t.name] = t.entry()
+
+    size = collections.Counter(assignment.values())
+    with _Table(folder, "classes.tsv.gz", meta) as t:
+        for c in sorted(size):
+            t.row(c, labels.get(c, ""), symbols.get(c, ""), size[c])
+    files[t.name] = t.entry()
+
+    with _Table(folder, "report.tsv", meta) as t:
+        for n, (st, cands) in sorted(status.items()):
+            if st != ASSIGNED:
+                t.row(n, st, "|".join(cands), "|".join(labels.get(c, c) for c in cands))
+    files[t.name] = t.entry()
+
+    g = {"site": meta["connectome"], "endpoint": meta.get("endpoint", ""),
+         "built": meta.get("built", ""), "types": types, "up": up, "down": down,
+         "labels": labels, "symbols": symbols, "ancestors": ancestors,
+         "assignment": assignment, "status": status, "leaves": leaves,
+         "edges": class_edges}
+    with open(os.path.join(folder, "summary.md"), "w", encoding="utf-8") as f:
+        f.write(report(g))
+
+    entry = {
+        "neurons": len(types),
+        "assigned": len(assignment),
+        "classes": len(size),
+        "neuron_edges": files["neuron_edges.tsv.gz"]["rows"],
+        "class_edges": len(class_edges),
+        "files": {f"{meta['connectome']}/{k}": v for k, v in files.items()},
+    }
+    return g, entry
+
+
+def build_site(nc, site, out_dir, meta, log=print):
+    """Fetch one connectome from the PDB and write its files."""
     t0 = time.time()
-    nc = Neo4jConnect(endpoint, read_timeout=600)
     types, up, down = fetch_neurons(nc, site)
     log(f"{site}: {len(types):,} neurons ({time.time() - t0:.0f}s)")
     class_ids = {c for cs in types.values() for c in cs}
     labels, symbols, ancestors = fetch_classes(nc, class_ids)
     log(f"{site}: {len(class_ids):,} classes ({time.time() - t0:.0f}s)")
+    meta = dict(meta, connectome=site)
+    g, entry = write_site(os.path.join(out_dir, site), meta, types, up, down,
+                          labels, symbols, ancestors, fetch_edges(nc, types), log)
+    log(f"{site}: {entry['neuron_edges']:,} neuron edges, {entry['class_edges']:,} class edges "
+        f"({time.time() - t0:.0f}s)")
+    return entry
 
-    assignment, status, leaves = assign_classes(types, ancestors)
-    edges = aggregate_class_edges(fetch_edges(nc, assignment), assignment, up, down)
-    log(f"{site}: {len(edges):,} class edges ({time.time() - t0:.0f}s)")
-    return {
-        "site": site, "endpoint": endpoint,
-        "built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "types": types, "up": up, "down": down,
-        "labels": labels, "symbols": symbols, "ancestors": ancestors,
-        "assignment": assignment, "status": status, "leaves": leaves,
-        "edges": edges,
-    }
+
+def write_manifest(out_dir, run, meta, datasets):
+    """Write manifest.json last, atomically (temporary file, then rename)."""
+    manifest = {"format": FORMAT_VERSION, "run": run, **meta, "datasets": datasets}
+    tmp = os.path.join(out_dir, MANIFEST + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write("\n")
+    os.replace(tmp, os.path.join(out_dir, MANIFEST))
+    return manifest
+
+
+def build(run, out_dir, sites=None, endpoint=ANALYTICS_ENDPOINT, log=print):
+    """Build every connectome (or ``sites``) into ``out_dir`` and write the manifest.
+
+    Any existing manifest is removed first, so the folder reads as incomplete
+    until the whole build has finished.
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    for stale in (MANIFEST, MANIFEST + ".tmp"):
+        if os.path.exists(os.path.join(out_dir, stale)):
+            os.remove(os.path.join(out_dir, stale))
+    nc = Neo4jConnect(endpoint, read_timeout=600)
+    sites = sites or fetch_connectomes(nc)
+    meta = {"built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "endpoint": endpoint, "builder": f"vfbquery {__version__}"}
+    datasets = {}
+    for site in sites:
+        datasets[site] = build_site(nc, site, out_dir, dict(meta, run=run), log)
+    return write_manifest(out_dir, run, meta, datasets)
 
 
 def _name(g, c):
     s = g["symbols"].get(c)
     return f"{g['labels'].get(c, c)}" + (f" [{s}]" if s else "")
-
-
-def write(g, out_dir):
-    """Write classes, class edges, neuron assignments and a Markdown report."""
-    os.makedirs(out_dir, exist_ok=True)
-    site = g["site"]
-    size = collections.Counter(g["assignment"].values())
-
-    with gzip.open(os.path.join(out_dir, f"{site}_classes.tsv.gz"), "wt", newline="") as f:
-        w = csv.writer(f, delimiter="\t")
-        w.writerow(["class", "label", "symbol", "neurons"])
-        for c in sorted(size):
-            w.writerow([c, g["labels"].get(c, ""), g["symbols"].get(c, ""), size[c]])
-
-    with gzip.open(os.path.join(out_dir, f"{site}_class_edges.tsv.gz"), "wt", newline="") as f:
-        w = csv.writer(f, delimiter="\t")
-        w.writerow(["source", "target", "synapses", "pairs", "inprop_in", "inprop_out"])
-        for (a, b), e in sorted(g["edges"].items()):
-            w.writerow([a, b, e["synapses"], e["pairs"], f"{e['inprop_in']:.6g}",
-                        "" if e["inprop_out"] is None else f"{e['inprop_out']:.6g}"])
-
-    with gzip.open(os.path.join(out_dir, f"{site}_neurons.tsv.gz"), "wt", newline="") as f:
-        w = csv.writer(f, delimiter="\t")
-        w.writerow(["neuron", "status", "class", "candidates"])
-        for n, (st, cands) in sorted(g["status"].items()):
-            w.writerow([n, st, g["assignment"].get(n, ""), "|".join(cands)])
-
-    with open(os.path.join(out_dir, f"{site}_report.md"), "w") as f:
-        f.write(report(g))
 
 
 def report(g, top=25):
@@ -356,14 +558,16 @@ def report(g, top=25):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("sites", nargs="+", help="Connectome short_form, e.g. catmaid_l1em flywire783")
-    p.add_argument("--endpoint", default=ANALYTICS_ENDPOINT)
-    p.add_argument("--out", default="class_graphs")
+    p.add_argument("--run", required=True,
+                   help="Pipeline run (or release) the PDB was loaded from; recorded in every file")
+    p.add_argument("--out", required=True,
+                   help="Output folder, e.g. pipeline-out/<run>/circuit")
+    p.add_argument("--endpoint", default=ANALYTICS_ENDPOINT, help="Neo4j endpoint to read from")
+    p.add_argument("sites", nargs="*",
+                   help="Connectome short_forms (default: every Connectome in the PDB)")
     a = p.parse_args(argv)
-    for site in a.sites:
-        g = build(site, a.endpoint)
-        write(g, a.out)
-        print(f"{site}: written to {a.out}")
+    m = build(a.run, a.out, a.sites, a.endpoint)
+    print(f"{len(m['datasets'])} connectomes written to {a.out}")
 
 
 if __name__ == "__main__":

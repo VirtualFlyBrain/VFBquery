@@ -141,3 +141,65 @@ def test_axis_list_labels_match_the_review_pattern():
 ])
 def test_cell_types_are_not_flagged_as_axis_candidates(label):
     assert not vc.AXIS_LABEL_PATTERN.search(label)
+
+
+# ---------------------------------------------------------------------------
+# Output files and manifest
+# ---------------------------------------------------------------------------
+
+def _write_tiny(folder):
+    types = {"a1": ["KCab-p"], "a2": ["KCab-p"], "b1": ["MBON01"],
+             "x": ["KCab"], "y": ["T1", "T2"]}
+    up = {"b1": 20, "a2": 10}
+    down = {"a1": 10, "a2": 5}
+    labels = {"KCab-p": "KCab-p label", "MBON01": "MBON01 label", "KCab": "KCab label",
+              "T1": "T1 label", "T2": "T2 label"}
+    edges = [("a1", "b1", 4), ("a2", "b1", 6), ("x", "b1", 2), ("a1", "elsewhere", 9)]
+    meta = {"connectome": "tiny", "run": "run-1", "built": "2026-11-18T00:00:00Z"}
+    return vc.write_site(str(folder / "tiny"), meta, types, up, down, labels,
+                         {"MBON01": "MBON01"}, ANC, iter(edges), log=lambda *_: None)
+
+
+def test_site_files_follow_the_agreed_layout(tmp_path):
+    _, entry = _write_tiny(tmp_path)
+    assert sorted(p.name for p in (tmp_path / "tiny").iterdir()) == sorted(
+        list(vc.TABLES) + ["summary.md"])
+    assert set(entry["files"]) == {f"tiny/{n}" for n in vc.TABLES}
+
+    meta, header, rows = vc.read_table(str(tmp_path / "tiny" / "neuron_edges.tsv.gz"))
+    assert "run: run-1" in meta and "connectome: tiny" in meta
+    assert header == ["source", "target", "synapses", "inprop_in", "inprop_out"]
+    # The edge to a neuron outside the dataset is dropped; unassigned x is kept.
+    assert rows == [["a1", "b1", "4", "0.2", "0.4"], ["a2", "b1", "6", "0.3", "1.2"],
+                    ["x", "b1", "2", "0.1", ""]]
+    assert entry["neuron_edges"] == 3
+
+    _, _, rows = vc.read_table(str(tmp_path / "tiny" / "class_edges.tsv.gz"))
+    assert rows == [["KCab-p", "MBON01", "10", "2", "0.5", "0.8"]]
+    _, _, rows = vc.read_table(str(tmp_path / "tiny" / "neuron_classes.tsv.gz"))
+    assert rows == [["a1", "KCab-p"], ["a2", "KCab-p"], ["b1", "MBON01"]]
+    _, _, rows = vc.read_table(str(tmp_path / "tiny" / "classes.tsv.gz"))
+    assert rows == [["KCab-p", "KCab-p label", "", "2"], ["MBON01", "MBON01 label", "MBON01", "1"]]
+    _, _, rows = vc.read_table(str(tmp_path / "tiny" / "report.tsv"))
+    assert rows == [["x", vc.NO_LEAF, "KCab", "KCab label"],
+                    ["y", vc.MULTI_LEAF, "T1|T2", "T1 label|T2 label"]]
+
+
+def test_same_content_gives_the_same_checksums(tmp_path):
+    _, e1 = _write_tiny(tmp_path / "one")
+    _, e2 = _write_tiny(tmp_path / "two")
+    assert e1["files"] == e2["files"]
+
+
+def test_manifest_lists_files_with_rows_and_checksums(tmp_path):
+    import hashlib
+    import json
+    _, entry = _write_tiny(tmp_path)
+    vc.write_manifest(str(tmp_path), "run-1", {"built": "x"}, {"tiny": entry})
+    m = json.loads((tmp_path / vc.MANIFEST).read_text())
+    assert m["run"] == "run-1" and m["format"] == vc.FORMAT_VERSION
+    assert not (tmp_path / (vc.MANIFEST + ".tmp")).exists()
+    for path, f in m["datasets"]["tiny"]["files"].items():
+        data = (tmp_path / path).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == f["sha256"]
+    assert m["datasets"]["tiny"]["files"]["tiny/class_edges.tsv.gz"]["rows"] == 1

@@ -260,3 +260,29 @@ def test_circuit_routes_are_publicly_reachable(tmp_path):
     from vfbquery.circuit_api import create_circuit_app
     app = create_circuit_app(fixed_dir=str(tmp_path), workers=0, poll=60)
     assert ha_api.unreachable_routes(app) == []
+
+
+def _worker_store_names():
+    from vfbquery import circuit_api
+    return sorted(circuit_api._STORES)
+
+
+def test_new_workers_hold_only_the_run_they_serve(tmp_path):
+    """Workers forked at a swap must not keep the replaced run in memory."""
+    from vfbquery.circuit_api import create_circuit_app
+    write_run(tmp_path / "run-1", run="run-1")
+    write_run(tmp_path / "run-2", run="run-2")
+    (tmp_path / "CURRENT").write_text("run-1")
+    app = create_circuit_app(root=str(tmp_path), workers=1, poll=3600)
+
+    async def calls(client):
+        await _wait_loaded(client)
+        (tmp_path / "CURRENT").write_text("run-2")
+        await app["circuit"].refresh()
+        loop = asyncio.get_running_loop()
+        names = await loop.run_in_executor(app["circuit"].pool, _worker_store_names)
+        paths = await (await client.get("/circuit_paths",
+                                        params={"source": "A", "target": "D"})).json()
+        return names, paths["run"]
+
+    assert _serve(app, calls) == (["run-2"], "run-2")

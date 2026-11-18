@@ -505,6 +505,7 @@ ALLOWED_PATHS = frozenset({
     "/get_predicted_neurotransmitters", "/get_known_neurotransmitters",
     "/search", "/facets", "/xref", "/combine", "/get_hierarchy",
     "/catmaid",
+    "/circuit_paths",   # served by circuit mode (circuit_api.py), routed to it by the ingress
 })
 
 #: Prefixes under which *dynamic* routes are allowed. Exact-match only would

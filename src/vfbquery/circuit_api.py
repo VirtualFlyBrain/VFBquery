@@ -24,6 +24,7 @@ after the graphs are loaded so they share the parent's memory. ``0`` runs
 searches in threads in the server process (for tests and local use).
 """
 import asyncio
+import gc
 import logging
 import multiprocessing
 import os
@@ -60,6 +61,18 @@ def _search(run, kwargs):
 
 def _ping():
     return os.getpid()
+
+
+def _keep_only(run):
+    """Worker initialiser: drop every run but ``run``.
+
+    A worker is forked while the server still holds the run it is replacing;
+    without this the new workers keep the old run's graphs in memory until the
+    next swap, so each pod would carry two runs.
+    """
+    for name in [n for n in _STORES if n != run]:
+        del _STORES[name]
+    gc.collect()
 
 
 class CircuitState:
@@ -115,12 +128,21 @@ class CircuitState:
         _STORES[store.run] = store
         pool = None
         if self.workers > 0:
-            # Fork, so the workers share the loaded graphs copy-on-write.
-            pool = ProcessPoolExecutor(self.workers,
-                                       mp_context=multiprocessing.get_context("fork"))
-            loop = asyncio.get_running_loop()
-            await asyncio.gather(*(loop.run_in_executor(pool, _ping)
-                                   for _ in range(self.workers)))
+            # Fork, so the workers share the loaded graphs copy-on-write. gc.freeze()
+            # first: the workers inherit the frozen state, so their garbage collector
+            # never walks (and so never copies) the graphs' pages. The server unfreezes
+            # straight after, so the run it later drops can still be collected.
+            gc.collect()
+            gc.freeze()
+            try:
+                pool = ProcessPoolExecutor(self.workers,
+                                           mp_context=multiprocessing.get_context("fork"),
+                                           initializer=_keep_only, initargs=(store.run,))
+                loop = asyncio.get_running_loop()
+                await asyncio.gather(*(loop.run_in_executor(pool, _ping)
+                                       for _ in range(self.workers)))
+            finally:
+                gc.unfreeze()
         self.store, self.pool = store, pool
         self.loaded_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         self.last_error = None

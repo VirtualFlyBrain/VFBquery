@@ -19,6 +19,12 @@ classes. With ``instance_graph=True``, each class path also gets its best
 neuron chains: paths in the neuron graph that step from a neuron of each class
 to a neuron of the next.
 
+**Neurons without a class.** Neuron-level paths can pass through neurons left
+out of the class graph. Their nodes have ``class: None``, plus ``status`` (why:
+``no_leaf``, ``multi_leaf``, ``only_axis`` or ``untyped``) and ``types``
+(``[{id, label}]``, the most specific types they do have) from the run's
+``report.tsv``.
+
 **Many sources and targets in one search.** Each graph has two extra vertices,
 a start joined to every vertex and an end joined from every vertex. A request
 passes its own weight vector, which is infinite (edge ignored) everywhere
@@ -236,6 +242,17 @@ class Connectome:
         # neuron vertex -> class vertex (-1: not assigned), and the reverse
         self.neuron_class = np.full(self.neuron_graph.n, -1, dtype=np.int32)
         self.neuron_class[nnames.get_indexer(nc["neuron"])] = cnames.get_indexer(nc["class"])
+        # neuron -> (status, [(type id, label)]) for neurons left out of the class graph
+        self.left_out = {}
+        report = os.path.join(folder, "report.tsv")
+        if os.path.exists(report):
+            rep = _read_tsv(report, {"neuron": str, "status": str, "types": str, "labels": str})
+            for n, st, ts, ls in zip(rep["neuron"], rep["status"], rep["types"], rep["labels"]):
+                ids = ts.split("|") if ts else []
+                labels = ls.split("|") if ls else []
+                if len(labels) != len(ids):
+                    labels = ids
+                self.left_out[n] = (st, list(zip(ids, labels)))
         order = np.argsort(self.neuron_class, kind="stable")
         bounds = np.searchsorted(self.neuron_class[order], np.arange(len(cnames) + 1))
         self.class_members = [order[bounds[i]:bounds[i + 1]] for i in range(len(cnames))]
@@ -267,6 +284,11 @@ class Connectome:
             cid = self.class_graph.names[c]
             node.update({"class": cid, "class_label": self.classes[cid]["label"],
                          "class_symbol": self.classes[cid]["symbol"]})
+        elif node["id"] in self.left_out:
+            # Why the neuron has no class, and the types it does have
+            status, types = self.left_out[node["id"]]
+            node.update({"status": status,
+                         "types": [{"id": t, "label": label} for t, label in types]})
         return node
 
 

@@ -841,7 +841,7 @@ def term_info_parse_object(results, short_form):
         _pub_map = _collect_term_pub_map(vfbTerm)
         try:
             # Retrieve description and link known author-year citations in the prose.
-            _desc_body = "".join(vfbTerm.term.description)
+            _desc_body = "  \n".join(vfbTerm.term.description)
             termInfo["Meta"]["Description"] = _linkify_citations(_desc_body, _pub_map, termInfo.get("Id", short_form), "description")
         except (NameError, AttributeError):
             pass
@@ -859,7 +859,7 @@ def term_info_parse_object(results, short_form):
                 termInfo["Meta"]["Description"] = (existing_desc + "\n(" + ", ".join(def_refs) + ")") if existing_desc else ("(" + ", ".join(def_refs) + ")")
         try:
             # Retrieve comment and link known author-year citations.
-            _comment_body = "".join(vfbTerm.term.comment)
+            _comment_body = "  \n".join(vfbTerm.term.comment)
             termInfo["Meta"]["Comment"] = _linkify_citations(_comment_body, _pub_map, termInfo.get("Id", short_form), "comment")
         except (NameError, AttributeError):
             pass

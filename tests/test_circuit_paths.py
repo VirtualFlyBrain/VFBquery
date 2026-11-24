@@ -103,6 +103,44 @@ def test_neuron_end_searches_the_neuron_graph(store):
     assert block["paths"][0]["nodes"][1]["class"] == "C"
 
 
+def _write_left_out_run(folder):
+    """x1 has two leaf types (X, Y); z1 is typed only to AB, which A and B subtype."""
+    types = dict(TYPES, x1=["X", "Y"], z1=["AB"])
+    labels = dict(LABELS, Y="class Y", AB="class AB")
+    anc = dict(ANC, Y=set())
+    edges = EDGES + [("a1", "z1", 6), ("z1", "d1", 6)]
+    up = dict(UP, z1=10)
+    down = dict(DOWN, z1=10)
+    meta = {"built": "2026-11-18T00:00:00Z"}
+    _, entry = vcc.write_site(os.path.join(folder, "tiny"), dict(meta, run="run-1", connectome="tiny"),
+                              types, up, down, labels, {}, anc, iter(edges), log=lambda *_: None)
+    vcc.write_manifest(str(folder), "run-1", meta, {"tiny": dict(entry, label="tiny label", symbol="tn")})
+    return str(folder)
+
+
+def test_neurons_without_a_class_say_why(tmp_path):
+    store = vc.load_run(_write_left_out_run(tmp_path), log=lambda *_: None)
+    _, block = paths(vc.find_paths(store, ["a1"], ["D"]))
+    nodes = {n["id"]: n for p in block["paths"] for n in p["nodes"]}
+    assert nodes["x1"]["class"] is None
+    assert nodes["x1"]["status"] == "multi_leaf"
+    assert sorted(t["id"] for t in nodes["x1"]["types"]) == ["X", "Y"]
+    assert {t["id"]: t["label"] for t in nodes["x1"]["types"]}["Y"] == "class Y"
+    assert nodes["z1"]["status"] == "no_leaf"
+    assert nodes["z1"]["types"] == [{"id": "AB", "label": "class AB"}]
+    # Neurons with a class carry neither
+    assert nodes["d1"]["class"] == "D" and "status" not in nodes["d1"]
+
+
+def test_a_run_without_a_report_still_loads(tmp_path):
+    folder = _write_left_out_run(tmp_path)
+    os.remove(os.path.join(folder, "tiny", "report.tsv"))
+    store = vc.load_run(folder, verify=False, log=lambda *_: None)
+    _, block = paths(vc.find_paths(store, ["a1"], ["D"]))
+    x1 = next(n for p in block["paths"] for n in p["nodes"] if n["id"] == "x1")
+    assert x1["class"] is None and "status" not in x1
+
+
 def test_instance_graph_gives_neuron_chains_along_each_class_path(store):
     _, block = paths(vc.find_paths(store, ["A"], ["D"], instance_graph=True))
     chains = block["paths"][0]["instances"]

@@ -22,6 +22,13 @@ If a later run fails to load, the last good one keeps being served and
 Searches run in ``VFBQUERY_CIRCUIT_WORKERS`` processes (default 2), forked
 after the graphs are loaded so they share the parent's memory. ``0`` runs
 searches in threads in the server process (for tests and local use).
+
+``VFBQUERY_CIRCUIT_TIME_LIMIT`` (seconds, default 30; 0 for none) bounds the
+time one search spends on example neuron chains (``instance_graph``), the
+only slow part: paths are always returned, and those not reached in time have
+no chains (see :func:`vfbquery.vfb_circuit.find_paths`). A worker cannot be
+stopped partway, so this is what keeps a slow request, even one whose client
+has gone, from holding a worker for minutes.
 """
 import asyncio
 import gc
@@ -78,11 +85,13 @@ def _keep_only(run):
 class CircuitState:
     """The run being served, its worker pool, and what is happening to them."""
 
-    def __init__(self, fixed_dir=None, root=None, workers=2, poll=60):
+    def __init__(self, fixed_dir=None, root=None, workers=2, poll=60,
+                 time_limit=vc.DEFAULT_TIME_LIMIT):
         if bool(fixed_dir) == bool(root):
             raise ValueError("give exactly one of VFBQUERY_CIRCUIT_DIR or VFBQUERY_CIRCUIT_ROOT")
         self.fixed_dir, self.root = fixed_dir, root
         self.workers, self.poll = workers, poll
+        self.time_limit = time_limit or None   # 0 -> no limit
         self.store = None
         self.pool = None
         self.loaded_at = None
@@ -230,7 +239,7 @@ async def handle_circuit_paths(request):
     result = cache.get(key)
     if result is None:
         result = await state.search(dict(kwargs, sources=sources, targets=targets,
-                                         exclude=exclude))
+                                         exclude=exclude, time_limit=state.time_limit))
         cache.put(key, result)
     if warnings:
         result = dict(result, warnings=list(result.get("warnings") or []) + warnings)
@@ -254,6 +263,7 @@ async def handle_status(request):
         "loading": state.loading,
         "last_error": state.last_error,
         "workers": state.workers,
+        "time_limit": state.time_limit,
         "cache_entries": request.app["result_cache"].size,
     })
 
@@ -263,14 +273,17 @@ async def handle_index(request):
                               "endpoints": ["/circuit_paths", "/health", "/status"]})
 
 
-def create_circuit_app(fixed_dir=None, root=None, workers=None, poll=None, cache_ttl=None):
+def create_circuit_app(fixed_dir=None, root=None, workers=None, poll=None, cache_ttl=None,
+                       time_limit=None):
     """Build the circuit-mode aiohttp app (settings default to the env vars)."""
     fixed_dir = fixed_dir or os.getenv("VFBQUERY_CIRCUIT_DIR") or None
     root = root or os.getenv("VFBQUERY_CIRCUIT_ROOT") or None
     workers = int(os.getenv("VFBQUERY_CIRCUIT_WORKERS", "2")) if workers is None else workers
     poll = float(os.getenv("VFBQUERY_CIRCUIT_POLL", "60")) if poll is None else poll
     cache_ttl = int(os.getenv("VFBQUERY_CACHE_TTL", "300")) if cache_ttl is None else cache_ttl
-    state = CircuitState(fixed_dir, root, workers, poll)
+    time_limit = (float(os.getenv("VFBQUERY_CIRCUIT_TIME_LIMIT", str(vc.DEFAULT_TIME_LIMIT)))
+                  if time_limit is None else time_limit)
+    state = CircuitState(fixed_dir, root, workers, poll, time_limit)
 
     app = web.Application(middlewares=[security_middleware])
     app.router.add_get("/", handle_index)

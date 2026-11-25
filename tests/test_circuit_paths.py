@@ -141,6 +141,43 @@ def test_a_run_without_a_report_still_loads(tmp_path):
     assert x1["class"] is None and "status" not in x1
 
 
+class _Clock:
+    """Stands in for the time module: each neuron chain search takes 10 s."""
+    def __init__(self):
+        self.now = 1000.0
+
+    def time(self):
+        return self.now
+
+
+def test_neuron_chains_stop_at_the_time_limit_best_paths_first(tmp_path, monkeypatch):
+    store = vc.load_run(write_run(tmp_path, datasets={"one": ("o1", DOWN), "two": ("t2", DOWN)}),
+                        log=lambda *_: None)
+    clock = _Clock()
+    chains = vc._instance_chains
+
+    def slow_chains(*args):
+        clock.now += 10
+        return chains(*args)
+    monkeypatch.setattr(vc, "time", clock)
+    monkeypatch.setattr(vc, "_instance_chains", slow_chains)
+
+    result = vc.find_paths(store, ["A"], ["D"], instance_graph=True, time_limit=25)
+    one, two = (next(b for b in result["datasets"] if b["dataset"] == d) for d in ("one", "two"))
+    # Each dataset's best path first, then each one's second: started at 0, 10
+    # and 20 s, so the fourth (two's second path) is left out.
+    assert [("instances" in p) for p in one["paths"]] == [True, True]
+    assert [("instances" in p) for p in two["paths"]] == [True, False]
+    assert result["time_limit_reached"] is True
+    assert any("1 of the class paths have no example neuron chains" in w for w in result["warnings"])
+
+    full = vc.find_paths(store, ["A"], ["D"], instance_graph=True, time_limit=None)
+    assert all("instances" in p for b in full["datasets"] for p in b["paths"])
+    assert "time_limit_reached" not in full
+    with pytest.raises(ValueError, match="time_limit"):
+        vc.find_paths(store, ["A"], ["D"], time_limit=0)
+
+
 def test_instance_graph_gives_neuron_chains_along_each_class_path(store):
     _, block = paths(vc.find_paths(store, ["A"], ["D"], instance_graph=True))
     chains = block["paths"][0]["instances"]
@@ -244,8 +281,9 @@ def test_circuit_mode_serves_paths_and_names_the_run(tmp_path):
         status = await (await client.get("/status")).json()
         return r.status, body, bad.status, await all_dbs.json(), status
 
-    app = create_circuit_app(root=str(tmp_path), workers=0, poll=3600)
+    app = create_circuit_app(root=str(tmp_path), workers=0, poll=3600, time_limit=12)
     status, body, bad, all_dbs, st = _serve(app, calls)
+    assert st["time_limit"] == 12
     assert status == 200
     assert body["run"] == "run-1"
     # hb is excluded by default, as on /query_connectivity.

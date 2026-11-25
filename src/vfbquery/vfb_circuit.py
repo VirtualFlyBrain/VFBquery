@@ -59,6 +59,10 @@ MAX_K = 20
 MAX_INSTANCE_K = 10
 DEFAULT_K = 5
 DEFAULT_INSTANCE_K = 3
+#: Seconds a search may spend on example neuron chains (instance_graph). Each
+#: chain search is one uninterruptible igraph call, 0.3-3 s on the large
+#: connectomes, so a search can run over by about that much.
+DEFAULT_TIME_LIMIT = 30.0
 #: Same default threshold as /query_connectivity's ``weight``.
 DEFAULT_MIN_SYNAPSES = 5
 NORMALISE = ("input", "output")
@@ -459,9 +463,19 @@ def search_dataset(con, sources, targets, k=DEFAULT_K, min_synapses=DEFAULT_MIN_
 
 def find_paths(store, sources, targets, k=DEFAULT_K, min_synapses=DEFAULT_MIN_SYNAPSES,
                min_inprop=0.0, normalise="input", exclude=(), instance_graph=False,
-               instance_k=DEFAULT_INSTANCE_K):
-    """Search every dataset in ``store`` except the ``exclude`` keys."""
+               instance_k=DEFAULT_INSTANCE_K, time_limit=None):
+    """Search every dataset in ``store`` except the ``exclude`` keys.
+
+    ``time_limit`` (seconds, None for none) bounds the time spent on example
+    neuron chains, the slow part of ``instance_graph``. The paths themselves
+    are always returned; chains are found best path first, taking each
+    dataset's first path, then each one's second, and so on, and stop when the
+    time is up. Paths left without chains have no ``instances`` key, and the
+    response says how many.
+    """
     validate(k, min_synapses, min_inprop, normalise, instance_k)
+    if time_limit is not None and not time_limit > 0:
+        raise ValueError("time_limit must be a positive number of seconds")
     t0 = time.time()
     blocks, found_in = [], {t: [] for t in list(sources) + list(targets)}
     for key, con in store.datasets.items():
@@ -471,9 +485,11 @@ def find_paths(store, sources, targets, k=DEFAULT_K, min_synapses=DEFAULT_MIN_SY
             if con.expand(t):
                 found_in[t].append(key)
         block = search_dataset(con, sources, targets, k, min_synapses, min_inprop,
-                               normalise, instance_graph, instance_k)
+                               normalise, False, instance_k)
         if block is not None:
-            blocks.append(block)
+            blocks.append((con, block))
+    timed_out = _add_instances(blocks, instance_k, normalise, time_limit, t0) if instance_graph else 0
+    blocks = [b for _, b in blocks]
 
     shared = collections.defaultdict(list)
     for b in blocks:
@@ -495,6 +511,33 @@ def find_paths(store, sources, targets, k=DEFAULT_K, min_synapses=DEFAULT_MIN_SY
                                for c, ds in shared.items() if len(ds) > 1],
         "seconds": round(time.time() - t0, 3),
     }
+    if timed_out:
+        result["time_limit_reached"] = True
+        warnings_.append(
+            f"Time limit ({time_limit:g} s) reached: {timed_out} of the class paths have no "
+            "example neuron chains (no 'instances'). Ask for fewer paths (k) or chains "
+            "(instance_k), or fewer datasets, to get them all.")
     if warnings_:
         result["warnings"] = warnings_
     return result
+
+
+def _add_instances(blocks, instance_k, normalise, time_limit, t0):
+    """Add example neuron chains to class paths until ``time_limit`` is used.
+
+    Best paths first across datasets, so that every dataset gets chains for
+    its top path before any gets them for its second. Returns how many paths
+    were left without chains.
+    """
+    pending = [(rank, i, con, path)
+               for i, (con, block) in enumerate(blocks) if block["level"] == "class"
+               for rank, path in enumerate(block["paths"])]
+    pending.sort(key=lambda x: (x[0], x[1]))
+    skipped = 0
+    for _, _, con, path in pending:
+        if time_limit is not None and time.time() - t0 >= time_limit:
+            skipped += 1
+            continue
+        vertices = [con.class_graph.index[n["id"]] for n in path["nodes"]]
+        path["instances"] = _instance_chains(con, vertices, instance_k, normalise)
+    return skipped

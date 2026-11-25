@@ -260,6 +260,16 @@ ENDPOINT_GROUPS = [
                 ],
             },
             {
+                "path": "/circuit_paths/terms",
+                "summary": "Neuron types a circuit path search can find",
+                "description": (
+                    "Every FBbt class with neurons in some connectome of the "
+                    "release being served: the leaf types and all their "
+                    "superclasses. A class not listed has no neurons in the "
+                    "circuit graphs, so /circuit_paths reports it as not found."),
+                "params": [],
+            },
+            {
                 "path": "/get_predicted_neurotransmitters",
                 "summary": "Predicted neurotransmitter(s) for a neuron type",
                 "description": (

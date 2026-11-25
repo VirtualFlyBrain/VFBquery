@@ -506,6 +506,7 @@ ALLOWED_PATHS = frozenset({
     "/search", "/facets", "/xref", "/combine", "/get_hierarchy",
     "/catmaid",
     "/circuit_paths",   # served by circuit mode (circuit_api.py), routed to it by the ingress
+    "/circuit_paths/terms",   # circuit mode too; under the same ingress prefix
 })
 
 #: Prefixes under which *dynamic* routes are allowed. Exact-match only would
@@ -4473,7 +4474,7 @@ def main():
     parser.add_argument(
         "--mode", choices=("api", "circuit"),
         default=os.getenv("VFBQUERY_MODE", "api"),
-        help="api: the main API (default). circuit: only /circuit_paths, serving "
+        help="api: the main API (default). circuit: only /circuit_paths(/terms), serving "
              "the circuit graphs from VFBQUERY_CIRCUIT_DIR or VFBQUERY_CIRCUIT_ROOT "
              "(see vfbquery.circuit_api)",
     )

@@ -246,6 +246,21 @@ async def handle_circuit_paths(request):
     return web.json_response(result)
 
 
+async def handle_circuit_terms(request):
+    """GET /circuit_paths/terms: every FBbt class with neurons in some dataset of
+    the run being served, so a client can tell which classes /circuit_paths can
+    find before asking (a class with none is reported as not found)."""
+    state = request.app["circuit"]
+    if state.store is None:
+        return _unavailable(state)
+    store = state.store
+    resp = web.json_response({"run": store.run, "built": store.built,
+                              "count": len(store.terms()), "terms": store.terms()},
+                             headers={"Cache-Control": "public, max-age=300"})
+    resp.enable_compression()
+    return resp
+
+
 async def handle_health(request):
     state = request.app["circuit"]
     if state.store is None:
@@ -270,7 +285,8 @@ async def handle_status(request):
 
 async def handle_index(request):
     return web.json_response({"mode": "circuit",
-                              "endpoints": ["/circuit_paths", "/health", "/status"]})
+                              "endpoints": ["/circuit_paths", "/circuit_paths/terms",
+                                            "/health", "/status"]})
 
 
 def create_circuit_app(fixed_dir=None, root=None, workers=None, poll=None, cache_ttl=None,
@@ -288,6 +304,7 @@ def create_circuit_app(fixed_dir=None, root=None, workers=None, poll=None, cache
     app = web.Application(middlewares=[security_middleware])
     app.router.add_get("/", handle_index)
     app.router.add_get("/circuit_paths", handle_circuit_paths)
+    app.router.add_get("/circuit_paths/terms", handle_circuit_terms)
     app.router.add_get("/health", handle_health)
     app.router.add_get("/status", handle_status)
     app["circuit"] = state

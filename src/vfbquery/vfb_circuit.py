@@ -306,6 +306,13 @@ class Store:
     def sites(self):
         return [c.site() for c in self.datasets.values()]
 
+    def terms(self):
+        """Every FBbt term with neurons in some dataset: the leaf classes and
+        all their superclasses, i.e. every class a search can start from."""
+        if getattr(self, "_terms", None) is None:
+            self._terms = sorted(set().union(*(c.leaves_under for c in self.datasets.values())))
+        return self._terms
+
     def summary(self):
         return {"run": self.run, "built": self.built, "folder": self.folder,
                 "load_seconds": round(self.load_seconds, 1),

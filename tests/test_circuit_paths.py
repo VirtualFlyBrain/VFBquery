@@ -257,6 +257,25 @@ def test_circuit_mode_serves_paths_and_names_the_run(tmp_path):
     assert st["serving"]["run"] == "run-1"
 
 
+def test_circuit_terms_lists_the_classes_a_search_can_find(tmp_path):
+    from vfbquery.circuit_api import create_circuit_app
+    write_run(tmp_path / "run-1")
+    (tmp_path / "CURRENT").write_text("run-1")
+
+    async def calls(client):
+        await _wait_loaded(client)
+        r = await client.get("/circuit_paths/terms")
+        return r.status, r.headers.get("Cache-Control"), await r.json()
+
+    status, cache, body = _serve(create_circuit_app(root=str(tmp_path), workers=0, poll=3600), calls)
+    assert status == 200
+    assert body["run"] == "run-1"
+    # Leaf classes and their superclasses (AB is above A and B)
+    assert body["terms"] == ["A", "AB", "B", "C", "D", "X"]
+    assert body["count"] == 6
+    assert "max-age" in cache
+
+
 def test_circuit_mode_is_unavailable_until_a_run_loads(tmp_path):
     from vfbquery.circuit_api import create_circuit_app
     (tmp_path / "CURRENT").write_text("missing-run")

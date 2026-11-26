@@ -113,7 +113,7 @@ def _write_left_out_run(folder):
     down = dict(DOWN, z1=10)
     meta = {"built": "2026-11-18T00:00:00Z"}
     _, entry = vcc.write_site(os.path.join(folder, "tiny"), dict(meta, run="run-1", connectome="tiny"),
-                              types, up, down, labels, {}, anc, iter(edges), log=lambda *_: None)
+                              types, up, down, labels, {"Y": "Ysym"}, anc, iter(edges), log=lambda *_: None)
     vcc.write_manifest(str(folder), "run-1", meta, {"tiny": dict(entry, label="tiny label", symbol="tn")})
     return str(folder)
 
@@ -126,10 +126,29 @@ def test_neurons_without_a_class_say_why(tmp_path):
     assert nodes["x1"]["status"] == "multi_leaf"
     assert sorted(t["id"] for t in nodes["x1"]["types"]) == ["X", "Y"]
     assert {t["id"]: t["label"] for t in nodes["x1"]["types"]}["Y"] == "class Y"
+    # Symbols where the type has one
+    assert {t["id"]: t.get("symbol") for t in nodes["x1"]["types"]} == {"X": None, "Y": "Ysym"}
     assert nodes["z1"]["status"] == "no_leaf"
     assert nodes["z1"]["types"] == [{"id": "AB", "label": "class AB"}]
     # Neurons with a class carry neither
     assert nodes["d1"]["class"] == "D" and "status" not in nodes["d1"]
+
+
+def test_a_report_without_symbols_still_loads(tmp_path):
+    """Runs built before report.tsv had a symbols column."""
+    folder = _write_left_out_run(tmp_path)
+    path = os.path.join(folder, "tiny", "report.tsv")
+    with open(path) as f:
+        lines = f.read().splitlines()
+    old = [line for line in lines if not line.startswith("#   symbols")]
+    old = [line if line.startswith("#") else "\t".join(line.split("\t")[:4]) for line in old]
+    with open(path, "w") as f:
+        f.write("\n".join(old) + "\n")
+    store = vc.load_run(folder, verify=False, log=lambda *_: None)
+    _, block = paths(vc.find_paths(store, ["a1"], ["D"]))
+    x1 = next(n for p in block["paths"] for n in p["nodes"] if n["id"] == "x1")
+    assert x1["status"] == "multi_leaf"
+    assert all("symbol" not in t for t in x1["types"])
 
 
 def test_a_run_without_a_report_still_loads(tmp_path):

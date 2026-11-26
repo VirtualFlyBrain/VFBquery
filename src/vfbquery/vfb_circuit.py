@@ -23,7 +23,8 @@ to a neuron of the next.
 out of the class graph. Their nodes have ``class: None``, plus ``status`` (why:
 ``no_leaf``, ``multi_leaf``, ``only_axis`` or ``untyped``) and ``types``
 (``[{id, label}]``, the most specific types they do have) from the run's
-``report.tsv``.
+``report.tsv``. Each type also has a ``symbol`` where it has one (runs built
+since the report gained a symbols column).
 
 **Many sources and targets in one search.** Each graph has two extra vertices,
 a start joined to every vertex and an end joined from every vertex. A request
@@ -246,17 +247,24 @@ class Connectome:
         # neuron vertex -> class vertex (-1: not assigned), and the reverse
         self.neuron_class = np.full(self.neuron_graph.n, -1, dtype=np.int32)
         self.neuron_class[nnames.get_indexer(nc["neuron"])] = cnames.get_indexer(nc["class"])
-        # neuron -> (status, [(type id, label)]) for neurons left out of the class graph
+        # neuron -> (status, [(type id, label, symbol)]) for neurons left out of
+        # the class graph. Runs built before the symbols column have no symbols.
         self.left_out = {}
         report = os.path.join(folder, "report.tsv")
         if os.path.exists(report):
-            rep = _read_tsv(report, {"neuron": str, "status": str, "types": str, "labels": str})
-            for n, st, ts, ls in zip(rep["neuron"], rep["status"], rep["types"], rep["labels"]):
+            rep = _read_tsv(report, {"neuron": str, "status": str, "types": str, "labels": str,
+                                     "symbols": str})
+            no_symbols = [""] * len(rep)
+            for n, st, ts, ls, ss in zip(rep["neuron"], rep["status"], rep["types"], rep["labels"],
+                                         rep["symbols"] if "symbols" in rep else no_symbols):
                 ids = ts.split("|") if ts else []
                 labels = ls.split("|") if ls else []
+                symbols = ss.split("|") if ss else []
                 if len(labels) != len(ids):
                     labels = ids
-                self.left_out[n] = (st, list(zip(ids, labels)))
+                if len(symbols) != len(ids):
+                    symbols = [""] * len(ids)
+                self.left_out[n] = (st, list(zip(ids, labels, symbols)))
         order = np.argsort(self.neuron_class, kind="stable")
         bounds = np.searchsorted(self.neuron_class[order], np.arange(len(cnames) + 1))
         self.class_members = [order[bounds[i]:bounds[i + 1]] for i in range(len(cnames))]
@@ -292,7 +300,8 @@ class Connectome:
             # Why the neuron has no class, and the types it does have
             status, types = self.left_out[node["id"]]
             node.update({"status": status,
-                         "types": [{"id": t, "label": label} for t, label in types]})
+                         "types": [dict({"id": t, "label": label}, **({"symbol": sym} if sym else {}))
+                                   for t, label, sym in types]})
         return node
 
 

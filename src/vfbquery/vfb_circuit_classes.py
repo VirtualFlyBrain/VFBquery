@@ -310,7 +310,8 @@ TABLES = {
                     f"{MULTI_LEAF}: more than one leaf type; {ONLY_AXIS}: only axis classes; "
                     f"{UNTYPED}: no type"),
          ("types", "the neuron's most specific types (FBbt ids, '|'-separated)"),
-         ("labels", "their labels ('|'-separated)")]),
+         ("labels", "their labels ('|'-separated)"),
+         ("symbols", "their symbols, empty where none ('|'-separated)")]),
 }
 
 
@@ -428,7 +429,8 @@ def write_site(folder, meta, types, up, down, labels, symbols, ancestors, edges,
     with _Table(folder, "report.tsv", meta) as t:
         for n, (st, cands) in sorted(status.items()):
             if st != ASSIGNED:
-                t.row(n, st, "|".join(cands), "|".join(labels.get(c, c) for c in cands))
+                t.row(n, st, "|".join(cands), "|".join(labels.get(c, c) for c in cands),
+                      "|".join(symbols.get(c, "") for c in cands))
     files[t.name] = t.entry()
 
     g = {"site": meta["connectome"], "endpoint": meta.get("endpoint", ""),

@@ -157,7 +157,7 @@ def _write_tiny(folder):
     edges = [("a1", "b1", 4), ("a2", "b1", 6), ("x", "b1", 2), ("a1", "elsewhere", 9)]
     meta = {"connectome": "tiny", "run": "run-1", "built": "2026-11-18T00:00:00Z"}
     return vc.write_site(str(folder / "tiny"), meta, types, up, down, labels,
-                         {"MBON01": "MBON01"}, ANC, iter(edges), log=lambda *_: None)
+                         {"MBON01": "MBON01", "T2": "T2sym"}, ANC, iter(edges), log=lambda *_: None)
 
 
 def test_site_files_follow_the_agreed_layout(tmp_path):
@@ -182,8 +182,8 @@ def test_site_files_follow_the_agreed_layout(tmp_path):
     assert rows == [["KCab-p", "KCab-p label", "", "2", "KC|KCab"],
                     ["MBON01", "MBON01 label", "MBON01", "1", "MBON"]]
     _, _, rows = vc.read_table(str(tmp_path / "tiny" / "report.tsv"))
-    assert rows == [["x", vc.NO_LEAF, "KCab", "KCab label"],
-                    ["y", vc.MULTI_LEAF, "T1|T2", "T1 label|T2 label"]]
+    assert rows == [["x", vc.NO_LEAF, "KCab", "KCab label", ""],
+                    ["y", vc.MULTI_LEAF, "T1|T2", "T1 label|T2 label", "|T2sym"]]
 
 
 def test_same_content_gives_the_same_checksums(tmp_path):
